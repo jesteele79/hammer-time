@@ -1,4 +1,6 @@
 node_modules
+startup.log
+startup-error.log
 .vercel
 .grok
 .tanstack

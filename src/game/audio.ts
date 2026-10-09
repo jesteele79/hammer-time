@@ -16,15 +16,52 @@ export class AudioBus {
   private step = 0;
   private nextAt = 0;
   hurry = false;
+  private yellSrc: AudioBufferSourceNode | null = null;
+  private yellBytes: Promise<ArrayBuffer> | null = null;
+  private yellDecode: Promise<void> | null = null;
+  ready = false;
+  failed = false;
+  lastVoiceAt = -1;
+  voiceCount = 0;
+
+  /** Fetch on the title screen; decoding never happens inside the hit handler. */
+  preloadCurse() {
+    if (!this.yellBytes) {
+      this.yellBytes = fetch("/damage-voice.wav", { signal: AbortSignal.timeout(8000) }).then(
+        (r) => {
+          if (!r.ok) throw new Error("Damage sound unavailable");
+          return r.arrayBuffer();
+        },
+      );
+      void this.yellBytes.catch(() => {
+        this.failed = true;
+      });
+    }
+    if (this.ctx && !this.yellDecode) {
+      const ctx = this.ctx;
+      this.yellDecode = this.yellBytes
+        .then((b) => ctx.decodeAudioData(b.slice(0)))
+        .then((buffer) => {
+          this.yellBuf = buffer;
+          this.ready = true;
+        })
+        .catch(() => {
+          this.failed = true;
+        });
+    }
+  }
 
   unlock() {
     try {
       const Ctor =
         window.AudioContext ||
         (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return;
+      if (!Ctor) {
+        this.failed = true;
+        return;
+      }
       if (!this.ctx) {
-        this.ctx = new Ctor();
+        this.ctx = new Ctor({ latencyHint: "interactive" });
         this.master = this.ctx.createGain();
         this.musicGain = this.ctx.createGain();
         this.sfxGain = this.ctx.createGain();
@@ -35,13 +72,15 @@ export class AudioBus {
         this.master.connect(this.ctx.destination);
       }
       if (this.ctx.state === "suspended") void this.ctx.resume();
+      this.preloadCurse();
     } catch {
-      /* audio is optional */
+      this.failed = true;
     }
   }
 
   setMuted(muted: boolean) {
     this.muted = muted;
+    if (muted) this.stopVoice();
     if (this.master && this.ctx) {
       this.master.gain.setTargetAtTime(muted ? 0 : 1, this.ctx.currentTime, 0.03);
     }
@@ -58,6 +97,67 @@ export class AudioBus {
 
   stopMusic() {
     this.musicOn = false;
+  }
+
+  stopVoice() {
+    if (this.yellSrc) {
+      this.yellSrc.onended = null;
+      try {
+        this.yellSrc.stop();
+      } catch {
+        /* already ended */
+      }
+      this.yellSrc.disconnect();
+      this.yellSrc = null;
+    }
+  }
+
+  destroy() {
+    this.stopVoice();
+    if (this.ctx) void this.ctx.close();
+  }
+
+  whoosh() {
+    this.noise(0.11, 0.16, 1000);
+  }
+  cloth() {
+    this.noise(0.2, 0.045, 2200);
+  }
+  thud() {
+    this.noise(0.08, 0.2, 200);
+    this.blip(90, 0.12, "sine", 0.7, 38);
+  }
+  fizz() {
+    this.noise(0.14, 0.1, 3600);
+  }
+  splat() {
+    this.noise(0.1, 0.16, 600);
+    this.blip(150, 0.08, "sine", 0.3, 50);
+  }
+
+  private noise(duration: number, gain: number, cutoff: number) {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    const ctx = this.ctx;
+    const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++)
+      data[i] = (Math.random() * 2 - 1) * (1 - i / data.length) ** 2;
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const volume = ctx.createGain();
+    filter.type = "lowpass";
+    filter.frequency.value = cutoff;
+    volume.gain.value = gain;
+    source.buffer = buffer;
+    source.connect(filter);
+    filter.connect(volume);
+    volume.connect(this.sfxGain);
+    source.start();
+    source.onended = () => {
+      source.disconnect();
+      filter.disconnect();
+      volume.disconnect();
+    };
   }
 
   tick() {
@@ -110,64 +210,48 @@ export class AudioBus {
   }
   power() {
     const t0 = this.ctx?.currentTime ?? 0;
-    [523, 659, 784, 1046].forEach((f, i) => this.blip(f, 0.1, "square", 0.12, undefined, i * 0.07, t0));
+    [523, 659, 784, 1046].forEach((f, i) =>
+      this.blip(f, 0.1, "square", 0.12, undefined, i * 0.07, t0),
+    );
   }
   oneUp() {
-    [523, 659, 784, 1046, 784, 1046].forEach((f, i) => this.blip(f, 0.09, "square", 0.12, undefined, i * 0.06));
+    [523, 659, 784, 1046, 784, 1046].forEach((f, i) =>
+      this.blip(f, 0.09, "square", 0.12, undefined, i * 0.06),
+    );
   }
   die() {
-    [494, 392, 330, 262, 196].forEach((f, i) => this.blip(f, 0.16, "square", 0.14, undefined, i * 0.1));
+    [494, 392, 330, 262, 196].forEach((f, i) =>
+      this.blip(f, 0.16, "square", 0.14, undefined, i * 0.1),
+    );
   }
   clear() {
     [392, 494, 587, 784].forEach((f, i) => this.blip(f, 0.14, "square", 0.13, undefined, i * 0.09));
   }
   private yellBuf: AudioBuffer | null = null;
-  private yellLoading = false;
-  private yellEl: HTMLAudioElement | null = null;
-
-  preloadCurse() {
-    this.unlock();
-    if (!this.yellEl) {
-      this.yellEl = new Audio("/absolute-bullshit.mp3");
-      this.yellEl.preload = "auto";
-      this.yellEl.load();
-    }
-    if (!this.ctx || this.yellBuf || this.yellLoading) return;
-    const ctx = this.ctx;
-    this.yellLoading = true;
-    void fetch("/absolute-bullshit.mp3")
-      .then((r) => r.arrayBuffer())
-      .then((b) => ctx.decodeAudioData(b))
-      .then((buf) => {
-        this.yellBuf = buf;
-      })
-      .catch(() => {
-        this.yellLoading = false;
-      });
-  }
 
   curse() {
-    this.unlock();
     if (this.muted) return;
-    if (this.ctx?.state === "suspended") void this.ctx.resume();
+    this.stopVoice();
     if (this.yellBuf && this.ctx && this.master) {
+      const at = this.ctx.currentTime;
       const src = this.ctx.createBufferSource();
       src.buffer = this.yellBuf;
       src.connect(this.master);
-      src.start(0);
+      this.yellSrc = src;
+      this.lastVoiceAt = at;
+      this.voiceCount++;
+      const music = this.musicGain?.gain;
+      music?.cancelScheduledValues(at);
+      music?.setValueAtTime(0.025, at);
+      music?.setTargetAtTime(0.07, at + this.yellBuf.duration, 0.12);
+      src.onended = () => {
+        src.disconnect();
+        if (this.yellSrc === src) this.yellSrc = null;
+      };
+      src.start(at);
       return;
     }
-    if (!this.yellEl) this.preloadCurse();
-    if (!this.yellEl) return;
-    try {
-      this.yellEl.currentTime = 0;
-    } catch {
-      /* not seekable yet */
-    }
-    void this.yellEl.play().catch(() => {
-      this.blip(150, 0.14, "square", 0.18, 70);
-      this.blip(90, 0.16, "sawtooth", 0.12, 50, 0.08);
-    });
+    this.thud();
   }
 
   tickSfx() {

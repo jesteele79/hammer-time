@@ -22,6 +22,7 @@ export type Level = {
   deco: { x: number; y: number; k: "shrub" | "stack" }[];
   spawnX: number;
   time: number;
+  checkpointTile: number;
 };
 
 function stamp(t: Uint8Array, w: number, x: number, y: number, id: TileId) {
@@ -43,7 +44,14 @@ function fillGround(w: number, pits: Array<[number, number]>): Uint8Array {
   return t;
 }
 
-function pipe(t: Uint8Array, w: number, tx: number, height: number, dest: Pipe["dest"], pipes: Pipe[]) {
+function pipe(
+  t: Uint8Array,
+  w: number,
+  tx: number,
+  height: number,
+  dest: Pipe["dest"],
+  pipes: Pipe[],
+) {
   const top = GROUND_ROW - height;
   for (let i = 0; i < height; i++) {
     stamp(t, w, tx, top + i, ID.pipe);
@@ -78,7 +86,8 @@ function buildHill(): Level {
     [87, 89],
     [130, 132],
   ]);
-  stamp(t, w, 13, 8, ID.power);
+  stamp(t, w, 7, 8, ID.power);
+  stamp(t, w, 13, 8, ID.question);
   stamp(t, w, 16, 8, ID.brick);
   stamp(t, w, 17, 8, ID.question);
   stamp(t, w, 18, 8, ID.brick);
@@ -135,6 +144,7 @@ function buildHill(): Level {
     ],
     spawnX: 32,
     time: 300,
+    checkpointTile: 64,
   };
 }
 
@@ -147,7 +157,14 @@ function buildCellar(): Level {
     [108, 110],
   ]);
   for (let x = 24; x < 132; x++) {
-    if ((x >= 50 && x <= 54) || (x >= 90 && x <= 94)) continue;
+    if (
+      (x >= 31 && x <= 42) ||
+      (x >= 50 && x <= 54) ||
+      (x >= 68 && x <= 78) ||
+      (x >= 90 && x <= 94) ||
+      (x >= 103 && x <= 114)
+    )
+      continue;
     stamp(t, w, x, 1, ID.brick);
     stamp(t, w, x, 2, ID.brick);
   }
@@ -169,7 +186,8 @@ function buildCellar(): Level {
   coins(t, w, [91, 92, 93], 6);
   stamp(t, w, 94, 11, ID.nut);
   stamp(t, w, 100, 8, ID.power);
-  for (let x = 102; x <= 106; x++) stamp(t, w, x, 8, ID.brick);
+  // Leave a clear run-up before the pit for the full-height character.
+  for (let x = 102; x <= 104; x++) stamp(t, w, x, 8, ID.brick);
   coins(t, w, [118, 119, 120, 121], 9);
   stairs(t, w, 126, 5);
   return {
@@ -196,6 +214,7 @@ function buildCellar(): Level {
     deco: [],
     spawnX: 32,
     time: 260,
+    checkpointTile: 76,
   };
 }
 
@@ -233,5 +252,6 @@ function buildBonus(): Level {
     deco: [],
     spawnX: 72,
     time: 0,
+    checkpointTile: -1,
   };
 }
