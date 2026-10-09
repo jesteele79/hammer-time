@@ -1,9 +1,43 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { Pause, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, ChevronDown, Keyboard, Pause, Volume2, VolumeX } from "lucide-react";
 import { Game, type Hud, type Mode, type TouchAction } from "@/game/engine";
 import { DISPLAY_H, DISPLAY_W } from "@/game/constants";
 
 const BEST_KEY = "hammer-time-best";
+const starts = [
+  {
+    name: "Full shift",
+    place: "Hotel lobby",
+    note: "Lobby. Restaurant. Campus. Then the pig.",
+    image: "/npc-hotel.webp",
+    code: "01",
+    detail: "The whole run",
+  },
+  {
+    name: "Restaurant",
+    place: "Lunch rush",
+    note: "Jump counters, slide the service passes, and handle the lunch rush.",
+    image: "/npc-server.webp",
+    code: "02",
+    detail: "Practice the rush",
+  },
+  {
+    name: "Campus",
+    place: "Finals week",
+    note: "More students. More paper airplanes. Same short fuse.",
+    image: "/npc-student.webp",
+    code: "03",
+    detail: "Dodge the paper",
+  },
+  {
+    name: "Pink pig",
+    place: "The Pink Menace",
+    note: "12 HP. At least 3 bonks and 3 snots. Settle the score.",
+    image: "/boss-pig-reference.webp",
+    code: "04",
+    detail: "Boss practice",
+  },
+];
 const initial: Hud = {
   score: 0,
   coins: 0,
@@ -43,6 +77,10 @@ export function KilnHop() {
     [best, setBest] = useState(0);
   const [ready, setReady] = useState(false);
   const [venue, setVenue] = useState(0);
+  const chooseVenue = (next: number) => {
+    setVenue(next);
+    gameRef.current?.setStartingVenue(next);
+  };
   useEffect(() => {
     const canvas = canvasRef.current,
       play = playRef.current,
@@ -113,6 +151,149 @@ export function KilnHop() {
   ];
   return (
     <main className="stage" data-mode={mode} data-stance={hud.stance}>
+      {mode === "title" && (
+        <section className="start-screen" aria-label="Hammer Time start screen">
+          <div
+            className="start-backdrop"
+            aria-hidden="true"
+            style={{
+              backgroundImage: `url(${venue < 2 ? "/hotel-corridor.webp" : "/campus-common.webp"})`,
+            }}
+          />
+          <div className="start-shell">
+            <header className="start-top">
+              <span className="start-edition">A very personal hospitality problem</span>
+              <div className="start-top-tools">
+                <span className="start-record">
+                  Personal best <b>{pad(best)}</b>
+                </span>
+                <button
+                  className="icon-btn"
+                  aria-pressed={muted}
+                  aria-label={muted ? "Unmute" : "Mute"}
+                  onClick={() => setMuted(gameRef.current?.toggleMute() ?? !muted)}
+                >
+                  {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                </button>
+              </div>
+            </header>
+            <div className="start-main">
+              <div className="start-copy">
+                <p className="start-eyebrow">
+                  <span /> Three venues. Zero patience.
+                </p>
+                <h1>
+                  HAMMER
+                  <span>
+                    TIME<span className="start-period">.</span>
+                  </span>
+                </h1>
+                <p className="start-tagline">
+                  Bonk the staff. Dodge the paper.
+                  <br />
+                  Settle it with the pig.
+                </p>
+                <div className="start-launch">
+                  <button className="start-button" disabled={!ready} onClick={start}>
+                    {ready ? "Clock in" : "Getting Hammer ready…"}
+                    <ArrowRight size={22} aria-hidden="true" />
+                  </button>
+                  <div className="start-selected" aria-live="polite">
+                    <b>{starts[venue].place}</b>
+                    <span>{starts[venue].note}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="start-art" aria-hidden="true">
+                <div className="start-art-glow" />
+                <span className="start-vs">VS.</span>
+                <img className="start-hero" src="/hero-idle-calm.png" alt="" draggable="false" />
+                <img
+                  className="start-pig"
+                  src="/boss-pig-reference.webp"
+                  alt=""
+                  draggable="false"
+                />
+                <span className="start-pig-label">Soft toy. Hard feelings.</span>
+                <svg className="start-paper" viewBox="0 0 90 45">
+                  <path d="M4 18 85 4 48 40 38 25Z" fill="#e4e9e5" />
+                  <path
+                    d="m4 18 34 7L85 4 42 30l6 10"
+                    fill="none"
+                    stroke="#84969e"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </div>
+            </div>
+            <nav className="start-venues" aria-label="Choose a starting point">
+              {starts.map((point, index) => (
+                <button
+                  key={point.name}
+                  className="start-venue"
+                  data-venue={index}
+                  aria-label={`Start at ${point.name}`}
+                  aria-pressed={venue === index}
+                  disabled={!ready}
+                  onClick={() => chooseVenue(index)}
+                >
+                  <span className="start-venue-number">{point.code}</span>
+                  <span className="start-venue-copy">
+                    <b>{point.name}</b>
+                    <small>{point.detail}</small>
+                  </span>
+                  <img src={point.image} alt="" draggable="false" />
+                  <span className="start-venue-mark" aria-hidden="true">
+                    <ArrowRight size={15} />
+                  </span>
+                </button>
+              ))}
+            </nav>
+            <footer className="start-footer">
+              <div className="start-loadout" aria-label="Signature power-ups">
+                <span>
+                  <img src="/coke-zero.webp" alt="" />
+                  <b>
+                    Coke Zero<small>Cool off</small>
+                  </b>
+                </span>
+                <span>
+                  <img src="/nuts-bag.webp" alt="" />
+                  <b>
+                    Mixed nuts<small>Charge up</small>
+                  </b>
+                </span>
+                <span>
+                  <img src="/buccees-pickup.webp" alt="" />
+                  <b>
+                    Buc-ee’s<small>Go invincible</small>
+                  </b>
+                </span>
+              </div>
+              <details className="start-help">
+                <summary>
+                  <Keyboard size={18} /> How to play <ChevronDown size={15} />
+                </summary>
+                <div className="start-help-body">
+                  <p>Move with arrows or A / D. On a phone, use the touch controls.</p>
+                  <ul>
+                    {controls.map(([key, label]) => (
+                      <li key={key}>
+                        <kbd>{key}</kbd>
+                        <span>{label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p>
+                    Jump into a ! crate for pepper to unlock snot. Duck or swat student airplanes.
+                    The pig needs at least three bonks and three snots.
+                  </p>
+                </div>
+              </details>
+            </footer>
+          </div>
+        </section>
+      )}
       <header className="hud">
         <div className="wordmark">
           <span>HAMMER</span>
@@ -221,45 +402,6 @@ export function KilnHop() {
                 <small>
                   Bonks {Math.min(3, hud.boss.bonks)}/3 · Snots {Math.min(3, hud.boss.snots)}/3
                 </small>
-              </div>
-            )}
-            {mode === "title" && (
-              <div className="veil veil-title">
-                <div className="title-dock">
-                  <p className="kicker">Hospitality's most difficult regular</p>
-                  <h1>
-                    HAMMER
-                    <br />
-                    <span>TIME.</span>
-                  </h1>
-                  <p className="title-copy">
-                    Mallet in hand. Affliction on.
-                    <br />
-                    No service with a smile.
-                  </p>
-                  <button className="btn-nes" disabled={!ready} onClick={start}>
-                    {ready ? "Clock in" : "Loading…"} <span aria-hidden="true">→</span>
-                  </button>
-                  <label className="venue-picker">
-                    Start at
-                    <select
-                      aria-label="Starting venue"
-                      disabled={!ready}
-                      value={venue}
-                      onChange={(e) => {
-                        const next = Number(e.target.value);
-                        setVenue(next);
-                        gameRef.current?.setStartingVenue(next);
-                      }}
-                    >
-                      <option value={0}>Hotel lobby · full shift</option>
-                      <option value={1}>Restaurant practice</option>
-                      <option value={2}>Campus practice</option>
-                      <option value={3}>Pink pig boss practice</option>
-                    </select>
-                  </label>
-                  <p className="best">Best {pad(best)} · 3 long venues + the pink pig</p>
-                </div>
               </div>
             )}
             {mode === "card" && (

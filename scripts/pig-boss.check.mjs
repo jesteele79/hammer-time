@@ -17,7 +17,7 @@ try {
   page.setDefaultTimeout(150000);
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url);
-  await page.getByLabel("Starting venue").selectOption("3");
+  await page.getByRole("button", { name: "Start at Pink pig", exact: true }).click();
   await page.getByRole("button", { name: "Clock in" }).click();
   await page.waitForFunction(() => window.__kiln?.mode === "play");
   await page.evaluate(async () => {
@@ -89,7 +89,7 @@ try {
   assert.ok(result.bonks >= 3 && result.snots >= 3);
 
   await page.goto(url);
-  await page.getByLabel("Starting venue").selectOption("2");
+  await page.getByRole("button", { name: "Start at Campus", exact: true }).click();
   await page.getByRole("button", { name: "Clock in" }).click();
   await page.waitForFunction(() => window.__kiln?.mode === "play");
   await page.evaluate(async () => {

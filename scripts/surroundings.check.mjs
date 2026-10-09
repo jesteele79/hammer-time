@@ -22,7 +22,12 @@ try {
     [2, "campus", 211],
   ]) {
     await page.goto(url);
-    await page.getByLabel("Starting venue").selectOption(String(venue));
+    await page
+      .getByRole("button", {
+        name: `Start at ${["Full shift", "Restaurant", "Campus"][venue]}`,
+        exact: true,
+      })
+      .click();
     await page.getByRole("button", { name: "Clock in" }).click();
     await page.waitForFunction(() => window.__kiln?.mode === "play");
     await page.evaluate(async (target) => {
@@ -50,10 +55,10 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(url);
   await page.getByRole("button", { name: "Clock in" }).waitFor();
-  await page.waitForFunction(() => !document.querySelector(".venue-picker select")?.disabled);
+  await page.waitForFunction(() => !document.querySelector(".start-button")?.disabled);
   const dockFits = () => {
-    const dock = document.querySelector(".title-dock").getBoundingClientRect();
-    const frame = document.querySelector(".game").getBoundingClientRect();
+    const dock = document.querySelector(".start-venues").getBoundingClientRect();
+    const frame = document.querySelector(".start-screen").getBoundingClientRect();
     return (
       dock.top >= frame.top &&
       dock.bottom <= frame.bottom &&
@@ -61,21 +66,17 @@ try {
       dock.right <= frame.right
     );
   };
-  assert.equal(await page.evaluate(dockFits), true, "portrait title must fit inside the playfield");
+  assert.equal(await page.evaluate(dockFits), true, "portrait starting points fit the viewport");
   await page.screenshot({ path: resolve(out, "surroundings-phone-title.png") });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
-  await page.getByLabel("Starting venue").selectOption("2");
+  await page.getByRole("button", { name: "Start at Campus", exact: true }).click();
   await page.getByRole("button", { name: "Clock in" }).click();
   await page.waitForFunction(() => window.__kiln?.mode === "play");
   await page.screenshot({ path: resolve(out, "surroundings-phone.png") });
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto(url);
-  await page.waitForFunction(() => !document.querySelector(".venue-picker select")?.disabled);
-  assert.equal(
-    await page.evaluate(dockFits),
-    true,
-    "landscape title must fit inside the playfield",
-  );
+  await page.waitForFunction(() => !document.querySelector(".start-button")?.disabled);
+  assert.equal(await page.evaluate(dockFits), true, "landscape starting points fit the viewport");
   await page.screenshot({ path: resolve(out, "surroundings-landscape-title.png") });
   assert.deepEqual(errors, []);
   writeFileSync(

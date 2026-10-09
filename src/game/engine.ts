@@ -395,7 +395,12 @@ export class Game {
     this.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.loadLevel(this.courses[0], 1, 0, true);
     this.onKeyDown = (e) => {
-      if (e.target instanceof HTMLElement && e.target.closest("select")) return;
+      if (
+        e.target instanceof HTMLElement &&
+        (e.target.closest("select") ||
+          (this.mode === "title" && e.target.closest("button,summary")))
+      )
+        return;
       this.probeActive = false;
       this.keys.add(e.code);
       if (!e.repeat) {
@@ -626,7 +631,6 @@ export class Game {
     this.jumpHeld = this.actions.jump;
 
     if (this.mode === "title") {
-      this.drawTitle();
       this.emit();
       return;
     }
@@ -2966,25 +2970,6 @@ export class Game {
     ctx.fillRect(x - 3, y - 3, 1, 11);
     ctx.fillRect(x + w, y - 3, 1, 11);
     this.px(line, x, y, "#c44838");
-  }
-
-  private drawTitle() {
-    const ctx = this.ctx;
-    this.paintStage(this.clock * 8, false);
-    const hero = this.heroIdle;
-    if (hero.complete && hero.naturalWidth > 0) {
-      const h = 168;
-      const w = (hero.naturalWidth / hero.naturalHeight) * h;
-      ctx.drawImage(hero, VIEW_W - w - 18, 206 - h, w, h);
-    }
-    const shade = ctx.createLinearGradient(0, 0, VIEW_W, 0);
-    shade.addColorStop(0, "rgba(6,14,21,0.94)");
-    shade.addColorStop(0.62, "rgba(6,14,21,0.65)");
-    shade.addColorStop(1, "rgba(6,14,21,0)");
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, 0, 260, VIEW_H);
-
-    this.gradeStage();
   }
 
   private px(text: string, x: number, y: number, color: string) {

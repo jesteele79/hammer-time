@@ -29,10 +29,21 @@ and preserve the existing Grok platform integrations.
 Touch controls support simultaneous movement and actions. Landscape gives a
 larger playfield on phones.
 
+## Start screen
+
+The full-screen launch menu shows Hammer facing the Pink Menace, using the
+approved original cutouts. Four illustrated starting-point buttons select the
+full shift, restaurant, campus or pig practice. Clock in launches that choice.
+The menu includes signature pickups, a stored personal best, mute and an
+expandable How to play section. The game HUD and touch pad appear after launch.
+Keyboard activation of menu buttons selects or opens that control without
+accidentally starting the game; Enter or Space outside a control starts the
+selected run. Small phones can scroll the menu.
+
 ## Routes and surroundings
 
 The shift runs through a hotel lobby, restaurant service area and campus dining
-commons, then a stuffed-pig boss arena. The title selector starts any venue or
+commons, then a stuffed-pig boss arena. The visual start menu starts any venue or
 boss practice directly. The three regular routes are roughly twice their
 previous length, with multiple checkpoints and a 420-second time allowance.
 
@@ -109,6 +120,7 @@ $env:BROWSER_SMOKE_CHANNEL='chrome'
 node scripts/browser-smoke.mjs http://127.0.0.1:8080/ artifacts/game-dev.png
 node scripts/game-browser-check.mjs http://127.0.0.1:8080/ --poses
 node scripts/surroundings.check.mjs http://127.0.0.1:8080/
+node scripts/start-screen.check.mjs http://127.0.0.1:8080/
 node scripts/pig-boss.check.mjs http://127.0.0.1:8080/
 ```
 
