@@ -20,6 +20,7 @@ export const ID = {
   hidden: 10,
   nut: 11,
   treat: 12,
+  buc: 13,
 } as const;
 
 export type TileId = (typeof ID)[keyof typeof ID];

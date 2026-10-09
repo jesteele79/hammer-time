@@ -9,7 +9,7 @@ const initial: Hud = {
   coins: 0,
   world: "1-1",
   name: "Lobby & Lunch Rush",
-  time: 240,
+  time: 420,
   lives: 3,
   form: 1,
   charge: 0,
@@ -21,6 +21,7 @@ const initial: Hud = {
   soundReady: false,
   visualsReady: false,
   stance: "standing",
+  boss: null,
 };
 const pad = (n: number, len = 6) => String(Math.max(0, Math.floor(n))).padStart(len, "0");
 function readBest() {
@@ -204,6 +205,24 @@ export function KilnHop() {
               height={DISPLAY_H}
               aria-label="Hammer Time playfield. Arrows move, Space jumps, H swings, F fires snot, T wipes sweat, Q super smash."
             />
+            {hud.boss && (
+              <div
+                className="boss-hud"
+                aria-label="Stuffed pig boss health"
+                data-defeated={hud.boss.defeated}
+              >
+                <div>
+                  <b>{hud.boss.defeated ? "STUFFING SETTLED" : "THE PINK MENACE"}</b>
+                  <span>
+                    {hud.boss.hp} / {hud.boss.max}
+                  </span>
+                </div>
+                <meter min="0" max={hud.boss.max} value={hud.boss.hp} aria-label="Pig health" />
+                <small>
+                  Bonks {Math.min(3, hud.boss.bonks)}/3 · Snots {Math.min(3, hud.boss.snots)}/3
+                </small>
+              </div>
+            )}
             {mode === "title" && (
               <div className="veil veil-title">
                 <div className="title-dock">
@@ -236,9 +255,10 @@ export function KilnHop() {
                       <option value={0}>Hotel lobby · full shift</option>
                       <option value={1}>Restaurant practice</option>
                       <option value={2}>Campus practice</option>
+                      <option value={3}>Pink pig boss practice</option>
                     </select>
                   </label>
-                  <p className="best">Best {pad(best)} · 3 venues + a staff stash</p>
+                  <p className="best">Best {pad(best)} · 3 long venues + the pink pig</p>
                 </div>
               </div>
             )}
@@ -253,7 +273,9 @@ export function KilnHop() {
                     {hud.world} · {hud.lives} lives
                   </p>
                   <p className="dek">
-                    Jump into the ! crate for pepper.
+                    {hud.world === "1-4"
+                      ? "Land at least 3 bonks and 3 snots. Pepper refills on the left."
+                      : "Jump into the ! crate for pepper. H swats paper airplanes."}
                     <br />H swings. Run + ↓ slides under service passes.
                   </p>
                   {!hud.soundReady && <small>Preparing audio…</small>}

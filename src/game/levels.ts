@@ -13,7 +13,14 @@ export type Prop = {
   kind: "counter" | "shelf" | "pass" | "cart";
 };
 export type Sign = { x: number; label: string; note?: string };
-export type StudentSpawn = { x: number; hammer: string; reply: string };
+export type StudentSpawn = {
+  x: number;
+  hammer: string;
+  reply: string;
+  throws?: boolean;
+  delay?: number;
+};
+export type BossSpawn = { x: number; arenaStart: number; arenaEnd: number; hp: number };
 export type Level = {
   id: string;
   world: string;
@@ -35,6 +42,8 @@ export type Level = {
   spawnX: number;
   time: number;
   checkpointTile: number;
+  checkpoints: number[];
+  boss: BossSpawn | null;
 };
 
 function stamp(t: Uint8Array, w: number, x: number, y: number, id: TileId) {
@@ -94,18 +103,93 @@ function base(
     students: [],
     deco: [],
     spawnX: 32,
-    time: 240,
+    time: 420,
     checkpointTile: 60,
+    checkpoints: [60],
+    boss: null,
   };
 }
 function staff(level: Level, x: number, role: EnemyRole) {
   level.enemies.push({ x, role, kind: role === "hotel" ? "shell" : "soot" });
 }
 
-export function buildLevels(): { courses: Level[]; bonus: Level } {
+export function seededRandom(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), state | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function randomRewards(level: Level, rng: () => number, stash = false) {
+  for (let i = 0; i < level.tiles.length; i++) {
+    if (
+      [ID.coin, ID.nut, ID.buc].includes(level.tiles[i] as never) ||
+      (!stash && level.tiles[i] === ID.treat)
+    )
+      level.tiles[i] = ID.empty;
+  }
+  const anchors: Array<[number, number]> = [];
+  for (let x = 8; x < level.w - 10; x += 2) {
+    if (
+      level.tiles[12 * level.w + x] !== ID.ground ||
+      level.tiles[11 * level.w + x] !== ID.empty ||
+      level.tiles[10 * level.w + x] !== ID.empty
+    )
+      continue;
+    anchors.push([x, 11]);
+  }
+  for (const shelf of level.props.filter((p) => p.kind === "shelf")) {
+    for (let x = shelf.x + 1; x < shelf.x + shelf.w; x += 2)
+      if (level.tiles[(shelf.y - 2) * level.w + x] === ID.empty) anchors.push([x, shelf.y - 2]);
+  }
+  for (let i = anchors.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [anchors[i], anchors[j]] = [anchors[j], anchors[i]];
+  }
+  const count = Math.min(anchors.length, stash ? 10 : level.boss ? 8 : Math.ceil(level.w / 5));
+  const nuts = stash || level.boss ? 2 : 7;
+  const treats = level.boss ? 1 : stash ? 1 : 3;
+  for (let i = 0; i < count; i++) {
+    const [x, y] = anchors[i];
+    supply(level, x, y, i < treats ? ID.buc : i < treats + nuts ? ID.nut : ID.coin);
+  }
+}
+
+const studentLines = [
+  ["Read the syllabus, rookie.", "It's on the rubric."],
+  ["That's not extra credit.", "I just asked for directions."],
+  ["Office hours are over.", "Sir, this is the dining hall."],
+  ["Your group project is a mess.", "We put your name on it."],
+  ["Put the phone down, scholar.", "I'm rating your customer service."],
+  ["That paper better be double-spaced.", "It's a paper airplane."],
+  ["No extensions. Ever.", "You missed the deadline too."],
+];
+function students(level: Level, xs: number[], rng: () => number) {
+  level.students = xs.map((x, i) => {
+    const [hammer, reply] = studentLines[i % studentLines.length];
+    return { x, hammer, reply, throws: true, delay: 2 + rng() * 3 };
+  });
+}
+
+export function buildLevels(seed = 0xc0ffee): { courses: Level[]; bonus: Level } {
+  const rng = seededRandom(seed);
   // Normal supplies leave 64px below them: 50px artwork plus breathing room.
   // Service passes deliberately leave 32px for the 30px crouching collider.
-  const lobby = base("lobby", "Lobby & Lunch Rush", "hotel", 114, [[36, 38]], "1-1");
+  const lobby = base(
+    "lobby",
+    "Lobby & Lunch Rush",
+    "hotel",
+    224,
+    [
+      [36, 38],
+      [120, 122],
+      [178, 180],
+    ],
+    "1-1",
+  );
   supply(lobby, 7, 7, ID.power);
   cans(lobby, [9, 10, 11], 10);
   supply(lobby, 12, 11, ID.nut);
@@ -137,15 +221,34 @@ export function buildLevels(): { courses: Level[]; bonus: Level } {
     { x: 14, y: 12, k: "shrub" },
     { x: 62, y: 12, k: "shrub" },
   ];
+  furniture(lobby, 110, 10, 4, 2, "counter");
+  furniture(lobby, 136, 9, 6, 1, "pass");
+  furniture(lobby, 154, 9, 3, 1, "shelf");
+  furniture(lobby, 159, 7, 4, 1, "shelf");
+  supply(lobby, 161, 2, ID.question);
+  furniture(lobby, 188, 10, 5, 2, "counter");
+  furniture(lobby, 204, 9, 5, 1, "pass");
+  staff(lobby, 128, "server");
+  staff(lobby, 171, "hotel");
+  staff(lobby, 197, "server");
+  students(lobby, [32, 63, 104, 168], rng);
+  lobby.checkpoints = [60, 146];
+  lobby.signs.push(
+    { x: 106, label: "CONFERENCE WING", note: "Watch for paper airplanes" },
+    { x: 133, label: "SERVICE TUNNEL", note: "Hold ↓ through the opening" },
+    { x: 153, label: "LUGGAGE STORAGE", note: "Shelves lead to supplies" },
+  );
 
   const service = base(
     "service",
     "Restaurant Service",
     "restaurant",
-    122,
+    236,
     [
       [39, 41],
       [91, 93],
+      [143, 145],
+      [201, 203],
     ],
     "1-2",
   );
@@ -179,15 +282,34 @@ export function buildLevels(): { courses: Level[]; bonus: Level } {
     { x: 12, y: 12, k: "stack" },
     { x: 68, y: 12, k: "stack" },
   ];
+  furniture(service, 121, 10, 4, 2, "counter");
+  furniture(service, 132, 9, 6, 1, "pass");
+  furniture(service, 165, 9, 3, 1, "shelf");
+  furniture(service, 170, 7, 4, 1, "shelf");
+  supply(service, 172, 2, ID.question);
+  furniture(service, 182, 10, 5, 2, "counter");
+  furniture(service, 213, 9, 6, 1, "pass");
+  staff(service, 151, "server");
+  staff(service, 191, "hotel");
+  staff(service, 224, "server");
+  students(service, [32, 68, 114, 158, 222], rng);
+  service.checkpoints = [65, 155];
+  service.signs.push(
+    { x: 119, label: "BANQUET SERVICE", note: "Crouch or swat the paper" },
+    { x: 162, label: "STOCKROOM", note: "Climb the shelf route" },
+    { x: 210, label: "LAST CALL", note: "Hold ↓ through the tunnel" },
+  );
 
   const campus = base(
     "campus",
     "Campus Dining Commons",
     "campus",
-    114,
+    256,
     [
       [37, 39],
       [84, 86],
+      [130, 132],
+      [194, 196],
     ],
     "1-3",
   );
@@ -224,10 +346,40 @@ export function buildLevels(): { courses: Level[]; bonus: Level } {
     { x: 14, y: 12, k: "shrub" },
     { x: 66, y: 12, k: "stack" },
   ];
+  furniture(campus, 114, 10, 4, 2, "counter");
+  furniture(campus, 141, 9, 6, 1, "pass");
+  furniture(campus, 164, 9, 3, 1, "shelf");
+  furniture(campus, 169, 7, 4, 1, "shelf");
+  supply(campus, 171, 2, ID.question);
+  furniture(campus, 183, 10, 5, 2, "counter");
+  furniture(campus, 210, 9, 7, 1, "pass");
+  furniture(campus, 229, 9, 3, 1, "shelf");
+  furniture(campus, 234, 7, 4, 1, "shelf");
+  supply(campus, 236, 2, ID.question);
+  staff(campus, 135, "server");
+  staff(campus, 176, "hotel");
+  staff(campus, 224, "server");
+  students(campus, [17, 44, 62, 96, 122, 154, 179, 202, 224, 242], rng);
+  campus.checkpoints = [60, 150, 221];
+  campus.signs.push(
+    { x: 111, label: "STUDENT UNION", note: "Paper planes incoming" },
+    { x: 138, label: "LOW CLEARANCE", note: "Run + ↓" },
+    { x: 228, label: "FINALS WEEK", note: "One last climb before the pig" },
+  );
+
+  const plush = base("plush", "The Pink Menace", "campus", 42, [], "1-4");
+  plush.time = 300;
+  plush.checkpointTile = 5;
+  plush.checkpoints = [5];
+  plush.boss = { x: 24, arenaStart: 5, arenaEnd: 37, hp: 12 };
+  supply(plush, 7, 7, ID.power);
+  furniture(plush, 13, 9, 4, 1, "shelf");
+  plush.signs = [{ x: 4, label: "THE PINK MENACE", note: "3 bonks + 3 snots minimum" }];
 
   const bonus = base("bonus", "Staff-Only Stash", "restaurant", 30, [], "STAFF");
   bonus.flagTile = bonus.castleTile = bonus.checkpointTile = -1;
   bonus.time = 0;
+  bonus.checkpoints = [];
   bonus.spawnX = 72;
   stashDoor(bonus, 2, "back");
   for (let x = 7; x < 27; x += 2) cans(bonus, [x], 10);
@@ -238,5 +390,7 @@ export function buildLevels(): { courses: Level[]; bonus: Level } {
   furniture(bonus, 11, 9, 4, 1, "shelf");
   cans(bonus, [12, 13, 14], 7);
   bonus.signs = [{ x: 8, label: "STAFF-ONLY STASH", note: "Stock up · ↓ on return cart" }];
-  return { courses: [lobby, service, campus], bonus };
+  for (const course of [lobby, service, campus, plush]) randomRewards(course, rng);
+  randomRewards(bonus, rng, true);
+  return { courses: [lobby, service, campus, plush], bonus };
 }

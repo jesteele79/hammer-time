@@ -36,6 +36,7 @@ function game() {
     reduce: false,
     snap: null,
     camX: 0,
+    clock: 0,
     bumps: new Map(),
     bits: [],
     sheets: [],
@@ -233,8 +234,16 @@ test("a visible forward hammer strike defeats its target once and misses the rea
   assert.equal(g.charge, 1);
   assert.equal(g.score, 100);
 });
-test("a pepper-equipped run clears all three venues with three lives", () => {
+test("all three extended routes are traversable with staff active and three lives", () => {
   const g = game();
+  g.courses = g.courses.filter((level) => !level.boss);
+  // Isolate route geometry and staff collisions; timed paper defense has separate tests.
+  const load = g.loadLevel;
+  g.loadLevel = function (...args) {
+    load.apply(this, args);
+    this.students = [];
+  };
+  g.students = [];
   g.timeAcc = 0;
   g.clock = 0;
   g.jumpHeld = true;
@@ -249,6 +258,11 @@ test("a pepper-equipped run clears all three venues with three lives", () => {
     if (g.mode === "play") {
       const p = g.player;
       g.actions = { right: true, run: true };
+      const pass = g.level.props.some(
+        (prop) =>
+          prop.kind === "pass" && p.x + p.w + 20 > prop.x * 16 && p.x < (prop.x + prop.w) * 16,
+      );
+      if (pass && p.y + p.h > 160) g.actions.down = true;
       const tx = Math.floor((p.x + p.w + 35) / 16);
       const pit = g.tileAt(Math.floor((p.x + p.w + 18) / 16), 12) === ID.empty;
       const obstacle = [9, 10, 11].some(
@@ -257,10 +271,12 @@ test("a pepper-equipped run clears all three venues with three lives", () => {
       const enemy = g.enemies.some(
         (e) => e.alive && e.state !== "flat" && e.x > p.x && e.x - p.x < 65,
       );
+      const paper = g.planes.some((plane) => plane.x > p.x && plane.x - p.x < 85 && plane.vx < 0);
       const headBlocked = g.overlapsSolid(p.x, p.y - 16, p.w, 16);
       if (
         p.onGround &&
-        (pit || obstacle || enemy || Math.abs(p.vx) < 5) &&
+        !pass &&
+        (pit || obstacle || enemy || paper || Math.abs(p.vx) < 5) &&
         (!pit || !headBlocked) &&
         frame - lastJump > (pit ? 4 : 14)
       ) {
@@ -272,7 +288,10 @@ test("a pepper-equipped run clears all three venues with three lives", () => {
       const nearby = g.enemies.some(
         (e) => e.alive && e.state !== "flat" && Math.abs(e.x - p.x) < 130,
       );
-      if (g.heat > 65 && p.onGround && !nearby && !pit) g.towelEdge = true;
+      const safeToWipe = Array.from({ length: 12 }, (_, i) => Math.floor(p.x / 16) + i).every(
+        (x) => g.tileAt(x, 12) !== ID.empty,
+      );
+      if (g.heat > 65 && p.onGround && !nearby && safeToWipe && !pass) g.towelEdge = true;
       if (g.charge >= 10 && p.onGround && enemy && !pit) g.superEdge = true;
     }
     g.step(1 / 60);
@@ -285,72 +304,79 @@ test("a pepper-equipped run clears all three venues with three lives", () => {
 });
 
 test("crouching preserves feet, slides through every service pass and stands only when clear", () => {
-  for (const level of buildLevels().courses) {
-    const g = game();
-    g.loadLevel(level, 2, 0, true);
-    g.enemies = [];
-    const pass = level.props.find((p) => p.kind === "pass");
-    const p = g.player;
-    p.x = pass.x * 16 - 42;
-    p.vx = 150;
-    p.onGround = true;
-    g.actions = { right: true, run: true, down: true };
-    for (let frame = 0; frame < 20; frame++) g.step(1 / 60);
-    assert.equal(p.h, HERO_CROUCH_HEIGHT);
-    assert.equal(p.y + p.h, 192);
-    assert.ok(p.x > pass.x * 16 && p.x < (pass.x + pass.w) * 16);
-    g.actions = {};
-    for (let frame = 0; frame < 25; frame++) g.step(1 / 60);
-    assert.equal(p.crouch, true, "releasing Down beneath the roof must stay low");
-    assert.equal(g.overlapsSolid(p.x, p.y, p.w, p.h), false);
-    g.actions = { right: true };
-    for (let frame = 0; frame < 110; frame++) g.step(1 / 60);
-    assert.ok(p.x >= (pass.x + pass.w) * 16);
-    assert.equal(p.h, HERO_BODY_HEIGHT);
-    assert.equal(p.crouch, false);
+  for (const level of buildLevels().courses.filter((level) => !level.boss)) {
+    for (const pass of level.props.filter((prop) => prop.kind === "pass")) {
+      const g = game();
+      g.loadLevel(level, 2, 0, true);
+      g.enemies = [];
+      g.students = [];
+      const p = g.player;
+      p.x = pass.x * 16 - 42;
+      p.vx = 150;
+      p.onGround = true;
+      g.actions = { right: true, run: true, down: true };
+      for (let frame = 0; frame < 20; frame++) g.step(1 / 60);
+      assert.equal(p.h, HERO_CROUCH_HEIGHT);
+      assert.equal(p.y + p.h, 192);
+      assert.ok(p.x > pass.x * 16 && p.x < (pass.x + pass.w) * 16);
+      g.actions = {};
+      for (let frame = 0; frame < 25; frame++) g.step(1 / 60);
+      assert.equal(p.crouch, true, "releasing Down beneath the roof must stay low");
+      assert.equal(g.overlapsSolid(p.x, p.y, p.w, p.h), false);
+      g.actions = { right: true };
+      for (let frame = 0; frame < 110; frame++) g.step(1 / 60);
+      assert.ok(p.x >= (pass.x + pass.w) * 16);
+      assert.equal(p.h, HERO_BODY_HEIGHT);
+      assert.equal(p.crouch, false);
+    }
   }
 });
 
 test("shelf paths can be climbed through physics to bump every high supply case", () => {
-  for (const level of buildLevels().courses) {
-    const g = game();
-    g.loadLevel(level, 2, 0, true);
-    g.enemies = [];
-    g.students = [];
-    const [lower, upper] = level.props.filter((p) => p.kind === "shelf");
-    const p = g.player;
-    p.x = lower.x * 16 - 22;
-    p.vx = 96;
-    p.onGround = true;
-    g.actions = { right: true };
-    g.jumpHeld = true;
-    p.jumpBuf = 0.12;
-    let landed = false;
-    for (let frame = 0; frame < 80; frame++) {
-      g.step(1 / 60);
-      if (frame > 4 && p.onGround && Math.abs(p.y + p.h - lower.y * 16) < 0.1) {
-        landed = true;
-        break;
+  for (const level of buildLevels().courses.filter((level) => !level.boss)) {
+    const shelves = level.props.filter((p) => p.kind === "shelf");
+    for (let pair = 0; pair < shelves.length; pair += 2) {
+      const g = game();
+      g.loadLevel(level, 2, 0, true);
+      g.enemies = [];
+      g.students = [];
+      const lower = shelves[pair],
+        upper = shelves[pair + 1];
+      const p = g.player;
+      p.x = lower.x * 16 - 22;
+      p.vx = 96;
+      p.onGround = true;
+      g.actions = { right: true };
+      g.jumpHeld = true;
+      p.jumpBuf = 0.12;
+      let landed = false;
+      for (let frame = 0; frame < 80; frame++) {
+        g.step(1 / 60);
+        if (frame > 4 && p.onGround && Math.abs(p.y + p.h - lower.y * 16) < 0.1) {
+          landed = true;
+          break;
+        }
       }
-    }
-    assert.ok(landed, level.id + " lower shelf is reachable");
-    p.jumpBuf = 0.12;
-    landed = false;
-    for (let frame = 0; frame < 80; frame++) {
-      g.step(1 / 60);
-      if (frame > 4 && p.onGround && Math.abs(p.y + p.h - upper.y * 16) < 0.1) {
-        landed = true;
-        break;
+      assert.ok(landed, level.id + " lower shelf is reachable");
+      p.jumpBuf = 0.12;
+      landed = false;
+      for (let frame = 0; frame < 80; frame++) {
+        g.step(1 / 60);
+        if (frame > 4 && p.onGround && Math.abs(p.y + p.h - upper.y * 16) < 0.1) {
+          landed = true;
+          break;
+        }
       }
+      assert.ok(landed, level.id + " upper shelf is reachable");
+      const tx = upper.x + 2;
+      for (let frame = 0; frame < 180 && p.x < tx * 16 - 2; frame++) g.step(1 / 60);
+      assert.ok(p.x >= tx * 16 - 2, level.id + " supply approach is clear");
+      g.actions = {};
+      for (let frame = 0; frame < 15; frame++) g.step(1 / 60);
+      p.jumpBuf = 0.12;
+      for (let frame = 0; frame < 40; frame++) g.step(1 / 60);
+      assert.equal(g.tileAt(tx, 2), ID.used, level.id + " high case can be hit from its shelf");
     }
-    assert.ok(landed, level.id + " upper shelf is reachable");
-    const tx = upper.x + 2;
-    while (p.x < tx * 16 - 2) g.step(1 / 60);
-    g.actions = {};
-    for (let frame = 0; frame < 15; frame++) g.step(1 / 60);
-    p.jumpBuf = 0.12;
-    for (let frame = 0; frame < 40; frame++) g.step(1 / 60);
-    assert.equal(g.tileAt(tx, 2), ID.used, level.id + " high case can be hit from its shelf");
   }
 });
 
@@ -376,7 +402,7 @@ test("every ordinary overhead supply has standing clearance and a reachable head
   }
 });
 
-test("hospitality staff dominate the cast; servers warn before rushing and students only banter", () => {
+test("hospitality staff dominate the cast; student bodies stay outside combat targets", () => {
   const built = buildLevels();
   const enemies = built.courses.flatMap((l) => l.enemies);
   assert.ok(enemies.filter((e) => e.role !== "office").length > enemies.length * 0.7);
@@ -401,7 +427,7 @@ test("hospitality staff dominate the cast; servers warn before rushing and stude
   assert.equal(g.audio.voiceCount, 0, "student dialogue is not accepted damage");
   g.swing = 0.2;
   g.tryHammer();
-  assert.equal(g.students.length, 3, "student passersby stay outside combat targets");
+  assert.equal(g.students.length, 10, "student passersby stay outside combat targets");
 });
 
 test("staff stash shelf can be climbed to reach its elevated Buc-ee's case", () => {
@@ -460,4 +486,216 @@ test("stunned hotel staff keep their feet and cannot stand inside a service pass
   assert.equal(e.h, 42);
   assert.equal(e.y + e.h, 192);
   assert.equal(g.overlapsSolid(e.x, e.y, e.w, e.h), false);
+});
+
+test("reward seeds vary pickups while preserving geometry, pepper and safe anchors", () => {
+  const first = buildLevels(1),
+    again = buildLevels(1),
+    second = buildLevels(2);
+  const rewards = [ID.coin, ID.nut, ID.buc];
+  const geometry = (tiles) =>
+    Array.from(tiles, (tile) => (rewards.includes(tile) ? ID.empty : tile));
+  assert.deepEqual(first.courses[0].tiles, again.courses[0].tiles);
+  assert.notDeepEqual(first.courses[0].tiles, second.courses[0].tiles);
+  for (let seed = 1; seed <= 24; seed++) {
+    const built = buildLevels(seed);
+    for (const [index, level] of built.courses.entries()) {
+      assert.deepEqual(geometry(level.tiles), geometry(first.courses[index].tiles));
+      assert.equal(level.tiles[7 * level.w + 7], ID.power, "early pepper is guaranteed");
+      for (const id of rewards) assert.ok(level.tiles.includes(id));
+      for (let i = 0; i < level.tiles.length; i++) {
+        if (!rewards.includes(level.tiles[i])) continue;
+        const x = i % level.w,
+          y = Math.floor(i / level.w);
+        assert.ok(
+          level.tiles[(y + 1) * level.w + x] === ID.ground ||
+            level.tiles[(y + 2) * level.w + x] === ID.ledge,
+          `seed ${seed} ${level.id} reward ${x},${y} has a floor or shelf`,
+        );
+      }
+    }
+  }
+  assert.ok(first.courses[0].w >= 220 && first.courses[1].w >= 230 && first.courses[2].w >= 250);
+  assert.equal(first.courses[2].students.filter((s) => s.throws).length, 10);
+});
+
+test("student paper attacks telegraph, then travel toward Hammer", () => {
+  const g = game();
+  g.enemies = [];
+  const student = g.students[0];
+  student.x = g.player.x + 70;
+  student.home = student.x;
+  student.throwCd = 0;
+  g.students = [student];
+  g.stepStudents(1 / 60);
+  assert.ok(student.windup > 0);
+  assert.equal(g.planes.length, 0);
+  for (let i = 0; i < 20; i++) g.stepStudents(1 / 60);
+  assert.equal(g.planes.length, 0, "the warning must precede the projectile");
+  for (let i = 0; i < 22; i++) g.stepStudents(1 / 60);
+  assert.equal(g.planes.length, 1);
+  assert.ok(g.planes[0].vx < 0);
+  assert.ok(student.throwCd > 3);
+});
+
+test("paper can be ducked or swatted; a body hit uses the accepted damage voice", () => {
+  const g = game(),
+    p = g.player;
+  const plane = () => ({ x: p.x - 8, y: 156, ox: p.x - 8, oy: 156, vx: 112, life: 3, phase: 0 });
+  p.onGround = true;
+  g.actions = { down: true };
+  g.updateStance(1 / 60);
+  g.planes = [plane()];
+  g.stepPlanes(0.2);
+  assert.equal(g.audio.voiceCount, 0);
+  g.actions = {};
+  g.updateStance(1 / 60);
+  g.planes = [plane()];
+  g.stepPlanes(0.2);
+  assert.equal(g.audio.voiceCount, 1);
+  assert.equal(g.planes.length, 0);
+  const swat = game();
+  swat.swing = 0.19;
+  const head = heroMallet(swat.heroPose());
+  swat.planes = [{ x: head.x, y: head.y, ox: head.x, oy: head.y, vx: -112, life: 3, phase: 0 }];
+  swat.tryHammer();
+  assert.equal(swat.planes[0].life, 0);
+  assert.equal(swat.score, 50);
+});
+
+function bossGame() {
+  const g = game();
+  g.levelIndex = 3;
+  g.loadLevel(g.courses[3], 2, 0, true);
+  g.player.x = g.level.boss.arenaStart * 16 + 2;
+  g.player.onGround = true;
+  g.stepBoss(1 / 60);
+  return g;
+}
+function bonk(g) {
+  const b = g.boss;
+  b.hurt = 0;
+  g.hammerBossTagged = false;
+  g.hammerLast = null;
+  g.player.x = b.x - 27;
+  g.player.y = 146;
+  g.player.h = 46;
+  g.player.facing = 1;
+  for (let i = 0; i <= 25; i++) {
+    g.swing = 0.42 - i / 60;
+    g.tryHammer();
+  }
+}
+function snot(g) {
+  const b = g.boss;
+  b.hurt = 0;
+  g.embers = [
+    { x: b.x - 20, y: b.y + 35, ox: b.x - 20, oy: b.y + 35, vx: 280, vy: 0, life: 1, max: 1 },
+  ];
+  g.stepEmbers(0.1);
+}
+
+test("plush boss needs separate bonks and snots; one swing cannot drain its health", () => {
+  const g = bossGame(),
+    b = g.boss;
+  const initialScore = g.score;
+  bonk(g);
+  assert.equal(b.hp, 11);
+  assert.equal(b.bonks, 1);
+  snot(g);
+  assert.equal(b.hp, 10);
+  assert.equal(b.snots, 1);
+  assert.equal(g.embers.length, 0);
+  for (let i = 0; i < 12; i++) bonk(g);
+  assert.equal(b.hp, 1);
+  assert.notEqual(b.state, "defeated", "bonks alone do not finish the plush");
+  snot(g);
+  assert.equal(b.hp, 1);
+  snot(g);
+  assert.equal(b.hp, 0);
+  assert.equal(b.snots, 3);
+  assert.equal(b.state, "defeated");
+  assert.equal(g.score - initialScore, 3000);
+});
+
+test("boss blocks the exit, telegraphs charges and supplies recoverable pepper", () => {
+  const g = bossGame(),
+    b = g.boss;
+  g.player.x = g.level.flagTile * 16 + 3;
+  g.tryFlag();
+  assert.equal(g.mode, "play");
+  g.player.x = g.level.boss.arenaStart * 16 + 2;
+  for (let i = 0; i < 30; i++) g.stepBoss(1 / 60);
+  assert.equal(b.state, "windup");
+  assert.equal(b.vx, 0);
+  for (let i = 0; i < 40; i++) g.stepBoss(1 / 60);
+  assert.equal(b.state, "charge");
+  assert.ok(b.vx < 0);
+  g.player.form = 1;
+  g.stepBoss(1 / 60);
+  const refill = g.items.find((item) => item.kind === "lamp");
+  assert.ok(refill);
+  g.player.x = refill.x;
+  g.player.y = 146;
+  g.collectItems();
+  assert.equal(g.player.form, 2);
+  assert.equal(g.checkpoint, g.level.boss.arenaStart * 16);
+  b.state = "defeated";
+  b.hp = 0;
+  g.player.x = g.level.flagTile * 16 + 3;
+  g.tryFlag();
+  assert.equal(g.mode, "walkoff");
+});
+
+test("Buc-ee's contact and a super smash cannot erase the multi-hit pig", () => {
+  const g = bossGame(),
+    b = g.boss;
+  g.star = 10;
+  g.player.x = b.x;
+  g.stepBoss(1 / 60);
+  assert.equal(b.hp, 12);
+  assert.equal(g.audio.voiceCount, 0);
+  g.player.x = b.x - 20;
+  g.player.y = 146;
+  g.superBurst();
+  assert.equal(b.hp, 10);
+  assert.equal(b.bonks, 1);
+  assert.notEqual(b.state, "defeated");
+});
+
+test("the pig can be defeated and exited using movement and attack controls", () => {
+  const g = game();
+  g.levelIndex = 3;
+  g.loadLevel(g.courses[3], 1, 0, true);
+  g.timeAcc = 0;
+  let nextFire = 0,
+    nextBonk = 0;
+  for (let frame = 0; frame < 15000 && g.mode !== "win" && g.mode !== "over"; frame++) {
+    g.clock += 1 / 60;
+    if (g.mode === "play") {
+      const p = g.player,
+        b = g.boss;
+      g.actions = {};
+      if (b.state === "defeated") g.actions.right = true;
+      else if (p.x < 132) g.actions.right = true;
+      else if (p.x > 136) g.actions.left = true;
+      else if (p.facing < 0) g.actions.right = true;
+      if (frame >= nextFire && b.snots < 9 && b.x > p.x && p.form === 2) {
+        g.fireEdge = true;
+        nextFire = frame + 65;
+      }
+      if (frame >= nextBonk && b.x - p.x < 34 && b.snots >= 3) {
+        g.hammerEdge = true;
+        nextBonk = frame + 35;
+      }
+    }
+    g.step(1 / 60);
+  }
+  assert.equal(
+    g.mode,
+    "win",
+    `mode=${g.mode} hp=${g.boss.hp} bonks=${g.boss.bonks} snots=${g.boss.snots} x=${g.player.x} bossX=${g.boss.x}`,
+  );
+  assert.ok(g.boss.bonks >= 3 && g.boss.snots >= 3);
+  assert.equal(g.lives, 3);
 });

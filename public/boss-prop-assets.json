@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "generatedAtClientDate": "2026-10-09",
+  "generator": "Built-in image_gen tool",
+  "notes": [
+    "Only new assets. Existing hero, pickups, NPCs and branding unchanged.",
+    "Final pig is based on the supplied IMG_5834.jpeg toy reference. Generic quadruped concepts are discarded and excluded from public assets.",
+    "PNG masters are copied byte-for-byte from generated files.",
+    "All crop and alphaBounds fields ending XYWH explicitly mean [left,top,width,height].",
+    "Boss WebP alpha crop uses alpha>=8 with 8 original-pixel padding, then scales the longest dimension to 768px.",
+    "Opaque texture WebPs are resized to 512px square."
+  ],
+  "assets": {
+    "boss-pig-reference": {
+      "kind": "boss",
+      "facing": "left-three-quarter-side",
+      "sourceFile": "exec-2c5d54b5-4625-44b9-b81a-a2e0f6882165.png",
+      "referenceImage": "IMG_5834.jpeg",
+      "referenceDescription": "User's actual upright pale pink velour pig plush photographed tipped back in a chair. Toy only; background and accessories removed.",
+      "prompt": "Use case: identity-preserve. Asset type: transparent photographic boss sprite cutout for a detailed 2D side-scrolling game. Input image 1 is the user's actual pink pig plush toy reference; preserve THIS toy's material, proportions, identity and sewn construction. Primary request: isolate and re-pose this exact giant pale pink velour stuffed pig, now standing upright on its TWO short soft legs for combat. It has an oversized roughly spherical head, a large protruding broad rounded oval/cylindrical darker-pink snout with embroidered pink nostrils, an elongated round pear-shaped giant belly, two small dangling stuffed arms, two stubby soft dangling legs/feet, small floppy ears, subtle existing eye embroidery, visible sewn panels and natural velour wrinkles. Retain the reference's pale pink body and slightly darker rosy snout and extremity tips. Do not replace it with a generic fuzzy farm pig, do not give it four walking legs, and do not give it a costume. Orientation: LEFT-facing side profile or slight three-quarter SIDE view, snout clearly projecting LEFT, one understated eye if visible; the upright silhouette should be tall and broad with width about 0.7-0.8 times height including its snout. Both small arms and both stubby feet remain readable, soft feet rest at same bottom baseline, no biped human musculature. Full entire head, ears, snout, arms, belly and feet in frame, centered on vertical canvas with transparent margin around all edges. Medium: detailed photographic plush-toy cutout with accurate short velour pile rather than long fuzzy fur; softly warm upper-left lighting and gentle shaded volume. Remove ALL background and accessories: no chair, wall, floor, bag, purple tube, purple/blue ball, cord or any other object. Scene/backdrop: genuinely transparent alpha background, opaque plush only, no ground/cast shadow, no glow or halo. No labels, text, logos, watermark, UI, human face, hero face reference, extra person or extra pig. Preserve this reference toy's identifying head, snout, body shape and fabric instead of previous invented pig designs.",
+      "referenceImageSHA256": "fe8170d5310c7c458ea01814ecec57c5efd640f4d81590b15937952ae3e4ff91",
+      "original": {
+        "file": "boss-pig-reference.png",
+        "dimensions": [
+          1024,
+          1536
+        ],
+        "mode": "RGBA",
+        "bytes": 2256711,
+        "sha256": "d5397619ad29f2e5e990b1fa58e59bd9dc4d49eb0830b9dcd6aabaa8ce0358e2",
+        "alphaBoundsNonzeroXYWH": [
+          43,
+          9,
+          967,
+          1509
+        ],
+        "alphaBounds128XYWH": [
+          112,
+          43,
+          867,
+          1463
+        ]
+      },
+      "webp": {
+        "file": "boss-pig-reference.webp",
+        "dimensions": [
+          459,
+          768
+        ],
+        "mode": "RGBA",
+        "bytes": 60688,
+        "sourceCropXYWH": [
+          103,
+          34,
+          885,
+          1481
+        ],
+        "alphaBoundsNonzeroXYWH": [
+          0,
+          0,
+          459,
+          766
+        ],
+        "alphaBounds128XYWH": [
+          4,
+          5,
+          451,
+          758
+        ]
+      }
+    },
+    "wood-surface": {
+      "kind": "material-texture",
+      "grainDirection": "horizontal",
+      "sourceFile": "exec-883866ce-b931-440d-86e8-da0caeffa696.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: opaque seamless square material texture tile for crate, shelf, and counter surfaces in a detailed 2D game. Primary request: a face-on photograph of a continuous warm worn oak/walnut wooden surface, medium warm brown with mellow golden highlights, restrained fine horizontal wood grain, small subtle natural variations and light rubbed wear, believable satin wood finish. Composition: perfectly flat front-on texture with no perspective, square canvas entirely filled edge to edge by the wooden material. Style: photographic material/albedo quality. Lighting: soft nearly uniform diffuse illumination, mild warm directional influence, no strong gradient or hotspot. The left/right edges and top/bottom edges should match for seamless repeating tiling; keep texture low contrast and visually subtle so game silhouettes remain readable. Constraints: no objects, planks or visible board borders, no knots larger than fine grain, no hardware, no nails, no shapes, no scenery, no cast shadow, no text/logos/numbers/frame/watermark/UI; no perspective or dramatic shading, no illustration, no noisy damage pattern. Opaque background.",
+      "original": {
+        "file": "wood-surface.png",
+        "dimensions": [
+          1254,
+          1254
+        ],
+        "mode": "RGB",
+        "bytes": 3160187,
+        "sha256": "c8b425073c4a5ddefc5177f741526d39f5273174c9ab2ed0ed186a401eec6544",
+        "alphaBoundsNonzeroXYWH": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "alphaBounds128XYWH": [
+          0,
+          0,
+          1254,
+          1254
+        ]
+      },
+      "webp": {
+        "file": "wood-surface.webp",
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "bytes": 78714,
+        "sourceCropXYWH": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "alphaBoundsNonzeroXYWH": [
+          0,
+          0,
+          512,
+          512
+        ],
+        "alphaBounds128XYWH": [
+          0,
+          0,
+          512,
+          512
+        ]
+      }
+    },
+    "steel-surface": {
+      "kind": "material-texture",
+      "grainDirection": "horizontal",
+      "sourceFile": "exec-1f362e8f-27f9-4307-ab9f-185f56d03271.png",
+      "prompt": "Use case: photorealistic-natural. Asset type: opaque seamless square material texture tile for stainless-steel game prop surfaces. Primary request: perfectly face-on brushed stainless steel material, cool neutral silver-gray, fine delicate horizontal brushed grain, very subtle scuff variation, believable understated metal sheen. Composition: square canvas filled entirely edge to edge with the metal material, flat orthographic surface with no perspective and no recognizable object. Style: photographic material/albedo quality. Lighting: almost uniform soft diffuse light with a restrained slight directional upper-left sheen, no bright hotspot or strong gradient. The left/right edges and top/bottom edges should match for seamless tiling; low contrast, clean and subtle, suitable for repeating within procedural game geometry at small scale. Constraints: no objects, tools, rivets, seams or borders, no fingerprints, no rust, no heavy damage, no scenery or reflections of identifiable objects, no cast shadow, no text/logos/numbers/frame/watermark/UI, no perspective, no illustration. Opaque background.",
+      "original": {
+        "file": "steel-surface.png",
+        "dimensions": [
+          1254,
+          1254
+        ],
+        "mode": "RGB",
+        "bytes": 2448415,
+        "sha256": "0182eddf53d52a2c85b70d527cd392fb491ea7bfbc809f1a4efe792e9ce6c951",
+        "alphaBoundsNonzeroXYWH": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "alphaBounds128XYWH": [
+          0,
+          0,
+          1254,
+          1254
+        ]
+      },
+      "webp": {
+        "file": "steel-surface.webp",
+        "dimensions": [
+          512,
+          512
+        ],
+        "mode": "RGB",
+        "bytes": 43634,
+        "sourceCropXYWH": [
+          0,
+          0,
+          1254,
+          1254
+        ],
+        "alphaBoundsNonzeroXYWH": [
+          0,
+          0,
+          512,
+          512
+        ],
+        "alphaBounds128XYWH": [
+          0,
+          0,
+          512,
+          512
+        ]
+      }
+    }
+  },
+  "discardedConcepts": [
+    {
+      "file": "work/discarded-boss-pig/generic-pig-concept.png",
+      "prompt": "Use case: product-mockup. Asset type: transparent boss sprite cutout for a detailed 2D side-scrolling game. Primary request: one giant pink stuffed pig plush toy, unmistakably a stuffed toy rather than a living pig. It stands naturally as a quadruped on all four stubby soft plush legs. Shape: squat, broad, rounded belly; total snout-to-rump body length approximately 1.2 times the full height from ear top to feet, so it is almost as tall as it is long. Fuzzy pastel rose-pink plush fabric with tiny visible fibers, floppy pink ears, a broad soft oval snout pointing LEFT, dark stitched nostrils, one shiny black bead eye visible in profile, subtle stitched seams along body and limbs, darker pink fabric hoof tips, tiny curly stuffed tail. Composition: true 90-degree LEFT side profile, snout points left, side of body faces camera, full entire pig incl all feet/ears/snout/tail visible, far legs lightly staggered so all four are readable. Single pig centered on near-square canvas with generous transparent margin all sides. Style: convincing high-quality photographic plush product cutout, fabric detail and soft volume readable at an 84-by-78-pixel game scale. Lighting: warm upper-left studio light and subtle cool shaded fabric. Scene/backdrop: genuinely transparent alpha background. Constraints: no ground, cast shadow, glow or halo; no clothes, costume, accessories or tag; no people, no human face or hero reference; no second pig, no environment, no text/logo/watermark/UI, no cartoon/vector art, no crop, no sitting or biped stance; opaque plush with clean alpha silhouette.",
+      "reason": "Superseded by supplied photograph of the actual upright two-legged plush toy."
+    },
+    {
+      "file": "work/discarded-boss-pig/generic-pig-profile.png",
+      "prompt": "Use case: precise-object-edit. The attached plush pig is the edit target. Change only its camera orientation to a PERFECTLY LATERAL 90-degree side profile facing LEFT for a 2D side-scrolling sprite. Camera views the near side of its body at right angles; snout points horizontally left. The front oval face of the snout must NOT face the camera; show the side of the snout and at most one visible nostril in strict profile. Only one black bead eye visible. Avoid all three-quarter perspective. Preserve the photographic fuzzy pink plush fabric, rounded almost-square squat shape, full snout-to-tail silhouette, large floppy ear, stitched seams, soft belly, four short legs with darker pink soft hoof fabric, tiny curly stuffed tail, warm upper-left lighting, no costume. It stands as a quadruped; lightly stagger the far feet so four legs remain readable while body remains perfectly lateral. Center the whole pig on a near-square canvas with transparent margin on every side. The result is a single opaque toy cutout on genuine transparent alpha, no ground, cast shadow, glow/halo, label, text, human face, extra object or cropped parts.",
+      "reason": "Superseded by supplied photograph of the actual upright two-legged plush toy."
+    }
+  ]
+}

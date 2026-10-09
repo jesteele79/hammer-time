@@ -6,6 +6,7 @@ startup-error.log
 .tanstack
 artifacts
 screenshots
+work/
 attachments
 dist
 .env

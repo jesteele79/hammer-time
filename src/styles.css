@@ -207,6 +207,54 @@
   max-height: 100%;
   aspect-ratio: 16 / 9;
 }
+.boss-hud {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(72%, 380px);
+  padding: 9px 12px;
+  border: 1px solid #e79bbb66;
+  border-radius: 8px;
+  background: #13202bea;
+  color: #f5c1d9;
+  font-size: 12px;
+  pointer-events: none;
+}
+.boss-hud > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.boss-hud meter {
+  height: 5px;
+  margin: 6px 0;
+}
+.boss-hud meter::-webkit-meter-optimum-value {
+  background: #e998bc;
+}
+.boss-hud small {
+  color: #e4d6dc;
+  font-size: 10px;
+}
+.boss-hud[data-defeated="true"] {
+  color: #9ed8bd;
+  border-color: #9ed8bd88;
+}
+@media (max-width: 700px), (max-height: 500px) {
+  .boss-hud {
+    top: 5px;
+    padding: 5px 8px;
+    font-size: 9px;
+  }
+  .boss-hud small {
+    font-size: 8px;
+  }
+  .boss-hud meter {
+    margin: 3px 0;
+    height: 3px;
+  }
+}
 .game {
   display: block;
   width: 100%;

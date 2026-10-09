@@ -12,7 +12,7 @@ import {
 import { drawHero, artworkToWorld, heroMallet, type HeroPose } from "./hero";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
-import { drawFurniture, drawSign, drawRoomDecor } from "./scenery";
+import { drawFurniture, drawSign, drawRoomDecor, drawCrate, drawFloorGap } from "./scenery";
 
 export type Mode =
   "title" | "card" | "play" | "pause" | "die" | "slide" | "walkoff" | "tally" | "over" | "win";
@@ -34,6 +34,7 @@ export type Hud = {
   soundReady: boolean;
   visualsReady: boolean;
   stance: "standing" | "crouching" | "sliding";
+  boss: { hp: number; max: number; bonks: number; snots: number; defeated: boolean } | null;
 };
 
 export type TouchAction =
@@ -83,7 +84,36 @@ type Enemy = Body & {
   wake: number;
 };
 type Student = Body &
-  StudentSpawn & { facing: 1 | -1; home: number; greeted: boolean; speechT: number };
+  StudentSpawn & {
+    facing: 1 | -1;
+    home: number;
+    greeted: boolean;
+    speechT: number;
+    throwCd: number;
+    windup: number;
+  };
+type Plane = {
+  x: number;
+  y: number;
+  ox: number;
+  oy: number;
+  vx: number;
+  life: number;
+  phase: number;
+};
+type Boss = Body & {
+  hp: number;
+  max: number;
+  active: boolean;
+  bonks: number;
+  snots: number;
+  state: "idle" | "windup" | "charge" | "hop" | "recover" | "defeated";
+  timer: number;
+  hurt: number;
+  facing: 1 | -1;
+  attacks: number;
+  refill: number;
+};
 
 type Item = Body & { kind: "gear" | "lamp" | "nuts" | "treat"; emerge: number };
 type Ember = {
@@ -182,7 +212,24 @@ declare global {
       getX: () => number;
       setKeys: (codes: string[]) => void;
     };
-    __kiln?: { mode: Mode; x: number; y: number; scene: string; stance: string; height: number };
+    __kiln?: {
+      mode: Mode;
+      x: number;
+      y: number;
+      scene: string;
+      stance: string;
+      height: number;
+      seed: number;
+      planes: number;
+      bossHp: number;
+      bossState: string;
+      bossX: number;
+      bonks: number;
+      snots: number;
+      form: number;
+      onGround: boolean;
+      facing: number;
+    };
   }
 }
 
@@ -194,10 +241,14 @@ export class Game {
   private level!: Level;
   private levelIndex = 0;
   private startingVenue = 0;
+  private runSeed = 0;
   private tiles!: Uint8Array;
   private player!: Player;
   private enemies: Enemy[] = [];
   private students: Student[] = [];
+  private planes: Plane[] = [];
+  private boss: Boss | null = null;
+  private hammerBossTagged = false;
   private heroBanter = "";
   private banterT = 0;
   private items: Item[] = [];
@@ -252,6 +303,9 @@ export class Game {
   private student = new Image();
   private hotelBg = new Image();
   private campusBg = new Image();
+  private bossPig = new Image();
+  private wood = new Image();
+  private steel = new Image();
   private heat = 0;
   private checkpoint = 0;
   private hurtT = 0;
@@ -331,7 +385,11 @@ export class Game {
     this.student.src = "/npc-student.webp";
     this.hotelBg.src = "/hotel-corridor.webp";
     this.campusBg.src = "/campus-common.webp";
-    const built = buildLevels();
+    this.bossPig.src = "/boss-pig-reference.webp";
+    this.wood.src = "/wood-surface.webp";
+    this.steel.src = "/steel-surface.webp";
+    this.runSeed = Math.floor(Math.random() * 0xffffffff);
+    const built = buildLevels(this.runSeed);
     this.courses = built.courses;
     this.bonus = built.bonus;
     this.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -408,6 +466,10 @@ export class Game {
   newGame(startIndex = this.startingVenue) {
     if (this.mode !== "title" && this.mode !== "over" && this.mode !== "win") return;
     this.audio.unlock();
+    this.runSeed = Math.floor(Math.random() * 0xffffffff);
+    const built = buildLevels(this.runSeed);
+    this.courses = built.courses;
+    this.bonus = built.bonus;
     this.score = 0;
     this.coins = 0;
     this.lives = 3;
@@ -498,6 +560,16 @@ export class Game {
           this.player.slideT > 0 ? "sliding" : this.player.crouch ? "crouching" : "standing",
       },
       height: { get: () => this.player.h },
+      seed: { get: () => this.runSeed },
+      planes: { get: () => this.planes.length },
+      bossHp: { get: () => this.boss?.hp ?? 0 },
+      bossState: { get: () => this.boss?.state ?? "none" },
+      bossX: { get: () => this.boss?.x ?? 0 },
+      bonks: { get: () => this.boss?.bonks ?? 0 },
+      snots: { get: () => this.boss?.snots ?? 0 },
+      form: { get: () => this.player.form },
+      onGround: { get: () => this.player.onGround },
+      facing: { get: () => this.player.facing },
     });
   }
 
@@ -642,19 +714,19 @@ export class Game {
     this.stepEnemies(dt);
     this.stepStudents(dt);
     this.stepEmbers(dt);
+    this.stepBoss(dt);
+    this.stepPlanes(dt);
     if (this.mode === "play") {
       this.collectCoins();
       this.collectItems();
       this.touchEnemies();
       this.tryPipe();
       this.tryFlag();
-      if (
-        this.level.id !== "bonus" &&
-        !this.checkpoint &&
-        this.player.x >= this.level.checkpointTile * TILE &&
-        this.player.onGround
-      ) {
-        this.checkpoint = this.level.checkpointTile * TILE;
+      const nextCheckpoint = this.level.checkpoints
+        .filter((x) => x * TILE > this.checkpoint && x * TILE <= this.player.x)
+        .at(-1);
+      if (nextCheckpoint != null && this.player.onGround) {
+        this.checkpoint = nextCheckpoint * TILE;
         this.float(this.player.x, this.player.y - 12, "CHECKPOINT");
         this.audio.power();
       }
@@ -784,6 +856,7 @@ export class Game {
       this.hammerLast = heroMallet(this.heroPose());
       this.hammerVictims.clear();
       this.hammerBlocks.clear();
+      this.hammerBossTagged = false;
       this.audio.whoosh();
       this.heat = Math.min(100, this.heat + 3);
     }
@@ -991,10 +1064,38 @@ export class Game {
     this.banterT = Math.max(0, this.banterT - dt);
     for (const student of this.students) {
       student.speechT = Math.max(0, student.speechT - dt);
+      student.throwCd = Math.max(0, student.throwCd - dt);
       if (student.x < student.home - 16 || student.x > student.home + 16) student.vx *= -1;
       student.facing = student.vx > 0 ? 1 : -1;
       student.vy = Math.min(280, student.vy + 1700 * dt);
       this.moveBody(student, dt, false);
+      if (
+        student.throws &&
+        this.mode === "play" &&
+        Math.abs(this.player.x - student.x) < 210 &&
+        Math.abs(this.player.y - student.y) < 65
+      ) {
+        if (student.windup > 0) {
+          student.windup = Math.max(0, student.windup - dt);
+          if (student.windup === 0) {
+            const dir = this.player.x < student.x ? -1 : 1;
+            this.planes.push({
+              x: student.x + student.w / 2,
+              y: student.y + student.h - 36,
+              ox: student.x,
+              oy: student.y,
+              vx: dir * 112,
+              life: 3.5,
+              phase: student.home,
+            });
+            student.throwCd = 4 + ((student.home / TILE) % 3) * 0.6;
+            this.audio.whoosh();
+          }
+        } else if (student.throwCd <= 0 && this.planes.length < 8) {
+          student.windup = 0.65;
+          student.facing = this.player.x < student.x ? -1 : 1;
+        }
+      }
       if (
         !student.greeted &&
         this.mode === "play" &&
@@ -1007,6 +1108,149 @@ export class Game {
         this.banterT = 2.1;
       }
     }
+  }
+
+  private stepPlanes(dt: number) {
+    for (const plane of this.planes) {
+      if (plane.life <= 0) continue;
+      plane.life -= dt;
+      plane.ox = plane.x;
+      plane.oy = plane.y;
+      plane.x += plane.vx * dt;
+      plane.y += Math.sin(this.clock * 5 + plane.phase) * 3 * dt;
+      const a = { x: plane.ox, y: plane.oy },
+        b = { x: plane.x, y: plane.y };
+      this.eachCell(
+        Math.min(a.x, b.x) - 3,
+        Math.min(a.y, b.y) - 2,
+        Math.abs(b.x - a.x) + 6,
+        Math.abs(b.y - a.y) + 4,
+        (tx, ty) => {
+          if (isSolid(this.tileAt(tx, ty))) plane.life = 0;
+        },
+      );
+      if (plane.life > 0 && this.mode === "play" && sweptHeadHits(a, b, 2, this.player)) {
+        plane.life = 0;
+        this.flyPapers(plane.x, plane.y, 3);
+        this.hurt({ x: plane.x, w: 8 });
+      }
+    }
+    this.planes = this.planes.filter((plane) => plane.life > 0);
+  }
+
+  private stepBoss(dt: number) {
+    const b = this.boss,
+      arena = this.level.boss;
+    if (!b || !arena || this.mode !== "play") return;
+    b.hurt = Math.max(0, b.hurt - dt);
+    if (b.state === "defeated") {
+      b.timer = Math.max(0, b.timer - dt);
+      return;
+    }
+    const left = arena.arenaStart * TILE,
+      right = arena.arenaEnd * TILE;
+    if (!b.active) {
+      if (this.player.x < left) return;
+      b.active = true;
+      b.state = "windup";
+      b.timer = 1.1;
+      b.facing = this.player.x < b.x ? -1 : 1;
+      this.checkpoint = left;
+      this.grow(2);
+      this.player.invuln = Math.max(1.2, this.player.invuln);
+      this.float(this.player.x, this.player.y - 12, "PIG FIGHT");
+    }
+    this.player.x = clamp(this.player.x, left + 2, this.level.flagTile * TILE - this.player.w - 4);
+    b.refill = Math.max(0, b.refill - dt);
+    if (this.player.form < 2 && b.refill <= 0 && !this.items.some((item) => item.kind === "lamp")) {
+      this.items.push({
+        kind: "lamp",
+        x: left + 24,
+        y: 176,
+        w: 14,
+        h: 16,
+        vx: 0,
+        vy: 0,
+        onGround: true,
+        emerge: 0,
+      });
+      b.refill = 3;
+    }
+    b.timer -= dt;
+    if (b.state === "windup" && b.timer <= 0) {
+      b.attacks++;
+      b.state = b.attacks % 3 === 0 ? "hop" : "charge";
+      b.vx = b.facing * (b.state === "hop" ? 78 : b.hp <= b.max / 2 ? 160 : 136);
+      if (b.state === "hop") {
+        b.vy = -270;
+        b.onGround = false;
+      }
+      b.timer = b.state === "hop" ? 1.15 : 0.85;
+      this.audio.bump();
+    } else if ((b.state === "charge" || b.state === "hop") && b.timer <= 0) {
+      b.state = "recover";
+      b.vx = 0;
+      b.timer = 1.35;
+    } else if (b.state === "recover" && b.timer <= 0) {
+      b.state = "windup";
+      b.timer = b.hp <= b.max / 2 ? 0.7 : 0.9;
+      // Lock the direction during the warning; turn back into the arena at its edges.
+      b.facing = b.x < left + 140 ? 1 : b.x + b.w > right - 70 ? -1 : this.player.x < b.x ? -1 : 1;
+    }
+    b.vy = Math.min(310, b.vy + 1050 * dt);
+    this.moveBody(b, dt, false);
+    if (b.x < left + 80 || b.x + b.w > right - 8) {
+      b.x = clamp(b.x, left + 80, right - b.w - 8);
+      b.vx = 0;
+      if (b.state === "charge") {
+        b.state = "recover";
+        b.timer = 1.35;
+      }
+    }
+    if (overlap(this.player, b)) {
+      if (this.player.vy > 0 && this.player.prevY + this.player.h <= b.y + 10) {
+        this.player.vy = -260;
+        this.player.onGround = false;
+        this.audio.bump();
+      } else this.hurt(b);
+    }
+  }
+
+  private hitBoss(kind: "bonk" | "snot", amount: number, x: number, y: number) {
+    const b = this.boss;
+    if (!b || !b.active || b.state === "defeated" || b.hurt > 0) return false;
+    b.hurt = 0.38;
+    if (kind === "bonk") b.bonks++;
+    else b.snots++;
+    b.hp = Math.max(0, b.hp - amount);
+    this.audio.thud();
+    this.shake = Math.max(this.shake, 0.065);
+    this.hitstop = 0.04;
+    this.float(x, y, kind === "bonk" ? "BONK!" : "SNOT!");
+    for (let i = 0; i < 7; i++)
+      this.bits.push({
+        x,
+        y,
+        vx: (Math.random() - 0.5) * 95,
+        vy: -25 - Math.random() * 65,
+        life: 0.5,
+        max: 0.5,
+        color: i % 2 ? "#f7cedc" : "#fff0e9",
+        s: 2,
+      });
+    if (b.hp <= 0 && (b.bonks < 3 || b.snots < 3)) {
+      b.hp = 1;
+      this.float(b.x, b.y - 8, b.bonks < 3 ? "MORE BONKS" : "MORE SNOT");
+    } else if (b.hp <= 0) {
+      b.state = "defeated";
+      b.timer = 2.5;
+      b.vx = b.vy = 0;
+      this.scoreAdd(3000);
+      this.float(b.x, b.y - 8, "STUFFING SETTLED");
+      this.audio.clear();
+      this.flyPapers(b.x + b.w / 2, b.y + 20, 16);
+    }
+    return true;
   }
 
   private shellHits(e: Enemy) {
@@ -1054,6 +1298,15 @@ export class Game {
           blocked = true;
           break;
         }
+      if (
+        !blocked &&
+        this.boss?.active &&
+        this.boss.state !== "defeated" &&
+        sweptHeadHits(a, end, 2, this.boss)
+      ) {
+        this.hitBoss("snot", 1, b.x, b.y);
+        blocked = true;
+      }
       if (blocked) {
         b.life = 0;
         this.splashes.push({ x: b.x, y: b.y, life: 0.8 });
@@ -1072,6 +1325,9 @@ export class Game {
       } else if (this.tileAt(tx, ty) === ID.nut) {
         this.setTile(tx, ty, ID.empty);
         this.grantNuts(tx * TILE, ty * TILE);
+      } else if (this.tileAt(tx, ty) === ID.buc) {
+        this.setTile(tx, ty, ID.empty);
+        this.startTreat();
       }
     });
   }
@@ -1202,6 +1458,19 @@ export class Game {
         this.noteVictory(e, 100);
       } else this.kick(e);
     }
+    if (!this.hammerBossTagged && this.boss && sweptHeadHits(prev, head, 5, this.boss))
+      this.hammerBossTagged = this.hitBoss("bonk", 1, head.x, head.y);
+    for (const plane of this.planes) {
+      if (
+        plane.life > 0 &&
+        sweptHeadHits(prev, head, 6, { x: plane.x - 4, y: plane.y - 2, w: 8, h: 4 })
+      ) {
+        plane.life = 0;
+        this.flyPapers(plane.x, plane.y, 3);
+        this.audio.thud();
+        this.scoreAdd(50);
+      }
+    }
     this.eachCell(
       Math.min(prev.x, head.x) - 5,
       Math.min(prev.y, head.y) - 5,
@@ -1280,6 +1549,11 @@ export class Game {
       this.scoreAdd(200);
       this.float(e.x, e.y, "200");
     }
+    if (
+      this.boss &&
+      Math.hypot(this.boss.x + this.boss.w / 2 - cx, this.boss.y + this.boss.h / 2 - cy) < 80
+    )
+      this.hitBoss("bonk", 2, cx, cy);
   }
 
   private tryPipe() {
@@ -1297,6 +1571,7 @@ export class Game {
   }
 
   private tryFlag() {
+    if (this.boss && this.boss.state !== "defeated") return;
     if (this.level.flagTile < 0) return;
     const fx = this.level.flagTile * TILE;
     if (this.player.x + this.player.w > fx + 2 && this.player.y < GROUND_ROW * TILE)
@@ -1367,6 +1642,7 @@ export class Game {
     this.player.invuln = Math.max(this.player.invuln, 0.4);
     this.snap = null;
     this.embers = [];
+    this.planes = [];
     this.snotT = 0;
     this.snotFired = false;
     this.audio.startMusic(this.level.music);
@@ -1376,7 +1652,10 @@ export class Game {
   private followCamera(dt: number) {
     if (this.mode === "die") return;
     const max = Math.max(0, this.level.w * TILE - VIEW_W);
-    const desired = clamp(this.player.x - VIEW_W * 0.32, 0, max);
+    const desired =
+      this.boss?.active && this.boss.state !== "defeated"
+        ? clamp((this.player.x + this.boss.x + this.boss.w / 2) / 2 - VIEW_W / 2, 0, max)
+        : clamp(this.player.x - VIEW_W * 0.32, 0, max);
     this.camX = approach(this.camX, desired, 480 * dt);
     this.player.x = Math.max(0, this.player.x);
   }
@@ -1508,7 +1787,32 @@ export class Game {
       facing: -1,
       greeted: false,
       speechT: 0,
+      throwCd: s.delay ?? 3,
+      windup: 0,
     }));
+    this.planes = [];
+    this.boss = src.boss
+      ? {
+          x: src.boss.x * TILE,
+          y: 192 - 92,
+          w: 54,
+          h: 92,
+          vx: 0,
+          vy: 0,
+          onGround: true,
+          hp: src.boss.hp,
+          max: src.boss.hp,
+          active: false,
+          bonks: 0,
+          snots: 0,
+          state: "idle",
+          timer: 0,
+          hurt: 0,
+          facing: -1,
+          attacks: 0,
+          refill: 0,
+        }
+      : null;
     this.heroBanter = "";
     this.banterT = 0;
     this.items = [];
@@ -1887,16 +2191,25 @@ export class Game {
       ctx.translate(Math.sin(this.clock * 80) * Math.min(2, this.shake * 14), 0);
     }
     this.drawSky(cam);
+    const visibleEnd = Math.min(this.level.w, Math.ceil((cam + VIEW_W) / TILE));
+    for (let tx = Math.max(0, Math.floor(cam / TILE)); tx < visibleEnd; tx++) {
+      if (this.tileAt(tx, GROUND_ROW) !== ID.empty) continue;
+      const start = tx;
+      while (tx + 1 < visibleEnd && this.tileAt(tx + 1, GROUND_ROW) === ID.empty) tx++;
+      drawFloorGap(ctx, start * TILE - cam, (tx - start + 1) * TILE);
+    }
     this.drawTiles(cam);
-    for (const prop of this.level.props) drawFurniture(ctx, prop, this.level.theme, cam);
+    const materials = { wood: this.wood, steel: this.steel };
+    for (const prop of this.level.props) drawFurniture(ctx, prop, this.level.theme, cam, materials);
     this.drawDeco(cam);
     for (const sign of this.level.signs) drawSign(ctx, sign, this.level.theme, cam);
-    if (this.level.checkpointTile >= 0) {
-      const x = this.level.checkpointTile * TILE - cam;
-      ctx.fillStyle = this.checkpoint ? "#e8c060" : "#65cbb4";
+    for (const checkpoint of this.level.checkpoints) {
+      const x = checkpoint * TILE - cam;
+      const saved = this.checkpoint >= checkpoint * TILE;
+      ctx.fillStyle = saved ? "#e8c060" : "#65cbb4";
       ctx.fillRect(x, 140, 2, 52);
       ctx.fillRect(x + 2, 140, 34, 12);
-      this.px(this.checkpoint ? "SAVED" : "BREAK", x + 5, 144, "#102c32");
+      this.px(saved ? "SAVED" : "BREAK", x + 5, 144, "#102c32");
     }
     // The exit is a venue door, rather than the original platformer flagpole.
     this.drawCastle(cam);
@@ -1913,9 +2226,12 @@ export class Game {
         this.clock + student.home,
         false,
       );
-      if (student.speechT > 0 && this.banterT <= 0)
+      if (student.windup > 0)
+        this.drawSpeech("Heads up!", student.x - cam, student.y - 26, "#f0ca8e");
+      else if (student.speechT > 0 && this.banterT <= 0)
         this.drawSpeech(student.reply, student.x - cam, student.y - 26, "#d5e2ef");
     }
+    this.drawBoss(cam);
     for (const bit of this.bits) {
       ctx.globalAlpha = clamp(bit.life / bit.max, 0, 1);
       ctx.fillStyle = bit.color;
@@ -1948,6 +2264,7 @@ export class Game {
     if (!hide && !flicker && this.mode !== "die") this.drawPlayer(cam);
     if (this.mode === "die") this.drawPlayer(cam);
     this.drawEmbers(cam);
+    for (const plane of this.planes) this.drawPlane(plane, cam);
     if (this.curse > 0) this.drawCurse(cam);
     else if (this.banterT > 0)
       this.drawSpeech(this.heroBanter, this.player.x - cam, this.player.y - 26, "#e7bd6a");
@@ -2104,30 +2421,16 @@ export class Game {
       return;
     }
     if (id === ID.used) {
-      this.cabinet(sx, sy, true);
+      drawCrate(ctx, sx, sy, { wood: this.wood, steel: this.steel }, "", true);
       return;
     }
-    if (id === ID.treat) {
+    if (id === ID.treat || id === ID.buc) {
       this.beaverMark(sx + 8, sy + 16, 22);
       return;
     }
     if (id === ID.question || id === ID.power) {
-      const glow = id === ID.power ? "#e8943a" : "#7eb6dc";
       const mark = id === ID.power ? "!" : "?";
-      ctx.fillStyle = "rgba(0,0,0,0.22)";
-      ctx.beginPath();
-      ctx.roundRect(sx + 1, sy + 2, 15, 15, 2);
-      ctx.fill();
-      const g = ctx.createLinearGradient(sx, sy, sx, sy + 16);
-      g.addColorStop(0, "#f7f4ee");
-      g.addColorStop(1, glow);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.roundRect(sx, sy, 16, 16, 2.5);
-      ctx.fill();
-      ctx.fillStyle = "#1a120c";
-      ctx.fillRect(sx + 2, sy + 3, 12, 8);
-      this.px(mark, sx + 6, sy + 4, "#f6e7c1");
+      drawCrate(ctx, sx, sy, { wood: this.wood, steel: this.steel }, mark);
       return;
     }
     if (id === ID.coin) {
@@ -2202,27 +2505,7 @@ export class Game {
   }
 
   private deliveryCase(x: number, y: number) {
-    const ctx = this.ctx,
-      wood = ctx.createLinearGradient(x, y, x + 16, y + 16);
-    wood.addColorStop(0, "#b09265");
-    wood.addColorStop(1, "#635039");
-    ctx.fillStyle = wood;
-    ctx.fillRect(x, y, 16, 16);
-    ctx.strokeStyle = "#3c342c";
-    ctx.lineWidth = 0.7;
-    for (let i = 4; i < 16; i += 4) {
-      ctx.beginPath();
-      ctx.moveTo(x + 1, y + i);
-      ctx.lineTo(x + 15, y + i);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = "#d5b57e";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x + 1, y + 1, 14, 14);
-    ctx.beginPath();
-    ctx.moveTo(x + 2, y + 13);
-    ctx.lineTo(x + 13, y + 2);
-    ctx.stroke();
+    drawCrate(this.ctx, x, y, { wood: this.wood, steel: this.steel });
   }
 
   private pickup(img: HTMLImageElement, crop: number[], cx: number, foot: number, h: number) {
@@ -2309,6 +2592,98 @@ export class Game {
       x + 21,
       base - 69,
     );
+    ctx.restore();
+  }
+
+  private drawBoss(cam: number) {
+    const b = this.boss;
+    if (!b || !this.bossPig.complete || !this.bossPig.naturalWidth) return;
+    const ctx = this.ctx,
+      defeated = b.state === "defeated";
+    if (defeated && b.timer <= 0) return;
+    const x = b.x + b.w / 2 - cam,
+      feet = b.y + b.h;
+    ctx.save();
+    ctx.fillStyle = "rgba(12,14,26,.28)";
+    ctx.beginPath();
+    ctx.ellipse(x, 192, 25, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.translate(x, feet);
+    ctx.scale(b.facing > 0 ? -1 : 1, 1);
+    const wind = b.state === "windup",
+      moving = b.state === "charge" || b.state === "hop";
+    if (defeated) {
+      ctx.globalAlpha = Math.min(1, b.timer);
+      ctx.rotate(-0.45);
+      ctx.scale(1.12, 0.65);
+    } else if (wind) {
+      ctx.rotate(Math.sin(this.clock * 22) * 0.045);
+      ctx.scale(1.035, 0.965);
+    } else if (moving) {
+      ctx.rotate(Math.sin(this.clock * 15) * 0.055);
+      ctx.scale(1.03, 0.99);
+    }
+    const bob = moving ? Math.abs(Math.sin(this.clock * 12)) * 3 : Math.sin(this.clock * 2) * 0.8;
+    if (b.hurt > 0) {
+      ctx.shadowColor = "#fff4dc";
+      ctx.shadowBlur = 7;
+    }
+    const h = 102,
+      w = (451 / 758) * h;
+    ctx.drawImage(this.bossPig, 4, 5, 451, 758, -w / 2, -h - bob, w, h);
+    ctx.restore();
+    if (wind && b.active)
+      this.drawSpeech(b.attacks % 3 === 2 ? "BOING!" : "SQUEEEE!", x, b.y - 25, "#f1a7c7");
+    if (this.level.boss && b.active && !defeated) {
+      const refillX = this.level.boss.arenaStart * TILE + 31 - cam;
+      ctx.save();
+      ctx.font = "600 3.8px 'Segoe UI',sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(12,24,33,.88)";
+      ctx.fillRect(refillX - 21, 169, 42, 8);
+      ctx.fillStyle = "#e9bb72";
+      ctx.fillText("PEPPER REFILL", refillX, 175);
+      ctx.restore();
+    }
+  }
+
+  private drawPlane(plane: Plane, cam: number) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(plane.x - cam, plane.y);
+    ctx.scale(plane.vx > 0 ? 1 : -1, 1);
+    ctx.rotate(Math.sin(this.clock * 5 + plane.phase) * 0.05);
+    ctx.strokeStyle = "rgba(230,240,242,.28)";
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(-9, 1);
+    ctx.lineTo(-15, 1);
+    ctx.moveTo(-8, -1);
+    ctx.lineTo(-12, -1);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(7,15,28,.28)";
+    ctx.beginPath();
+    ctx.moveTo(6, 1);
+    ctx.lineTo(-5, -3);
+    ctx.lineTo(-2, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#f6f1e6";
+    ctx.beginPath();
+    ctx.moveTo(5, 0);
+    ctx.lineTo(-6, -3.5);
+    ctx.lineTo(-2, 0);
+    ctx.lineTo(-4, 3.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#8ca3af";
+    ctx.lineWidth = 0.45;
+    ctx.beginPath();
+    ctx.moveTo(-2, 0);
+    ctx.lineTo(5, 0);
+    ctx.moveTo(-6, -3.5);
+    ctx.lineTo(-2, 0);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -2439,6 +2814,9 @@ export class Game {
         this.student,
         this.hotelBg,
         this.campusBg,
+        this.bossPig,
+        this.wood,
+        this.steel,
       ].every((image) => image.complete && image.naturalWidth > 0)
     );
   }
@@ -2642,26 +3020,39 @@ export class Game {
       soundReady: this.audio.ready,
       visualsReady: this.visualsReady(),
       stance: this.player.slideT > 0 ? "sliding" : this.player.crouch ? "crouching" : "standing",
+      boss: this.boss?.active
+        ? {
+            hp: this.boss.hp,
+            max: this.boss.max,
+            bonks: this.boss.bonks,
+            snots: this.boss.snots,
+            defeated: this.boss.state === "defeated",
+          }
+        : null,
       hint:
-        this.banterT > 0
-          ? "Hammer: " + this.heroBanter
-          : this.player.crouch
-            ? "Stay low · release ↓ when clear to stand"
-            : this.level.id === "bonus"
-              ? "Staff stash · ↓ on the left cart to return"
-              : this.star > 0
-                ? "Buc-ee's boost · charge through the office!"
-                : this.heat >= 80
-                  ? "Overheated · T to wipe your brow"
-                  : this.charge >= 10
-                    ? "Super smash ready · Q"
-                    : this.player.x < 260
-                      ? "Jump into the ! crate for pepper · F fires snot"
-                      : this.player.x < 600
-                        ? "H swings the mallet · hit with the head"
-                        : this.player.form === 2
-                          ? "F snot rocket · nuts charge Q super smash"
-                          : "Find a ! crate to restore pepper power",
+        this.boss?.active && this.boss.state !== "defeated"
+          ? "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left"
+          : this.planes.some((plane) => Math.abs(plane.x - this.player.x) < 100)
+            ? "Paper incoming · duck, jump or swat with H"
+            : this.banterT > 0
+              ? "Hammer: " + this.heroBanter
+              : this.player.crouch
+                ? "Stay low · release ↓ when clear to stand"
+                : this.level.id === "bonus"
+                  ? "Staff stash · ↓ on the left cart to return"
+                  : this.star > 0
+                    ? "Buc-ee's boost · charge through the crowd!"
+                    : this.heat >= 80
+                      ? "Overheated · T to wipe your brow"
+                      : this.charge >= 10
+                        ? "Super smash ready · Q"
+                        : this.player.x < 260
+                          ? "Jump into the ! crate for pepper · F fires snot"
+                          : this.player.x < 600
+                            ? "H swings the mallet · hit with the head"
+                            : this.player.form === 2
+                              ? "F snot rocket · nuts charge Q super smash"
+                              : "Find a ! crate to restore pepper power",
     };
   }
 
