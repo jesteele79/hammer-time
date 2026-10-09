@@ -1,3 +1,12 @@
+import {
+  TAUNT_FILES,
+  TAUNT_CHANCE,
+  TAUNT_GAP_SECONDS,
+  TauntRotation,
+  type TauntId,
+  type TauntTarget,
+} from "./taunts";
+
 type Theme = "day" | "cellar";
 
 const DAY = [392, 392, 349, 330, 294, 330, 349, 392, 440, 392, 349, 330, 294, 262, 294, 330];
@@ -23,6 +32,50 @@ export class AudioBus {
   failed = false;
   lastVoiceAt = -1;
   voiceCount = 0;
+  tauntCount = 0;
+  lastTaunt: TauntId | null = null;
+  private tauntBytes = new Map<TauntId, Promise<ArrayBuffer | null>>();
+  private tauntBuffers = new Map<TauntId, AudioBuffer>();
+  private tauntDecodes = new Set<TauntId>();
+  private nextTauntAt = 0;
+  private taunts: TauntRotation;
+  private destroyed = false;
+
+  constructor(private random: () => number = Math.random) {
+    this.taunts = new TauntRotation(random);
+  }
+
+  get tauntsReady() {
+    return this.tauntBuffers.size === Object.keys(TAUNT_FILES).length;
+  }
+
+  /** Optional lines load alongside the damage voice without delaying the start. */
+  preloadTaunts() {
+    for (const [key, url] of Object.entries(TAUNT_FILES)) {
+      const id = key as TauntId;
+      if (!this.tauntBytes.has(id)) {
+        this.tauntBytes.set(
+          id,
+          fetch(url, { signal: AbortSignal.timeout(8000) })
+            .then((r) => (r.ok ? r.arrayBuffer() : null))
+            .catch(() => null),
+        );
+      }
+      if (this.ctx && !this.tauntDecodes.has(id)) {
+        const ctx = this.ctx;
+        this.tauntDecodes.add(id);
+        void this.tauntBytes
+          .get(id)!
+          .then((bytes) => (bytes && !this.destroyed ? ctx.decodeAudioData(bytes.slice(0)) : null))
+          .then((buffer) => {
+            if (buffer && !this.destroyed) this.tauntBuffers.set(id, buffer);
+          })
+          .catch(() => {
+            /* An optional missing clip must not break gameplay. */
+          });
+      }
+    }
+  }
 
   /** Fetch on the title screen; decoding never happens inside the hit handler. */
   preloadCurse() {
@@ -73,6 +126,7 @@ export class AudioBus {
       }
       if (this.ctx.state === "suspended") void this.ctx.resume();
       this.preloadCurse();
+      this.preloadTaunts();
     } catch {
       this.failed = true;
     }
@@ -110,9 +164,15 @@ export class AudioBus {
       this.yellSrc.disconnect();
       this.yellSrc = null;
     }
+    if (this.musicGain && this.ctx) {
+      const at = this.ctx.currentTime;
+      this.musicGain.gain.cancelScheduledValues(at);
+      this.musicGain.gain.setTargetAtTime(0.07, at, 0.08);
+    }
   }
 
   destroy() {
+    this.destroyed = true;
     this.stopVoice();
     if (this.ctx) void this.ctx.close();
   }
@@ -229,29 +289,58 @@ export class AudioBus {
   }
   private yellBuf: AudioBuffer | null = null;
 
+  /** React to an actual contact/encounter; skip busy moments instead of queuing. */
+  taunt(target: TauntTarget): TauntId | null {
+    if (
+      !this.ctx ||
+      !this.master ||
+      this.muted ||
+      this.yellSrc ||
+      !this.tauntBuffers.size ||
+      this.ctx.currentTime < this.nextTauntAt ||
+      this.random() >= TAUNT_CHANCE[target]
+    )
+      return null;
+    const id = this.taunts.next(target);
+    const buffer = this.tauntBuffers.get(id);
+    if (!buffer) return null;
+    const at = this.ctx.currentTime;
+    this.playVoice(buffer, at);
+    this.nextTauntAt = Math.max(at + TAUNT_GAP_SECONDS, at + buffer.duration + 0.8);
+    this.lastTaunt = id;
+    this.tauntCount++;
+    return id;
+  }
+
   curse() {
     if (this.muted) return;
     this.stopVoice();
     if (this.yellBuf && this.ctx && this.master) {
       const at = this.ctx.currentTime;
-      const src = this.ctx.createBufferSource();
-      src.buffer = this.yellBuf;
-      src.connect(this.master);
-      this.yellSrc = src;
+      this.playVoice(this.yellBuf, at);
+      this.nextTauntAt = Math.max(at + TAUNT_GAP_SECONDS, at + this.yellBuf.duration + 0.8);
       this.lastVoiceAt = at;
       this.voiceCount++;
-      const music = this.musicGain?.gain;
-      music?.cancelScheduledValues(at);
-      music?.setValueAtTime(0.025, at);
-      music?.setTargetAtTime(0.07, at + this.yellBuf.duration, 0.12);
-      src.onended = () => {
-        src.disconnect();
-        if (this.yellSrc === src) this.yellSrc = null;
-      };
-      src.start(at);
       return;
     }
     this.thud();
+  }
+
+  private playVoice(buffer: AudioBuffer, at: number) {
+    if (!this.ctx || !this.master) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(this.master);
+    this.yellSrc = src;
+    const music = this.musicGain?.gain;
+    music?.cancelScheduledValues(at);
+    music?.setValueAtTime(0.025, at);
+    music?.setTargetAtTime(0.07, at + buffer.duration, 0.12);
+    src.onended = () => {
+      src.disconnect();
+      if (this.yellSrc === src) this.yellSrc = null;
+    };
+    src.start(at);
   }
 
   tickSfx() {

@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { Game } from "../src/game/engine.ts";
 import { AudioBus } from "../src/game/audio.ts";
+import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
+import { createHash } from "node:crypto";
 import { hammerPose, malletInArtwork, sweptHeadHits } from "../src/game/combat.ts";
 import { heroMallet, artworkToWorld } from "../src/game/hero.ts";
 import { buildLevels } from "../src/game/levels.ts";
@@ -172,6 +174,149 @@ test("decoded voice starts at current audio time with no timer or fetch at conta
   a.setMuted(true);
   a.curse();
   assert.equal(a.voiceCount, 1);
+});
+
+test("provided taunts preserve their sources and use valid short PCM speech files", () => {
+  const manifest = JSON.parse(readFileSync("public/voice/manifest.json", "utf8"));
+  assert.equal(manifest.clips.length, 5);
+  for (const clip of manifest.clips) {
+    const source = readFileSync(`public${clip.source}`);
+    const wav = readFileSync(`public${clip.file}`);
+    assert.equal(createHash("sha256").update(source).digest("hex"), clip.sourceSha256);
+    assert.equal(createHash("sha256").update(wav).digest("hex"), clip.sha256);
+    assert.equal(TAUNT_FILES[clip.id], clip.file);
+    assert.equal(wav.toString("ascii", 0, 4), "RIFF");
+    assert.equal(wav.toString("ascii", 8, 12), "WAVE");
+    assert.ok(clip.durationSeconds > 0.5 && clip.durationSeconds < 3);
+  }
+});
+
+test("taunt bags cycle staff/student lines, allow occasional crossover and give the pig all five", () => {
+  const staff = new TauntRotation(() => 0.25);
+  const primary = Array.from({ length: 20 }, () => staff.next("staff"));
+  for (let i = 0; i < primary.length; i += 2)
+    assert.deepEqual(new Set(primary.slice(i, i + 2)), new Set(["fired", "feedback"]));
+  for (let i = 1; i < primary.length; i++) assert.notEqual(primary[i], primary[i - 1]);
+  const crossover = new TauntRotation(() => 0.1);
+  const studentLines = new Set(["problem", "man-balls", "butt-hurt"]);
+  assert.deepEqual(new Set(Array.from({ length: 3 }, () => crossover.next("staff"))), studentLines);
+  const student = new TauntRotation(() => 0.25);
+  assert.deepEqual(new Set(Array.from({ length: 3 }, () => student.next("student"))), studentLines);
+  const pig = new TauntRotation(() => 0.25);
+  const heard = Array.from({ length: 30 }, () => pig.next("pig"));
+  for (let i = 0; i < heard.length; i += 5)
+    assert.deepEqual(new Set(heard.slice(i, i + 5)), new Set(Object.keys(TAUNT_FILES)));
+  for (let i = 1; i < heard.length; i++) assert.notEqual(heard[i], heard[i - 1]);
+});
+
+function voiceBus(random = () => 0.25) {
+  const audio = new AudioBus(random),
+    starts = [],
+    stops = [];
+  audio.ctx = {
+    currentTime: 10,
+    createBufferSource() {
+      return {
+        connect() {},
+        disconnect() {},
+        onended: null,
+        start(at) {
+          starts.push({ at, buffer: this.buffer });
+        },
+        stop() {
+          stops.push(this.buffer);
+        },
+      };
+    },
+  };
+  audio.master = { gain: { setTargetAtTime() {} } };
+  audio.musicGain = {
+    gain: { cancelScheduledValues() {}, setValueAtTime() {}, setTargetAtTime() {} },
+  };
+  for (const id of Object.keys(TAUNT_FILES)) audio.tauntBuffers.set(id, { id, duration: 1.6 });
+  audio.yellBuf = { id: "damage", duration: 1.375 };
+  return { audio, starts, stops };
+}
+
+test("taunts are occasional, spaced, never overlap or queue; damage immediately interrupts them", () => {
+  const { audio, starts, stops } = voiceBus();
+  assert.ok(audio.taunt("staff"));
+  assert.equal(starts.length, 1);
+  assert.equal(audio.voiceCount, 0, "taunts do not count as damage");
+  assert.equal(audio.taunt("pig"), null, "busy voice cannot overlap");
+  audio.curse();
+  assert.equal(stops.length, 1, "damage cuts off the taunt");
+  assert.equal(starts[1].buffer.id, "damage");
+  assert.equal(starts[1].at, audio.ctx.currentTime, "no damage delay");
+  assert.equal(audio.voiceCount, 1);
+  audio.yellSrc.onended();
+  audio.ctx.currentTime = 12;
+  assert.equal(audio.taunt("student"), null, "cooldown also protects the damage reaction");
+  audio.ctx.currentTime = 14;
+  assert.ok(audio.taunt("student"));
+  audio.setMuted(true);
+  assert.equal(stops.length, 2);
+  audio.ctx.currentTime = 20;
+  assert.equal(audio.taunt("pig"), null);
+  audio.setMuted(false);
+  assert.ok(audio.taunt("pig"));
+  audio.stopVoice();
+  assert.equal(stops.length, 3, "pause/stop ends a taunt");
+  const skipped = voiceBus(() => 0.99);
+  for (let i = 0; i < 30; i++) {
+    skipped.audio.ctx.currentTime += 5;
+    assert.equal(skipped.audio.taunt("staff"), null);
+  }
+  assert.equal(skipped.starts.length, 0, "a failed chance never schedules later speech");
+});
+
+test("only actual staff bonks, student encounters/swats and accepted pig hits offer taunts", () => {
+  const g = game(),
+    offered = [];
+  g.audio.taunt = (target) => offered.push(target);
+  g.swing = 0.19;
+  const head = heroMallet(g.heroPose());
+  g.tryHammer();
+  assert.deepEqual(offered, [], "empty swings do not speak");
+  for (const role of ["office", "server", "hotel"]) {
+    g.hammerVictims.clear();
+    g.enemies = [
+      {
+        ...g.courses[0].enemies[0],
+        role,
+        kind: "soot",
+        state: "walk",
+        alive: true,
+        x: head.x - 4,
+        y: head.y - 4,
+        w: 8,
+        h: 8,
+        vx: 0,
+        vy: 0,
+      },
+    ];
+    g.tryHammer();
+    g.tryHammer();
+  }
+  assert.deepEqual(offered, ["staff", "staff", "staff"], "one opportunity per target per swing");
+  g.enemies = [];
+  const student = g.students[0];
+  g.player.x = student.x - 20;
+  g.stepStudents(1 / 60);
+  g.stepStudents(1 / 60);
+  assert.equal(offered.at(-1), "student");
+  const swatHead = heroMallet(g.heroPose());
+  g.planes = [{ x: swatHead.x, y: swatHead.y, life: 3 }];
+  g.tryHammer();
+  assert.equal(offered.filter((x) => x === "student").length, 2);
+  const boss = bossGame(),
+    bossOffers = [];
+  boss.audio.taunt = (target) => bossOffers.push(target);
+  assert.ok(boss.hitBoss("bonk", 1, 0, 0));
+  assert.equal(boss.hitBoss("snot", 1, 0, 0), false);
+  boss.boss.hurt = 0;
+  assert.ok(boss.hitBoss("snot", 1, 0, 0));
+  assert.deepEqual(bossOffers, ["pig", "pig"]);
 });
 test("checkpoint death respawns safely and preserves run score", () => {
   const g = game();

@@ -94,6 +94,20 @@ after the first interaction. Accepted damage immediately starts Web Audio
 playback, ducks music and suppresses repeats during immunity. Staff, paper and
 boss contacts share this path. Pause, mute and teardown stop the voice.
 
+Five additional supplied recordings preload alongside it. Staff mallet contacts
+have a 35% chance of a line: usually "They need to get fired" or "They can't
+take feedback," with a 20% crossover chance to the student pool. Student
+encounters and successful paper swats have a 50% chance of "They got a problem,"
+"Go grow some man balls" or "They get all butt hurt." Accepted pig bonks and
+snots have a 45% chance of any of the five. Each pool cycles a shuffled bag before
+repeating; cooldown is at least 3.5 seconds, and lines never overlap or queue.
+Damage interrupts a taunt immediately with "absolute bullshit." Muting and
+pausing stop both kinds of voice. Optional clip failures never block starting.
+
+Original M4As are preserved under `public/voice/source/`. Derived mono WAVs trim
+only outside silence and normalize peaks for consistent volume. File mapping,
+processing details, durations and hashes are in `public/voice/manifest.json`.
+
 Generation prompts, reference details, crop coordinates and asset hashes are
 in `public/scenery-assets.json` and `public/boss-prop-assets.json`.
 
@@ -105,11 +119,13 @@ npm run test:game
 npm run build
 ```
 
-The 22 game checks cover protected files, mallet hits/misses, immediate voice
+The 26 game checks cover protected files, mallet hits/misses, immediate voice
 scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
 distinct rewards, seeded pickup placement, all passages and supply routes,
 hospitality behavior, paper telegraph/duck/swat/contact, and boss combo rules,
-refills and exit lock. A physics playthrough clears the extended route geometry
+refills and exit lock. Voice checks cover supplied-file integrity, shuffled
+target pools/crossover, chance skips, cooldown/no overlap, actual event triggers,
+and damage priority. A physics playthrough clears the extended route geometry
 with staff active; paper timing is tested separately. Another playthrough
 clears the full boss using movement and attack inputs with three lives intact.
 
@@ -122,10 +138,12 @@ node scripts/game-browser-check.mjs http://127.0.0.1:8080/ --poses
 node scripts/surroundings.check.mjs http://127.0.0.1:8080/
 node scripts/start-screen.check.mjs http://127.0.0.1:8080/
 node scripts/pig-boss.check.mjs http://127.0.0.1:8080/
+node scripts/voice-browser.check.mjs http://127.0.0.1:8080/
 ```
 
 These checks capture desktop, portrait and landscape views, character actions,
 all venue selectors, paper defense, a complete boss fight, boss phone HUD,
 pause and nine touch controls. Repeat against production preview on port 8081,
 omitting `--poses`, which imports the development renderer. Captures and verdicts
-are saved under `artifacts/`.
+are saved under `artifacts/`. Voice browser checks use actual Web Audio decoding
+and playback during student and pig encounters, and verify damage, pause and mute.

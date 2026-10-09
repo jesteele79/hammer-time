@@ -1,0 +1,75 @@
+{
+  "processing": "Original M4As preserved. Local FFmpeg PCM decode; mono 24 kHz; outside silence trimmed using 10 ms RMS > -45 dBFS with 50 ms head / 100 ms tail padding; peak normalized to -2 dBFS with 3 ms edge fades. No synthesized speech or internal edits.",
+  "clips": [
+    {
+      "id": "fired",
+      "label": "They need to get fired",
+      "primaryTarget": "staff",
+      "originalFilename": "1-W-Club-View-Dr-132-copy-3.m4a",
+      "source": "/voice/source/fired.m4a",
+      "sourceSha256": "1aa6a02a2f3c78071bb65bdb83a7c2269972c3a3f033bad86b8e05209a67639d",
+      "file": "/voice/fired.wav",
+      "sha256": "2f0829868f633d04c5607fc4935b42ccb61d0176e27b72b8f3f4305672bbcbf3",
+      "startSeconds": 0.08,
+      "endSeconds": 1.7266666666666666,
+      "durationSeconds": 1.6466666666666667,
+      "gainDb": -0.19379578734149466
+    },
+    {
+      "id": "butt-hurt",
+      "label": "They get all butt hurt",
+      "primaryTarget": "student",
+      "originalFilename": "2-W-Club-View-Dr-132-copy-7.m4a",
+      "source": "/voice/source/butt-hurt.m4a",
+      "sourceSha256": "048d5631ad1be339958ed11b632a720690e7251d25f296d8d1072e2759ed9a3b",
+      "file": "/voice/butt-hurt.wav",
+      "sha256": "1ccf2659beced58e3bbf5c5c3668bf23182dc5dd8f28e06ff12828b723f34779",
+      "startSeconds": 0.0,
+      "endSeconds": 1.6413333333333333,
+      "durationSeconds": 1.6413333333333333,
+      "gainDb": 1.617648209889
+    },
+    {
+      "id": "feedback",
+      "label": "They can't take feedback",
+      "primaryTarget": "staff",
+      "originalFilename": "3-W-Club-View-Dr-132-copy-8.m4a",
+      "source": "/voice/source/feedback.m4a",
+      "sourceSha256": "2ecb07a473db275474f519125c92dcb81dd78873c58f587ecf4a9a18186637e1",
+      "file": "/voice/feedback.wav",
+      "sha256": "94b83ab4ee9141c0fcb8d7312d5bccbc786a98b5152b252ad52661d3ef7e52a0",
+      "startSeconds": 0.0,
+      "endSeconds": 1.42,
+      "durationSeconds": 1.42,
+      "gainDb": 1.2936972665056534
+    },
+    {
+      "id": "problem",
+      "label": "They got a problem",
+      "primaryTarget": "student",
+      "originalFilename": "4-W-Club-View-Dr-132-copy-6.m4a",
+      "source": "/voice/source/problem.m4a",
+      "sourceSha256": "d1fe4a380aa62ce695a5798384369934c31cfb4105eda3b271c9989222132261",
+      "file": "/voice/problem.wav",
+      "sha256": "cdffe26bc7eb0f268f5a2673e9fe6e12608f42beffab67d5ae4866ca276b3e03",
+      "startSeconds": 0.16,
+      "endSeconds": 0.96,
+      "durationSeconds": 0.8,
+      "gainDb": 0.25181798971947733
+    },
+    {
+      "id": "man-balls",
+      "label": "Go grow some man balls",
+      "primaryTarget": "student",
+      "originalFilename": "5-W-Club-View-Dr-132-copy-5.m4a",
+      "source": "/voice/source/man-balls.m4a",
+      "sourceSha256": "08fe5128445f2c9aaa0fc8fb217f690a95856d83430ea24ec5c6ac801554dc2e",
+      "file": "/voice/man-balls.wav",
+      "sha256": "87ac6becedb898d43a28b4043ffe5f69d82f131a2fcc7b0806a200049a09f3cc",
+      "startSeconds": 0.0,
+      "endSeconds": 1.9826666666666666,
+      "durationSeconds": 1.9826666666666666,
+      "gainDb": -0.3794505289160238
+    }
+  ]
+}

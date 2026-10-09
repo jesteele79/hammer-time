@@ -229,6 +229,10 @@ declare global {
       form: number;
       onGround: boolean;
       facing: number;
+      tauntsReady: boolean;
+      tauntCount: number;
+      lastTaunt: string | null;
+      damageVoices: number;
     };
   }
 }
@@ -378,6 +382,7 @@ export class Game {
     this.nuts.src = "/nuts-bag.webp";
     this.towel.src = "/towel-cloth.webp";
     this.audio.preloadCurse();
+    this.audio.preloadTaunts();
     this.beaver.src = "/buccees-pickup.webp";
     this.worker.src = "/npc-office.webp";
     this.server.src = "/npc-server.webp";
@@ -575,6 +580,10 @@ export class Game {
       form: { get: () => this.player.form },
       onGround: { get: () => this.player.onGround },
       facing: { get: () => this.player.facing },
+      tauntsReady: { get: () => this.audio.tauntsReady },
+      tauntCount: { get: () => this.audio.tauntCount },
+      lastTaunt: { get: () => this.audio.lastTaunt },
+      damageVoices: { get: () => this.audio.voiceCount },
     });
   }
 
@@ -1110,6 +1119,7 @@ export class Game {
         student.speechT = 4.2;
         this.heroBanter = student.hammer;
         this.banterT = 2.1;
+        this.audio.taunt("student");
       }
     }
   }
@@ -1229,6 +1239,7 @@ export class Game {
     b.hp = Math.max(0, b.hp - amount);
     this.audio.thud();
     this.shake = Math.max(this.shake, 0.065);
+    this.audio.taunt("pig");
     this.hitstop = 0.04;
     this.float(x, y, kind === "bonk" ? "BONK!" : "SNOT!");
     for (let i = 0; i < 7; i++)
@@ -1452,6 +1463,7 @@ export class Game {
       this.shake = Math.max(this.shake, 0.07);
       this.flyPapers(head.x, head.y, 5);
       this.audio.thud();
+      this.audio.taunt("staff");
       if (e.kind === "soot") {
         e.state = "flat";
         e.flatT = 0;
@@ -1473,6 +1485,7 @@ export class Game {
         this.flyPapers(plane.x, plane.y, 3);
         this.audio.thud();
         this.scoreAdd(50);
+        this.audio.taunt("student");
       }
     }
     this.eachCell(
