@@ -1,15 +1,24 @@
 import { GROUND_ROW, ID, MAP_H, TILE, type TileId } from "./constants";
 
 export type Sky = "day" | "cellar";
-
-export type EnemySpawn = { kind: "soot" | "shell"; x: number };
-
+export type SceneTheme = "hotel" | "restaurant" | "campus";
+export type EnemyRole = "server" | "hotel" | "office";
+export type EnemySpawn = { kind: "soot" | "shell"; role: EnemyRole; x: number };
 export type Pipe = { x: number; top: number; dest: "bonus" | "back" | null };
-
+export type Prop = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  kind: "counter" | "shelf" | "pass" | "cart";
+};
+export type Sign = { x: number; label: string; note?: string };
+export type StudentSpawn = { x: number; hammer: string; reply: string };
 export type Level = {
   id: string;
   world: string;
   name: string;
+  theme: SceneTheme;
   sky: Sky;
   music: Sky;
   w: number;
@@ -19,6 +28,9 @@ export type Level = {
   castleTile: number;
   pipes: Pipe[];
   enemies: EnemySpawn[];
+  props: Prop[];
+  signs: Sign[];
+  students: StudentSpawn[];
   deco: { x: number; y: number; k: "shrub" | "stack" }[];
   spawnX: number;
   time: number;
@@ -26,232 +38,205 @@ export type Level = {
 };
 
 function stamp(t: Uint8Array, w: number, x: number, y: number, id: TileId) {
-  if (x < 0 || y < 0 || x >= w || y >= MAP_H) return;
-  t[y * w + x] = id;
+  if (x >= 0 && y >= 0 && x < w && y < MAP_H) t[y * w + x] = id;
 }
-
-function fillGround(w: number, pits: Array<[number, number]>): Uint8Array {
+function ground(w: number, pits: Array<[number, number]>) {
   const t = new Uint8Array(w * MAP_H);
-  const open = new Set<number>();
-  for (const [a, b] of pits) {
-    for (let x = a; x <= b; x++) open.add(x);
-  }
   for (let x = 0; x < w; x++) {
-    if (open.has(x)) continue;
-    t[GROUND_ROW * w + x] = ID.ground;
-    t[(GROUND_ROW + 1) * w + x] = ID.ground;
+    if (pits.some(([a, b]) => x >= a && x <= b)) continue;
+    stamp(t, w, x, GROUND_ROW, ID.ground);
+    stamp(t, w, x, GROUND_ROW + 1, ID.ground);
   }
   return t;
 }
-
-function pipe(
-  t: Uint8Array,
+function furniture(level: Level, x: number, y: number, w: number, h: number, kind: Prop["kind"]) {
+  level.props.push({ x, y, w, h, kind });
+  for (let tx = x; tx < x + w; tx++)
+    for (let ty = y; ty < y + h; ty++)
+      stamp(level.tiles, level.w, tx, ty, kind === "shelf" ? ID.ledge : ID.used);
+}
+function cans(level: Level, xs: number[], y: number) {
+  xs.forEach((x) => stamp(level.tiles, level.w, x, y, ID.coin));
+}
+function supply(level: Level, x: number, y: number, id: TileId) {
+  stamp(level.tiles, level.w, x, y, id);
+}
+function stashDoor(level: Level, x: number, dest: Pipe["dest"]) {
+  for (let tx = x; tx < x + 2; tx++)
+    for (let y = 10; y < 12; y++) stamp(level.tiles, level.w, tx, y, ID.pipe);
+  level.pipes.push({ x: x * TILE, top: 10 * TILE, dest });
+  level.props.push({ x, y: 10, w: 2, h: 2, kind: "cart" });
+}
+function base(
+  id: string,
+  name: string,
+  theme: SceneTheme,
   w: number,
-  tx: number,
-  height: number,
-  dest: Pipe["dest"],
-  pipes: Pipe[],
-) {
-  const top = GROUND_ROW - height;
-  for (let i = 0; i < height; i++) {
-    stamp(t, w, tx, top + i, ID.pipe);
-    stamp(t, w, tx + 1, top + i, ID.pipe);
-  }
-  pipes.push({ x: tx * TILE, top: top * TILE, dest });
-}
-
-function stairs(t: Uint8Array, w: number, start: number, n: number) {
-  for (let i = 0; i < n; i++) {
-    const extra = i;
-    for (let k = 1; k <= extra; k++) stamp(t, w, start + i, GROUND_ROW - k, ID.brick);
-  }
-}
-
-function coins(t: Uint8Array, w: number, xs: number[], y: number) {
-  for (const x of xs) stamp(t, w, x, y, ID.coin);
-}
-
-export function buildLevels(): { courses: Level[]; bonus: Level } {
-  const hill = buildHill();
-  const cellar = buildCellar();
-  const bonus = buildBonus();
-  return { courses: [hill, cellar], bonus };
-}
-
-function buildHill(): Level {
-  const w = 176;
-  const pipes: Pipe[] = [];
-  const t = fillGround(w, [
-    [44, 46],
-    [87, 89],
-    [130, 132],
-  ]);
-  stamp(t, w, 7, 8, ID.power);
-  stamp(t, w, 13, 8, ID.question);
-  stamp(t, w, 16, 8, ID.brick);
-  stamp(t, w, 17, 8, ID.question);
-  stamp(t, w, 18, 8, ID.brick);
-  stamp(t, w, 17, 5, ID.question);
-  coins(t, w, [8, 9, 10], 11);
-  stamp(t, w, 11, 11, ID.nut);
-  coins(t, w, [22, 23, 24, 25], 7);
-  stamp(t, w, 65, 11, ID.nut);
-  stamp(t, w, 40, 8, ID.treat);
-  stamp(t, w, 30, 8, ID.hidden);
-  pipe(t, w, 32, 2, null, pipes);
-  for (let x = 52; x <= 57; x++) stamp(t, w, x, 8, x === 54 || x === 55 ? ID.brickCoin : ID.brick);
-  stamp(t, w, 60, 5, ID.question);
-  coins(t, w, [61, 62, 63], 6);
-  pipe(t, w, 72, 3, "bonus", pipes);
-  for (let x = 85; x <= 92; x++) stamp(t, w, x, 9, ID.ledge);
-  coins(t, w, [86, 87, 88, 89, 90], 7);
-  for (let x = 100; x <= 105; x++) stamp(t, w, x, 8, x === 102 ? ID.question : ID.brick);
-  stamp(t, w, 102, 5, ID.hidden);
-  stamp(t, w, 116, 8, ID.power);
-  coins(t, w, [120, 121, 122, 123], 9);
-  pipe(t, w, 124, 2, null, pipes);
-  stairs(t, w, 152, 6);
+  pits: Array<[number, number]>,
+  world: string,
+): Level {
   return {
-    id: "hill",
-    world: "1-1",
-    name: "Open Office",
+    id,
+    world,
+    name,
+    theme,
     sky: "day",
     music: "day",
     w,
     h: MAP_H,
-    tiles: t,
-    flagTile: 162,
-    castleTile: 168,
-    pipes,
-    enemies: [
-      { kind: "soot", x: 20 },
-      { kind: "soot", x: 36 },
-      { kind: "shell", x: 56 },
-      { kind: "soot", x: 78 },
-      { kind: "soot", x: 96 },
-      { kind: "soot", x: 98 },
-      { kind: "shell", x: 112 },
-      { kind: "soot", x: 140 },
-      { kind: "soot", x: 146 },
-    ],
-    deco: [
-      { x: 6, y: GROUND_ROW, k: "shrub" },
-      { x: 22, y: GROUND_ROW, k: "stack" },
-      { x: 48, y: GROUND_ROW, k: "shrub" },
-      { x: 68, y: GROUND_ROW, k: "stack" },
-      { x: 94, y: GROUND_ROW, k: "shrub" },
-      { x: 136, y: GROUND_ROW, k: "shrub" },
-    ],
-    spawnX: 32,
-    time: 300,
-    checkpointTile: 64,
-  };
-}
-
-function buildCellar(): Level {
-  const w = 150;
-  const pipes: Pipe[] = [];
-  const t = fillGround(w, [
-    [36, 38],
-    [72, 74],
-    [108, 110],
-  ]);
-  for (let x = 24; x < 132; x++) {
-    if (
-      (x >= 31 && x <= 42) ||
-      (x >= 50 && x <= 54) ||
-      (x >= 68 && x <= 78) ||
-      (x >= 90 && x <= 94) ||
-      (x >= 103 && x <= 114)
-    )
-      continue;
-    stamp(t, w, x, 1, ID.brick);
-    stamp(t, w, x, 2, ID.brick);
-  }
-  stamp(t, w, 12, 8, ID.power);
-  stamp(t, w, 14, 8, ID.question);
-  stamp(t, w, 15, 8, ID.brick);
-  stamp(t, w, 16, 8, ID.question);
-  coins(t, w, [18, 19, 20, 21], 9);
-  stamp(t, w, 22, 9, ID.nut);
-  stamp(t, w, 34, 8, ID.treat);
-  pipe(t, w, 28, 2, null, pipes);
-  for (let x = 44; x <= 48; x++) stamp(t, w, x, 8, ID.brick);
-  stamp(t, w, 46, 8, ID.brickCoin);
-  stamp(t, w, 46, 5, ID.hidden);
-  coins(t, w, [51, 52, 53], 5);
-  for (let x = 60; x <= 66; x++) stamp(t, w, x, 9, x % 2 === 0 ? ID.question : ID.brick);
-  pipe(t, w, 80, 3, null, pipes);
-  for (let x = 84; x <= 88; x++) stamp(t, w, x, 8, ID.ledge);
-  coins(t, w, [91, 92, 93], 6);
-  stamp(t, w, 94, 11, ID.nut);
-  stamp(t, w, 100, 8, ID.power);
-  // Leave a clear run-up before the pit for the full-height character.
-  for (let x = 102; x <= 104; x++) stamp(t, w, x, 8, ID.brick);
-  coins(t, w, [118, 119, 120, 121], 9);
-  stairs(t, w, 126, 5);
-  return {
-    id: "cellar",
-    world: "1-2",
-    name: "File Room",
-    sky: "cellar",
-    music: "cellar",
-    w,
-    h: MAP_H,
-    tiles: t,
-    flagTile: 136,
-    castleTile: 142,
-    pipes,
-    enemies: [
-      { kind: "shell", x: 22 },
-      { kind: "soot", x: 42 },
-      { kind: "shell", x: 58 },
-      { kind: "soot", x: 68 },
-      { kind: "shell", x: 96 },
-      { kind: "soot", x: 104 },
-      { kind: "soot", x: 120 },
-    ],
-    deco: [],
-    spawnX: 32,
-    time: 260,
-    checkpointTile: 76,
-  };
-}
-
-function buildBonus(): Level {
-  const w = 32;
-  const pipes: Pipe[] = [];
-  const t = fillGround(w, []);
-  for (let x = 0; x < w; x++) {
-    stamp(t, w, x, 1, ID.brick);
-    stamp(t, w, x, 2, ID.brick);
-  }
-  pipe(t, w, 2, 2, "back", pipes);
-  for (let x = 6; x < 28; x++) {
-    if (x % 2 === 0) {
-      stamp(t, w, x, 6, ID.coin);
-      stamp(t, w, x, 9, x % 6 === 0 ? ID.nut : ID.coin);
-    }
-  }
-  stamp(t, w, 12, 8, ID.treat);
-  stamp(t, w, 16, 8, ID.power);
-  stamp(t, w, 20, 8, ID.question);
-  return {
-    id: "bonus",
-    world: "1-1",
-    name: "Supply Closet",
-    sky: "cellar",
-    music: "cellar",
-    w,
-    h: MAP_H,
-    tiles: t,
-    flagTile: -1,
-    castleTile: -1,
-    pipes,
+    tiles: ground(w, pits),
+    flagTile: w - 10,
+    castleTile: w - 6,
+    pipes: [],
     enemies: [],
+    props: [],
+    signs: [],
+    students: [],
     deco: [],
-    spawnX: 72,
-    time: 0,
-    checkpointTile: -1,
+    spawnX: 32,
+    time: 240,
+    checkpointTile: 60,
   };
+}
+function staff(level: Level, x: number, role: EnemyRole) {
+  level.enemies.push({ x, role, kind: role === "hotel" ? "shell" : "soot" });
+}
+
+export function buildLevels(): { courses: Level[]; bonus: Level } {
+  // Normal supplies leave 64px below them: 50px artwork plus breathing room.
+  // Service passes deliberately leave 32px for the 30px crouching collider.
+  const lobby = base("lobby", "Lobby & Lunch Rush", "hotel", 114, [[36, 38]], "1-1");
+  supply(lobby, 7, 7, ID.power);
+  cans(lobby, [9, 10, 11], 10);
+  supply(lobby, 12, 11, ID.nut);
+  staff(lobby, 18, "server");
+  furniture(lobby, 24, 10, 5, 2, "counter");
+  supply(lobby, 31, 7, ID.treat);
+  cans(lobby, [36, 37, 38], 7);
+  furniture(lobby, 47, 9, 5, 1, "pass");
+  cans(lobby, [48, 49, 50, 51], 11);
+  staff(lobby, 56, "hotel");
+  supply(lobby, 61, 11, ID.nut);
+  furniture(lobby, 67, 9, 3, 1, "shelf");
+  furniture(lobby, 72, 7, 4, 1, "shelf");
+  supply(lobby, 74, 2, ID.question);
+  cans(lobby, [68, 69], 7);
+  staff(lobby, 82, "office");
+  supply(lobby, 84, 11, ID.brickCoin);
+  stashDoor(lobby, 89, "bonus");
+  supply(lobby, 96, 7, ID.power);
+  staff(lobby, 99, "server");
+  lobby.signs = [
+    { x: 3, label: "LOBBY", note: "! supplies · jump + hammer" },
+    { x: 23, label: "FRONT DESK", note: "Jump the counter" },
+    { x: 44, label: "SERVICE PASS", note: "Run + ↓ to slide" },
+    { x: 66, label: "UPSTAIRS", note: "Use the two shelves" },
+    { x: 88, label: "STAFF STASH", note: "Jump on cart · ↓" },
+  ];
+  lobby.deco = [
+    { x: 14, y: 12, k: "shrub" },
+    { x: 62, y: 12, k: "shrub" },
+  ];
+
+  const service = base(
+    "service",
+    "Restaurant Service",
+    "restaurant",
+    122,
+    [
+      [39, 41],
+      [91, 93],
+    ],
+    "1-2",
+  );
+  supply(service, 7, 7, ID.power);
+  staff(service, 16, "server");
+  furniture(service, 23, 10, 4, 2, "counter");
+  supply(service, 31, 7, ID.question);
+  supply(service, 34, 11, ID.nut);
+  supply(service, 35, 7, ID.treat);
+  cans(service, [39, 40, 41], 7);
+  furniture(service, 49, 9, 5, 1, "pass");
+  cans(service, [50, 51, 52], 11);
+  staff(service, 58, "hotel");
+  service.checkpointTile = 65;
+  supply(service, 66, 11, ID.nut);
+  furniture(service, 71, 9, 3, 1, "shelf");
+  furniture(service, 76, 7, 4, 1, "shelf");
+  supply(service, 78, 2, ID.question);
+  staff(service, 85, "server");
+  supply(service, 87, 11, ID.brick);
+  cans(service, [91, 92, 93], 7);
+  supply(service, 98, 7, ID.power);
+  staff(service, 105, "hotel");
+  service.signs = [
+    { x: 3, label: "LUNCH RUSH", note: "Servers rush after a warning" },
+    { x: 22, label: "KITCHEN COUNTER", note: "Clear jump space" },
+    { x: 46, label: "UNDER THE PASS", note: "Hold ↓ to stay low" },
+    { x: 70, label: "DRY STORAGE", note: "Shelves lead to supplies" },
+  ];
+  service.deco = [
+    { x: 12, y: 12, k: "stack" },
+    { x: 68, y: 12, k: "stack" },
+  ];
+
+  const campus = base(
+    "campus",
+    "Campus Dining Commons",
+    "campus",
+    114,
+    [
+      [37, 39],
+      [84, 86],
+    ],
+    "1-3",
+  );
+  supply(campus, 7, 7, ID.power);
+  supply(campus, 12, 11, ID.nut);
+  campus.students = [
+    { x: 17, hammer: "Read the syllabus, rookie.", reply: "It's on the rubric." },
+    { x: 62, hammer: "That's not extra credit.", reply: "I just asked for directions." },
+    { x: 96, hammer: "Office hours are over.", reply: "Sir, this is the dining hall." },
+  ];
+  staff(campus, 24, "server");
+  furniture(campus, 29, 10, 4, 2, "counter");
+  supply(campus, 34, 7, ID.treat);
+  cans(campus, [37, 38, 39], 7);
+  furniture(campus, 48, 9, 5, 1, "pass");
+  cans(campus, [49, 50, 51], 11);
+  staff(campus, 56, "office");
+  supply(campus, 64, 11, ID.nut);
+  furniture(campus, 68, 9, 3, 1, "shelf");
+  furniture(campus, 73, 7, 4, 1, "shelf");
+  supply(campus, 75, 2, ID.question);
+  supply(campus, 80, 7, ID.power);
+  cans(campus, [84, 85, 86], 7);
+  staff(campus, 91, "hotel");
+  supply(campus, 93, 11, ID.brickCoin);
+  staff(campus, 100, "server");
+  campus.signs = [
+    { x: 3, label: "CAMPUS COMMONS", note: "Dining staff · student banter" },
+    { x: 28, label: "DINING COUNTER", note: "Students can pass safely" },
+    { x: 45, label: "LOW CLEARANCE", note: "Run + ↓ to slide" },
+    { x: 67, label: "BOOK STACKS", note: "Climb for extra supplies" },
+  ];
+  campus.deco = [
+    { x: 14, y: 12, k: "shrub" },
+    { x: 66, y: 12, k: "stack" },
+  ];
+
+  const bonus = base("bonus", "Staff-Only Stash", "restaurant", 30, [], "STAFF");
+  bonus.flagTile = bonus.castleTile = bonus.checkpointTile = -1;
+  bonus.time = 0;
+  bonus.spawnX = 72;
+  stashDoor(bonus, 2, "back");
+  for (let x = 7; x < 27; x += 2) cans(bonus, [x], 10);
+  supply(bonus, 10, 11, ID.nut);
+  supply(bonus, 19, 11, ID.nut);
+  supply(bonus, 14, 4, ID.treat);
+  supply(bonus, 21, 7, ID.power);
+  furniture(bonus, 11, 9, 4, 1, "shelf");
+  cans(bonus, [12, 13, 14], 7);
+  bonus.signs = [{ x: 8, label: "STAFF-ONLY STASH", note: "Stock up · ↓ on return cart" }];
+  return { courses: [lobby, service, campus], bonus };
 }

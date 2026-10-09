@@ -8,8 +8,8 @@ const initial: Hud = {
   score: 0,
   coins: 0,
   world: "1-1",
-  name: "Open Office",
-  time: 300,
+  name: "Lobby & Lunch Rush",
+  time: 240,
   lives: 3,
   form: 1,
   charge: 0,
@@ -20,6 +20,7 @@ const initial: Hud = {
   hint: "",
   soundReady: false,
   visualsReady: false,
+  stance: "standing",
 };
 const pad = (n: number, len = 6) => String(Math.max(0, Math.floor(n))).padStart(len, "0");
 function readBest() {
@@ -33,21 +34,24 @@ function readBest() {
 export function KilnHop() {
   const canvasRef = useRef<HTMLCanvasElement>(null),
     playRef = useRef<HTMLDivElement>(null),
+    frameRef = useRef<HTMLDivElement>(null),
     gameRef = useRef<Game | null>(null);
   const [mode, setMode] = useState<Mode>("title"),
     [hud, setHud] = useState(initial),
     [muted, setMuted] = useState(false),
     [best, setBest] = useState(0);
   const [ready, setReady] = useState(false);
+  const [venue, setVenue] = useState(0);
   useEffect(() => {
     const canvas = canvasRef.current,
-      play = playRef.current;
-    if (!canvas || !play) return;
+      play = playRef.current,
+      frame = frameRef.current;
+    if (!canvas || !play || !frame) return;
     const fit = () => {
       const box = play.getBoundingClientRect(),
         scale = Math.min(box.width / DISPLAY_W, box.height / DISPLAY_H);
-      canvas.style.width = `${Math.floor(DISPLAY_W * scale)}px`;
-      canvas.style.height = `${Math.floor(DISPLAY_H * scale)}px`;
+      frame.style.width = `${Math.floor(DISPLAY_W * scale)}px`;
+      frame.style.height = `${Math.floor(DISPLAY_H * scale)}px`;
     };
     fit();
     const obs = new ResizeObserver(fit);
@@ -94,7 +98,7 @@ export function KilnHop() {
       gameRef.current?.setPointer(e.pointerId, action, false),
   });
   const active = ["play", "pause", "slide", "walkoff"].includes(mode),
-    start = () => gameRef.current?.newGame();
+    start = () => gameRef.current?.newGame(venue);
   const controls: [string, string][] = [
     ["← →", "Move"],
     ["Space", "Jump / hold for height"],
@@ -103,11 +107,11 @@ export function KilnHop() {
     ["F", "Snot rocket"],
     ["T", "Wipe sweat"],
     ["Q", "Super smash"],
-    ["↓", "Enter supply closet"],
+    ["↓ / S", "Crouch / run to slide"],
     ["Esc", "Pause"],
   ];
   return (
-    <main className="stage" data-mode={mode}>
+    <main className="stage" data-mode={mode} data-stance={hud.stance}>
       <header className="hud">
         <div className="wordmark">
           <span>HAMMER</span>
@@ -192,100 +196,119 @@ export function KilnHop() {
           </div>
         </aside>
         <div className="play" ref={playRef}>
-          <canvas
-            ref={canvasRef}
-            className="game"
-            width={DISPLAY_W}
-            height={DISPLAY_H}
-            aria-label="Hammer Time playfield. Arrows move, Space jumps, H swings, F fires snot, T wipes sweat, Q super smash."
-          />
-          {mode === "title" && (
-            <div className="veil veil-title">
-              <div className="title-dock">
-                <p className="kicker">An exceptionally bad day at the office</p>
-                <h1>
-                  HAMMER
-                  <br />
-                  <span>TIME.</span>
-                </h1>
-                <p className="title-copy">
-                  Mallet in hand. Affliction on.
-                  <br />
-                  Make it to the end of the shift.
-                </p>
-                <button className="btn-nes" disabled={!ready} onClick={start}>
-                  {ready ? "Clock in" : "Loading…"} <span aria-hidden="true">→</span>
-                </button>
-                <p className="best">Best {pad(best)} · 2 floors + a secret stash</p>
+          <div className="game-frame" ref={frameRef}>
+            <canvas
+              ref={canvasRef}
+              className="game"
+              width={DISPLAY_W}
+              height={DISPLAY_H}
+              aria-label="Hammer Time playfield. Arrows move, Space jumps, H swings, F fires snot, T wipes sweat, Q super smash."
+            />
+            {mode === "title" && (
+              <div className="veil veil-title">
+                <div className="title-dock">
+                  <p className="kicker">Hospitality's most difficult regular</p>
+                  <h1>
+                    HAMMER
+                    <br />
+                    <span>TIME.</span>
+                  </h1>
+                  <p className="title-copy">
+                    Mallet in hand. Affliction on.
+                    <br />
+                    No service with a smile.
+                  </p>
+                  <button className="btn-nes" disabled={!ready} onClick={start}>
+                    {ready ? "Clock in" : "Loading…"} <span aria-hidden="true">→</span>
+                  </button>
+                  <label className="venue-picker">
+                    Start at
+                    <select
+                      aria-label="Starting venue"
+                      disabled={!ready}
+                      value={venue}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        setVenue(next);
+                        gameRef.current?.setStartingVenue(next);
+                      }}
+                    >
+                      <option value={0}>Hotel lobby · full shift</option>
+                      <option value={1}>Restaurant practice</option>
+                      <option value={2}>Campus practice</option>
+                    </select>
+                  </label>
+                  <p className="best">Best {pad(best)} · 3 venues + a staff stash</p>
+                </div>
               </div>
-            </div>
-          )}
-          {mode === "card" && (
-            <div className="veil">
-              <div className="panel">
-                <p className="kicker">
-                  {hud.checkpoint ? "Back from your break" : "Your shift starts here"}
-                </p>
-                <h2>{hud.name}</h2>
-                <p>
-                  {hud.world} · {hud.lives} lives
-                </p>
-                <p className="dek">
-                  Jump into the ! crate for pepper.
-                  <br />H swings. F launches a snot rocket.
-                </p>
-                {!hud.soundReady && <small>Preparing audio…</small>}
+            )}
+            {mode === "card" && (
+              <div className="veil">
+                <div className="panel">
+                  <p className="kicker">
+                    {hud.checkpoint ? "Back from your break" : "Your shift starts here"}
+                  </p>
+                  <h2>{hud.name}</h2>
+                  <p>
+                    {hud.world} · {hud.lives} lives
+                  </p>
+                  <p className="dek">
+                    Jump into the ! crate for pepper.
+                    <br />H swings. Run + ↓ slides under service passes.
+                  </p>
+                  {!hud.soundReady && <small>Preparing audio…</small>}
+                </div>
               </div>
-            </div>
-          )}
-          {mode === "pause" && (
-            <div className="veil">
-              <div className="panel">
-                <p className="kicker">On break</p>
-                <h2>Take a breath.</h2>
-                <p className="dek">
-                  Space jumps · H swings · F fires
-                  <br />T wipes · Q super smash
-                </p>
-                <button className="btn-nes" onClick={() => gameRef.current?.togglePause()}>
-                  Back to work
-                </button>
+            )}
+            {mode === "pause" && (
+              <div className="veil">
+                <div className="panel">
+                  <p className="kicker">On break</p>
+                  <h2>Take a breath.</h2>
+                  <p className="dek">
+                    Space jumps · H swings · F fires
+                    <br />T wipes · Q super smash
+                  </p>
+                  <button className="btn-nes" onClick={() => gameRef.current?.togglePause()}>
+                    Back to work
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-          {mode === "tally" && (
-            <div className="veil">
-              <div className="panel">
-                <p className="kicker">Floor cleared</p>
-                <h2>Job done.</h2>
-                <p>Remaining time becomes bonus points.</p>
+            )}
+            {mode === "tally" && (
+              <div className="veil">
+                <div className="panel">
+                  <p className="kicker">Floor cleared</p>
+                  <h2>Job done.</h2>
+                  <p>Remaining time becomes bonus points.</p>
+                </div>
               </div>
-            </div>
-          )}
-          {(mode === "over" || mode === "win") && (
-            <div className="veil">
-              <div className="panel">
-                <p className="kicker">{mode === "win" ? "Shift complete" : "Hammer down"}</p>
-                <h2>{mode === "win" ? "Clock out, legend." : "Absolute bullshit."}</h2>
-                <p>
-                  {mode === "win"
-                    ? "Both floors cleared. You earned that Coke Zero."
-                    : "The office won this round. Take another swing."}
-                </p>
-                <p className="best">
-                  Score {pad(hud.score)} · Best {pad(best)}
-                </p>
-                <button className="btn-nes" onClick={start}>
-                  {mode === "win" ? "Another shift" : "Try again"}
-                </button>
+            )}
+            {(mode === "over" || mode === "win") && (
+              <div className="veil">
+                <div className="panel">
+                  <p className="kicker">{mode === "win" ? "Shift complete" : "Hammer down"}</p>
+                  <h2>{mode === "win" ? "Clock out, legend." : "Absolute bullshit."}</h2>
+                  <p>
+                    {mode === "win"
+                      ? "Shift cleared. You earned that Coke Zero."
+                      : "Hospitality won this round. Take another swing."}
+                  </p>
+                  <p className="best">
+                    Score {pad(hud.score)} · Best {pad(best)}
+                  </p>
+                  <button className="btn-nes" onClick={start}>
+                    {mode === "win" ? "Another shift" : "Try again"}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
       <div className="statusbar">
         <p className="game-hint">
-          {active ? hud.hint : "An office platformer with a very personal attitude."}
+          {active ? hud.hint : "An arcade platformer with very personal customer service."}
           {active && hud.checkpoint && <span className="saved"> · Checkpoint saved</span>}
         </p>
         <div className="meters">
@@ -321,7 +344,11 @@ export function KilnHop() {
           <button className="pad-btn" aria-label="Run" {...bind("run")}>
             Run
           </button>
-          <button className="pad-btn" aria-label="Enter supply closet" {...bind("down")}>
+          <button
+            className="pad-btn"
+            aria-label="Crouch, slide or enter staff stash"
+            {...bind("down")}
+          >
             ↓
           </button>
         </div>

@@ -1,9 +1,13 @@
 export type Point = { x: number; y: number };
 
 export const SWING_SECONDS = 0.42;
-export const HERO_HEIGHT = 44;
-export const HERO_BODY_HEIGHT = 38;
-export const HERO_BODY_WIDTH = 12;
+export const HERO_HEIGHT = 50;
+export const HERO_BODY_HEIGHT = 46;
+export const HERO_BODY_WIDTH = 14;
+export const HERO_CROUCH_HEIGHT = 30;
+export const HERO_CROUCH_VISUAL_HEIGHT = 32;
+export const ENEMY_HEIGHT = 46;
+export const ENEMY_BODY_HEIGHT = 42;
 
 /** The same joint angles drive drawing and contact. No independent attack box. */
 export function hammerPose(progress: number) {

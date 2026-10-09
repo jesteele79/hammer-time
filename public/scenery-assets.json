@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "generatedAtClientDate": "2026-10-09",
+  "generator": "Built-in image_gen tool",
+  "style": "Photographic cutouts and architectural interiors. Warm highlights and navy shadows.",
+  "notes": [
+    "All assets are new files. Existing hero, face, Affliction shirt, pickup and brand files are untouched.",
+    "PNG masters are copied byte-for-byte from ImageGen.",
+    "Character WebP files use alpha>=8 bounds plus eight original-pixel padding, then resize to 768px height.",
+    "NPCs face left. Runtime may mirror these NPCs; no hero source art was used.",
+    "Background floor areas larger than the requested 22% were accepted by the integrating agent; visualFloorTopFraction is approximate."
+  ],
+  "assets": {
+    "restaurant-server": {
+      "kind": "character",
+      "role": "server",
+      "sourceFile": "exec-47e9900b-2087-4a59-8ae9-b8046ff88276.png",
+      "facing": "left",
+      "prompt": "Use case: photorealistic-natural. Asset type: one full-body transparent NPC cutout for a detailed 2D side-scrolling game. Primary request: an adult restaurant server age about 35, a woman with dark hair tied in a bun, wearing a crisp white long-sleeve button shirt, long black apron over black trousers, sensible black shoes; holding a small polished metal serving tray with an empty glass firmly in one hand at waist level. Pose: true 90-degree side profile facing LEFT, nose points left, shoulders/hips/feet face left, relaxed walking stride with one foot ahead; whole head, tray, arms, legs and both shoes fully visible. Character has her own original face, no resemblance to any game hero. Medium: highly detailed professional photographic person cutout, realistic fabric folds, natural proportions, believable skin/hair, sharp silhouette. Lighting: soft upper-left light, gentle warm highlights and subtle blue shaded cloth. Composition: one adult centered, vertical canvas, generous transparent margin around every edge. Scene/backdrop: genuinely transparent alpha background. Constraints: no other people, no environment, no ground or cast shadow, no halo, no text or logos, no name tag lettering, no UI, no illustration, no cropped head/feet/tray; opaque subject with clean alpha edges.",
+      "original": {
+        "file": "restaurant-server.png",
+        "dimensions": [
+          1024,
+          1536
+        ],
+        "bytes": 1410199,
+        "mode": "RGBA",
+        "alphaBoundsNonzeroXYXY": [
+          43,
+          12,
+          964,
+          1504
+        ],
+        "alphaBounds128XYXY": [
+          174,
+          16,
+          888,
+          1443
+        ]
+      },
+      "webp": {
+        "file": "npc-server.webp",
+        "dimensions": [
+          389,
+          768
+        ],
+        "bytes": 40458,
+        "mode": "RGBA",
+        "sourceCropXYXY": [
+          165,
+          7,
+          897,
+          1452
+        ],
+        "alphaBoundsNonzeroXYXY": [
+          2,
+          2,
+          387,
+          766
+        ],
+        "alphaBounds128XYXY": [
+          5,
+          5,
+          384,
+          763
+        ]
+      }
+    },
+    "hotel-bellhop": {
+      "kind": "character",
+      "role": "hotel",
+      "sourceFile": "exec-f51dba53-434c-4048-aab2-f35126257fb2.png",
+      "facing": "left",
+      "prompt": "Use case: photorealistic-natural. Asset type: one full-body transparent NPC cutout for a detailed 2D side-scrolling game. Primary request: an adult hotel bellhop about age 40 with an original face distinct from any game hero, wearing a tailored navy hospitality uniform with subtle brass-gold piping and buttons, navy trousers, polished black shoes, and a small matching navy uniform cap; rolling one compact dark brown wheeled carry-on suitcase by its extended handle with his rear hand. Pose: true 90-degree side profile facing LEFT, nose points left, shoulders/hips/feet face left, relaxed walking stride, free front arm slightly forward; entire person and suitcase incl both shoes and suitcase wheels visible. Medium: highly detailed professional photographic person cutout, realistic navy fabric folds, natural human proportions, believable skin and hair. Lighting: soft upper-left studio light, warm highlights and cool blue shaded fabric. Composition: single adult plus suitcase centered on vertical canvas with generous transparent margins on all sides. Scene/backdrop: genuinely transparent alpha background. Constraints: no second person, no room or scenery, no ground, no cast shadow or glow, no labels/logos/text, no UI, no illustration, no cropping; opaque subject, clean silhouette alpha.",
+      "original": {
+        "file": "hotel-bellhop.png",
+        "dimensions": [
+          1199,
+          1312
+        ],
+        "bytes": 881366,
+        "mode": "RGBA",
+        "alphaBoundsNonzeroXYXY": [
+          33,
+          0,
+          1185,
+          1286
+        ],
+        "alphaBounds128XYXY": [
+          135,
+          6,
+          1129,
+          1260
+        ]
+      },
+      "webp": {
+        "file": "npc-hotel.webp",
+        "dimensions": [
+          612,
+          768
+        ],
+        "bytes": 66770,
+        "mode": "RGBA",
+        "sourceCropXYXY": [
+          126,
+          0,
+          1138,
+          1269
+        ],
+        "alphaBoundsNonzeroXYXY": [
+          3,
+          0,
+          610,
+          766
+        ],
+        "alphaBounds128XYXY": [
+          6,
+          4,
+          606,
+          763
+        ]
+      }
+    },
+    "college-student": {
+      "kind": "character",
+      "role": "student",
+      "sourceFile": "exec-033d2b58-add3-43ee-b6c7-9648db3242db.png",
+      "facing": "left",
+      "prompt": "Use case: photorealistic-natural. Asset type: one full-body transparent NPC cutout for a detailed 2D side-scrolling game. Primary request: a clearly adult college student age 25, man with an original face distinct from any game hero, dark short curly hair and glasses, forest-green cotton overshirt over plain cream T-shirt, indigo jeans, casual worn white sneakers, a burgundy fabric backpack on both shoulders; holding one plain unmarked book close to his body with the front arm. Pose: true 90-degree side profile facing LEFT, nose points left, torso/hips/feet face left, neutral relaxed walking stride with both feet separated and clearly visible. Whole head, backpack, book, hands and both shoes fully in frame. Medium: highly detailed professional photographic person cutout, realistic skin/hair and fabric textures, natural adult proportions. Lighting: soft upper-left studio light with warm highlights and subtle cool shaded folds. Composition: one adult centered on vertical canvas with generous transparent margins all sides. Scene/backdrop: genuinely transparent alpha background. Constraints: no children, no other people, no environment, no ground/cast shadow/halo, no labels/logos/text, no UI, no illustration, no cropped extremities; fully opaque person, clean alpha silhouette.",
+      "original": {
+        "file": "college-student.png",
+        "dimensions": [
+          1024,
+          1536
+        ],
+        "bytes": 1767943,
+        "mode": "RGBA",
+        "alphaBoundsNonzeroXYXY": [
+          91,
+          0,
+          988,
+          1454
+        ],
+        "alphaBounds128XYXY": [
+          137,
+          10,
+          910,
+          1444
+        ]
+      },
+      "webp": {
+        "file": "npc-student.webp",
+        "dimensions": [
+          418,
+          768
+        ],
+        "bytes": 53604,
+        "mode": "RGBA",
+        "sourceCropXYXY": [
+          128,
+          0,
+          919,
+          1453
+        ],
+        "alphaBoundsNonzeroXYXY": [
+          2,
+          0,
+          416,
+          768
+        ],
+        "alphaBounds128XYXY": [
+          5,
+          5,
+          413,
+          763
+        ]
+      }
+    },
+    "hotel-restaurant-bg": {
+      "kind": "background",
+      "themes": [
+        "hotel",
+        "restaurant"
+      ],
+      "sourceFile": "exec-da813f2d-d8d9-4f8d-9e39-9713921295b7.png",
+      "visualFloorTopFraction": 0.67,
+      "prompt": "Use case: photorealistic-natural. Asset type: opaque landscape environment background for a 2D side-scrolling game. Primary request: an empty upscale hotel restaurant adjoining a lobby corridor, a long broad wall viewed straight-on from a side-elevation camera, warm upscale interior materials with deep navy upholstered booths, pale stone panels, walnut trim, brushed brass lights, neat dining tables behind an open walkway, tall interior glass doors, a few tasteful potted plants, and a reception alcove on one side. Composition: wide 16:9 landscape panoramic frontage, level camera with horizontal architectural lines, wall occupies upper 78 percent, junction of wall and floor at 78 percent height, clear polished dark wood walking floor occupies bottom 22 percent and stays visibly open across width. Camera remains nearly perpendicular to long wall, no dramatic deep central vanishing-point perspective, believable subtle room depth and real furniture. Medium: detailed photographic architecture, cinematic warm lighting with navy shadow accents and realistic stone/wood/glass surfaces. Mood: welcoming luxurious evening hotel, rich readable detail without clutter. Scene/backdrop: complete opaque interior fills image. Constraints: absolutely no people or human faces, no text/signage/letters/logos/numbers, no UI, no game platforms, no floating objects, no visible stairs, no cartoon art, no frame, no watermark. The open floor strip is uncluttered for a side-scrolling playable character.",
+      "original": {
+        "file": "hotel-restaurant-bg.png",
+        "dimensions": [
+          1672,
+          941
+        ],
+        "bytes": 2233452,
+        "mode": "RGB"
+      },
+      "jpg": {
+        "file": "hotel-restaurant-bg.jpg",
+        "dimensions": [
+          1279,
+          720
+        ],
+        "bytes": 228904,
+        "mode": "RGB"
+      },
+      "webp": {
+        "file": "hotel-corridor.webp",
+        "dimensions": [
+          1279,
+          720
+        ],
+        "bytes": 151800,
+        "mode": "RGB"
+      }
+    },
+    "college-center-bg": {
+      "kind": "background",
+      "themes": [
+        "campus"
+      ],
+      "sourceFile": "exec-5980df16-07a0-48c5-84b3-4569dccb0533.png",
+      "visualFloorTopFraction": 0.61,
+      "prompt": "Use case: photorealistic-natural. Asset type: opaque landscape environment background for a 2D side-scrolling game. Primary request: an empty modern college student-center interior, a broad long wall seen straight-on from a side-elevation camera; large windows with late-afternoon light, brick and light oak wall panels, navy and muted green lounge chairs clustered behind the main walkway, communal study desks, a bulletin board with blank colorful paper rectangles without writing, book shelving, and a doorway. Composition: wide 16:9 landscape panoramic frontage, camera level with horizontal architectural lines, wall occupies upper 78 percent, wall/floor junction at 78 percent height, clean terrazzo walking floor occupies bottom 22 percent and remains open across the entire width. Camera nearly perpendicular to long wall, no dramatic deep central vanishing-point perspective, furniture has believable subtle depth. Medium: detailed photographic architecture, warm sunlight, soft cool-blue shadows, realistic wood/brick/glass/fabric/terrazzo textures. Mood: lively welcoming student environment through furniture and color, but unoccupied. Scene/backdrop: complete opaque interior filling frame. Constraints: absolutely no people or human faces, no text/signage/letters/logos/numbers, no UI, no floating platforms or objects, no stairs, no cartoon art, no frame/watermark. The open floor strip is uncluttered for a side-scrolling playable character.",
+      "original": {
+        "file": "college-center-bg.png",
+        "dimensions": [
+          1672,
+          941
+        ],
+        "bytes": 2729128,
+        "mode": "RGB"
+      },
+      "jpg": {
+        "file": "college-center-bg.jpg",
+        "dimensions": [
+          1279,
+          720
+        ],
+        "bytes": 276858,
+        "mode": "RGB"
+      },
+      "webp": {
+        "file": "campus-common.webp",
+        "dimensions": [
+          1279,
+          720
+        ],
+        "bytes": 219614,
+        "mode": "RGB"
+      }
+    },
+    "office-worker-photo": {
+      "kind": "character",
+      "role": "office",
+      "sourceFile": "exec-2e8df24a-f0af-4e96-8316-07d125b21b49.png",
+      "facing": "left",
+      "prompt": "Use case: photorealistic-natural. Asset type: one full-body transparent NPC cutout for a detailed 2D side-scrolling game. Primary request: a clearly adult office worker about age 45, man with an original face distinct from any game hero, neatly combed dark hair with some gray at the temples, clean shaven, wearing a crisp light blue long-sleeved office button-down shirt, burgundy tie, charcoal gray wool slacks and polished black leather shoes; carrying a compact dark brown leather briefcase in his rear hand at thigh height, with the free front arm gently forward. Pose: true 90-degree side profile facing LEFT, nose points left, shoulders/hips/feet face left, relaxed walking stride with feet separated; whole head, hands, briefcase, both legs and both shoes fully in frame. Medium: highly detailed professional photographic person cutout, realistic skin and hair, natural adult proportions, convincing shirt folds, wool texture and leather details. Lighting: soft upper-left studio light, gentle warm highlights and subtle cool-blue fabric shadows. Composition: single adult plus briefcase centered on vertical canvas with generous transparent margin around every edge. Scene/backdrop: genuinely transparent alpha background. Constraints: no other people, no resemblance to the main game character, no environment or ground, no cast shadow, no halo or glow, no text/logos/labels, no UI, no illustration, no cropped body/briefcase/feet; opaque subject with crisp clean alpha edges.",
+      "original": {
+        "file": "office-worker-photo.png",
+        "dimensions": [
+          1024,
+          1536
+        ],
+        "bytes": 1780754,
+        "mode": "RGBA",
+        "alphaBoundsNonzeroXYXY": [
+          23,
+          22,
+          980,
+          1488
+        ],
+        "alphaBounds128XYXY": [
+          99,
+          28,
+          909,
+          1480
+        ]
+      },
+      "webp": {
+        "file": "npc-office.webp",
+        "dimensions": [
+          432,
+          768
+        ],
+        "bytes": 49482,
+        "mode": "RGBA",
+        "sourceCropXYXY": [
+          90,
+          17,
+          918,
+          1488
+        ],
+        "alphaBoundsNonzeroXYXY": [
+          2,
+          2,
+          430,
+          768
+        ],
+        "alphaBounds128XYXY": [
+          4,
+          6,
+          427,
+          764
+        ]
+      }
+    }
+  }
+}

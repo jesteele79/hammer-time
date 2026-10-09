@@ -1,4 +1,10 @@
-import { HERO_HEIGHT, hammerPose, malletInArtwork, type Point } from "./combat";
+import {
+  HERO_HEIGHT,
+  HERO_CROUCH_VISUAL_HEIGHT,
+  hammerPose,
+  malletInArtwork,
+  type Point,
+} from "./combat";
 
 export type HeroAssets = {
   idle: HTMLImageElement;
@@ -26,6 +32,7 @@ export type HeroPose = {
   star: number;
   reduced: boolean;
   clock: number;
+  crouch?: boolean;
 };
 
 export function heroLift(p: Pick<HeroPose, "moving" | "phase" | "reduced">) {
@@ -36,7 +43,7 @@ export function artworkToWorld(p: HeroPose, point: Point): Point {
   const s = HERO_HEIGHT / 1371;
   return {
     x: p.x + p.facing * (-456 * s * 0.42 + point.x * s),
-    y: p.foot - HERO_HEIGHT - heroLift(p) + point.y * s,
+    y: p.foot - (p.crouch ? HERO_CROUCH_VISUAL_HEIGHT : HERO_HEIGHT) - heroLift(p) + point.y * s,
   };
 }
 
@@ -59,7 +66,9 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
   const progress = p.mega > 0 ? 1 - p.mega / 0.62 : 1 - p.swing / 0.42;
   const angle = active
     ? hammerPose(progress)
-    : { s: p.moving && !p.reduced ? Math.sin(p.phase * Math.PI * 2) * 0.12 : 0, e: 0 };
+    : p.crouch
+      ? { s: -0.7, e: -0.55 }
+      : { s: p.moving && !p.reduced ? Math.sin(p.phase * Math.PI * 2) * 0.12 : 0, e: 0 };
   ctx.save();
   ctx.translate(p.x - cam, p.foot);
   ctx.fillStyle = "rgba(5,10,15,0.32)";
@@ -81,14 +90,18 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
     }
   }
   ctx.scale(p.facing, 1);
-  ctx.translate(-456 * scale * 0.42, -HERO_HEIGHT - heroLift(p));
+  ctx.translate(
+    -456 * scale * 0.42,
+    -(p.crouch ? HERO_CROUCH_VISUAL_HEIGHT : HERO_HEIGHT) - heroLift(p),
+  );
   ctx.scale(scale, scale);
 
   const stride = p.moving && !p.reduced ? Math.sin(p.phase * Math.PI * 2) : 0;
   const leg = (rear: boolean) => {
     ctx.save();
+    if (p.crouch) ctx.translate(0, -180);
     const hipX = rear ? 210 : 143;
-    const thigh = p.air ? (rear ? 0.12 : -0.32) : stride * (rear ? -0.24 : 0.24);
+    const thigh = p.crouch ? -1.36 : p.air ? (rear ? 0.12 : -0.32) : stride * (rear ? -0.24 : 0.24);
     ctx.translate(hipX, 935);
     ctx.rotate(thigh);
     ctx.translate(-hipX, -935);
@@ -104,7 +117,7 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
     ctx.clip();
     ctx.drawImage(a.idle, 0, 0);
     ctx.restore();
-    const knee = p.air ? 0.45 : Math.max(0, stride * (rear ? -1 : 1)) * 0.28;
+    const knee = p.crouch ? 2.72 : p.air ? 0.45 : Math.max(0, stride * (rear ? -1 : 1)) * 0.28;
     ctx.translate(143, 1098);
     ctx.rotate(knee);
     ctx.translate(-143, -1098);
@@ -119,9 +132,12 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
     ctx.drawImage(a.idle, 0, 0);
     ctx.restore();
     // Different original shoe crops keep the layered feet readable.
-    if (rear) ctx.drawImage(a.idle, 130, 1175, 215, 121, 81, 1200, 215, 121);
-    else ctx.drawImage(a.idle, 43, 1225, 258, 146, 43, 1225, 258, 146);
+    if (!p.crouch) {
+      if (rear) ctx.drawImage(a.idle, 130, 1175, 215, 121, 81, 1200, 215, 121);
+      else ctx.drawImage(a.idle, 43, 1225, 258, 146, 43, 1225, 258, 146);
+    }
     ctx.restore();
+    if (p.crouch) ctx.drawImage(a.idle, 43, 1225, 258, 146, rear ? 116 : 180, 771, 185, 106);
   };
   leg(true);
   leg(false);
@@ -129,29 +145,41 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
   // The earlier rig removed shorts with a rough mallet mask. Rebuild only the
   // shorts from clean denim samples in the original, never the face/shirt.
   ctx.save();
-  polygon(ctx, [
-    [58, 711],
-    [300, 728],
-    [283, 920],
-    [243, 934],
-    [145, 946],
-    [73, 934],
-  ]);
+  polygon(
+    ctx,
+    p.crouch
+      ? [
+          [58, 711],
+          [300, 728],
+          [315, 811],
+          [237, 840],
+          [145, 843],
+          [73, 827],
+        ]
+      : [
+          [58, 711],
+          [300, 728],
+          [283, 920],
+          [243, 934],
+          [145, 946],
+          [73, 934],
+        ],
+  );
   ctx.clip();
-  ctx.drawImage(a.idle, 220, 742, 60, 75, 57, 711, 245, 236);
+  ctx.drawImage(a.idle, 220, 742, 60, 75, 57, 711, 260, p.crouch ? 134 : 236);
   ctx.strokeStyle = "#b0bfd4";
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(170, 727);
-  ctx.lineTo(145, 916);
+  ctx.lineTo(145, p.crouch ? 840 : 916);
   ctx.stroke();
   ctx.strokeStyle = "#263a58";
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.moveTo(72, 919);
-  ctx.lineTo(144, 925);
-  ctx.lineTo(243, 930);
-  ctx.lineTo(282, 913);
+  ctx.moveTo(72, p.crouch ? 820 : 919);
+  ctx.lineTo(144, p.crouch ? 839 : 925);
+  ctx.lineTo(243, p.crouch ? 836 : 930);
+  ctx.lineTo(282, p.crouch ? 815 : 913);
   ctx.stroke();
   ctx.restore();
   ctx.save();

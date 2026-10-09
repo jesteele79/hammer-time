@@ -8,6 +8,7 @@ import { hammerPose, malletInArtwork, sweptHeadHits } from "../src/game/combat.t
 import { heroMallet, artworkToWorld } from "../src/game/hero.ts";
 import { buildLevels } from "../src/game/levels.ts";
 import { ID } from "../src/game/constants.ts";
+import { HERO_BODY_HEIGHT, HERO_CROUCH_HEIGHT } from "../src/game/combat.ts";
 
 function game() {
   const g = Object.create(Game.prototype);
@@ -80,6 +81,22 @@ test("locked character files and source voice stay byte-for-byte unchanged", () 
     assert.deepEqual(
       readFileSync(`public/${file}`),
       execFileSync("git", ["show", `ff02ee9:public/${file}`], { maxBuffer: 20 * 1024 * 1024 }),
+    );
+  }
+  for (const file of [
+    "coke-zero.png",
+    "coke-zero.webp",
+    "nuts-bag.png",
+    "nuts-bag.webp",
+    "buccees-pickup.png",
+    "buccees-pickup.webp",
+    "towel-cloth.png",
+    "towel-cloth.webp",
+    "damage-voice.wav",
+  ]) {
+    assert.deepEqual(
+      readFileSync(`public/${file}`),
+      execFileSync("git", ["show", `b2cf5e9:public/${file}`], { maxBuffer: 20 * 1024 * 1024 }),
     );
   }
 });
@@ -216,7 +233,7 @@ test("a visible forward hammer strike defeats its target once and misses the rea
   assert.equal(g.charge, 1);
   assert.equal(g.score, 100);
 });
-test("a pepper-equipped run clears both floors with three lives", () => {
+test("a pepper-equipped run clears all three venues with three lives", () => {
   const g = game();
   g.timeAcc = 0;
   g.clock = 0;
@@ -265,4 +282,182 @@ test("a pepper-equipped run clears both floors with three lives", () => {
     "win",
     `stuck in ${g.mode} floor=${g.level.id} x=${g.player.x} y=${g.player.y} lives=${g.lives}`,
   );
+});
+
+test("crouching preserves feet, slides through every service pass and stands only when clear", () => {
+  for (const level of buildLevels().courses) {
+    const g = game();
+    g.loadLevel(level, 2, 0, true);
+    g.enemies = [];
+    const pass = level.props.find((p) => p.kind === "pass");
+    const p = g.player;
+    p.x = pass.x * 16 - 42;
+    p.vx = 150;
+    p.onGround = true;
+    g.actions = { right: true, run: true, down: true };
+    for (let frame = 0; frame < 20; frame++) g.step(1 / 60);
+    assert.equal(p.h, HERO_CROUCH_HEIGHT);
+    assert.equal(p.y + p.h, 192);
+    assert.ok(p.x > pass.x * 16 && p.x < (pass.x + pass.w) * 16);
+    g.actions = {};
+    for (let frame = 0; frame < 25; frame++) g.step(1 / 60);
+    assert.equal(p.crouch, true, "releasing Down beneath the roof must stay low");
+    assert.equal(g.overlapsSolid(p.x, p.y, p.w, p.h), false);
+    g.actions = { right: true };
+    for (let frame = 0; frame < 110; frame++) g.step(1 / 60);
+    assert.ok(p.x >= (pass.x + pass.w) * 16);
+    assert.equal(p.h, HERO_BODY_HEIGHT);
+    assert.equal(p.crouch, false);
+  }
+});
+
+test("shelf paths can be climbed through physics to bump every high supply case", () => {
+  for (const level of buildLevels().courses) {
+    const g = game();
+    g.loadLevel(level, 2, 0, true);
+    g.enemies = [];
+    g.students = [];
+    const [lower, upper] = level.props.filter((p) => p.kind === "shelf");
+    const p = g.player;
+    p.x = lower.x * 16 - 22;
+    p.vx = 96;
+    p.onGround = true;
+    g.actions = { right: true };
+    g.jumpHeld = true;
+    p.jumpBuf = 0.12;
+    let landed = false;
+    for (let frame = 0; frame < 80; frame++) {
+      g.step(1 / 60);
+      if (frame > 4 && p.onGround && Math.abs(p.y + p.h - lower.y * 16) < 0.1) {
+        landed = true;
+        break;
+      }
+    }
+    assert.ok(landed, level.id + " lower shelf is reachable");
+    p.jumpBuf = 0.12;
+    landed = false;
+    for (let frame = 0; frame < 80; frame++) {
+      g.step(1 / 60);
+      if (frame > 4 && p.onGround && Math.abs(p.y + p.h - upper.y * 16) < 0.1) {
+        landed = true;
+        break;
+      }
+    }
+    assert.ok(landed, level.id + " upper shelf is reachable");
+    const tx = upper.x + 2;
+    while (p.x < tx * 16 - 2) g.step(1 / 60);
+    g.actions = {};
+    for (let frame = 0; frame < 15; frame++) g.step(1 / 60);
+    p.jumpBuf = 0.12;
+    for (let frame = 0; frame < 40; frame++) g.step(1 / 60);
+    assert.equal(g.tileAt(tx, 2), ID.used, level.id + " high case can be hit from its shelf");
+  }
+});
+
+test("every ordinary overhead supply has standing clearance and a reachable head bump", () => {
+  for (const level of [...buildLevels().courses, buildLevels().bonus]) {
+    for (let tx = 0; tx < level.w; tx++) {
+      const id = level.tiles[7 * level.w + tx];
+      if (![ID.power, ID.question, ID.treat].includes(id)) continue;
+      const g = game();
+      g.loadLevel(level, 2, 0, true);
+      g.enemies = [];
+      g.students = [];
+      const p = g.player;
+      p.x = tx * 16 + 1;
+      p.onGround = true;
+      g.actions = {};
+      g.jumpHeld = true;
+      assert.equal(g.overlapsSolid(p.x, p.y, p.w, p.h), false, level.id + " standing clearance");
+      p.jumpBuf = 0.12;
+      for (let frame = 0; frame < 45; frame++) g.step(1 / 60);
+      assert.equal(g.tileAt(tx, 7), ID.used, level.id + " reachable supply at " + tx);
+    }
+  }
+});
+
+test("hospitality staff dominate the cast; servers warn before rushing and students only banter", () => {
+  const built = buildLevels();
+  const enemies = built.courses.flatMap((l) => l.enemies);
+  assert.ok(enemies.filter((e) => e.role !== "office").length > enemies.length * 0.7);
+  const g = game();
+  const server = g.enemies.find((e) => e.role === "server");
+  g.player.x = server.x - 70;
+  server.awake = true;
+  g.stepEnemies(1 / 60);
+  assert.ok(server.alert > 0);
+  assert.equal(server.vx, 0);
+  for (let frame = 0; frame < 30; frame++) g.stepEnemies(1 / 60);
+  assert.equal(Math.abs(server.vx), 62);
+  g.loadLevel(built.courses[2], 2, 0, true);
+  g.enemies = [];
+  const student = g.students[0];
+  g.player.x = student.x - 20;
+  g.stepStudents(1 / 60);
+  g.touchEnemies();
+  assert.equal(g.heroBanter, student.hammer);
+  assert.equal(student.greeted, true);
+  assert.equal(g.player.form, 2);
+  assert.equal(g.audio.voiceCount, 0, "student dialogue is not accepted damage");
+  g.swing = 0.2;
+  g.tryHammer();
+  assert.equal(g.students.length, 3, "student passersby stay outside combat targets");
+});
+
+test("staff stash shelf can be climbed to reach its elevated Buc-ee's case", () => {
+  const g = game();
+  g.loadLevel(g.bonus, 2, 0, true);
+  const shelf = g.level.props.find((p) => p.kind === "shelf");
+  const p = g.player;
+  p.x = shelf.x * 16 - 50;
+  p.vx = 96;
+  p.onGround = true;
+  p.jumpBuf = 0.12;
+  g.jumpHeld = true;
+  g.actions = { right: true };
+  let landed = false;
+  for (let frame = 0; frame < 80; frame++) {
+    g.step(1 / 60);
+    if (frame > 4 && p.onGround && Math.abs(p.y + p.h - shelf.y * 16) < 0.1) {
+      landed = true;
+      break;
+    }
+  }
+  assert.ok(landed, "bonus shelf is reachable from the floor");
+  for (let frame = 0; frame < 60 && p.x < 14 * 16 - 2; frame++) g.step(1 / 60);
+  g.actions = {};
+  for (let frame = 0; frame < 15; frame++) g.step(1 / 60);
+  assert.equal(g.overlapsSolid(p.x, p.y, p.w, p.h), false);
+  p.jumpBuf = 0.12;
+  for (let frame = 0; frame < 45; frame++) g.step(1 / 60);
+  assert.equal(
+    g.tileAt(14, 4),
+    ID.used,
+    `bonus reward x=${p.x} feet=${p.y + p.h} grounded=${p.onGround}`,
+  );
+});
+
+test("stunned hotel staff keep their feet and cannot stand inside a service pass", () => {
+  const g = game(),
+    pass = g.level.props.find((p) => p.kind === "pass");
+  const e = g.enemies.find((enemy) => enemy.role === "hotel");
+  e.x = (pass.x + 2) * 16;
+  e.y = 192 - e.h;
+  e.awake = true;
+  const center = e.x + e.w / 2;
+  g.stun(e);
+  assert.equal(e.x + e.w / 2, center);
+  assert.equal(e.y + e.h, 192);
+  assert.equal(g.overlapsSolid(e.x, e.y, e.w, e.h), false);
+  e.wake = 4.1;
+  g.enemies = [e];
+  g.stepEnemies(1 / 60);
+  assert.equal(e.state, "shell");
+  assert.equal(e.h, 27);
+  e.x = (pass.x + pass.w + 2) * 16;
+  g.stepEnemies(1 / 60);
+  assert.equal(e.state, "walk");
+  assert.equal(e.h, 42);
+  assert.equal(e.y + e.h, 192);
+  assert.equal(g.overlapsSolid(e.x, e.y, e.w, e.h), false);
 });

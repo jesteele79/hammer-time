@@ -94,7 +94,7 @@ try {
   }
   // Optional development-only pose board uses the live renderer and source art.
   if (capturePoses) {
-    await page.setViewportSize({ width: 1500, height: 520 });
+    await page.setViewportSize({ width: 1800, height: 520 });
     await page.evaluate(async () => {
       const { drawHero } = await import("/src/game/hero.ts");
       const urls = {
@@ -116,19 +116,20 @@ try {
         }),
       );
       const canvas = document.createElement("canvas");
-      canvas.width = 1500;
+      canvas.width = 1800;
       canvas.height = 520;
-      canvas.style = "width:1500px;height:520px";
+      canvas.style = "width:1800px;height:520px";
       document.body.replaceChildren(canvas);
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#192532";
-      ctx.fillRect(0, 0, 1500, 520);
+      ctx.fillRect(0, 0, 1800, 520);
       const states = [
         { label: "Walk", moving: true, phase: 0.18 },
         { label: "Wind-up", swing: 0.32 },
         { label: "Strike", swing: 0.19 },
         { label: "Brow wipe", wipe: 0.5 },
         { label: "Snot rocket", snot: 0.24 },
+        { label: "Crouch / slide", crouch: true },
       ];
       states.forEach((state, i) => {
         ctx.save();

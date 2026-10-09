@@ -2,13 +2,17 @@ import { AudioBus } from "./audio";
 import {
   HERO_BODY_HEIGHT,
   HERO_BODY_WIDTH,
+  HERO_CROUCH_HEIGHT,
+  ENEMY_HEIGHT,
+  ENEMY_BODY_HEIGHT,
   SWING_SECONDS,
   sweptHeadHits,
   type Point,
 } from "./combat";
 import { drawHero, artworkToWorld, heroMallet, type HeroPose } from "./hero";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
-import { buildLevels, type Level } from "./levels";
+import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
+import { drawFurniture, drawSign, drawRoomDecor } from "./scenery";
 
 export type Mode =
   "title" | "card" | "play" | "pause" | "die" | "slide" | "walkoff" | "tally" | "over" | "win";
@@ -29,6 +33,7 @@ export type Hud = {
   hint: string;
   soundReady: boolean;
   visualsReady: boolean;
+  stance: "standing" | "crouching" | "sliding";
 };
 
 export type TouchAction =
@@ -56,10 +61,17 @@ type Player = Body & {
   prevY: number;
   pipeLock: number;
   freeze: number;
+  crouch: boolean;
+  slideT: number;
 };
 
 type Enemy = Body & {
   kind: "soot" | "shell";
+  role: EnemyRole;
+  home: number;
+  alert: number;
+  alerted: boolean;
+  speechT: number;
   alive: boolean;
   state: "walk" | "shell" | "flat";
   awake: boolean;
@@ -70,6 +82,8 @@ type Enemy = Body & {
   anim: number;
   wake: number;
 };
+type Student = Body &
+  StudentSpawn & { facing: 1 | -1; home: number; greeted: boolean; speechT: number };
 
 type Item = Body & { kind: "gear" | "lamp" | "nuts" | "treat"; emerge: number };
 type Ember = {
@@ -168,7 +182,7 @@ declare global {
       getX: () => number;
       setKeys: (codes: string[]) => void;
     };
-    __kiln?: { mode: Mode; x: number; y: number };
+    __kiln?: { mode: Mode; x: number; y: number; scene: string; stance: string; height: number };
   }
 }
 
@@ -179,9 +193,13 @@ export class Game {
   private bonus: Level;
   private level!: Level;
   private levelIndex = 0;
+  private startingVenue = 0;
   private tiles!: Uint8Array;
   private player!: Player;
   private enemies: Enemy[] = [];
+  private students: Student[] = [];
+  private heroBanter = "";
+  private banterT = 0;
   private items: Item[] = [];
   private embers: Ember[] = [];
   private bits: Bit[] = [];
@@ -192,6 +210,7 @@ export class Game {
     level: Level;
     tiles: Uint8Array;
     enemies: Enemy[];
+    students: Student[];
     items: Item[];
     player: Player;
     camX: number;
@@ -225,11 +244,14 @@ export class Game {
   private heroFore = new Image();
   private heroHand = new Image();
   private heroReach = new Image();
-  private officeBg = new Image();
   private zeroCan = new Image();
   private beaver = new Image();
   private worker = new Image();
-  private scrubs = new Image();
+  private server = new Image();
+  private hotelStaff = new Image();
+  private student = new Image();
+  private hotelBg = new Image();
+  private campusBg = new Image();
   private heat = 0;
   private checkpoint = 0;
   private hurtT = 0;
@@ -298,20 +320,24 @@ export class Game {
     this.heroFore.src = "/hero-fore.png?v=rig4";
     this.heroHand.src = "/hero-hand.png?v=rig4";
     this.heroReach.src = "/hero-reach.png?v=rig4";
-    this.officeBg.src = "/office-bg.jpg";
     this.zeroCan.src = "/coke-zero.webp";
     this.nuts.src = "/nuts-bag.webp";
     this.towel.src = "/towel-cloth.webp";
     this.audio.preloadCurse();
     this.beaver.src = "/buccees-pickup.webp";
-    this.worker.src = "/office-worker.png";
-    this.scrubs.src = "/scrubs.png";
+    this.worker.src = "/npc-office.webp";
+    this.server.src = "/npc-server.webp";
+    this.hotelStaff.src = "/npc-hotel.webp";
+    this.student.src = "/npc-student.webp";
+    this.hotelBg.src = "/hotel-corridor.webp";
+    this.campusBg.src = "/campus-common.webp";
     const built = buildLevels();
     this.courses = built.courses;
     this.bonus = built.bonus;
     this.reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.loadLevel(this.courses[0], 1, 0, true);
     this.onKeyDown = (e) => {
+      if (e.target instanceof HTMLElement && e.target.closest("select")) return;
       this.probeActive = false;
       this.keys.add(e.code);
       if (!e.repeat) {
@@ -374,7 +400,12 @@ export class Game {
     this.audio.destroy();
   }
 
-  newGame() {
+  setStartingVenue(index: number) {
+    this.startingVenue =
+      Number.isInteger(index) && index >= 0 && index < this.courses.length ? index : 0;
+  }
+
+  newGame(startIndex = this.startingVenue) {
     if (this.mode !== "title" && this.mode !== "over" && this.mode !== "win") return;
     this.audio.unlock();
     this.score = 0;
@@ -384,11 +415,14 @@ export class Game {
     this.star = 0;
     this.heat = 0;
     this.wipe = 0;
-    this.levelIndex = 0;
+    this.levelIndex =
+      Number.isInteger(startIndex) && startIndex >= 0 && startIndex < this.courses.length
+        ? startIndex
+        : 0;
     this.checkpoint = 0;
     this.snap = null;
     this.fade = 0;
-    this.loadLevel(this.courses[0], 1, 0, true);
+    this.loadLevel(this.courses[this.levelIndex], 1, 0, true);
     this.audio.startMusic("day");
     this.mode = "card";
     this.cardT = 1.65;
@@ -458,6 +492,12 @@ export class Game {
       mode: { get: () => this.mode },
       x: { get: () => this.player.x },
       y: { get: () => this.player.y },
+      scene: { get: () => this.level.id },
+      stance: {
+        get: () =>
+          this.player.slideT > 0 ? "sliding" : this.player.crouch ? "crouching" : "standing",
+      },
+      height: { get: () => this.player.h },
     });
   }
 
@@ -600,6 +640,7 @@ export class Game {
     if (this.mode === "play") this.tickClock(dt);
     this.stepItems(dt);
     this.stepEnemies(dt);
+    this.stepStudents(dt);
     this.stepEmbers(dt);
     if (this.mode === "play") {
       this.collectCoins();
@@ -624,24 +665,32 @@ export class Game {
 
   private controlPlayer(dt: number) {
     const p = this.player;
+    this.updateStance(dt);
     const locked = this.wipe > 0 || p.freeze > 0 || this.hurtT > 0;
-    if (this.towelEdge && this.heat > 0 && p.onGround && this.swing <= 0 && this.snotT <= 0) {
+    if (
+      this.towelEdge &&
+      !p.crouch &&
+      this.heat > 0 &&
+      p.onGround &&
+      this.swing <= 0 &&
+      this.snotT <= 0
+    ) {
       this.heat = 0;
       this.wipe = 0.95;
       p.vx *= 0.2;
       this.audio.cloth();
     }
     this.towelEdge = false;
-    const run = this.actions.run && !locked;
+    const run = this.actions.run && !locked && !p.crouch;
     const tired = this.heat >= 80;
-    const cap = tired ? 116 : 158;
+    const cap = p.slideT > 0 ? 170 : p.crouch ? 74 : tired ? 116 : 158;
     this.heat = clamp(this.heat + (run && Math.abs(p.vx) > 100 ? 6 : -3) * dt, 0, 100);
     const accel = (p.onGround ? 540 : 320) * (run ? 1.15 : 1) * (tired ? 0.82 : 1);
-    if (this.actions.left && !locked) {
+    if (this.actions.left && !locked && p.slideT <= 0) {
       p.vx -= accel * dt;
       p.facing = -1;
     }
-    if (this.actions.right && !locked) {
+    if (this.actions.right && !locked && p.slideT <= 0) {
       p.vx += accel * dt;
       p.facing = 1;
     }
@@ -649,18 +698,20 @@ export class Game {
     const reversing =
       p.onGround && ((this.actions.left && p.vx > 36) || (this.actions.right && p.vx < -36));
     p.skid = reversing;
-    if ((!this.actions.left && !this.actions.right) || this.wipe > 0) {
+    if (p.slideT > 0) {
+      p.vx = approach(p.vx, Math.sign(p.vx) * 115, 70 * dt);
+    } else if ((!this.actions.left && !this.actions.right) || this.wipe > 0) {
       const f = 620 * dt;
       if (Math.abs(p.vx) <= f) p.vx = 0;
       else p.vx -= Math.sign(p.vx) * f;
     } else if (reversing) {
       p.vx += (this.actions.left ? -1 : 1) * 780 * dt;
     }
-    if (!run && Math.abs(p.vx) > (tired ? 64 : 96))
+    if (p.slideT <= 0 && !p.crouch && !run && Math.abs(p.vx) > (tired ? 64 : 96))
       p.vx = approach(p.vx, (tired ? 64 : 96) * Math.sign(p.vx), 240 * dt);
     p.vx = clamp(p.vx, -cap, cap);
 
-    if (!locked && (p.onGround || p.coyote > 0) && p.jumpBuf > 0) {
+    if (!locked && !p.crouch && (p.onGround || p.coyote > 0) && p.jumpBuf > 0) {
       p.vy = Math.abs(p.vx) > 118 && !tired ? -408 : -350;
       p.onGround = false;
       p.coyote = 0;
@@ -679,6 +730,7 @@ export class Game {
 
     if (
       !locked &&
+      !p.crouch &&
       this.swing <= 0 &&
       this.fireEdge &&
       p.form === 2 &&
@@ -710,10 +762,24 @@ export class Game {
       this.audio.snot();
     }
 
-    if (this.superEdge && this.charge >= 10 && !locked && this.snotT <= 0 && this.swing <= 0)
+    if (
+      this.superEdge &&
+      this.charge >= 10 &&
+      !locked &&
+      !p.crouch &&
+      this.snotT <= 0 &&
+      this.swing <= 0
+    )
       this.startSuper();
     this.superEdge = false;
-    if (this.hammerEdge && !locked && this.superT <= 0 && this.snotT <= 0 && this.swing <= 0) {
+    if (
+      this.hammerEdge &&
+      !locked &&
+      !p.crouch &&
+      this.superT <= 0 &&
+      this.snotT <= 0 &&
+      this.swing <= 0
+    ) {
       this.swing = SWING_SECONDS;
       this.hammerLast = heroMallet(this.heroPose());
       this.hammerVictims.clear();
@@ -735,6 +801,38 @@ export class Game {
     if (p.skid && Math.random() < 0.4) this.puff(p.x + p.w / 2, p.y + p.h, "#e7d2b4");
     else if (p.onGround && Math.abs(p.vx) > 80 && Math.random() < 0.25)
       this.puff(p.x + 4, p.y + p.h, "#d8c2a4");
+  }
+
+  private updateStance(dt: number) {
+    const p = this.player;
+    p.slideT = Math.max(0, p.slideT - dt);
+    const feet = p.y + p.h;
+    const wantsLow =
+      this.actions.down &&
+      p.onGround &&
+      this.wipe <= 0 &&
+      this.swing <= 0 &&
+      this.superT <= 0 &&
+      this.snotT <= 0 &&
+      this.hurtT <= 0;
+    if (wantsLow && !p.crouch) {
+      if (Math.abs(p.vx) > 75) {
+        p.slideT = 0.48;
+        p.vx = Math.sign(p.vx) * Math.max(132, Math.abs(p.vx));
+        this.audio.whoosh();
+      }
+      p.crouch = true;
+    }
+    // Releasing Down under a shelf keeps the low body; stand only when it fits.
+    if (
+      p.crouch &&
+      !wantsLow &&
+      p.slideT <= 0 &&
+      !this.overlapsSolid(p.x, feet - HERO_BODY_HEIGHT, p.w, HERO_BODY_HEIGHT)
+    )
+      p.crouch = false;
+    p.h = p.crouch ? HERO_CROUCH_HEIGHT : HERO_BODY_HEIGHT;
+    p.y = feet - p.h;
   }
 
   private slide(dt: number) {
@@ -801,6 +899,7 @@ export class Game {
       if (!e.alive) continue;
       e.grace = Math.max(0, e.grace - dt);
       e.anim += dt;
+      e.speechT = Math.max(0, e.speechT - dt);
       if (e.state === "flat") {
         e.flatT += dt;
         if (e.flatT > 0.5) e.alive = false;
@@ -817,15 +916,46 @@ export class Game {
       if (e.state === "shell" && Math.abs(e.vx) < 18) {
         e.wake += dt;
         if (e.wake > 4) {
-          e.state = "walk";
           const feet = e.y + e.h;
-          e.h = 30;
-          e.y = feet - 30;
-          e.facing = this.player.x < e.x ? -1 : 1;
-          e.vx = e.facing * 36;
-          e.wake = 0;
+          const standingX = e.x + e.w / 2 - 8;
+          if (!this.overlapsSolid(standingX, feet - ENEMY_BODY_HEIGHT, 16, ENEMY_BODY_HEIGHT)) {
+            e.state = "walk";
+            e.x = standingX;
+            e.w = 16;
+            e.h = ENEMY_BODY_HEIGHT;
+            e.y = feet - e.h;
+            e.facing = this.player.x < e.x ? -1 : 1;
+            e.vx = e.facing * 36;
+            e.wake = 0;
+            e.grace = 0.2;
+          }
         }
       } else e.wake = 0;
+
+      if (e.state === "walk") {
+        const distance = Math.abs(this.player.x - e.x);
+        if (distance > 160) e.alerted = false;
+        if (
+          e.role === "server" &&
+          !e.alerted &&
+          distance < 100 &&
+          Math.abs(this.player.y - e.y) < 40
+        ) {
+          e.alerted = true;
+          e.alert = 0.42;
+          e.speechT = 1.5;
+          e.facing = this.player.x < e.x ? -1 : 1;
+        }
+        if (e.alert > 0) {
+          e.alert = Math.max(0, e.alert - dt);
+          e.vx = e.alert > 0 ? 0 : e.facing * 62;
+        }
+        const home = e.home ?? e.x;
+        if (e.x < home - 48 || e.x > home + 48) {
+          e.facing = e.x < home ? 1 : -1;
+          e.vx = e.facing * (e.role === "server" && e.alerted ? 62 : 30);
+        }
+      }
 
       const attempt = e.vx;
       e.vy = Math.min(280, e.vy + 1700 * dt);
@@ -841,7 +971,7 @@ export class Game {
         }
         e.facing = e.vx >= 0 ? 1 : -1;
       }
-      if (e.kind === "shell" && e.state === "walk" && e.onGround) {
+      if (e.state === "walk" && e.onGround) {
         const ahead = e.vx > 0 ? e.x + e.w + 1 : e.x - 1;
         const tx = Math.floor(ahead / TILE);
         const ty = Math.floor((e.y + e.h + 2) / TILE);
@@ -855,6 +985,28 @@ export class Game {
       if (e.state === "shell" && Math.abs(e.vx) > 40) this.shellHits(e);
     }
     this.enemies = this.enemies.filter((e) => e.alive);
+  }
+
+  private stepStudents(dt: number) {
+    this.banterT = Math.max(0, this.banterT - dt);
+    for (const student of this.students) {
+      student.speechT = Math.max(0, student.speechT - dt);
+      if (student.x < student.home - 16 || student.x > student.home + 16) student.vx *= -1;
+      student.facing = student.vx > 0 ? 1 : -1;
+      student.vy = Math.min(280, student.vy + 1700 * dt);
+      this.moveBody(student, dt, false);
+      if (
+        !student.greeted &&
+        this.mode === "play" &&
+        this.banterT <= 0 &&
+        Math.abs(this.player.x - student.x) < 75
+      ) {
+        student.greeted = true;
+        student.speechT = 4.2;
+        this.heroBanter = student.hammer;
+        this.banterT = 2.1;
+      }
+    }
   }
 
   private shellHits(e: Enemy) {
@@ -967,11 +1119,7 @@ export class Game {
           e.flatT = 0;
           this.noteVictory(e, 100);
         } else if (e.state === "walk") {
-          const feet = e.y + e.h;
-          e.state = "shell";
-          e.h = 10;
-          e.y = feet - 10;
-          e.vx = 0;
+          this.stun(e);
           this.noteVictory(e, 100);
         } else this.kick(e);
         this.audio.bump();
@@ -980,6 +1128,19 @@ export class Game {
         else this.hurt(e);
       }
     }
+  }
+
+  private stun(e: Enemy) {
+    const center = e.x + e.w / 2,
+      feet = e.y + e.h;
+    e.state = "shell";
+    e.w = 34;
+    e.h = 27;
+    e.x = center - e.w / 2;
+    e.y = feet - e.h;
+    e.vx = 0;
+    e.chain = 0;
+    e.wake = 0;
   }
 
   private kick(e: Enemy) {
@@ -1037,13 +1198,7 @@ export class Game {
         e.vx = this.player.facing * 30;
         this.noteVictory(e, 100);
       } else if (e.state === "walk") {
-        const feet = e.y + e.h;
-        e.state = "shell";
-        e.vx = 0;
-        e.chain = 0;
-        e.wake = 0;
-        e.h = 10;
-        e.y = feet - 10;
+        this.stun(e);
         this.noteVictory(e, 100);
       } else this.kick(e);
     }
@@ -1159,10 +1314,14 @@ export class Game {
     this.float(this.player.x, this.player.y, String(pts));
     this.audio.clear();
     this.audio.stopMusic();
-    this.mode = "slide";
-    this.player.x = this.level.flagTile * TILE - 4;
-    this.player.vx = 0;
-    this.flagY = 36;
+    this.mode = "walkoff";
+    const feet = this.player.y + this.player.h;
+    this.player.crouch = false;
+    this.player.slideT = 0;
+    this.player.h = HERO_BODY_HEIGHT;
+    this.player.y = feet - this.player.h;
+    this.player.vx = 74;
+    this.player.facing = 1;
   }
 
   private enterBonus(pipe: { x: number; top: number }) {
@@ -1170,6 +1329,7 @@ export class Game {
       level: this.level,
       tiles: this.tiles.slice(),
       enemies: this.enemies.map((e) => ({ ...e })),
+      students: this.students.map((s) => ({ ...s })),
       items: this.items.map((it) => ({ ...it })),
       player: { ...this.player },
       camX: this.camX,
@@ -1190,6 +1350,7 @@ export class Game {
     this.level = s.level;
     this.tiles = s.tiles;
     this.enemies = s.enemies;
+    this.students = s.students;
     this.items = s.items;
     const form = this.player.form;
     this.player = s.player;
@@ -1307,13 +1468,20 @@ export class Game {
       prevY: GROUND_ROW * TILE - h,
       pipeLock: 0.3,
       freeze: 0,
+      crouch: false,
+      slideT: 0,
     };
     this.enemies = src.enemies.map((sp) => ({
       kind: sp.kind,
+      role: sp.role,
+      home: sp.x * TILE,
+      alert: 0,
+      alerted: false,
+      speechT: 0,
       x: sp.x * TILE,
-      y: GROUND_ROW * TILE - 30,
-      w: 14,
-      h: 30,
+      y: GROUND_ROW * TILE - ENEMY_BODY_HEIGHT,
+      w: 16,
+      h: ENEMY_BODY_HEIGHT,
       vx: sp.kind === "shell" ? -34 : -30,
       vy: 0,
       onGround: false,
@@ -1327,6 +1495,22 @@ export class Game {
       anim: 0,
       wake: 0,
     }));
+    this.students = src.students.map((s) => ({
+      ...s,
+      x: s.x * TILE,
+      home: s.x * TILE,
+      y: GROUND_ROW * TILE - ENEMY_BODY_HEIGHT,
+      w: 14,
+      h: ENEMY_BODY_HEIGHT,
+      vx: -13,
+      vy: 0,
+      onGround: false,
+      facing: -1,
+      greeted: false,
+      speechT: 0,
+    }));
+    this.heroBanter = "";
+    this.banterT = 0;
     this.items = [];
     this.embers = [];
     this.splashes = [];
@@ -1704,7 +1888,9 @@ export class Game {
     }
     this.drawSky(cam);
     this.drawTiles(cam);
+    for (const prop of this.level.props) drawFurniture(ctx, prop, this.level.theme, cam);
     this.drawDeco(cam);
+    for (const sign of this.level.signs) drawSign(ctx, sign, this.level.theme, cam);
     if (this.level.checkpointTile >= 0) {
       const x = this.level.checkpointTile * TILE - cam;
       ctx.fillStyle = this.checkpoint ? "#e8c060" : "#65cbb4";
@@ -1712,10 +1898,24 @@ export class Game {
       ctx.fillRect(x + 2, 140, 34, 12);
       this.px(this.checkpoint ? "SAVED" : "BREAK", x + 5, 144, "#102c32");
     }
-    this.drawFlag(cam);
+    // The exit is a venue door, rather than the original platformer flagpole.
     this.drawCastle(cam);
     for (const it of this.items) this.drawPickup(it, cam);
     for (const e of this.enemies) this.drawEnemy(e, cam);
+    for (const student of this.students) {
+      this.drawPerson(
+        this.student,
+        [5, 5, 408, 758],
+        student.x + student.w / 2 - cam,
+        student.y + student.h,
+        student.facing,
+        true,
+        this.clock + student.home,
+        false,
+      );
+      if (student.speechT > 0 && this.banterT <= 0)
+        this.drawSpeech(student.reply, student.x - cam, student.y - 26, "#d5e2ef");
+    }
     for (const bit of this.bits) {
       ctx.globalAlpha = clamp(bit.life / bit.max, 0, 1);
       ctx.fillStyle = bit.color;
@@ -1749,6 +1949,8 @@ export class Game {
     if (this.mode === "die") this.drawPlayer(cam);
     this.drawEmbers(cam);
     if (this.curse > 0) this.drawCurse(cam);
+    else if (this.banterT > 0)
+      this.drawSpeech(this.heroBanter, this.player.x - cam, this.player.y - 26, "#e7bd6a");
     for (const t of this.texts) this.px(t.text, t.x - cam, t.y, "#fff6d8");
     if (this.fade > 0) {
       ctx.fillStyle = `rgba(12,8,6,${clamp(this.fade, 0, 1)})`;
@@ -1765,25 +1967,24 @@ export class Game {
     ctx.imageSmoothingEnabled = true;
     ctx.fillStyle = "#141c28";
     ctx.fillRect(0, 0, DISPLAY_W, DISPLAY_H);
-    if (this.officeBg.complete && this.officeBg.naturalWidth > 0) {
-      const cover = Math.max(
-        DISPLAY_W / this.officeBg.naturalWidth,
-        DISPLAY_H / this.officeBg.naturalHeight,
-      );
-      const dw = this.officeBg.naturalWidth * cover;
-      const dh = this.officeBg.naturalHeight * cover;
+    const roomBg = this.level.theme === "campus" ? this.campusBg : this.hotelBg;
+    if (roomBg.complete && roomBg.naturalWidth > 0) {
+      const cover = Math.max(DISPLAY_W / roomBg.naturalWidth, DISPLAY_H / roomBg.naturalHeight);
+      const dw = roomBg.naturalWidth * cover;
+      const dh = roomBg.naturalHeight * cover;
       const span = dw;
-      let x = -((cam * 1.6) % span);
+      const venueOffset = this.level.theme === "restaurant" ? DISPLAY_W * 0.3 : 0;
+      let x = -((cam * 1.6 + venueOffset) % span);
       if (x > 0) x -= span;
       const y = (DISPLAY_H - dh) / 2;
-      for (; x < DISPLAY_W; x += span - 1) ctx.drawImage(this.officeBg, x, y, dw, dh);
+      for (; x < DISPLAY_W; x += span - 1) ctx.drawImage(roomBg, x, y, dw, dh);
     }
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < 5; i++) {
       const x = ((i * 420 - cam * 1.1) % (DISPLAY_W + 480)) - 240;
       const shaft = ctx.createLinearGradient(x, 0, x + 220, DISPLAY_H);
-      shaft.addColorStop(0, night ? "rgba(180,200,255,0.05)" : "rgba(255,244,214,0.28)");
+      shaft.addColorStop(0, night ? "rgba(180,200,255,0.05)" : "rgba(255,244,214,0.08)");
       shaft.addColorStop(1, "rgba(255,244,214,0)");
       ctx.fillStyle = shaft;
       ctx.beginPath();
@@ -1794,7 +1995,7 @@ export class Game {
       ctx.closePath();
       ctx.fill();
       const lamp = ctx.createRadialGradient(x + 80, 36, 4, x + 80, 90, 180);
-      lamp.addColorStop(0, night ? "rgba(180,200,230,0.2)" : "rgba(255,248,220,0.55)");
+      lamp.addColorStop(0, night ? "rgba(180,200,230,0.2)" : "rgba(255,248,220,0.15)");
       lamp.addColorStop(1, "rgba(255,248,220,0)");
       ctx.fillStyle = lamp;
       ctx.fillRect(x - 80, 0, 340, 240);
@@ -1846,6 +2047,12 @@ export class Game {
     for (let ty = 0; ty < this.level.h; ty++) {
       for (let tx = x0; tx <= x1; tx++) {
         const id = this.tileAt(tx, ty);
+        if (
+          this.level.props.some(
+            (prop) => tx >= prop.x && tx < prop.x + prop.w && ty >= prop.y && ty < prop.y + prop.h,
+          )
+        )
+          continue;
         if (id === ID.empty || id === ID.hidden) continue;
         const bump = this.bumps.get(`${tx},${ty}`) ?? 0;
         const oy = bump > 0 ? -Math.sin((bump / 0.16) * Math.PI) * 7 : 0;
@@ -1859,16 +2066,28 @@ export class Game {
   private drawTile(id: number, tx: number, ty: number, sx: number, sy: number) {
     const ctx = this.ctx;
     if (id === ID.ground) {
-      const g = ctx.createLinearGradient(sx, sy, sx, sy + 16);
-      g.addColorStop(0, (tx + ty) % 2 === 0 ? "#637079" : "#5c6972");
-      g.addColorStop(0.2, "#36424d");
-      g.addColorStop(1, "#1d2934");
+      const g = ctx.createLinearGradient(sx, GROUND_ROW * TILE, sx, VIEW_H);
+      const colors =
+        this.level.theme === "hotel"
+          ? ["#827565", "#554c42", "#302d29"]
+          : this.level.theme === "restaurant"
+            ? ["#88918c", "#596461", "#303c3b"]
+            : ["#859394", "#566669", "#303e43"];
+      g.addColorStop(0, colors[0]);
+      g.addColorStop(0.2, colors[1]);
+      g.addColorStop(1, colors[2]);
       ctx.fillStyle = g;
       ctx.fillRect(sx, sy, 16, 16);
-      ctx.fillStyle = "rgba(255,255,255,0.16)";
-      ctx.fillRect(sx, sy, 16, 1.4);
-      ctx.fillStyle = "rgba(0,0,0,0.2)";
-      ctx.fillRect(sx + 15.6, sy + 2, 0.4, 14);
+      if (ty === GROUND_ROW) {
+        ctx.fillStyle = "rgba(247,243,223,0.2)";
+        ctx.fillRect(sx, sy, 16, 0.8);
+        if (tx % 4 === 0) {
+          ctx.fillStyle = "rgba(0,0,0,0.15)";
+          ctx.fillRect(sx, sy + 2, 0.5, 14);
+        }
+      }
+      ctx.fillStyle = "rgba(255,248,223,0.025)";
+      for (let i = 1; i < 4; i++) ctx.fillRect(sx + i * 4, sy + 2, 0.5, 14);
       if (
         ty === GROUND_ROW &&
         (this.tileAt(tx + 1, ty) === ID.empty || this.tileAt(tx - 1, ty) === ID.empty)
@@ -1881,7 +2100,7 @@ export class Game {
       return;
     }
     if (id === ID.brick || id === ID.brickCoin) {
-      this.cabinet(sx, sy, false);
+      this.deliveryCase(sx, sy);
       return;
     }
     if (id === ID.used) {
@@ -1982,6 +2201,30 @@ export class Game {
     ctx.fill();
   }
 
+  private deliveryCase(x: number, y: number) {
+    const ctx = this.ctx,
+      wood = ctx.createLinearGradient(x, y, x + 16, y + 16);
+    wood.addColorStop(0, "#b09265");
+    wood.addColorStop(1, "#635039");
+    ctx.fillStyle = wood;
+    ctx.fillRect(x, y, 16, 16);
+    ctx.strokeStyle = "#3c342c";
+    ctx.lineWidth = 0.7;
+    for (let i = 4; i < 16; i += 4) {
+      ctx.beginPath();
+      ctx.moveTo(x + 1, y + i);
+      ctx.lineTo(x + 15, y + i);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "#d5b57e";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, y + 1, 14, 14);
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y + 13);
+    ctx.lineTo(x + 13, y + 2);
+    ctx.stroke();
+  }
+
   private pickup(img: HTMLImageElement, crop: number[], cx: number, foot: number, h: number) {
     if (!img.complete || !img.naturalWidth) return;
     const [x, y, w, sh] = crop;
@@ -2001,14 +2244,7 @@ export class Game {
     for (const d of this.level.deco) {
       const x = d.x * TILE - cam;
       const y = d.y * TILE;
-      ctx.fillStyle = "#c4a574";
-      ctx.beginPath();
-      ctx.roundRect(x + 2, y - 8, 10, 8, 1);
-      ctx.fill();
-      ctx.fillStyle = d.k === "shrub" ? "#3f8f55" : "#6d7a55";
-      ctx.beginPath();
-      ctx.ellipse(x + 7, y - 12, 7, 5, 0, 0, Math.PI * 2);
-      ctx.fill();
+      drawRoomDecor(ctx, x, y, d.k, this.level.theme);
     }
   }
 
@@ -2045,55 +2281,130 @@ export class Game {
     const x = this.level.castleTile * TILE - cam;
     const base = GROUND_ROW * TILE;
     const ctx = this.ctx;
-    ctx.fillStyle = "#3c4658";
-    ctx.fillRect(x, base - 56, 44, 56);
-    ctx.fillStyle = "#d5e6f2";
-    ctx.fillRect(x + 4, base - 50, 36, 42);
-    ctx.fillStyle = "#9bb4c6";
-    ctx.fillRect(x + 21, base - 50, 2, 42);
-    ctx.fillStyle = "#f2c14e";
-    ctx.fillRect(x + 28, base - 28, 3, 3);
-    ctx.fillStyle = "#3f8f55";
-    ctx.fillRect(x + 8, base - 66, 28, 8);
-    ctx.fillStyle = "#f7f3ea";
-    ctx.fillRect(x + 12, base - 64, 20, 4);
+    ctx.save();
+    ctx.fillStyle = "#27343d";
+    ctx.fillRect(x, base - 62, 42, 62);
+    const glass = ctx.createLinearGradient(x, base - 59, x + 38, base);
+    glass.addColorStop(0, "#537889");
+    glass.addColorStop(1, "#16252e");
+    ctx.fillStyle = glass;
+    ctx.fillRect(x + 3, base - 59, 36, 56);
+    ctx.fillStyle = "rgba(217,231,229,0.17)";
+    ctx.beginPath();
+    ctx.moveTo(x + 4, base - 56);
+    ctx.lineTo(x + 24, base - 56);
+    ctx.lineTo(x + 4, base - 16);
+    ctx.fill();
+    ctx.fillStyle = "#b9c6c5";
+    ctx.fillRect(x + 20, base - 59, 2, 56);
+    ctx.fillRect(x + 16, base - 28, 2, 10);
+    ctx.fillRect(x + 24, base - 28, 2, 10);
+    ctx.fillStyle = "#36584a";
+    ctx.fillRect(x + 6, base - 76, 30, 10);
+    ctx.font = "600 4px 'Segoe UI',sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f1f2df";
+    ctx.fillText(
+      this.levelIndex === this.courses.length - 1 ? "CLOCK OUT →" : "NEXT VENUE →",
+      x + 21,
+      base - 69,
+    );
+    ctx.restore();
   }
 
   private drawEnemy(e: Enemy, cam: number) {
-    const blink = e.state === "shell" && e.wake > 3 && Math.floor(this.clock * 12) % 2 === 0;
-    if (blink) return;
-    const ctx = this.ctx;
-    const person = e.kind === "shell" ? this.scrubs : this.worker;
-    ctx.save();
-    ctx.translate(e.x + e.w / 2 - cam, e.y + e.h);
-    ctx.scale(e.facing < 0 ? -1 : 1, 1);
-    ctx.fillStyle = "rgba(20,16,12,0.22)";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 6, 1.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    if (person.complete && person.naturalWidth > 0) {
-      if (e.state === "flat") {
-        const h = 16;
-        const w = (person.naturalWidth / person.naturalHeight) * 32;
-        ctx.drawImage(person, -w / 2, -h, w, h);
-      } else if (e.kind === "shell" && e.state === "shell") {
-        const h = 26;
-        const w = (person.naturalWidth / person.naturalHeight) * h;
-        ctx.rotate(-1.15);
-        ctx.drawImage(person, -w * 0.35, -h * 0.45, w, h);
-      } else {
-        const step = Math.sin(this.clock * 9 + e.x * 0.2);
-        const h = 34;
-        const w = (person.naturalWidth / person.naturalHeight) * h;
-        ctx.rotate(step * 0.05);
-        ctx.drawImage(person, -w * 0.42, -h - Math.abs(step) * 1.2, w, h);
-      }
-    } else {
-      ctx.fillStyle = e.kind === "shell" ? "#2f6b45" : "#2c3442";
-      ctx.beginPath();
-      ctx.roundRect(-7, -15, 14, 14, 5);
-      ctx.fill();
+    const role = e.role ?? "office";
+    const image =
+      role === "server" ? this.server : role === "hotel" ? this.hotelStaff : this.worker;
+    const crop: [number, number, number, number] =
+      role === "server" ? [5, 5, 379, 758] : role === "hotel" ? [6, 4, 600, 759] : [4, 6, 423, 758];
+    if (e.state === "flat") this.ctx.globalAlpha = Math.max(0, 1 - e.flatT * 2);
+    this.drawPerson(
+      image,
+      crop,
+      e.x + e.w / 2 - cam,
+      e.y + e.h,
+      e.facing,
+      true,
+      e.anim,
+      e.state !== "walk",
+    );
+    this.ctx.globalAlpha = 1;
+    if (e.state === "walk") {
+      const label = role === "server" ? "SERVER" : role === "hotel" ? "HOTEL STAFF" : "OFFICE";
+      this.ctx.save();
+      this.ctx.font = "600 3.2px 'Segoe UI',sans-serif";
+      const w = this.ctx.measureText(label).width + 6;
+      this.ctx.fillStyle = "rgba(8,17,24,0.78)";
+      this.ctx.fillRect(e.x + e.w / 2 - cam - w / 2, e.y - 12, w, 6);
+      this.ctx.fillStyle = e.alert > 0 ? "#f4a77d" : "#e6d7bc";
+      this.ctx.fillText(label, e.x + e.w / 2 - cam - w / 2 + 3, e.y - 7.5);
+      this.ctx.restore();
+      if (e.speechT > 0) this.drawSpeech("Order up!", e.x - cam, e.y - 30, "#efbc84");
     }
+  }
+
+  private drawPerson(
+    image: HTMLImageElement,
+    crop: [number, number, number, number],
+    x: number,
+    feet: number,
+    facing: number,
+    leftFacing: boolean,
+    clock: number,
+    stunned: boolean,
+  ) {
+    if (!image.complete || !image.naturalWidth || x < -55 || x > VIEW_W + 55) return;
+    const ctx = this.ctx,
+      h = ENEMY_HEIGHT,
+      w = (crop[2] / crop[3]) * h;
+    ctx.save();
+    ctx.translate(x, feet);
+    ctx.fillStyle = "rgba(10,16,18,0.3)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.scale(leftFacing ? (facing > 0 ? -1 : 1) : facing < 0 ? -1 : 1, 1);
+    if (stunned) {
+      const length = 34,
+        thickness = (crop[2] / crop[3]) * length;
+      ctx.translate(0, -thickness / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(image, ...crop, -thickness / 2, -length / 2, thickness, length);
+    } else {
+      const step = Math.sin(clock * 9);
+      ctx.rotate(step * 0.02);
+      ctx.drawImage(image, ...crop, -w * 0.42, -h - Math.abs(step) * 0.6, w, h);
+    }
+    ctx.restore();
+  }
+
+  private drawSpeech(text: string, x: number, y: number, accent: string) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.font = "600 4px 'Segoe UI',sans-serif";
+    const words = text.split(" "),
+      lines: string[] = [];
+    let line = "";
+    for (const word of words) {
+      const next = line ? line + " " + word : word;
+      if (ctx.measureText(next).width > 94 && line) {
+        lines.push(line);
+        line = word;
+      } else line = next;
+    }
+    lines.push(line);
+    const w = Math.max(...lines.map((part) => ctx.measureText(part).width)) + 12;
+    const bx = clamp(x - w / 3, 3, VIEW_W - w - 3),
+      by = Math.max(20, y);
+    ctx.fillStyle = "rgba(9,17,24,0.94)";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, w, lines.length * 6 + 7, 2);
+    ctx.fill();
+    ctx.fillStyle = accent;
+    ctx.fillRect(bx, by + 2, 1, lines.length * 6 + 3);
+    ctx.fillStyle = "#f4f0e7";
+    lines.forEach((part, i) => ctx.fillText(part, bx + 6, by + 7 + i * 6));
     ctx.restore();
   }
 
@@ -2118,13 +2429,16 @@ export class Game {
     return (
       this.rigReady() &&
       [
-        this.officeBg,
         this.zeroCan,
         this.nuts,
         this.beaver,
         this.towel,
         this.worker,
-        this.scrubs,
+        this.server,
+        this.hotelStaff,
+        this.student,
+        this.hotelBg,
+        this.campusBg,
       ].every((image) => image.complete && image.naturalWidth > 0)
     );
   }
@@ -2137,7 +2451,12 @@ export class Game {
       facing: p.facing,
       phase: p.anim,
       moving:
-        p.onGround && Math.abs(p.vx) > 16 && this.wipe <= 0 && this.swing <= 0 && this.snotT <= 0,
+        !p.crouch &&
+        p.onGround &&
+        Math.abs(p.vx) > 16 &&
+        this.wipe <= 0 &&
+        this.swing <= 0 &&
+        this.snotT <= 0,
       air: !p.onGround,
       landing: p.land,
       swing: this.swing,
@@ -2149,6 +2468,7 @@ export class Game {
       star: this.star,
       reduced: this.reduce,
       clock: this.clock,
+      crouch: p.crouch,
     };
   }
 
@@ -2321,22 +2641,27 @@ export class Game {
       checkpoint: this.checkpoint > 0,
       soundReady: this.audio.ready,
       visualsReady: this.visualsReady(),
+      stance: this.player.slideT > 0 ? "sliding" : this.player.crouch ? "crouching" : "standing",
       hint:
-        this.level.id === "bonus"
-          ? "Supply closet · ↓ on the left copier to return"
-          : this.star > 0
-            ? "Buc-ee's boost · charge through the office!"
-            : this.heat >= 80
-              ? "Overheated · T to wipe your brow"
-              : this.charge >= 10
-                ? "Super smash ready · Q"
-                : this.player.x < 260
-                  ? "Jump into the ! crate for pepper · F fires snot"
-                  : this.player.x < 600
-                    ? "H swings the mallet · hit with the head"
-                    : this.player.form === 2
-                      ? "F snot rocket · nuts charge Q super smash"
-                      : "Find a ! crate to restore pepper power",
+        this.banterT > 0
+          ? "Hammer: " + this.heroBanter
+          : this.player.crouch
+            ? "Stay low · release ↓ when clear to stand"
+            : this.level.id === "bonus"
+              ? "Staff stash · ↓ on the left cart to return"
+              : this.star > 0
+                ? "Buc-ee's boost · charge through the office!"
+                : this.heat >= 80
+                  ? "Overheated · T to wipe your brow"
+                  : this.charge >= 10
+                    ? "Super smash ready · Q"
+                    : this.player.x < 260
+                      ? "Jump into the ! crate for pepper · F fires snot"
+                      : this.player.x < 600
+                        ? "H swings the mallet · hit with the head"
+                        : this.player.form === 2
+                          ? "F snot rocket · nuts charge Q super smash"
+                          : "Find a ! crate to restore pepper power",
     };
   }
 
