@@ -67,7 +67,16 @@ type Enemy = Body & {
 };
 
 type Item = Body & { kind: "gear" | "lamp" | "nuts" | "treat"; emerge: number };
-type Ember = { x: number; y: number; vx: number; vy: number; life: number };
+type Ember = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  max: number;
+  ox: number;
+  oy: number;
+};
 type Bit = { x: number; y: number; vx: number; vy: number; life: number; max: number; color: string; s: number };
 type Sheet = { x: number; y: number; vx: number; vy: number; rot: number; spin: number; life: number; max: number };
 type Floater = { x: number; y: number; vy: number; life: number; text: string };
@@ -192,8 +201,14 @@ export class Game {
   private heroIdle = new Image();
   private heroJump = new Image();
   private heroSwing = new Image();
+  private heroSwingCalm = new Image();
   private heroWalkA = new Image();
   private heroWalkB = new Image();
+  private heroBody = new Image();
+  private heroUpper = new Image();
+  private heroFore = new Image();
+  private heroHand = new Image();
+  private heroReach = new Image();
   private officeBg = new Image();
   private zeroCan = new Image();
   private beaver = new Image();
@@ -208,9 +223,13 @@ export class Game {
   private superT = 0;
   private superHit = false;
   private nose = 0;
+  private snotT = 0;
+  private snotFired = false;
+  private elbow = 0;
+  private elbowV = 0;
   private hammerEdge = false;
   private towelEdge = false;
-  private prevRun = false;
+  private prevHammer = false;
   private prevTowel = false;
   private acc = 0;
   private raf = 0;
@@ -230,7 +249,7 @@ export class Game {
     fire: false,
     towel: false,
   };
-  private actions = { ...this.touch };
+  private actions = { ...this.touch, hammer: false };
   private prevJump = false;
   private prevFire = false;
   private prevPause = false;
@@ -252,11 +271,17 @@ export class Game {
     this.ctx = ctx;
     this.sprites = loadSprites();
     this.face.src = "/hammer-face.jpg";
-    this.heroIdle.src = "/hero-idle.png";
-    this.heroJump.src = "/hero-jump.png";
-    this.heroSwing.src = "/hero-swing.png";
-    this.heroWalkA.src = "/hero-walk-a.png";
-    this.heroWalkB.src = "/hero-walk-b.png";
+    this.heroIdle.src = "/hero-idle-calm.png?v=lock";
+    this.heroJump.src = "/hero-jump-calm.png?v=lock";
+    this.heroSwing.src = "/hero-swing.png?v=lock";
+    this.heroSwingCalm.src = "/hero-swing-calm.png?v=lock";
+    this.heroWalkA.src = "/hero-walk-a-calm.png?v=lock";
+    this.heroWalkB.src = "/hero-walk-b-calm.png?v=lock";
+    this.heroBody.src = "/hero-body.png?v=rig4";
+    this.heroUpper.src = "/hero-upper.png?v=rig4";
+    this.heroFore.src = "/hero-fore.png?v=rig4";
+    this.heroHand.src = "/hero-hand.png?v=rig4";
+    this.heroReach.src = "/hero-reach.png?v=rig4";
     this.officeBg.src = "/office-bg.jpg";
     this.zeroCan.src = "/zero-can.png";
     this.beaver.src = "/beaver.png";
@@ -387,9 +412,10 @@ export class Game {
       left: t.left || this.held("ArrowLeft") || this.held("KeyA"),
       right: t.right || this.held("ArrowRight") || this.held("KeyD"),
       jump: t.jump || this.held("Space") || this.held("ArrowUp") || this.held("KeyW") || this.held("KeyZ"),
-      run: t.run || this.held("ShiftLeft") || this.held("ShiftRight") || this.held("KeyX") || this.held("KeyJ"),
+      run: t.run || this.held("ShiftLeft") || this.held("ShiftRight") || this.held("KeyJ"),
       down: t.down || this.held("ArrowDown") || this.held("KeyS"),
-      fire: t.fire || this.held("KeyC") || this.held("KeyK") || this.held("KeyF"),
+      fire: t.fire || this.held("KeyF") || this.held("KeyC") || this.held("KeyK"),
+      hammer: t.run || this.held("KeyH") || this.held("KeyX"),
       towel: t.towel || this.held("KeyT"),
     };
   }
@@ -415,8 +441,8 @@ export class Game {
     this.prevJump = this.actions.jump;
     if (this.actions.fire && !this.prevFire) this.fireEdge = true;
     this.prevFire = this.actions.fire;
-    if (this.actions.run && !this.prevRun) this.hammerEdge = true;
-    this.prevRun = this.actions.run;
+    if (this.actions.hammer && !this.prevHammer) this.hammerEdge = true;
+    this.prevHammer = this.actions.hammer;
     if (this.actions.towel && !this.prevTowel) this.towelEdge = true;
     this.prevTowel = this.actions.towel;
     this.jumpHeld = this.actions.jump;
@@ -453,6 +479,8 @@ export class Game {
     this.swing = Math.max(0, this.swing - dt);
     this.superT = Math.max(0, this.superT - dt);
     this.nose = Math.max(0, this.nose - dt);
+    this.snotT = Math.max(0, this.snotT - dt);
+    this.settleArm(dt);
     this.star = Math.max(0, this.star - dt);
     this.curse = Math.max(0, this.curse - dt);
     if (this.mode !== "play") this.hammerEdge = false;
@@ -502,7 +530,7 @@ export class Game {
     if (this.mode === "play") this.controlPlayer(dt);
     else if (this.mode === "slide") this.slide(dt);
     else if (this.mode === "walkoff") this.walkoff(dt);
-    if (this.superT > 0 && !this.superHit && this.superT < 0.3) {
+    if (this.superT > 0 && !this.superHit && this.superT < 0.34) {
       this.superHit = true;
       this.superBurst();
     }
@@ -527,8 +555,8 @@ export class Game {
     this.wipe = Math.max(0, this.wipe - dt);
     if (this.towelEdge && this.hops >= 6) {
       this.hops = 0;
-      this.wipe = 0.45;
-      p.freeze = 0.4;
+      this.wipe = 0.92;
+      p.freeze = 0.88;
       p.vx *= 0.2;
       this.audio.bump();
     }
@@ -574,30 +602,48 @@ export class Game {
     if (Math.abs(p.vy) < 46) g *= 0.48;
     p.vy = Math.min(310, p.vy + g * dt);
 
-    if (this.fireEdge && p.form === 2 && this.fireCd <= 0 && this.embers.length < 2 && this.superT <= 0) {
-      this.embers.push({
-        x: p.facing > 0 ? p.x + p.w - 2 : p.x - 8,
-        y: p.y + 2,
-        vx: 200 * p.facing,
-        vy: 36,
-        life: 1.4,
-      });
-      this.fireCd = 0.28;
-      this.nose = 0.16;
-      this.audio.snot();
+    if (
+      this.fireEdge &&
+      p.form === 2 &&
+      this.fireCd <= 0 &&
+      this.embers.length < 2 &&
+      this.superT <= 0 &&
+      this.snotT <= 0 &&
+      this.wipe <= 0
+    ) {
+      this.snotT = this.reduce ? 0.28 : 0.6;
+      this.snotFired = false;
+      this.fireCd = 0.72;
+      this.nose = 0.45;
     }
     this.fireEdge = false;
+    if (this.snotT > 0 && !this.snotFired && (this.reduce || this.snotT < 0.28)) {
+      this.snotFired = true;
+      const n = this.rigWorld(355, 172);
+      this.embers.push({
+        x: n.x,
+        y: n.y,
+        ox: n.x,
+        oy: n.y,
+        vx: 280 * p.facing,
+        vy: -36,
+        life: 1.15,
+        max: 1.15,
+      });
+      for (let i = 0; i < 4; i++) this.puff(n.x, n.y, i % 2 ? "#d6ee6a" : "#7eae28");
+      this.audio.snot();
+    }
 
     if (this.hammerEdge && this.superT <= 0) {
       if (this.charge >= 10) this.startSuper();
       else if (this.swing <= 0) {
-        this.swing = 0.2;
+        this.swing = 0.5;
         this.swingHit = false;
         this.audio.kick();
       }
     }
     this.hammerEdge = false;
-    if (this.swing > 0 && !this.swingHit && this.swing < 0.13) {
+    if (this.swing > 0 && !this.swingHit && this.swing < 0.26) {
       this.swingHit = true;
       this.tryHammer();
     }
@@ -914,7 +960,7 @@ export class Game {
   private startSuper() {
     const p = this.player;
     this.charge = 0;
-    this.superT = 0.52;
+    this.superT = 0.62;
     this.superHit = false;
     this.swing = 0;
     p.vy = -300;
@@ -1045,6 +1091,8 @@ export class Game {
     this.player.invuln = Math.max(this.player.invuln, 0.4);
     this.snap = null;
     this.embers = [];
+    this.snotT = 0;
+    this.snotFired = false;
     this.audio.startMusic(this.level.music);
     this.mode = "play";
   }
@@ -1161,6 +1209,10 @@ export class Game {
     this.swing = 0;
     this.superT = 0;
     this.nose = 0;
+    this.snotT = 0;
+    this.snotFired = false;
+    this.elbow = 0;
+    this.elbowV = 0;
     this.bits = [];
     this.sheets = [];
     this.texts = [];
@@ -1519,14 +1571,6 @@ export class Game {
     this.drawCastle(cam);
     for (const it of this.items) this.drawPickup(it, cam);
     for (const e of this.enemies) this.drawEnemy(e, cam);
-    for (const b of this.embers) {
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = "#e2b043";
-      ctx.beginPath();
-      ctx.ellipse(b.x - cam, b.y, 2.2, 1.4, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
     for (const bit of this.bits) {
       ctx.globalAlpha = clamp(bit.life / bit.max, 0, 1);
       ctx.fillStyle = bit.color;
@@ -1556,6 +1600,7 @@ export class Game {
     const flicker = this.player.invuln > 0 && Math.floor(this.clock * 18) % 2 === 0;
     if (!hide && !flicker && this.mode !== "die") this.drawPlayer(cam);
     if (this.mode === "die") this.drawPlayer(cam);
+    this.drawEmbers(cam);
     if (this.curse > 0) this.drawCurse(cam);
     for (const t of this.texts) this.px(t.text, t.x - cam, t.y, "#fff6d8");
     if (this.fade > 0) {
@@ -1903,7 +1948,321 @@ export class Game {
     ctx.restore();
   }
 
+  private rigReady() {
+    return (
+      this.heroBody.complete &&
+      this.heroBody.naturalWidth > 0 &&
+      this.heroUpper.complete &&
+      this.heroUpper.naturalWidth > 0 &&
+      this.heroFore.complete &&
+      this.heroFore.naturalWidth > 0 &&
+      this.heroHand.complete &&
+      this.heroReach.complete
+    );
+  }
+
+  private rigHeight() {
+    const tall = this.player.form > 0;
+    return (tall ? 52 : 44) * (this.superT > 0 ? 1.2 : 1);
+  }
+
+  private rigWorld(ix: number, iy: number) {
+    const p = this.player;
+    const h = this.rigHeight();
+    const scale = h / 1371;
+    const w = 456 * scale;
+    const moving =
+      p.onGround &&
+      Math.abs(p.vx) > 16 &&
+      this.swing <= 0 &&
+      this.superT <= 0 &&
+      this.wipe <= 0 &&
+      this.snotT <= 0 &&
+      !this.reduce;
+    const stride = Math.max(7, Math.abs(p.vx) / 12);
+    const lift = moving ? Math.sin(p.anim * stride * Math.PI) ** 2 * 1.5 : 0;
+    const lx = -w * 0.42 + ix * scale;
+    const ly = -h - lift + iy * scale;
+    return { x: p.x + p.w / 2 + p.facing * lx, y: p.y + p.h + 1 + ly };
+  }
+
+  private settleArm(dt: number) {
+    const target = this.armTarget().e;
+    if (this.reduce) {
+      this.elbow = target;
+      this.elbowV = 0;
+      return;
+    }
+    this.elbowV += (target - this.elbow) * 36 * dt;
+    this.elbowV *= Math.exp(-6.5 * dt);
+    this.elbow += this.elbowV * dt;
+  }
+
+  private armTarget() {
+    const mega = this.superT > 0;
+    const active = mega || this.swing > 0;
+    if (active) {
+      const amp = mega ? 1.22 : 1;
+      if (this.reduce) return { s: -1.05 * amp, e: -0.28 * amp };
+      const u = mega ? 1 - this.superT / 0.62 : 1 - this.swing / 0.5;
+      const back = 0.98 * amp;
+      const through = -1.16 * amp;
+      if (u < 0.28) {
+        const t = 1 - (1 - u / 0.28) ** 3;
+        return { s: back * t, e: 0.52 * amp * t };
+      }
+      if (u < 0.52) {
+        const t = ((u - 0.28) / 0.24) ** 2;
+        return { s: back + (through - back) * t, e: 0.52 * amp + (-0.92 * amp) * t };
+      }
+      const t = 1 - (1 - Math.min(1, (u - 0.52) / 0.48)) ** 3;
+      return { s: through * (1 - t), e: -0.4 * amp * (1 - t) };
+    }
+    const p = this.player;
+    if (p && p.onGround && Math.abs(p.vx) > 16 && this.wipe <= 0 && this.snotT <= 0 && !this.reduce) {
+      const stride = Math.max(7, Math.abs(p.vx) / 12);
+      const step = Math.sin(p.anim * stride * Math.PI);
+      return { s: step * 0.2, e: Math.max(0, step) * 0.14 };
+    }
+    return { s: 0, e: 0 };
+  }
+
+  private reachTarget() {
+    const rest = { x: 300, y: 760 };
+    const smooth = (t: number) => t * t * (3 - 2 * t);
+    if (this.wipe > 0) {
+      const u = 1 - this.wipe / 0.92;
+      const brow = { x: 344, y: 112 };
+      if (u < 0.16) return { ...rest, amount: u / 0.16, towel: u / 0.16, scrub: 0 };
+      if (u < 0.4) {
+        const e = smooth((u - 0.16) / 0.24);
+        return {
+          x: rest.x + (brow.x - rest.x) * e,
+          y: rest.y + (brow.y - rest.y) * e,
+          amount: 1,
+          towel: 1,
+          scrub: 0,
+        };
+      }
+      if (u < 0.78) {
+        const t = (u - 0.4) / 0.38;
+        const scrub = Math.sin(t * Math.PI * 3);
+        return { x: brow.x + scrub * 96, y: brow.y + Math.sin(t * Math.PI * 6) * 16, amount: 1, towel: 1, scrub };
+      }
+      const e = smooth((u - 0.78) / 0.22);
+      return {
+        x: brow.x + (rest.x - brow.x) * e,
+        y: brow.y + (rest.y - brow.y) * e,
+        amount: 1 - e * 0.4,
+        towel: 1 - e,
+        scrub: 0,
+      };
+    }
+    if (this.snotT > 0) {
+      const u = 1 - this.snotT / 0.6;
+      const nose = { x: 352, y: 174 };
+      let e = 0;
+      if (u < 0.42) e = smooth(u / 0.42);
+      else if (u < 0.7) e = 1;
+      else e = 1 - smooth((u - 0.7) / 0.3);
+      return {
+        x: rest.x + (nose.x - rest.x) * e,
+        y: rest.y + (nose.y - rest.y) * e,
+        amount: Math.max(e, 0.001),
+        towel: 0,
+        scrub: 0,
+      };
+    }
+    return { ...rest, amount: 0, towel: 0, scrub: 0 };
+  }
+
+  private solveArm(sx: number, sy: number, tx: number, ty: number, l1: number, l2: number) {
+    let dx = tx - sx;
+    let dy = ty - sy;
+    let dist = Math.hypot(dx, dy);
+    dist = Math.min(l1 + l2 - 0.5, Math.max(Math.abs(l1 - l2) + 0.5, dist));
+    const ang = Math.atan2(dy, dx);
+    const cosA = clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1);
+    const cosE = clamp((l1 * l1 + l2 * l2 - dist * dist) / (2 * l1 * l2), -1, 1);
+    const bend = -1;
+    const shoulder = ang + bend * Math.acos(cosA);
+    const elbow = Math.acos(cosE);
+    return { shoulderRot: shoulder - Math.PI / 2, elbowRot: bend * (Math.PI - elbow) };
+  }
+
+  private drawRig(cam: number) {
+    const p = this.player;
+    const ctx = this.ctx;
+    const moving =
+      p.onGround &&
+      Math.abs(p.vx) > 16 &&
+      this.swing <= 0 &&
+      this.superT <= 0 &&
+      this.wipe <= 0 &&
+      this.snotT <= 0 &&
+      !this.reduce;
+    const stride = Math.max(7, Math.abs(p.vx) / 12);
+    const phase = p.anim * stride;
+    const lift = moving ? Math.sin(phase * Math.PI) ** 2 * 1.5 : 0;
+    const h = this.rigHeight();
+    const scale = h / 1371;
+    const pose = this.armTarget();
+    const reach = this.reachTarget();
+    ctx.save();
+    ctx.translate(p.x + p.w / 2 - cam, p.y + p.h + 1);
+    ctx.scale(p.facing, 1);
+    ctx.fillStyle = "rgba(20,16,12,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 8, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.save();
+    ctx.translate(-h * (456 / 1371) * 0.42, -h - lift);
+    ctx.scale(scale, scale);
+    ctx.drawImage(this.heroBody, 0, 0);
+    ctx.save();
+    ctx.translate(102.9, 468.4);
+    ctx.rotate(pose.s);
+    ctx.translate(-102.9, -468.4);
+    ctx.drawImage(this.heroUpper, 0, 0);
+    ctx.translate(113.4, 642.1);
+    ctx.rotate(this.elbow);
+    ctx.translate(-113.4, -642.1);
+    ctx.drawImage(this.heroFore, 0, 0);
+    ctx.restore();
+    if (reach.amount > 0.02 && this.heroReach.naturalWidth > 0) {
+      const ik = this.solveArm(198, 478, reach.x, reach.y, 200, 210);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, reach.amount * 2.4);
+      ctx.translate(198, 478);
+      ctx.rotate(ik.shoulderRot);
+      ctx.drawImage(this.heroReach, -46, 0, 92, 200);
+      ctx.translate(0, 200);
+      ctx.rotate(ik.elbowRot);
+      ctx.drawImage(this.heroReach, -36, 0, 72, 210);
+      ctx.restore();
+    }
+    if (reach.towel > 0.04) this.drawTowel(reach.x, reach.y, reach.towel, reach.scrub);
+    const hw = 50;
+    const hh = 62;
+    const hx = 275;
+    const hy = 729;
+    const destX = reach.amount > 0.02 ? reach.x - hw / 2 : hx;
+    const destY = reach.amount > 0.02 ? reach.y - hh / 2 : hy;
+    if (this.heroHand.naturalWidth > 0) ctx.drawImage(this.heroHand, hx, hy, hw, hh, destX, destY, hw, hh);
+    ctx.restore();
+    if (this.hops >= 6 && this.wipe <= 0) {
+      const drip = (this.clock * 16) % 8;
+      ctx.fillStyle = "rgba(158,196,224,0.9)";
+      ctx.beginPath();
+      ctx.ellipse(h * 0.12, -h * 0.78 + drip, 1.1, 1.8, 0, 0, Math.PI * 2);
+      ctx.ellipse(h * 0.22, -h * 0.82 + ((drip + 4) % 8), 1.1, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  private drawTowel(x: number, y: number, scale: number, scrub: number) {
+    const ctx = this.ctx;
+    const s = 0.55 + scale * 0.45;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.35 + scrub * 0.4);
+    ctx.scale(s, s);
+    ctx.fillStyle = "rgba(40, 28, 18, 0.28)";
+    ctx.beginPath();
+    ctx.moveTo(-70, -18);
+    ctx.quadraticCurveTo(-10, -78, 78, -58);
+    ctx.quadraticCurveTo(150, -36, 132, 18);
+    ctx.quadraticCurveTo(70, 58, -8, 36);
+    ctx.quadraticCurveTo(-88, 48, -96, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#f6f1e6";
+    ctx.beginPath();
+    ctx.moveTo(-78, -28);
+    ctx.quadraticCurveTo(-16, -86, 74, -64);
+    ctx.quadraticCurveTo(148, -40, 128, 12);
+    ctx.quadraticCurveTo(64, 52, -12, 28);
+    ctx.quadraticCurveTo(-96, 42, -104, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#e7dcc8";
+    ctx.beginPath();
+    ctx.moveTo(-60, -8);
+    ctx.quadraticCurveTo(10, -36, 70, -18);
+    ctx.quadraticCurveTo(20, 8, -48, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#1d4e8c";
+    ctx.lineWidth = 16;
+    ctx.beginPath();
+    ctx.moveTo(-70, 2);
+    ctx.quadraticCurveTo(20, -8, 110, 6);
+    ctx.stroke();
+    ctx.translate(96, 18);
+    ctx.rotate(0.9 + scrub * 0.35);
+    ctx.fillStyle = "#efe6d4";
+    ctx.beginPath();
+    ctx.moveTo(-16, 0);
+    ctx.quadraticCurveTo(-22, 70, -4, 150);
+    ctx.quadraticCurveTo(18, 158, 22, 70);
+    ctx.quadraticCurveTo(20, 16, 8, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#1d4e8c";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(-6, 28);
+    ctx.quadraticCurveTo(2, 70, 4, 96);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawEmbers(cam: number) {
+    const ctx = this.ctx;
+    for (const b of this.embers) {
+      const age = 1 - b.life / b.max;
+      if (age < 0.22) {
+        ctx.save();
+        ctx.globalAlpha = (1 - age / 0.22) * 0.9;
+        ctx.strokeStyle = "#c6e15a";
+        ctx.lineWidth = 1.15;
+        ctx.beginPath();
+        ctx.moveTo(b.ox - cam, b.oy);
+        ctx.lineTo(b.x - cam, b.y);
+        ctx.stroke();
+        ctx.restore();
+      }
+      const ang = Math.atan2(b.vy, b.vx);
+      const speed = Math.hypot(b.vx, b.vy);
+      const len = 3.4 + Math.min(4.5, speed * 0.012);
+      ctx.save();
+      ctx.translate(b.x - cam, b.y);
+      ctx.rotate(ang);
+      ctx.fillStyle = "#8fbf2a";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, len, 1.85, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#e8f7a4";
+      ctx.beginPath();
+      ctx.ellipse(len * 0.28, -0.35, len * 0.42, 0.75, 0, 0, Math.PI * 2);
+      ctx.fill();
+      for (let i = 1; i <= 4; i++) {
+        ctx.globalAlpha = 0.8 - i * 0.15;
+        ctx.fillStyle = i % 2 ? "#d2ee62" : "#6f9e22";
+        ctx.beginPath();
+        ctx.ellipse(-len - i * 2.5, Math.sin(i * 1.7 + b.x) * 0.55, Math.max(0.4, 1.45 - i * 0.22), 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   private drawPlayer(cam: number) {
+    if (this.rigReady()) {
+      this.drawRig(cam);
+      return;
+    }
     const p = this.player;
     const ctx = this.ctx;
     const tall = p.form > 0;
@@ -1913,7 +2272,18 @@ export class Game {
     const stride = Math.max(7, Math.abs(p.vx) / 12);
     const phase = p.anim * stride;
     const walks = this.heroWalkA.complete && this.heroWalkA.naturalWidth > 0 && this.heroWalkB.complete && this.heroWalkB.naturalWidth > 0;
-    const hero = superOn || striking ? this.heroSwing : !p.onGround ? this.heroJump : moving && walks ? (Math.floor(phase) % 2 === 0 ? this.heroWalkA : this.heroWalkB) : this.heroIdle;
+    const calmSwing = this.heroSwingCalm.complete && this.heroSwingCalm.naturalWidth > 0;
+    const hero = superOn
+      ? this.heroSwing
+      : striking && calmSwing
+        ? this.heroSwingCalm
+        : !p.onGround
+          ? this.heroJump
+          : moving && walks
+            ? Math.floor(phase) % 2 === 0
+              ? this.heroWalkA
+              : this.heroWalkB
+            : this.heroIdle;
     const ready = hero.complete && hero.naturalWidth > 0;
     ctx.save();
     ctx.translate(p.x + p.w / 2 - cam, p.y + p.h + 1);
@@ -1993,7 +2363,7 @@ export class Game {
     ctx.fillStyle = "#f4f1ea";
     ctx.fillRect(-1.2, tall ? -20 : -16, 2.6, 1.1);
     const headY = tall ? -28 : -22;
-    this.drawHead(headY, tall ? 13 : 11);
+    this.drawHead(headY, tall ? 13 : 11, superOn);
     if (p.form === 2) {
       ctx.fillStyle = this.nose > 0 ? "#d7ef8a" : "#8fbf3a";
       ctx.beginPath();
@@ -2017,20 +2387,23 @@ export class Game {
     if (this.star > 0) this.beaverMark(p.x - cam + p.w / 2, p.y - 4, 18);
   }
 
-  private drawHead(top: number, size: number) {
+  private drawHead(top: number, size: number, scream: boolean) {
     const ctx = this.ctx;
     const x = -size / 2;
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(x, top, size, size, size * 0.35);
     ctx.clip();
-    if (this.face.complete && this.face.naturalWidth > 0) {
+    if (scream && this.face.complete && this.face.naturalWidth > 0) {
       const sw = this.face.naturalWidth;
       const sh = this.face.naturalHeight * 0.72;
       ctx.drawImage(this.face, 0, 0, sw, sh, x, top, size, size);
     } else {
-      ctx.fillStyle = "#d4783c";
+      ctx.fillStyle = "#e0a070";
       ctx.fillRect(x, top, size, size);
+      ctx.fillStyle = "#1a120c";
+      ctx.fillRect(x + size * 0.55, top + size * 0.38, size * 0.16, size * 0.08);
+      ctx.fillRect(x + size * 0.42, top + size * 0.62, size * 0.28, size * 0.05);
     }
     ctx.restore();
   }

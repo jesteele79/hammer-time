@@ -29,7 +29,7 @@ function writeBest(score: number) {
 
 export function KilnHop() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const screenRef = useRef<HTMLDivElement>(null);
+  const playRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   const scoreRef = useRef<HTMLElement>(null);
   const coinRef = useRef<HTMLElement>(null);
@@ -47,11 +47,11 @@ export function KilnHop() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const screen = screenRef.current;
-    if (!canvas || !screen) return;
+    const play = playRef.current;
+    if (!canvas || !play) return;
 
     const fit = () => {
-      const box = screen.getBoundingClientRect();
+      const box = play.getBoundingClientRect();
       const scale = Math.min(box.width / DISPLAY_W, box.height / DISPLAY_H);
       const w = Math.max(160, Math.floor(DISPLAY_W * scale));
       const h = Math.floor(DISPLAY_H * (w / DISPLAY_W));
@@ -60,7 +60,7 @@ export function KilnHop() {
     };
     fit();
     const obs = new ResizeObserver(fit);
-    obs.observe(screen);
+    obs.observe(play);
 
     const game = new Game(canvas, {
       onMode: (next) => setMode(next),
@@ -169,7 +169,44 @@ export function KilnHop() {
         </div>
       </header>
 
-      <div className="screen" ref={screenRef}>
+      <div className="screen">
+        <aside className="legend" aria-label="Controls">
+          <p className="legend-k">Controls</p>
+          <ul>
+            <li>
+              <kbd>←</kbd>
+              <kbd>→</kbd>
+              <span>Move</span>
+            </li>
+            <li>
+              <kbd>Z</kbd>
+              <span>Jump</span>
+            </li>
+            <li>
+              <kbd>Shift</kbd>
+              <span>Run</span>
+            </li>
+            <li>
+              <kbd>H</kbd>
+              <kbd>X</kbd>
+              <span>Hammer</span>
+            </li>
+            <li>
+              <kbd>F</kbd>
+              <span>Snot rocket</span>
+            </li>
+            <li>
+              <kbd>T</kbd>
+              <span>Towel</span>
+            </li>
+            <li>
+              <kbd>↓</kbd>
+              <span>Pipe</span>
+            </li>
+          </ul>
+          <p className="legend-note">Snot rocket works after the second ! block. That one is the pepper. T wipes the drip after a lot of jumps.</p>
+        </aside>
+        <div className="play" ref={playRef}>
         <canvas ref={canvasRef} className="game" width={DISPLAY_W} height={DISPLAY_H} aria-label="Hammer Time playfield" />
         {showVeil ? (
           <div className={showTitle ? "veil veil-title" : "veil"}>
@@ -181,7 +218,7 @@ export function KilnHop() {
                 <p className="best" ref={bestRef}>
                   Best 000000
                 </p>
-                <p className="keys">Arrows move · A or Z jumps · H or X hammers · S snot · T towel</p>
+                <p className="keys">Arrows move · Z jumps · H or X hammers · F snot rocket</p>
               </div>
             ) : null}
             {showCard ? (
@@ -232,6 +269,7 @@ export function KilnHop() {
             ) : null}
           </div>
         ) : null}
+        </div>
       </div>
 
       <div className="touchbar">
