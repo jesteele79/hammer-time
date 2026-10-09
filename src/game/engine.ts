@@ -5,14 +5,30 @@ import {
   HERO_CROUCH_HEIGHT,
   ENEMY_HEIGHT,
   ENEMY_BODY_HEIGHT,
+  LECTURE_SECONDS,
+  SNOT_SECONDS,
+  SUPER_SECONDS,
   SWING_SECONDS,
+  WIPE_SECONDS,
+  pathHits,
   sweptHeadHits,
   type Point,
 } from "./combat";
-import { drawHero, artworkToWorld, heroMallet, type HeroPose } from "./hero";
+import { drawHero, heroMallet, heroNostril, type HeroPose } from "./hero";
+import { SNOT_FIRE_U, SUPER_CUT_FROM, SWING_ACTIVE, WIPE_FLICK, WIPE_SCRUB, WIPE_SHINE } from "./rig";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
 import { drawFurniture, drawSign, drawRoomDecor, drawCrate, drawFloorGap } from "./scenery";
+import {
+  IMPACT_WORDS,
+  LECTURES,
+  RETORTS,
+  STAFF_COMEBACKS,
+  STAFF_LINES,
+  STAFF_SIGHS,
+  SUBTITLES,
+  pick,
+} from "./lines";
 
 export type Mode =
   "title" | "card" | "play" | "pause" | "die" | "slide" | "walkoff" | "tally" | "over" | "win";
@@ -35,10 +51,25 @@ export type Hud = {
   visualsReady: boolean;
   stance: "standing" | "crouching" | "sliding";
   boss: { hp: number; max: number; bonks: number; snots: number; defeated: boolean } | null;
+  /** Snot charges, refilled over time; pepper makes them hot. */
+  sinus: number;
+  hot: boolean;
+  /** Hits Hammer can still take before the next one costs a life. */
+  patience: number;
+  lectureReady: boolean;
 };
 
 export type TouchAction =
-  "left" | "right" | "jump" | "run" | "down" | "fire" | "towel" | "hammer" | "super";
+  | "left"
+  | "right"
+  | "jump"
+  | "run"
+  | "down"
+  | "fire"
+  | "towel"
+  | "hammer"
+  | "super"
+  | "lecture";
 
 type Body = {
   x: number;
@@ -82,6 +113,22 @@ type Enemy = Body & {
   grace: number;
   anim: number;
   wake: number;
+  line?: string;
+  greeted?: boolean;
+  /** Seconds left standing still after a lecture. */
+  freeze?: number;
+};
+/** Purely visual: a defeated staffer sent flying by the mallet or the snot. */
+type Tumble = {
+  role: EnemyRole;
+  x: number;
+  feet: number;
+  vx: number;
+  vy: number;
+  rot: number;
+  spin: number;
+  life: number;
+  slimed: boolean;
 };
 type Student = Body &
   StudentSpawn & {
@@ -91,7 +138,23 @@ type Student = Body &
     speechT: number;
     throwCd: number;
     windup: number;
+    /** Seconds left sulking after a lecture: no paper, a sullen retort. */
+    schooled?: number;
+    retort?: string;
   };
+type Puddle = { x: number; y: number; w: number; life: number; max: number };
+type Ring = {
+  x: number;
+  y: number;
+  r: number;
+  grow: number;
+  life: number;
+  max: number;
+  color: string;
+  /** Floor shockwaves are drawn flattened into perspective. */
+  floor?: boolean;
+};
+type Comic = { x: number; y: number; text: string; life: number; max: number; rot: number; big: boolean };
 type Plane = {
   x: number;
   y: number;
@@ -125,6 +188,10 @@ type Ember = {
   max: number;
   ox: number;
   oy: number;
+  /** Pepper-loaded snot: bigger, faster, and it goes through one target. */
+  hot?: boolean;
+  pierce?: number;
+  hit?: Set<object>;
 };
 type Bit = {
   x: number;
@@ -194,6 +261,7 @@ const FONT: Record<string, string[]> = {
   "!": ["010", "010", "010", "000", "010"],
   "?": ["110", "001", "010", "000", "010"],
   "-": ["000", "000", "111", "000", "000"],
+  "+": ["000", "010", "111", "010", "000"],
   " ": ["000", "000", "000", "000", "000"],
 };
 
@@ -233,7 +301,13 @@ declare global {
       tauntCount: number;
       lastTaunt: string | null;
       damageVoices: number;
+      sinus: number;
+      puddles: number;
+      lecture: number;
+      staffGap: number;
     };
+    /** Development-only QA levers; absent from production builds. */
+    __kilnDev?: { charge: (n: number) => number; heat: (n: number) => number };
   }
 }
 
@@ -255,6 +329,7 @@ export class Game {
   private hammerBossTagged = false;
   private heroBanter = "";
   private banterT = 0;
+  private banterSoft = false;
   private items: Item[] = [];
   private embers: Ember[] = [];
   private bits: Bit[] = [];
@@ -293,12 +368,23 @@ export class Game {
   private fireCd = 0;
   private charge = 0;
   private star = 0;
+  private sinus = 3;
+  private lecture = 0;
+  private lectureCd = 0;
+  private lectureHit = false;
+  private lectureEdge = false;
+  private prevLecture = false;
+  private puddles: Puddle[] = [];
+  private rings: Ring[] = [];
+  private comics: Comic[] = [];
+  private tumbles: Tumble[] = [];
+  private boiled = false;
+  private wipeStroke = -1;
   private heroIdle = new Image();
   private heroBody = new Image();
   private heroUpper = new Image();
   private heroFore = new Image();
   private heroHand = new Image();
-  private heroReach = new Image();
   private zeroCan = new Image();
   private beaver = new Image();
   private worker = new Image();
@@ -313,7 +399,8 @@ export class Game {
   private heat = 0;
   private checkpoint = 0;
   private hurtT = 0;
-  private hammerLast: Point | null = null;
+  /** Swing progress at the previous contact check, so contact follows the arc. */
+  private hammerLast: number | null = null;
   private hammerVictims = new Set<Enemy>();
   private hammerBlocks = new Set<string>();
   private splashes: { x: number; y: number; life: number }[] = [];
@@ -350,6 +437,7 @@ export class Game {
     towel: false,
     hammer: false,
     super: false,
+    lecture: false,
   };
   private actions = { ...this.touch };
   private superEdge = false;
@@ -377,7 +465,6 @@ export class Game {
     this.heroUpper.src = "/hero-upper.png?v=rig4";
     this.heroFore.src = "/hero-fore.png?v=rig4";
     this.heroHand.src = "/hero-hand.png?v=rig4";
-    this.heroReach.src = "/hero-reach.png?v=rig4";
     this.zeroCan.src = "/coke-zero.webp";
     this.nuts.src = "/nuts-bag.webp";
     this.towel.src = "/towel-cloth.webp";
@@ -416,6 +503,7 @@ export class Game {
           if (["KeyH", "KeyX"].includes(e.code)) this.hammerEdge = true;
           if (e.code === "KeyT") this.towelEdge = true;
           if (e.code === "KeyQ") this.superEdge = true;
+          if (["KeyE", "KeyL"].includes(e.code)) this.lectureEdge = true;
         }
       }
       if (
@@ -465,6 +553,7 @@ export class Game {
     document.removeEventListener("visibilitychange", this.onVis);
     delete window.__controlsTest;
     delete window.__kiln;
+    delete window.__kilnDev;
     this.audio.destroy();
   }
 
@@ -487,6 +576,8 @@ export class Game {
     this.star = 0;
     this.heat = 0;
     this.wipe = 0;
+    this.sinus = 3;
+    this.boiled = false;
     this.levelIndex =
       Number.isInteger(startIndex) && startIndex >= 0 && startIndex < this.courses.length
         ? startIndex
@@ -506,7 +597,7 @@ export class Game {
       this.mode = "pause";
       this.audio.stopMusic();
       this.audio.stopVoice();
-      this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = false;
+      this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = this.lectureEdge = false;
       this.player.jumpBuf = 0;
     } else if (this.mode === "pause") {
       this.mode = this.pausedFrom;
@@ -530,6 +621,7 @@ export class Game {
       if (action === "fire") this.fireEdge = true;
       if (action === "towel") this.towelEdge = true;
       if (action === "super") this.superEdge = true;
+      if (action === "lecture") this.lectureEdge = true;
     }
     if (!down && action === "jump") this.jumpRelease = true;
     this.recomputeTouch();
@@ -546,6 +638,7 @@ export class Game {
       towel: false,
       hammer: false,
       super: false,
+      lecture: false,
     };
     for (const action of this.pointers.values()) this.touch[action] = true;
   }
@@ -584,7 +677,25 @@ export class Game {
       tauntCount: { get: () => this.audio.tauntCount },
       lastTaunt: { get: () => this.audio.lastTaunt },
       damageVoices: { get: () => this.audio.voiceCount },
+      sinus: { get: () => this.sinus },
+      puddles: { get: () => this.puddles.length },
+      lecture: { get: () => this.lecture },
+      staffGap: {
+        get: () => {
+          const p = this.player;
+          const gaps = this.enemies
+            .filter((e) => e.alive && e.state === "walk")
+            .map((e) => (p.facing > 0 ? e.x - (p.x + p.w) : p.x - (e.x + e.w)))
+            .filter((gap) => gap > -4);
+          return gaps.length ? Math.min(...gaps) : 999;
+        },
+      },
     });
+    if (import.meta.env?.DEV)
+      window.__kilnDev = {
+        charge: (n) => (this.charge = clamp(n, 0, 10)),
+        heat: (n) => (this.heat = clamp(n, 0, 100)),
+      };
   }
 
   private held(code: string) {
@@ -608,6 +719,7 @@ export class Game {
       hammer: t.hammer || this.held("KeyH") || this.held("KeyX"),
       super: t.super || this.held("KeyQ"),
       towel: t.towel || this.held("KeyT"),
+      lecture: t.lecture || this.held("KeyE") || this.held("KeyL"),
     };
   }
 
@@ -635,8 +747,10 @@ export class Game {
     this.prevTowel = this.actions.towel;
     if (this.mode === "play" && this.actions.super && !this.prevSuper) this.superEdge = true;
     this.prevSuper = this.actions.super;
+    if (this.actions.lecture && !this.prevLecture) this.lectureEdge = true;
+    this.prevLecture = this.actions.lecture;
     if (this.mode !== "play")
-      this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = false;
+      this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = this.lectureEdge = false;
     this.jumpHeld = this.actions.jump;
 
     if (this.mode === "title") {
@@ -672,6 +786,9 @@ export class Game {
     this.snotT = Math.max(0, this.snotT - dt);
     this.hurtT = Math.max(0, this.hurtT - dt);
     this.wipe = Math.max(0, this.wipe - dt);
+    this.lecture = Math.max(0, this.lecture - dt);
+    this.lectureCd = Math.max(0, this.lectureCd - dt);
+    this.sinus = Math.min(3, this.sinus + dt / 1.5);
     this.star = Math.max(0, this.star - dt);
     this.curse = Math.max(0, this.curse - dt);
     if (this.mode !== "play") this.hammerEdge = false;
@@ -717,16 +834,14 @@ export class Game {
     if (this.mode === "play") this.controlPlayer(dt);
     else if (this.mode === "slide") this.slide(dt);
     else if (this.mode === "walkoff") this.walkoff(dt);
-    if (this.superT > 0 && !this.superHit && this.superT < 0.25) {
-      this.superHit = true;
-      this.superBurst();
-    }
+    this.stepSuper();
 
     if (this.mode === "play") this.tickClock(dt);
     this.stepItems(dt);
     this.stepEnemies(dt);
     this.stepStudents(dt);
     this.stepEmbers(dt);
+    this.stepPuddles(dt);
     this.stepBoss(dt);
     this.stepPlanes(dt);
     if (this.mode === "play") {
@@ -751,25 +866,33 @@ export class Game {
   private controlPlayer(dt: number) {
     const p = this.player;
     this.updateStance(dt);
-    const locked = this.wipe > 0 || p.freeze > 0 || this.hurtT > 0;
+    const locked = this.wipe > 0 || p.freeze > 0 || this.hurtT > 0 || this.lecture > 0;
     if (
       this.towelEdge &&
       !p.crouch &&
       this.heat > 0 &&
       p.onGround &&
+      !locked &&
       this.swing <= 0 &&
+      this.superT <= 0 &&
       this.snotT <= 0
     ) {
-      this.heat = 0;
-      this.wipe = 0.95;
+      this.wipe = WIPE_SECONDS;
+      this.wipeStroke = -1;
       p.vx *= 0.2;
       this.audio.cloth();
     }
     this.towelEdge = false;
+    if (this.wipe > 0) this.wipeFx(dt);
     const run = this.actions.run && !locked && !p.crouch;
     const tired = this.heat >= 80;
     const cap = p.slideT > 0 ? 170 : p.crouch ? 74 : tired ? 116 : 158;
     this.heat = clamp(this.heat + (run && Math.abs(p.vx) > 100 ? 6 : -3) * dt, 0, 100);
+    if (this.heat >= 99.5 && !this.boiled) {
+      this.boiled = true;
+      this.audio.whistle();
+      this.comic(p.x + p.w / 2, p.y - 10, "BOILING!", false);
+    } else if (this.heat < 70) this.boiled = false;
     const accel = (p.onGround ? 540 : 320) * (run ? 1.15 : 1) * (tired ? 0.82 : 1);
     if (this.actions.left && !locked && p.slideT <= 0) {
       p.vx -= accel * dt;
@@ -785,7 +908,7 @@ export class Game {
     p.skid = reversing;
     if (p.slideT > 0) {
       p.vx = approach(p.vx, Math.sign(p.vx) * 115, 70 * dt);
-    } else if ((!this.actions.left && !this.actions.right) || this.wipe > 0) {
+    } else if ((!this.actions.left && !this.actions.right) || this.wipe > 0 || this.lecture > 0) {
       const f = 620 * dt;
       if (Math.abs(p.vx) <= f) p.vx = 0;
       else p.vx -= Math.sign(p.vx) * f;
@@ -813,38 +936,81 @@ export class Game {
     if (Math.abs(p.vy) < 46) g *= 0.48;
     p.vy = Math.min(310, p.vy + g * dt);
 
+    // Snot is his own weapon: always loaded, limited by sinus pressure; pepper makes it hot.
     if (
       !locked &&
       !p.crouch &&
       this.swing <= 0 &&
       this.fireEdge &&
-      p.form === 2 &&
+      this.sinus >= 1 &&
       this.fireCd <= 0 &&
-      this.embers.length < 2 &&
+      this.embers.length < 3 &&
       this.superT <= 0 &&
       this.snotT <= 0 &&
       this.wipe <= 0
     ) {
-      this.snotT = 0.45;
+      this.snotT = SNOT_SECONDS;
       this.snotFired = false;
-      this.fireCd = 0.72;
+      this.fireCd = 0.5;
+      this.sinus -= 1;
+      this.audio.sniff();
     }
     this.fireEdge = false;
-    if (this.snotT > 0 && !this.snotFired && this.snotT < 0.25) {
+    if (this.snotT > 0 && !this.snotFired && 1 - this.snotT / SNOT_SECONDS >= SNOT_FIRE_U) {
       this.snotFired = true;
-      const n = artworkToWorld(this.heroPose(), { x: 355, y: 172 });
+      const n = heroNostril(this.heroPose());
+      const hot = p.form === 2;
       this.embers.push({
         x: n.x,
         y: n.y,
         ox: n.x,
         oy: n.y,
-        vx: 280 * p.facing,
-        vy: -36,
+        vx: (hot ? 330 : 280) * p.facing,
+        vy: hot ? -30 : -40,
         life: 1.15,
         max: 1.15,
+        hot,
+        pierce: hot ? 1 : 0,
+        hit: new Set(),
       });
+      for (let i = 0; i < 7; i++)
+        this.bits.push({
+          x: n.x,
+          y: n.y,
+          vx: p.facing * (50 + Math.random() * 90),
+          vy: (Math.random() - 0.65) * 70,
+          life: 0.32,
+          max: 0.32,
+          color: hot ? "#ead57c" : "#c8dc8c",
+          s: 1.3,
+        });
+      // Out ahead of the nose so the burst never sits on his face.
+      this.comic(n.x + p.facing * 26, n.y - 14, hot ? "HOT HONK!" : "HONK!", false);
       this.heat = Math.min(100, this.heat + 5);
-      this.audio.snot();
+      this.audio.honk();
+    }
+
+    if (
+      this.lectureEdge &&
+      !locked &&
+      p.onGround &&
+      !p.crouch &&
+      this.lectureCd <= 0 &&
+      this.swing <= 0 &&
+      this.superT <= 0 &&
+      this.snotT <= 0
+    ) {
+      this.lecture = LECTURE_SECONDS;
+      this.lectureCd = LECTURE_SECONDS + 0.6;
+      this.lectureHit = false;
+      p.vx *= 0.2;
+      this.say(pick(LECTURES, this.clock * 13), 1.8);
+      this.audio.harrumph();
+    }
+    this.lectureEdge = false;
+    if (this.lecture > 0 && !this.lectureHit && 1 - this.lecture / LECTURE_SECONDS >= 0.2) {
+      this.lectureHit = true;
+      this.deliverLecture();
     }
 
     if (
@@ -866,7 +1032,7 @@ export class Game {
       this.swing <= 0
     ) {
       this.swing = SWING_SECONDS;
-      this.hammerLast = heroMallet(this.heroPose());
+      this.hammerLast = null;
       this.hammerVictims.clear();
       this.hammerBlocks.clear();
       this.hammerBossTagged = false;
@@ -887,6 +1053,141 @@ export class Game {
     if (p.skid && Math.random() < 0.4) this.puff(p.x + p.w / 2, p.y + p.h, "#e7d2b4");
     else if (p.onGround && Math.abs(p.vx) > 80 && Math.random() < 0.25)
       this.puff(p.x + 4, p.y + p.h, "#d8c2a4");
+  }
+
+  /** The slam lands with the body: plunge after the overhead load, burst on contact. */
+  private stepSuper() {
+    if (this.superT <= 0 || this.superHit) return;
+    const u = 1 - this.superT / SUPER_SECONDS;
+    if (u < SUPER_CUT_FROM) return;
+    const p = this.player;
+    if (!p.onGround && u < 0.92) {
+      p.vy = Math.max(p.vy, 300);
+      return;
+    }
+    this.superHit = true;
+    this.superBurst();
+  }
+
+  /** Strokes, the flick and the shine each get their sound and spray. */
+  private wipeFx(dt: number) {
+    const u = 1 - this.wipe / WIPE_SECONDS;
+    this.heat = Math.max(0, this.heat - 240 * dt);
+    const stroke =
+      u < WIPE_SCRUB[0]
+        ? -1
+        : u < WIPE_SCRUB[1]
+          ? Math.floor((u - WIPE_SCRUB[0]) / 0.1)
+          : u < WIPE_FLICK[0] + 0.04
+            ? 5
+            : u < WIPE_SHINE
+              ? 6
+              : 7;
+    if (stroke === this.wipeStroke) return;
+    this.wipeStroke = stroke;
+    if (stroke >= 0 && stroke < 5) this.audio.swish();
+    else if (stroke === 6) this.audio.snap();
+    else if (stroke === 7) {
+      this.audio.glint();
+      if (this.banterT <= 0) {
+        this.say("Ahh. Better.", 1.2, true);
+      }
+    }
+  }
+
+  /** Condescension as crowd control: students sulk, staff stop and take it. */
+  private deliverLecture() {
+    const p = this.player;
+    const cx = p.x + p.w / 2,
+      cy = p.y + p.h / 2;
+    const inReach = (b: { x: number; y: number; w: number; h: number }) => {
+      const d = (b.x + b.w / 2 - cx) * p.facing;
+      return d > -8 && d < 112 && Math.abs(b.y + b.h / 2 - cy) < 52;
+    };
+    let schooled = 0,
+      frozen = 0;
+    for (const s of this.students) {
+      if (!inReach(s) || (s.schooled ?? 0) > 0) continue;
+      s.schooled = 9;
+      s.windup = 0;
+      s.throwCd = Math.max(s.throwCd, 9);
+      s.retort = pick(RETORTS, s.home / TILE + schooled + Math.floor(this.clock));
+      s.speechT = 2.6;
+      s.greeted = true;
+      s.facing = cx < s.x ? -1 : 1;
+      schooled++;
+      this.scoreAdd(150);
+      this.float(s.x, s.y - 4, "SCHOOLED");
+    }
+    for (const e of this.enemies) {
+      if (!e.alive || e.state !== "walk" || !inReach(e)) continue;
+      e.freeze = 1.8;
+      e.vx = 0;
+      e.alert = 0;
+      e.facing = cx < e.x ? -1 : 1;
+      e.line = pick(STAFF_SIGHS, e.home / TILE + frozen);
+      e.speechT = 1.8;
+      frozen++;
+      this.scoreAdd(50);
+    }
+    this.heat = Math.max(0, this.heat - 15);
+    if (!schooled && !frozen) return;
+    this.comic(cx + p.facing * 34, p.y - 2, schooled ? "SCHOOLED!" : "LISTEN UP!", false);
+    const said = this.audio.taunt(schooled ? "student" : "staff");
+    if (typeof said === "string" && said in SUBTITLES) {
+      this.say(SUBTITLES[said], 2);
+    }
+  }
+
+  private stepPuddles(dt: number) {
+    for (const puddle of this.puddles) puddle.life -= dt;
+    this.puddles = this.puddles.filter((puddle) => puddle.life > 0);
+  }
+
+  private comic(x: number, y: number, text: string, big: boolean) {
+    // Keep bursts off Hammer's face: slide them clear when they would overlap it.
+    const p = this.player;
+    const half = text.length * (big ? 3.4 : 2) + (big ? 9 : 6);
+    const faceX = p.x + p.w / 2 + p.facing * 4.5,
+      faceY = p.y + 2;
+    if (Math.abs(y - faceY) < (big ? 16 : 11) && Math.abs(x - faceX) < half + 8)
+      x = faceX + p.facing * (half + 9);
+    this.comics.push({ x, y, text, life: big ? 1.1 : 0.7, max: big ? 1.1 : 0.7, rot: (Math.random() - 0.5) * 0.3, big });
+    if (this.comics.length > 6) this.comics.shift();
+  }
+
+  private impact(x: number, y: number, power = 1, word: { x: number; y: number } | null = { x, y: y - 10 }) {
+    this.rings.push({ x, y, r: 3, grow: 70 * power, life: 0.26, max: 0.26, color: "#fff4d6" });
+    for (let i = 0; i < 7 * power; i++) {
+      const a = Math.random() * Math.PI * 2;
+      this.bits.push({
+        x,
+        y,
+        vx: Math.cos(a) * (60 + Math.random() * 90) * power,
+        vy: Math.sin(a) * (50 + Math.random() * 70) * power - 40,
+        life: 0.42,
+        max: 0.42,
+        color: i % 3 ? "#c79a62" : "#fff2cf",
+        s: 1.6,
+      });
+    }
+    if (word) this.comic(word.x, word.y, pick(IMPACT_WORDS, this.clock * 31), false);
+  }
+
+  /** Soft lines (written jabs, asides) give way to the next encounter; the rest play out. */
+  private say(text: string, seconds: number, soft = false) {
+    this.heroBanter = text;
+    this.banterT = seconds;
+    this.banterSoft = soft;
+  }
+
+  /** Captions the recorded line when one plays; otherwise an occasional written jab. */
+  private quip(e: Enemy, said: unknown) {
+    if (typeof said === "string" && said in SUBTITLES) {
+      this.say(SUBTITLES[said as keyof typeof SUBTITLES], 2);
+    } else if (this.banterT <= 0 && Math.random() < 0.45) {
+      this.say(pick(STAFF_COMEBACKS[e.role ?? "office"], e.home / TILE + this.clock * 3), 1.6, true);
+    }
   }
 
   private updateStance(dt: number) {
@@ -1018,8 +1319,20 @@ export class Game {
         }
       } else e.wake = 0;
 
-      if (e.state === "walk") {
+      if ((e.freeze ?? 0) > 0) {
+        e.freeze = Math.max(0, e.freeze! - dt);
+        e.vx = 0;
+      } else if (e.state === "walk") {
         const distance = Math.abs(this.player.x - e.x);
+        if (
+          !e.greeted &&
+          e.role !== "server" &&
+          distance < 120 &&
+          Math.abs(this.player.y - e.y) < 40
+        ) {
+          e.greeted = true;
+          e.speechT = 2.2;
+        }
         if (distance > 160) e.alerted = false;
         if (
           e.role === "server" &&
@@ -1066,6 +1379,17 @@ export class Game {
           e.vx = -e.vx || -34;
           e.facing = e.vx >= 0 ? 1 : -1;
         }
+        const feet = e.y + e.h;
+        const puddle = this.puddles.find(
+          (pd) => Math.abs(pd.y - feet) < 3 && e.x + e.w > pd.x - pd.w / 2 && e.x < pd.x + pd.w / 2,
+        );
+        if (puddle && Math.abs(e.vx) > 4) {
+          puddle.life = Math.min(puddle.life, 1.2);
+          this.stun(e);
+          this.comic(e.x + e.w / 2, e.y - 6, "WHOA!", false);
+          this.audio.slip();
+          this.scoreAdd(150);
+        }
       }
       if (e.y > VIEW_H + 32) e.alive = false;
       if (e.state === "shell" && Math.abs(e.vx) > 40) this.shellHits(e);
@@ -1078,11 +1402,21 @@ export class Game {
     for (const student of this.students) {
       student.speechT = Math.max(0, student.speechT - dt);
       student.throwCd = Math.max(0, student.throwCd - dt);
-      if (student.x < student.home - 16 || student.x > student.home + 16) student.vx *= -1;
-      student.facing = student.vx > 0 ? 1 : -1;
+      const sulking = (student.schooled ?? 0) > 0;
+      if (sulking) {
+        student.schooled = Math.max(0, student.schooled! - dt);
+        if (!student.schooled) student.vx = student.facing * 13;
+      } else {
+        if (student.x < student.home - 16 || student.x > student.home + 16) student.vx *= -1;
+        student.facing = student.vx > 0 ? 1 : -1;
+      }
       student.vy = Math.min(280, student.vy + 1700 * dt);
+      const pace = student.vx;
+      if (sulking) student.vx = 0;
       this.moveBody(student, dt, false);
+      if (sulking) student.vx = pace;
       if (
+        !sulking &&
         student.throws &&
         this.mode === "play" &&
         Math.abs(this.player.x - student.x) < 210 &&
@@ -1112,13 +1446,12 @@ export class Game {
       if (
         !student.greeted &&
         this.mode === "play" &&
-        this.banterT <= 0 &&
+        (this.banterT <= 0 || this.banterSoft) &&
         Math.abs(this.player.x - student.x) < 75
       ) {
         student.greeted = true;
         student.speechT = 4.2;
-        this.heroBanter = student.hammer;
-        this.banterT = 2.1;
+        this.say(student.hammer, 2.1);
         this.audio.taunt("student");
       }
     }
@@ -1297,19 +1630,29 @@ export class Game {
       const a = { x: b.ox, y: b.oy },
         end = { x: b.x, y: b.y };
       let blocked = false;
+      let floor: number | null = null;
       this.eachCell(
         Math.min(a.x, end.x) - 2,
         Math.min(a.y, end.y) - 2,
         Math.abs(end.x - a.x) + 4,
         Math.abs(end.y - a.y) + 4,
         (tx, ty) => {
-          if (isSolid(this.tileAt(tx, ty)) || this.tileAt(tx, ty) === ID.ledge) blocked = true;
+          const id = this.tileAt(tx, ty);
+          if (!isSolid(id) && id !== ID.ledge) return;
+          blocked = true;
+          if (b.vy > 0 && a.y <= ty * TILE + 1) floor = ty * TILE;
         },
       );
       if (!blocked)
         for (const e of this.enemies) {
-          if (!e.alive || e.state === "flat" || !sweptHeadHits(a, end, 2, e)) continue;
-          this.splat(e);
+          if (!e.alive || e.state === "flat" || b.hit?.has(e)) continue;
+          if (!sweptHeadHits(a, end, b.hot ? 3 : 2, e)) continue;
+          this.splat(e, b);
+          if ((b.pierce ?? 0) > 0) {
+            b.pierce!--;
+            b.hit?.add(e);
+            continue;
+          }
           blocked = true;
           break;
         }
@@ -1324,7 +1667,12 @@ export class Game {
       }
       if (blocked) {
         b.life = 0;
-        this.splashes.push({ x: b.x, y: b.y, life: 0.8 });
+        this.splashes.push({ x: b.x, y: floor ?? b.y, life: 0.8 });
+        if (floor != null) {
+          // Landed snot stays on the floor as a slip hazard for the staff.
+          this.puddles.push({ x: b.x, y: floor, w: b.hot ? 22 : 15, life: b.hot ? 9 : 7, max: b.hot ? 9 : 7 });
+          if (this.puddles.length > 6) this.puddles.shift();
+        }
         this.audio.splat();
       }
     }
@@ -1436,63 +1784,87 @@ export class Game {
     }
   }
 
-  private splat(e: Enemy) {
+  private splat(e: Enemy, from?: Ember) {
     if (!e.alive || e.state === "flat") return;
     e.alive = false;
     this.noteVictory(e, 100);
+    this.tumble(e, Math.sign(from?.vx ?? this.player.facing) || 1, true);
     this.audio.stomp();
   }
 
+  private tumble(e: Enemy, dir: number, slimed: boolean) {
+    this.tumbles.push({
+      role: e.role ?? "office",
+      x: e.x + e.w / 2,
+      feet: e.y + e.h,
+      vx: dir * (slimed ? 60 : 165),
+      vy: slimed ? -110 : -235,
+      rot: 0,
+      spin: dir * (slimed ? 4.5 : 11),
+      life: slimed ? 1.1 : 0.95,
+      slimed,
+    });
+  }
+
   private tryHammer() {
-    const pose = this.heroPose();
-    const head = heroMallet(pose);
-    const prev = this.hammerLast ?? head;
-    this.hammerLast = head;
     const u = 1 - this.swing / SWING_SECONDS;
-    if (u < 0.28 || u > 0.68) return;
+    const last = this.hammerLast == null || this.hammerLast > u ? u : this.hammerLast;
+    this.hammerLast = u;
+    const [lo, hi] = SWING_ACTIVE;
+    if (u < lo || last > hi) return;
+    // Sample the drawn arc between checks; the strike covers it faster than a frame.
+    const from = Math.max(last, lo),
+      to = Math.min(u, hi);
+    const pose = this.heroPose();
+    const steps = Math.max(1, Math.ceil((to - from) / 0.008));
+    const path: Point[] = [];
+    for (let k = 0; k <= steps; k++)
+      path.push(heroMallet({ ...pose, swing: SWING_SECONDS * (1 - (from + ((to - from) * k) / steps)) }, true));
+    const head = path[path.length - 1];
     for (const e of this.enemies) {
-      if (
-        !e.alive ||
-        e.state === "flat" ||
-        this.hammerVictims.has(e) ||
-        !sweptHeadHits(prev, head, 5, e)
-      )
+      if (!e.alive || e.state === "flat" || this.hammerVictims.has(e) || !pathHits(path, 5, e))
         continue;
       this.hammerVictims.add(e);
-      this.hitstop = 0.045;
-      this.shake = Math.max(this.shake, 0.07);
+      this.hitstop = 0.06;
+      this.shake = Math.max(this.shake, 0.09);
       this.flyPapers(head.x, head.y, 5);
-      this.audio.thud();
-      this.audio.taunt("staff");
+      this.impact(head.x, head.y, 1, { x: e.x + e.w / 2 + this.player.facing * 8, y: e.y - 8 });
+      this.audio.bonk();
+      this.quip(e, this.audio.taunt("staff"));
       if (e.kind === "soot") {
         e.state = "flat";
         e.flatT = 0;
-        e.vx = this.player.facing * 30;
+        e.alive = false;
+        this.tumble(e, this.player.facing, false);
         this.noteVictory(e, 100);
       } else if (e.state === "walk") {
         this.stun(e);
         this.noteVictory(e, 100);
       } else this.kick(e);
     }
-    if (!this.hammerBossTagged && this.boss && sweptHeadHits(prev, head, 5, this.boss))
+    if (!this.hammerBossTagged && this.boss && pathHits(path, 5, this.boss)) {
       this.hammerBossTagged = this.hitBoss("bonk", 1, head.x, head.y);
+      if (this.hammerBossTagged) this.impact(head.x, head.y, 1.2, null);
+    }
     for (const plane of this.planes) {
-      if (
-        plane.life > 0 &&
-        sweptHeadHits(prev, head, 6, { x: plane.x - 4, y: plane.y - 2, w: 8, h: 4 })
-      ) {
+      if (plane.life > 0 && pathHits(path, 6, { x: plane.x - 4, y: plane.y - 2, w: 8, h: 4 })) {
         plane.life = 0;
         this.flyPapers(plane.x, plane.y, 3);
+        this.comic(plane.x, plane.y - 8, "SWAT!", false);
         this.audio.thud();
         this.scoreAdd(50);
         this.audio.taunt("student");
       }
     }
+    const xs = path.map((q) => q.x),
+      ys = path.map((q) => q.y);
+    const minX = Math.min(...xs),
+      minY = Math.min(...ys);
     this.eachCell(
-      Math.min(prev.x, head.x) - 5,
-      Math.min(prev.y, head.y) - 5,
-      Math.abs(head.x - prev.x) + 10,
-      Math.abs(head.y - prev.y) + 10,
+      minX - 5,
+      minY - 5,
+      Math.max(...xs) - minX + 10,
+      Math.max(...ys) - minY + 10,
       (tx, ty) => {
         const id = this.tileAt(tx, ty),
           key = `${tx},${ty}`;
@@ -1503,7 +1875,7 @@ export class Game {
           this.hammerBlocks.has(key)
         )
           return;
-        if (!sweptHeadHits(prev, head, 5, { x: tx * TILE, y: ty * TILE, w: TILE, h: TILE })) return;
+        if (!pathHits(path, 5, { x: tx * TILE, y: ty * TILE, w: TILE, h: TILE })) return;
         this.hammerBlocks.add(key);
         this.hitBlock(tx, ty, true);
       },
@@ -1513,20 +1885,31 @@ export class Game {
   private startSuper() {
     const p = this.player;
     this.charge = 0;
-    this.superT = 0.62;
+    this.superT = SUPER_SECONDS;
     this.superHit = false;
     this.swing = 0;
-    p.vy = -300;
+    p.vy = -260;
     p.onGround = false;
     this.audio.power();
     this.shake = Math.max(this.shake, 0.08);
     this.flyPapers(p.x + p.w / 2, p.y, 10);
+    this.say("HAMMER TIME.", 1.1, true);
   }
 
   private superBurst() {
     const p = this.player;
     const cx = p.x + p.w / 2 + p.facing * 10;
     const cy = p.y + p.h * 0.55;
+    const floor = p.y + p.h;
+    this.hitstop = 0.08;
+    for (const [grow, color] of [
+      [150, "#fff3d0"],
+      [105, "#e9b866"],
+      [62, "#ffffff"],
+    ] as const)
+      this.rings.push({ x: cx, y: floor, r: 4, grow, life: 0.42, max: 0.42, color, floor: true });
+    this.comic(cx, p.y - 16, "HAMMER TIME!", true);
+    this.audio.boom();
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;
       this.bits.push({
@@ -1540,8 +1923,7 @@ export class Game {
         s: i % 2 === 0 ? 4 : 3,
       });
     }
-    this.shake = 0.28;
-    this.audio.slam();
+    this.shake = 0.32;
     this.flyPapers(cx, cy, 12);
     const x0 = Math.floor((cx - 36) / TILE);
     const x1 = Math.floor((cx + 36) / TILE);
@@ -1563,6 +1945,7 @@ export class Game {
       const dy = e.y + e.h / 2 - cy;
       if (dx * dx + dy * dy > 54 * 54) continue;
       e.alive = false;
+      this.tumble(e, dx < 0 ? -1 : 1, false);
       this.scoreAdd(200);
       this.float(e.x, e.y, "200");
     }
@@ -1660,6 +2043,8 @@ export class Game {
     this.snap = null;
     this.embers = [];
     this.planes = [];
+    this.puddles = [];
+    this.tumbles = [];
     this.snotT = 0;
     this.snotFired = false;
     this.audio.startMusic(this.level.music);
@@ -1696,7 +2081,7 @@ export class Game {
       this.curse = 1.6;
       this.audio.curse();
     }
-    this.swing = this.superT = this.snotT = 0;
+    this.swing = this.superT = this.snotT = this.lecture = 0;
     this.shake = 0.18;
     this.star = 0;
     this.heat = 0;
@@ -1790,6 +2175,9 @@ export class Game {
       grace: 0,
       anim: 0,
       wake: 0,
+      line: pick(STAFF_LINES[sp.role], sp.x),
+      greeted: false,
+      freeze: 0,
     }));
     this.students = src.students.map((s) => ({
       ...s,
@@ -1832,9 +2220,14 @@ export class Game {
       : null;
     this.heroBanter = "";
     this.banterT = 0;
+    this.banterSoft = false;
     this.items = [];
     this.embers = [];
     this.splashes = [];
+    this.puddles = [];
+    this.rings = [];
+    this.comics = [];
+    this.tumbles = [];
     this.heat = 0;
     this.wipe = 0;
     this.hurtT = 0;
@@ -1842,6 +2235,9 @@ export class Game {
     this.superT = 0;
     this.snotT = 0;
     this.snotFired = false;
+    this.lecture = 0;
+    this.lectureCd = 0;
+    this.sinus = 3;
     this.bits = [];
     this.sheets = [];
     this.texts = [];
@@ -1859,7 +2255,7 @@ export class Game {
     p.form = next;
     p.invuln = Math.max(p.invuln, 0.9);
     this.scoreAdd(1000);
-    this.float(p.x, p.y, next === 2 ? "PEPPER READY" : "1000");
+    this.float(p.x, p.y, next === 2 ? "HOT SNOT" : "1000");
     this.audio.power();
   }
 
@@ -1879,8 +2275,8 @@ export class Game {
     const p = this.player;
     const dir = p.x + p.w / 2 < from.x + from.w / 2 ? -1 : 1;
     this.curse = 1.6;
-    this.swing = this.superT = this.snotT = this.wipe = 0;
-    this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = false;
+    this.swing = this.superT = this.snotT = this.wipe = this.lecture = 0;
+    this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = this.lectureEdge = false;
     this.hurtT = 0.18;
     this.hitstop = 0.04;
     this.shake = 0.12;
@@ -2101,6 +2497,24 @@ export class Game {
       t.y += t.vy * dt;
     }
     this.texts = this.texts.filter((t) => t.life > 0);
+    for (const r of this.rings) {
+      r.life -= dt;
+      r.r += r.grow * dt * 2.4 * (r.life / r.max + 0.25);
+    }
+    this.rings = this.rings.filter((r) => r.life > 0);
+    for (const c of this.comics) {
+      c.life -= dt;
+      c.y -= 10 * dt;
+    }
+    this.comics = this.comics.filter((c) => c.life > 0);
+    for (const t of this.tumbles) {
+      t.life -= dt;
+      t.vy += 900 * dt;
+      t.x += t.vx * dt;
+      t.feet += t.vy * dt;
+      t.rot += t.spin * dt;
+    }
+    this.tumbles = this.tumbles.filter((t) => t.life > 0);
     this.shake = Math.max(0, this.shake - dt);
   }
 
@@ -2230,9 +2644,12 @@ export class Game {
     }
     // The exit is a venue door, rather than the original platformer flagpole.
     this.drawCastle(cam);
+    this.drawPuddles(cam);
     for (const it of this.items) this.drawPickup(it, cam);
     for (const e of this.enemies) this.drawEnemy(e, cam);
+    for (const t of this.tumbles) this.drawTumble(t, cam);
     for (const student of this.students) {
+      const sulking = (student.schooled ?? 0) > 0;
       this.drawPerson(
         this.student,
         [5, 5, 408, 758],
@@ -2240,13 +2657,19 @@ export class Game {
         student.y + student.h,
         student.facing,
         true,
-        this.clock + student.home,
+        sulking ? 0 : this.clock + student.home,
         false,
       );
       if (student.windup > 0)
         this.drawSpeech("Heads up!", student.x - cam, student.y - 26, "#f0ca8e");
       else if (student.speechT > 0 && this.banterT <= 0)
-        this.drawSpeech(student.reply, student.x - cam, student.y - 26, "#d5e2ef");
+        this.drawSpeech(
+          sulking && student.retort ? student.retort : student.reply,
+          student.x - cam,
+          student.y - 26,
+          sulking ? "#c4b2ea" : "#d5e2ef",
+        );
+      else if (sulking) this.drawSulk(student.x + student.w / 2 - cam, student.y - 8);
     }
     this.drawBoss(cam);
     for (const bit of this.bits) {
@@ -2278,6 +2701,8 @@ export class Game {
         this.level.castleTile >= 0 &&
         this.player.x > this.level.castleTile * TILE + 20);
     const flicker = this.player.invuln > 0 && Math.floor(this.clock * 18) % 2 === 0;
+    // Shockwaves sit behind Hammer so they never cross his face.
+    this.drawRings(cam);
     if (!hide && !flicker && this.mode !== "die") this.drawPlayer(cam);
     if (this.mode === "die") this.drawPlayer(cam);
     this.drawEmbers(cam);
@@ -2286,6 +2711,7 @@ export class Game {
     else if (this.banterT > 0)
       this.drawSpeech(this.heroBanter, this.player.x - cam, this.player.y - 26, "#e7bd6a");
     for (const t of this.texts) this.px(t.text, t.x - cam, t.y, "#fff6d8");
+    this.drawComics(cam);
     if (this.fade > 0) {
       ctx.fillStyle = `rgba(12,8,6,${clamp(this.fade, 0, 1)})`;
       ctx.fillRect(-4, -4, VIEW_W + 8, VIEW_H + 8);
@@ -2704,12 +3130,18 @@ export class Game {
     ctx.restore();
   }
 
+  private staffArt(role: EnemyRole): [HTMLImageElement, [number, number, number, number]] {
+    return role === "server"
+      ? [this.server, [5, 5, 379, 758]]
+      : role === "hotel"
+        ? [this.hotelStaff, [6, 4, 600, 759]]
+        : [this.worker, [4, 6, 423, 758]];
+  }
+
   private drawEnemy(e: Enemy, cam: number) {
     const role = e.role ?? "office";
-    const image =
-      role === "server" ? this.server : role === "hotel" ? this.hotelStaff : this.worker;
-    const crop: [number, number, number, number] =
-      role === "server" ? [5, 5, 379, 758] : role === "hotel" ? [6, 4, 600, 759] : [4, 6, 423, 758];
+    const [image, crop] = this.staffArt(role);
+    const frozen = (e.freeze ?? 0) > 0;
     if (e.state === "flat") this.ctx.globalAlpha = Math.max(0, 1 - e.flatT * 2);
     this.drawPerson(
       image,
@@ -2718,10 +3150,11 @@ export class Game {
       e.y + e.h,
       e.facing,
       true,
-      e.anim,
+      frozen ? 0 : e.anim,
       e.state !== "walk",
     );
     this.ctx.globalAlpha = 1;
+    if (e.state === "shell" && Math.abs(e.vx) < 18) this.drawDizzy(e.x + e.w / 2 - cam, e.y - 2);
     if (e.state === "walk") {
       const label = role === "server" ? "SERVER" : role === "hotel" ? "HOTEL STAFF" : "OFFICE";
       this.ctx.save();
@@ -2729,10 +3162,145 @@ export class Game {
       const w = this.ctx.measureText(label).width + 6;
       this.ctx.fillStyle = "rgba(8,17,24,0.78)";
       this.ctx.fillRect(e.x + e.w / 2 - cam - w / 2, e.y - 12, w, 6);
-      this.ctx.fillStyle = e.alert > 0 ? "#f4a77d" : "#e6d7bc";
+      this.ctx.fillStyle = e.alert > 0 ? "#f4a77d" : frozen ? "#c4b2ea" : "#e6d7bc";
       this.ctx.fillText(label, e.x + e.w / 2 - cam - w / 2 + 3, e.y - 7.5);
       this.ctx.restore();
-      if (e.speechT > 0) this.drawSpeech("Order up!", e.x - cam, e.y - 30, "#efbc84");
+      if (e.speechT > 0)
+        this.drawSpeech(e.line ?? "Order up!", e.x - cam, e.y - 30, frozen ? "#c4b2ea" : "#efbc84");
+    }
+  }
+
+  private drawTumble(t: Tumble, cam: number) {
+    const [image, crop] = this.staffArt(t.role);
+    if (!image.complete || !image.naturalWidth) return;
+    const ctx = this.ctx,
+      h = ENEMY_HEIGHT,
+      w = (crop[2] / crop[3]) * h;
+    ctx.save();
+    ctx.globalAlpha = clamp(t.life / 0.35, 0, 1);
+    ctx.translate(t.x - cam, t.feet - h / 2);
+    ctx.rotate(t.rot);
+    ctx.scale(t.vx > 0 ? -1 : 1, 1);
+    ctx.drawImage(image, ...crop, -w / 2, -h / 2, w, h);
+    if (t.slimed) {
+      ctx.fillStyle = "rgba(170,203,92,0.82)";
+      for (const [x, y, r] of [
+        [-1, -12, 3.4],
+        [2, -4, 2.6],
+        [-3, 3, 2.2],
+      ]) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, r, r * 0.8, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  private drawDizzy(x: number, y: number) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = "#ffe08a";
+    for (let i = 0; i < 3; i++) {
+      const a = this.clock * 5 + (i * Math.PI * 2) / 3;
+      const sx = x + Math.cos(a) * 7,
+        sy = y + Math.sin(a) * 2;
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const r = k % 2 ? 0.6 : 1.6,
+          b = (k * Math.PI) / 5;
+        ctx.lineTo(sx + Math.cos(b) * r, sy + Math.sin(b) * r);
+      }
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  private drawSulk(x: number, y: number) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = "rgba(9,17,24,0.82)";
+    ctx.beginPath();
+    ctx.roundRect(x - 6, y - 12, 12, 6, 2);
+    ctx.fill();
+    ctx.fillStyle = "#c4b2ea";
+    for (let i = 0; i < 3; i++) ctx.fillRect(x - 3.5 + i * 3, y - 9.6, 1.2, 1.2);
+    ctx.restore();
+  }
+
+  private drawPuddles(cam: number) {
+    const ctx = this.ctx;
+    for (const p of this.puddles) {
+      const x = p.x - cam;
+      if (x < -30 || x > VIEW_W + 30) continue;
+      const fade = clamp(p.life / 1.2, 0, 1) * clamp((p.max - p.life) / 0.15, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = fade;
+      const g = ctx.createLinearGradient(x, p.y - 2, x, p.y + 1.5);
+      g.addColorStop(0, "#d4e78f");
+      g.addColorStop(1, "#7f9c3c");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(x, p.y - 0.3, p.w / 2, 1.9, 0, 0, Math.PI * 2);
+      ctx.ellipse(x - p.w * 0.28, p.y - 0.2, p.w * 0.2, 1.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,236,0.75)";
+      ctx.fillRect(x - p.w * 0.18, p.y - 1.4, p.w * 0.22, 0.6);
+      ctx.restore();
+    }
+  }
+
+  private drawRings(cam: number) {
+    const ctx = this.ctx;
+    for (const r of this.rings) {
+      const t = r.life / r.max;
+      ctx.save();
+      ctx.globalAlpha = t;
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = 0.6 + 2.4 * t;
+      ctx.beginPath();
+      ctx.ellipse(r.x - cam, r.y, r.r, r.floor ? r.r * 0.22 : r.r, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  private drawComics(cam: number) {
+    const ctx = this.ctx;
+    for (const c of this.comics) {
+      const age = c.max - c.life;
+      const pop = Math.min(1, age / 0.08) * (1 + 0.25 * Math.max(0, 1 - age / 0.16));
+      const size = c.big ? 9 : 5.2;
+      ctx.save();
+      ctx.globalAlpha = clamp(c.life / 0.18, 0, 1);
+      ctx.translate(clamp(c.x - cam, 20, VIEW_W - 20), clamp(c.y, 14, VIEW_H - 10));
+      ctx.rotate(c.rot);
+      ctx.scale(pop, pop);
+      ctx.font = `900 ${size}px 'Arial Black','Segoe UI',sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const w = ctx.measureText(c.text).width;
+      const rx = w / 2 + size * 0.9,
+        ry = size * 1.15;
+      ctx.fillStyle = c.big ? "#f7c948" : "#fff4cf";
+      ctx.strokeStyle = "#1b120c";
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      for (let i = 0; i < 18; i++) {
+        const a = (i / 18) * Math.PI * 2,
+          k = i % 2 ? 0.78 : 1.08;
+        ctx.lineTo(Math.cos(a) * rx * k, Math.sin(a) * ry * k);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.lineWidth = size * 0.28;
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#1b120c";
+      ctx.strokeText(c.text, 0, 0.3);
+      ctx.fillStyle = c.big ? "#d63a2a" : "#c44838";
+      ctx.fillText(c.text, 0, 0.3);
+      ctx.restore();
     }
   }
 
@@ -2809,8 +3377,6 @@ export class Game {
       this.heroFore.complete &&
       this.heroFore.naturalWidth > 0 &&
       this.heroHand.complete &&
-      this.heroReach.complete &&
-      this.heroReach.naturalWidth > 0 &&
       this.heroHand.naturalWidth > 0 &&
       this.heroIdle.complete &&
       this.heroIdle.naturalWidth > 0
@@ -2864,6 +3430,9 @@ export class Game {
       reduced: this.reduce,
       clock: this.clock,
       crouch: p.crouch,
+      lecture: this.lecture,
+      dead: this.mode === "die",
+      anger: Math.min(1, (p.form === 0 ? 0.75 : 0) + (this.heat >= 80 ? 0.5 : 0)),
     };
   }
 
@@ -2875,7 +3444,6 @@ export class Game {
         body: this.heroBody,
         upper: this.heroUpper,
         fore: this.heroFore,
-        reach: this.heroReach,
         hand: this.heroHand,
         towel: this.towel,
       },
@@ -2899,25 +3467,49 @@ export class Game {
   private drawEmbers(cam: number) {
     const ctx = this.ctx;
     for (const b of this.embers) {
+      const age = b.max - b.life;
+      const size = b.hot ? 1.35 : 1;
+      const stretch = 1 + Math.min(0.9, Math.hypot(b.vx, b.vy) / 420);
       ctx.save();
       ctx.translate(b.x - cam, b.y);
       ctx.rotate(Math.atan2(b.vy, b.vx));
-      ctx.strokeStyle = "rgba(193,216,129,0.62)";
-      ctx.lineWidth = 1.5;
+      ctx.scale(size, size);
+      // A wet tail that thins out, plus a couple of drips shed along the way.
+      const tail = ctx.createLinearGradient(-16, 0, 0, 0);
+      tail.addColorStop(0, "rgba(176,206,98,0)");
+      tail.addColorStop(1, b.hot ? "rgba(226,196,82,0.8)" : "rgba(176,206,98,0.75)");
+      ctx.strokeStyle = tail;
+      ctx.lineWidth = 2;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(-10, 0);
-      ctx.quadraticCurveTo(-4, 1.5, 1, 0);
+      ctx.moveTo(-16, Math.sin(age * 30) * 0.8);
+      ctx.quadraticCurveTo(-7, 1.6, 0, 0);
       ctx.stroke();
-      ctx.fillStyle = "rgba(170,197,106,0.86)";
+      ctx.fillStyle = b.hot ? "rgba(205,170,58,0.95)" : "rgba(150,184,82,0.95)";
       ctx.beginPath();
-      ctx.ellipse(0, 0, 3.1, 1.9, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 3.4 * stretch, 2.3 / Math.sqrt(stretch), 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(250,255,223,0.82)";
+      ctx.fillStyle = b.hot ? "rgba(236,214,110,0.9)" : "rgba(196,224,128,0.9)";
       ctx.beginPath();
-      ctx.ellipse(0, -0.7, 1.5, 0.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(0.6, -0.3, 2.2 * stretch, 1.4, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = "rgba(255,255,236,0.9)";
+      ctx.beginPath();
+      ctx.ellipse(1.2, -0.9, 1.1, 0.45, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (b.hot) {
+        ctx.fillStyle = "#c8341f";
+        ctx.fillRect(-1.5, 0.2, 0.8, 0.8);
+        ctx.fillRect(1, 0.6, 0.7, 0.7);
+      }
       ctx.restore();
+      ctx.fillStyle = b.hot ? "rgba(214,186,72,0.75)" : "rgba(160,194,90,0.75)";
+      for (let i = 1; i <= 2; i++) {
+        const t = (age * 3 + i * 0.37) % 1;
+        ctx.beginPath();
+        ctx.ellipse(b.x - cam - b.vx * 0.02 * i, b.y + t * 7, 0.7, 1.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     for (const b of this.splashes) {
       ctx.fillStyle = `rgba(157,181,103,${b.life * 0.7})`;
@@ -3027,31 +3619,35 @@ export class Game {
             defeated: this.boss.state === "defeated",
           }
         : null,
-      hint:
-        this.boss?.active && this.boss.state !== "defeated"
-          ? "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left"
-          : this.planes.some((plane) => Math.abs(plane.x - this.player.x) < 100)
-            ? "Paper incoming · duck, jump or swat with H"
-            : this.banterT > 0
-              ? "Hammer: " + this.heroBanter
-              : this.player.crouch
-                ? "Stay low · release ↓ when clear to stand"
-                : this.level.id === "bonus"
-                  ? "Staff stash · ↓ on the left cart to return"
-                  : this.star > 0
-                    ? "Buc-ee's boost · charge through the crowd!"
-                    : this.heat >= 80
-                      ? "Overheated · T to wipe your brow"
-                      : this.charge >= 10
-                        ? "Super smash ready · Q"
-                        : this.player.x < 260
-                          ? "Jump into the ! crate for pepper · F fires snot"
-                          : this.player.x < 600
-                            ? "H swings the mallet · hit with the head"
-                            : this.player.form === 2
-                              ? "F snot rocket · nuts charge Q super smash"
-                              : "Find a ! crate to restore pepper power",
+      sinus: this.sinus,
+      hot: this.player.form === 2,
+      patience: this.player.form + 1,
+      lectureReady: this.lectureCd <= 0,
+      hint: this.hint(),
     };
+  }
+
+  private hint() {
+    const p = this.player;
+    const near = (x: number, range: number) => Math.abs(x - p.x) < range;
+    const student = this.students.some(
+      (s) => !(s.schooled ?? 0) && s.throws && near(s.x, 140) && (s.x - p.x) * p.facing > -10,
+    );
+    if (this.boss?.active && this.boss.state !== "defeated")
+      return "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left";
+    if (this.planes.some((plane) => near(plane.x, 100)))
+      return "Paper incoming · duck, jump or swat with H";
+    if (this.banterT > 0) return "Hammer: " + this.heroBanter;
+    if (p.crouch) return "Stay low · release ↓ when clear to stand";
+    if (this.level.id === "bonus") return "Staff stash · ↓ on the left cart to return";
+    if (this.star > 0) return "Buc-ee's boost · charge through the crowd!";
+    if (this.heat >= 80) return "Overheated · T to towel off";
+    if (student && this.lectureCd <= 0) return "E lectures them · schooled students stop throwing paper";
+    if (this.charge >= 10) return "Super smash ready · Q";
+    if (this.puddles.length) return "Staff slip on snot puddles · stomp or bonk them while they're down";
+    if (p.x < 260) return "F snot rocket · jump into the ! crate for hot pepper";
+    if (p.x < 600) return "H swings the mallet · hit them with the head";
+    return p.form === 2 ? "Hot snot pierces · nuts charge Q super smash" : "Find a ! crate for hot pepper";
   }
 
   private emit() {

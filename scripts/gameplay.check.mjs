@@ -6,8 +6,31 @@ import { Game } from "../src/game/engine.ts";
 import { AudioBus } from "../src/game/audio.ts";
 import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
 import { createHash } from "node:crypto";
-import { hammerPose, malletInArtwork, sweptHeadHits } from "../src/game/combat.ts";
-import { heroMallet, artworkToWorld } from "../src/game/hero.ts";
+import { SUPER_SECONDS, SWING_SECONDS, sweptHeadHits } from "../src/game/combat.ts";
+import { heroMallet, heroJoints, artworkToWorld } from "../src/game/hero.ts";
+import {
+  AIR,
+  CROUCH,
+  ELBOW,
+  FIST,
+  GRIP,
+  MALLET_HEAD,
+  REST,
+  SHOULDER,
+  STRIKE_FROM,
+  STRIKE_TO,
+  SUPER_CUT_FROM,
+  SUPER_CUT_TO,
+  TUMBLE,
+  armAngles,
+  displayU,
+  hurtJoints,
+  lectureJoints,
+  rigPoint,
+  superJoints,
+  swingJoints,
+  walkJoints,
+} from "../src/game/rig.ts";
 import { buildLevels } from "../src/game/levels.ts";
 import { ID } from "../src/game/constants.ts";
 import { HERO_BODY_HEIGHT, HERO_CROUCH_HEIGHT } from "../src/game/combat.ts";
@@ -114,8 +137,7 @@ test("mallet collision follows drawing joints and mirrors with facing", () => {
     mega: 0,
     swing: 0.21,
   };
-  const angles = hammerPose(0.5),
-    source = malletInArtwork(angles.s, angles.e);
+  const source = rigPoint(heroJoints(p), MALLET_HEAD, "mallet");
   assert.deepEqual(heroMallet(p), artworkToWorld(p, source));
   const left = heroMallet({ ...p, facing: -1 }),
     right = heroMallet(p);
@@ -843,4 +865,201 @@ test("the pig can be defeated and exited using movement and attack controls", ()
   );
   assert.ok(g.boss.bonks >= 3 && g.boss.snots >= 3);
   assert.equal(g.lives, 3);
+});
+
+test("the rest pose is the untouched original still", () => {
+  assert.deepEqual(armAngles(REST), { s: 0, e: 0, w: 0 });
+  for (const frame of ["torso", "head", "upper", "fore", "mallet"]) {
+    const q = rigPoint(REST, { x: 123, y: 456 }, frame);
+    assert.ok(Math.abs(q.x - 123) < 1e-9 && Math.abs(q.y - 456) < 1e-9, frame);
+  }
+});
+
+test("no drawn frame of any hero pose puts the arm or mallet over the face", () => {
+  // Eyes, nose, mustache, mouth and chin on the cut-out canvas.
+  const face = [
+    { x: 282, y: 96 },
+    { x: 368, y: 266 },
+  ];
+  const clear = (j, label) => {
+    const [a, b] = face.map((corner) => rigPoint(j, corner, "head"));
+    const box = {
+      x0: Math.min(a.x, b.x),
+      x1: Math.max(a.x, b.x),
+      y0: Math.min(a.y, b.y),
+      y1: Math.max(a.y, b.y),
+    };
+    const probe = (p, r, what) => {
+      const dx = Math.max(box.x0 - p.x, 0, p.x - box.x1),
+        dy = Math.max(box.y0 - p.y, 0, p.y - box.y1);
+      assert.ok(Math.hypot(dx, dy) > r, `${label}: ${what} crosses the face`);
+    };
+    const along = (from, to, frame, r, what) => {
+      for (let t = 0; t <= 1.0001; t += 0.1)
+        probe(rigPoint(j, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }, frame), r, what);
+    };
+    along(SHOULDER, ELBOW, "upper", 46, "upper arm");
+    along(ELBOW, FIST, "fore", 42, "forearm");
+    along(GRIP, MALLET_HEAD, "mallet", 16, "handle");
+    probe(rigPoint(j, MALLET_HEAD, "mallet"), 92, "mallet head");
+  };
+  for (let i = 0; i < 400; i++) {
+    const u = i / 400;
+    clear(swingJoints(displayU(u, STRIKE_FROM, STRIKE_TO)), `swing ${u}`);
+    clear(superJoints(displayU(u, SUPER_CUT_FROM, SUPER_CUT_TO)), `super ${u}`);
+    clear(lectureJoints(u, i * 0.37), `lecture ${u}`);
+    clear(walkJoints(u), `walk ${u}`);
+  }
+  for (const [pose, label] of [
+    [REST, "rest"],
+    [AIR, "air"],
+    [CROUCH, "crouch"],
+    [TUMBLE, "knocked out"],
+    [hurtJoints(0.18), "hurt"],
+  ])
+    clear(pose, label);
+});
+
+test("snot is always loaded: three charges that refill; pepper makes it hot", () => {
+  const g = game();
+  g.enemies = [];
+  g.students = [];
+  g.actions = {};
+  g.player.onGround = true;
+  assert.equal(g.player.form, 1);
+  const fire = () => {
+    g.fireEdge = true;
+    g.fireCd = 0;
+    g.snotT = 0;
+    g.controlPlayer(1 / 60);
+    return g.snotT > 0;
+  };
+  for (let shot = 0; shot < 3; shot++) assert.ok(fire(), `charge ${shot + 1} fires without pepper`);
+  assert.equal(fire(), false, "an empty sinus cannot fire");
+  for (let i = 0; i < 100; i++) g.step(1 / 60);
+  assert.ok(g.sinus >= 1, "sinus pressure builds back up");
+  g.embers = [];
+  g.player.form = 2;
+  assert.ok(fire());
+  for (let i = 0; i < 30 && !g.embers.length; i++) g.step(1 / 60);
+  assert.equal(g.embers.length, 1);
+  assert.equal(g.embers[0].hot, true);
+  assert.equal(g.embers[0].pierce, 1);
+});
+
+test("hot snot goes through one staffer; snot on the floor trips the staff", () => {
+  const g = game();
+  const staff = (x) => ({
+    ...g.courses[0].enemies[0],
+    x,
+    y: 150,
+    w: 14,
+    h: 42,
+    home: x,
+    vx: 30,
+    vy: 0,
+    alive: true,
+    awake: true,
+    state: "walk",
+    kind: "soot",
+    role: "server",
+  });
+  g.enemies = [staff(100), staff(130)];
+  g.embers = [{ x: 80, y: 170, vx: 600, vy: 0, life: 1, max: 1, ox: 80, oy: 170, hot: true, pierce: 1, hit: new Set() }];
+  for (let i = 0; i < 8; i++) g.stepEmbers(1 / 60);
+  assert.equal(g.enemies.filter((e) => !e.alive).length, 2);
+
+  g.enemies = [];
+  g.embers = [{ x: 220, y: 182, vx: 0, vy: 160, life: 1, max: 1, ox: 220, oy: 182 }];
+  for (let i = 0; i < 12 && g.embers.length; i++) g.stepEmbers(1 / 60);
+  assert.equal(g.puddles.length, 1);
+  assert.equal(g.puddles[0].y, 192);
+  const walker = staff(196);
+  walker.onGround = true;
+  g.enemies = [walker];
+  g.player.x = 32;
+  for (let i = 0; i < 40 && walker.state === "walk"; i++) g.stepEnemies(1 / 60);
+  assert.equal(walker.state, "shell", "the server slips and goes down");
+  assert.equal(walker.y + walker.h, 192, "feet stay on the floor");
+});
+
+test("a lecture schools students in front and freezes staff; nobody behind is affected", () => {
+  const g = game();
+  const p = g.player;
+  p.x = 300;
+  p.facing = 1;
+  p.onGround = true;
+  const template = g.students[0];
+  const front = { ...template, x: p.x + 60, home: p.x + 60, throwCd: 0, windup: 0, greeted: true };
+  const behind = { ...template, x: p.x - 70, home: p.x - 70, throwCd: 0, windup: 0, greeted: true };
+  g.students = [front, behind];
+  const clerk = {
+    ...g.courses[0].enemies[0],
+    x: p.x + 40,
+    y: 150,
+    w: 16,
+    h: 42,
+    home: p.x + 40,
+    vx: -30,
+    vy: 0,
+    alive: true,
+    awake: true,
+    state: "walk",
+    kind: "soot",
+    role: "hotel",
+  };
+  g.enemies = [clerk];
+  g.actions = {};
+  g.lectureEdge = true;
+  g.controlPlayer(1 / 60);
+  assert.ok(g.lecture > 0, "the lecture starts");
+  for (let i = 0; i < 12; i++) {
+    g.controlPlayer(1 / 60);
+    g.lecture = Math.max(0, g.lecture - 1 / 60);
+  }
+  assert.ok(front.schooled > 0, "the student in front is schooled");
+  assert.ok(!(behind.schooled > 0), "the student behind is not");
+  assert.ok(clerk.freeze > 0, "staff in front stop and take it");
+  const planes = g.planes.length;
+  for (let i = 0; i < 120; i++) g.stepStudents(1 / 60);
+  assert.equal(
+    g.planes.filter((plane) => Math.abs(plane.ox - front.x) < 2).length,
+    0,
+    "a schooled student throws nothing",
+  );
+  assert.ok(g.planes.length >= planes, "the unschooled student still can");
+});
+
+test("super smash lands with the body: nothing in the air, a burst on touchdown", () => {
+  const g = game();
+  g.enemies = [];
+  g.students = [];
+  g.actions = {};
+  g.player.onGround = true;
+  g.charge = 10;
+  g.superEdge = true;
+  let burstAt = -1;
+  const burst = g.superBurst;
+  g.superBurst = function () {
+    burstAt = 1 - this.superT / SUPER_SECONDS;
+    burst.call(this);
+  };
+  let airborne = false;
+  for (let i = 0; i < 90 && burstAt < 0; i++) {
+    g.step(1 / 60);
+    if (!g.player.onGround) airborne = true;
+  }
+  assert.ok(airborne, "the smash starts with a hop");
+  assert.ok(burstAt >= SUPER_CUT_FROM && burstAt < 0.92, `burst at u=${burstAt}`);
+  assert.equal(g.player.onGround, true, "the burst fires on landing");
+  assert.ok(g.rings.some((ring) => ring.floor), "a floor shockwave spreads from the slam");
+});
+
+test("the hammer's contact arc sweeps over the top in front, never behind him", () => {
+  const p = { x: 100, foot: 192, facing: 1, phase: 0, moving: false, reduced: false, mega: 0, swing: 0 };
+  const at = (u) => heroMallet({ ...p, swing: SWING_SECONDS * (1 - u) }, true);
+  const cocked = at(STRIKE_FROM),
+    landed = at(0.46);
+  assert.ok(cocked.x < p.x && cocked.y < p.foot - 50, "loaded overhead, behind the head");
+  assert.ok(landed.x > p.x + 8 && landed.y > p.foot - 30, "lands low in front");
 });

@@ -20,14 +20,42 @@ and preserve the existing Grok platform integrations.
 | Run                      | Shift                                     |
 | Crouch / slide           | Down or S; hold while running to slide    |
 | Mallet swing; swat paper | H or X                                    |
-| Snot rocket              | F, after collecting pepper from a ! crate |
-| Towel wipe               | T, while standing and warm                |
+| Snot rocket              | F; three charges that refill              |
+| Lecture                  | E or L, standing                          |
+| Towel off                | T, while standing and warm                |
 | Super smash              | Q, at 10 charge                           |
 | Staff stash              | Down while standing on its marked cart    |
 | Pause                    | Escape or P                               |
 
 Touch controls support simultaneous movement and actions. Landscape gives a
 larger playfield on phones.
+
+## Hammer's moves
+
+Hammer is a cut-out rig built from the approved photography. The face, head and
+shirt pixels are never edited, the head stays level when the body leans, and no
+drawn frame puts an arm or the mallet over his face (a test sweeps every pose).
+
+- **Mallet.** The arm loads behind and over his head, then the strike cuts
+  from overhead to the front between physics steps, so the arm never crosses
+  his face. A swoosh traces the full arc and contact follows it too. He leans
+  and steps into the blow; hits launch staff off their feet with a comic word
+  and a hit-stop. The real shoulder, elbow and wrist each have a joint, and the
+  sleeve travels with the shoulder.
+- **Super smash.** A hop, a long overhead load, then a slam that fires on
+  touchdown with a floor shockwave and "HAMMER TIME!"
+- **Snot rocket.** He rears back to load his sinuses, then snaps forward and
+  honks; no hand comes up to the face. Snot is always loaded: three charges
+  that refill over about a second and a half each. Pepper from a ! crate makes
+  it hot: faster, bigger, and it goes through one staffer. Snot that lands on
+  the floor leaves a puddle that trips walking staff.
+- **Lecture.** He plants his feet and wags the mallet at whoever is in front.
+  Students he schools stop throwing paper and sulk; staff stop and take it for
+  a moment. Venting also drops his heat.
+- **Towel off.** The towel comes out of his back pocket, mops the bald crown
+  and back of the head, gets flicked out behind him in a spray of sweat, goes
+  back in the pocket and leaves a glint. Heat drains while he wipes; at full
+  heat a kettle whistle blows and steam rises off his head.
 
 ## Start screen
 
@@ -48,10 +76,13 @@ boss practice directly. The three regular routes are roughly twice their
 previous length, with multiple checkpoints and a 420-second time allowance.
 
 Servers warn before rushing. Hotel staff take an extra hit and can be knocked
-along the floor. Office workers remain a smaller part of the cast. Nineteen
-adult college students across the routes exchange sarcastic dialogue with
-Hammer and telegraph paper airplanes. Student bodies stay outside combat;
-the planes are hazards you can duck, jump over or swat with the mallet.
+along the floor. Office workers remain a smaller part of the cast. Each staffer
+opens with a line ("Is Pepsi okay?", "There's a daily resort fee."), and Hammer
+answers mallet hits with the supplied recordings, captioned, or a written jab.
+Nineteen adult college students across the routes exchange sarcastic dialogue
+with Hammer and telegraph paper airplanes. Student bodies stay outside combat;
+the planes are hazards you can duck, jump over or swat with the mallet, and a
+lecture shuts a student's paper supply off.
 
 Counters and crates use wood grain, steel trim, seams and lighting. Thin
 shelves show their exact landing surface. Suspended service ducts have a clear
@@ -74,19 +105,22 @@ cannot bypass that combination. Super smash helps but does not erase the boss;
 Buc-ee's protects Hammer without instantly defeating it.
 
 The arena supplies pepper on entry and a refill near its left edge after damage
-removes the snot power. The exit stays locked until the pig is defeated. Boss
+cools the snot back down. The exit stays locked until the pig is defeated. Boss
 practice lets you learn the timing without replaying the full shift.
 
 ## Character and audio
 
 The original face and Affliction shirt textures are unchanged. Animation moves
-limbs around that artwork. The mallet drawing and collision use the same joints.
-The approved photographic Coke Zero, nuts, Buc-ee's and towel assets are also
-unchanged. PNG masters and smaller gameplay WebPs are retained.
+limbs around that artwork (`src/game/rig.ts` holds the joints and pose
+keyframes, `src/game/hero.ts` draws them). The mallet drawing and collision use
+the same joints. The approved photographic Coke Zero, nuts, Buc-ee's and towel
+assets are also unchanged. PNG masters and smaller gameplay WebPs are retained.
 
 Coke Zero reduces heat; 100 cans earn a life. Nuts add three smash charge.
 Buc-ee's gives ten seconds of invincibility. Running, jumping and attacking
-build heat. Wiping cools Hammer while hazards continue moving.
+build heat. Toweling off cools Hammer while hazards continue moving. The HUD
+shows snot charges and patience (the hits he can take before the next one
+costs a life); on his last nerve a vein pops beside his head.
 
 `public/absolute-bullshit.mp3` is untouched. The derived `damage-voice.wav`
 removes leading/trailing silence, preloads on the title screen, and decodes
@@ -119,11 +153,13 @@ npm run test:game
 npm run build
 ```
 
-The 26 game checks cover protected files, mallet hits/misses, immediate voice
+The 33 game checks cover protected files, mallet hits/misses, immediate voice
 scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
 distinct rewards, seeded pickup placement, all passages and supply routes,
 hospitality behavior, paper telegraph/duck/swat/contact, and boss combo rules,
-refills and exit lock. Voice checks cover supplied-file integrity, shuffled
+refills and exit lock. Rig checks cover the untouched rest pose, face clearance
+for every drawn pose, and the mallet arc; mechanic checks cover snot charges,
+hot snot, puddle slips, lectures and the super smash landing. Voice checks cover supplied-file integrity, shuffled
 target pools/crossover, chance skips, cooldown/no overlap, actual event triggers,
 and damage priority. A physics playthrough clears the extended route geometry
 with staff active; paper timing is tested separately. Another playthrough
@@ -143,7 +179,7 @@ node scripts/voice-browser.check.mjs http://127.0.0.1:8080/
 
 These checks capture desktop, portrait and landscape views, character actions,
 all venue selectors, paper defense, a complete boss fight, boss phone HUD,
-pause and nine touch controls. Repeat against production preview on port 8081,
+pause and ten touch controls. Repeat against production preview on port 8081,
 omitting `--poses`, which imports the development renderer. Captures and verdicts
 are saved under `artifacts/`. Voice browser checks use actual Web Audio decoding
 and playback during student and pig encounters, and verify damage, pause and mute.

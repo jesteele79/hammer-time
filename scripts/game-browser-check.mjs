@@ -85,7 +85,7 @@ try {
         h: b.getBoundingClientRect().height,
       })),
     );
-    assert.equal(sizes.length, 9);
+    assert.equal(sizes.length, 10);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,
@@ -173,7 +173,7 @@ try {
         towel: true,
         hammer: true,
         pause: true,
-        touchButtons: 9,
+        touchButtons: 10,
         viewports: ["1280x800", "390x844", "844x390"],
         pageErrors: errors,
       },
@@ -182,7 +182,7 @@ try {
     ),
   );
   console.log(
-    "PASS: pepper, snot, towel, hammer, pause, 9 touch controls, portrait and landscape; no page errors.",
+    "PASS: pepper, snot, towel, hammer, pause, 10 touch controls, portrait and landscape; no page errors.",
   );
 } catch (err) {
   console.error("Browser check failure", errors, await page?.locator("body").innerText());

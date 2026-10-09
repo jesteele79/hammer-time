@@ -56,6 +56,10 @@ const initial: Hud = {
   visualsReady: false,
   stance: "standing",
   boss: null,
+  sinus: 3,
+  hot: false,
+  patience: 2,
+  lectureReady: true,
 };
 const pad = (n: number, len = 6) => String(Math.max(0, Math.floor(n))).padStart(len, "0");
 function readBest() {
@@ -144,11 +148,19 @@ export function KilnHop() {
     ["Shift", "Run"],
     ["H / X", "Swing mallet"],
     ["F", "Snot rocket"],
-    ["T", "Wipe sweat"],
+    ["E", "Lecture"],
+    ["T", "Towel off"],
     ["Q", "Super smash"],
     ["↓ / S", "Crouch / run to slide"],
     ["Esc", "Pause"],
   ];
+  const pips = (filled: number) => (
+    <i className="pips" aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <b key={i} data-full={filled >= i + 1} />
+      ))}
+    </i>
+  );
   return (
     <main className="stage" data-mode={mode} data-stance={hud.stance}>
       {mode === "title" && (
@@ -285,7 +297,8 @@ export function KilnHop() {
                     ))}
                   </ul>
                   <p>
-                    Jump into a ! crate for pepper to unlock snot. Duck or swat student airplanes.
+                    Snot is always loaded, three blasts at a time; a ! crate&apos;s pepper makes it
+                    hot. Staff slip on the puddles. Lecture students and they stop throwing paper.
                     The pig needs at least three bonks and three snots.
                   </p>
                 </div>
@@ -384,7 +397,7 @@ export function KilnHop() {
               className="game"
               width={DISPLAY_W}
               height={DISPLAY_H}
-              aria-label="Hammer Time playfield. Arrows move, Space jumps, H swings, F fires snot, T wipes sweat, Q super smash."
+              aria-label="Hammer Time playfield. Arrows move, Space jumps, H swings, F fires snot, E lectures, T towels off, Q super smash."
             />
             {hud.boss && (
               <div
@@ -417,7 +430,7 @@ export function KilnHop() {
                   <p className="dek">
                     {hud.world === "1-4"
                       ? "Land at least 3 bonks and 3 snots. Pepper refills on the left."
-                      : "Jump into the ! crate for pepper. H swats paper airplanes."}
+                      : "F snot rockets. E lectures students out of throwing paper."}
                     <br />H swings. Run + ↓ slides under service passes.
                   </p>
                   {!hud.soundReady && <small>Preparing audio…</small>}
@@ -430,8 +443,8 @@ export function KilnHop() {
                   <p className="kicker">On break</p>
                   <h2>Take a breath.</h2>
                   <p className="dek">
-                    Space jumps · H swings · F fires
-                    <br />T wipes · Q super smash
+                    Space jumps · H swings · F fires · E lectures
+                    <br />T towels off · Q super smash
                   </p>
                   <button className="btn-nes" onClick={() => gameRef.current?.togglePause()}>
                     Back to work
@@ -488,12 +501,21 @@ export function KilnHop() {
             </span>
             <meter min="0" max="10" value={hud.charge} aria-label="Super smash charge" />
           </div>
-          <span className="pepper-state" data-on={hud.form === 2}>
-            {hud.form === 2
-              ? hud.cooldown > 0
-                ? "Snot reloading"
-                : "Snot ready · F"
-              : "Pepper needed · !"}
+          <span
+            className="pepper-state"
+            data-on={hud.hot}
+            aria-label={`Snot ${Math.floor(hud.sinus)} of 3${hud.hot ? ", hot" : ""}`}
+          >
+            {hud.sinus < 1 || hud.cooldown > 0
+              ? "Snot reloading"
+              : hud.hot
+                ? "Snot ready · hot"
+                : "Snot ready · F"}
+            {pips(hud.sinus)}
+          </span>
+          <span className="patience" aria-label={`Patience ${hud.patience} of 3`}>
+            Patience
+            {pips(hud.patience)}
           </span>
         </div>
       </div>
@@ -522,11 +544,19 @@ export function KilnHop() {
           </button>
           <button
             className="pad-btn"
-            data-on={hud.form === 2 ? "1" : "0"}
+            data-on={hud.sinus >= 1 ? "1" : "0"}
             aria-label="Fire snot rocket"
             {...bind("fire")}
           >
             Snot
+          </button>
+          <button
+            className="pad-btn"
+            data-on={hud.lectureReady ? "1" : "0"}
+            aria-label="Lecture"
+            {...bind("lecture")}
+          >
+            Lecture
           </button>
           <button
             className="pad-btn"

@@ -194,8 +194,82 @@ export class AudioBus {
     this.noise(0.1, 0.16, 600);
     this.blip(150, 0.08, "sine", 0.3, 50);
   }
+  /** Mallet on a person: low body thump, a dry wood knock and a little grit. */
+  bonk() {
+    this.blip(118, 0.16, "sine", 0.75, 42);
+    this.blip(660, 0.05, "triangle", 0.32, 300);
+    this.noise(0.05, 0.16, 1400, "bandpass");
+  }
+  sniff() {
+    this.noise(0.13, 0.05, 2600, "highpass", 5200);
+  }
+  honk() {
+    this.noise(0.17, 0.2, 2400, "lowpass", 420);
+    this.blip(196, 0.13, "sawtooth", 0.1, 78);
+  }
+  swish() {
+    this.noise(0.09, 0.06, 2600, "bandpass", 1500);
+  }
+  snap() {
+    this.noise(0.04, 0.14, 3200, "highpass");
+    this.blip(1800, 0.02, "square", 0.05);
+  }
+  glint() {
+    [2093, 3136].forEach((f, i) => this.blip(f, 0.07, "sine", 0.05, undefined, i * 0.06));
+  }
+  slip() {
+    this.blip(920, 0.26, "sine", 0.12, 260);
+  }
+  harrumph() {
+    this.noise(0.12, 0.06, 420, "lowpass");
+    this.blip(150, 0.09, "sawtooth", 0.05, 120);
+    this.blip(118, 0.12, "sawtooth", 0.05, 96, 0.12);
+  }
+  /** Kettle whistle when the temper boils over. */
+  whistle() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    const ctx = this.ctx,
+      at = ctx.currentTime;
+    const o = ctx.createOscillator(),
+      vib = ctx.createOscillator(),
+      depth = ctx.createGain(),
+      g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(1480, at);
+    o.frequency.linearRampToValueAtTime(1760, at + 0.5);
+    vib.frequency.value = 11;
+    depth.gain.value = 26;
+    vib.connect(depth);
+    depth.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.06, at + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.62);
+    o.connect(g);
+    g.connect(this.sfxGain);
+    o.start(at);
+    vib.start(at);
+    o.stop(at + 0.65);
+    vib.stop(at + 0.65);
+    o.onended = () => {
+      o.disconnect();
+      vib.disconnect();
+      depth.disconnect();
+      g.disconnect();
+    };
+  }
+  boom() {
+    this.blip(72, 0.38, "sine", 0.8, 32);
+    this.noise(0.3, 0.22, 380, "lowpass", 120);
+    this.blip(180, 0.1, "square", 0.08, 70, 0.03);
+  }
 
-  private noise(duration: number, gain: number, cutoff: number) {
+  private noise(
+    duration: number,
+    gain: number,
+    cutoff: number,
+    type: BiquadFilterType = "lowpass",
+    sweepTo?: number,
+  ) {
     if (!this.ctx || !this.sfxGain || this.muted) return;
     const ctx = this.ctx;
     const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
@@ -205,8 +279,10 @@ export class AudioBus {
     const source = ctx.createBufferSource();
     const filter = ctx.createBiquadFilter();
     const volume = ctx.createGain();
-    filter.type = "lowpass";
+    filter.type = type;
     filter.frequency.value = cutoff;
+    if (sweepTo)
+      filter.frequency.exponentialRampToValueAtTime(sweepTo, ctx.currentTime + duration);
     volume.gain.value = gain;
     source.buffer = buffer;
     source.connect(filter);

@@ -580,8 +580,9 @@
 }
 .meters {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
+  gap: 8px 20px;
 }
 .heat-meter,
 .smash-meter {
@@ -621,13 +622,40 @@ meter::-webkit-meter-optimum-value {
 .smash-meter[data-ready="true"] {
   color: #e7b15a;
 }
-.pepper-state {
+.pepper-state,
+.patience {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 11px;
   color: #9aa8b8;
-  min-width: 110px;
+}
+.pepper-state {
+  min-width: 132px;
 }
 .pepper-state[data-on="true"] {
-  color: #65cbb4;
+  color: #e7b15a;
+}
+.pips {
+  display: inline-flex;
+  gap: 3px;
+}
+.pips b {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2c3846;
+}
+.pepper-state .pips b[data-full="true"] {
+  background: #a6c95c;
+}
+.pepper-state[data-on="true"] .pips b[data-full="true"] {
+  background: #e7b15a;
+  box-shadow: 0 0 6px #e7b15a90;
+}
+.patience .pips b[data-full="true"] {
+  background: #e97c4a;
 }
 .touchbar {
   width: 100%;
