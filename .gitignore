@@ -13,3 +13,4 @@ dist
 .env.*
 *.log
 art/hammer-time-art-pack.zip
+art/incoming/*.zip
