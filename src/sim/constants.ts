@@ -10,6 +10,8 @@ export const APEX_BAND = 160;
 /** 1520 in the spec's table; 1600 clears the spec's 1.15 heights once the 120 Hz step is accounted for. */
 export const JUMP_V0 = 1600;
 export const JUMP_CUT = 620;
+/** Terminal fall speed: 21.7 px a step, so no fall passes through a solid or a pass. */
+export const MAX_FALL = 2600;
 
 export const WALK = 400;
 export const RUN = 640;

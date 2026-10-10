@@ -1,33 +1,38 @@
 // Turns the owner's plates under art/incoming into registered game art under
 // public/art, and records every owner file's hash in art/manifest.json.
-// Usage: node scripts/art-sync.mjs [--overlay]
+// Usage: node scripts/art-sync.mjs [--overlay] [--strict] [--accept <owner file>]
+//   --strict  refuse a misaligned expression plate instead of skipping it (art:sync, tests)
+//   --accept  re-record one owner file the owner regenerated on purpose
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import sharp from "sharp";
-import { keyOut, registerHead, alignTo, sliceBody } from "./art-cut.mjs";
+import { keyOut, registerHead, registerAligned, alignTo, gateExpression, ALIGN_MIN, sliceBody } from "./art-cut.mjs";
 import { ink } from "./ink.mjs";
 
 const OUT = "public/art";
 const HAMMER_IN = "art/incoming/hammer";
 const MANIFEST = "art/manifest.json";
-const ALIGN_MIN = 0.85;
 const EXPRESSIONS = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const COSTUMES = ["affliction", "scrubs", "suit", "banquet"];
-const overlay = process.argv.includes("--overlay");
+const args = process.argv.slice(2);
+const overlay = args.includes("--overlay");
+const strict = args.includes("--strict");
+const accept = args.includes("--accept") ? args[args.indexOf("--accept") + 1]?.replace(/\\/g, "/") : null;
 
 const sha = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
 
-/** Adds new owner files to the manifest; refuses if a recorded file changed. */
+/** Adds new owner files to the manifest; refuses if a recorded file changed, unless it is the accepted one. */
 function guard(files) {
   const manifest = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, "utf8")) : { files: {} };
+  if (accept) delete manifest.files[accept];
   for (const file of files) {
     if (!existsSync(file)) continue;
     const h = sha(file);
     const known = manifest.files[file];
     if (known && known !== h) {
       console.error(
-        `${file} changed since it was recorded; owner files are never edited. Restore it, or delete its manifest entry on purpose.`,
+        `${file} changed since it was recorded; owner files are never edited. Restore it, or if the owner regenerated it, re-record it with: node scripts/art-sync.mjs --accept ${file}`,
       );
       process.exit(1);
     }
@@ -38,20 +43,20 @@ function guard(files) {
   return manifest;
 }
 
+/** Every file the owner put under the art and voice folders, archives aside. */
 function ownerFiles() {
   const list = [];
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const p = join(dir, entry.name).replace(/\\/g, "/");
       if (entry.isDirectory()) walk(p);
-      else if (/\.(png|webp|jpg|jpeg)$/i.test(entry.name)) list.push(p);
+      else if (!/\.zip$/i.test(entry.name)) list.push(p);
     }
   };
   if (existsSync("art/reference")) walk("art/reference");
   if (existsSync("art/incoming")) walk("art/incoming");
   for (const f of ["public/absolute-bullshit.mp3", "public/damage-voice.wav"]) if (existsSync(f)) list.push(f);
-  if (existsSync("public/voice"))
-    for (const f of readdirSync("public/voice")) if (f.endsWith(".wav")) list.push(`public/voice/${f}`);
+  if (existsSync("public/voice")) walk("public/voice");
   return list;
 }
 
@@ -63,20 +68,27 @@ async function heads(registry) {
   }
   mkdirSync(join(OUT, "hammer"), { recursive: true });
   const neutral = await keyOut(readFileSync(neutralFile));
+  const neutralReg = await registerHead(neutral.png, "profile");
   for (const name of EXPRESSIONS) {
     const file = join(HAMMER_IN, name === "neutral" ? "head-profile.png" : `head-profile-${name}.png`);
     if (!existsSync(file)) continue;
     const keyed = name === "neutral" ? neutral : await keyOut(readFileSync(file));
+    let reg = neutralReg;
     if (name !== "neutral") {
       const a = await alignTo(neutral.png, keyed.png);
-      if (a.overlap < ALIGN_MIN) {
-        console.error(
-          `${basename(file)}: outline overlap ${a.overlap.toFixed(2)}, expected ≥ ${ALIGN_MIN}; regenerate it on the neutral plate's framing`,
-        );
+      const verdict = gateExpression(a.overlap, { strict });
+      const why = `${basename(file)}: outline overlap ${a.overlap.toFixed(2)}, expected ≥ ${ALIGN_MIN}; regenerate it on the neutral plate's framing`;
+      if (verdict === "refuse") {
+        console.error(why);
         process.exit(1);
       }
+      if (verdict === "skip") {
+        console.warn(`${why} (skipped; the neutral plate stands in)`);
+        continue;
+      }
+      // The face box and neck come from the neutral plate, carried through the alignment.
+      reg = registerAligned(neutralReg, a, { width: keyed.width, height: keyed.height });
     }
-    const reg = await registerHead(keyed.png, "profile");
     const outFile = `hammer/head-${name}.png`;
     writeFileSync(join(OUT, outFile), keyed.png);
     registry.hammer.heads[name] = { file: outFile, ...reg };

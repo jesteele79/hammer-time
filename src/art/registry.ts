@@ -52,11 +52,11 @@ export const MALLET_PLATE_FACING: 1 | -1 = 1;
 /** The neutral plate as registered on 2026-10-10, for the solver when no registry is loaded. */
 export const HEAD_PLATE_DEFAULT: HeadPlate = {
   file: "hammer/head-neutral.png",
-  width: 932,
-  height: 1283,
-  neck: { x: 489, y: 1274 },
-  crown: { x: 532, y: 8 },
-  face: { x: 8, y: 385, w: 439, h: 667 },
+  width: 934,
+  height: 1285,
+  neck: { x: 509, y: 1276 },
+  crown: { x: 522, y: 8 },
+  face: { x: 8, y: 386, w: 440, h: 668 },
 };
 
 export async function loadRegistry(): Promise<Registry> {

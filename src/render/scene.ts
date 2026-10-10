@@ -17,8 +17,12 @@ export const PARALLAX: Record<LayerName, number> = {
   post: 0,
 };
 
-/** Hammer's height as a fraction of the screen, on any aspect. */
+/** Hammer's height as a fraction of the screen, on any landscape aspect. */
 export const HERO_SCREEN_FRACTION = 0.315;
+/** A phone in portrait shows the world smaller (spec §5.2). */
+export const PORTRAIT_ZOOM = 0.75;
+/** The look-ahead never pushes him past this fraction of the half-width. */
+const LOOK_AHEAD_MAX_FRACTION = 0.35;
 const SPRING_X = 7;
 const SPRING_Y = 5;
 const SPRING_Y_FALLING = 12;
@@ -51,6 +55,8 @@ export type Scene = {
   camera: Camera;
   /** Screen px per world px. */
   scale: number;
+  /** The venue's ambient light as a tint, applied to scenery and body parts, never to a head plate. */
+  ambient: number;
   width: number;
   height: number;
   resize(): void;
@@ -99,6 +105,7 @@ export function createScene(render: RenderApp): Scene {
     layers,
     camera,
     scale: 1,
+    ambient: 0xffffff,
     width: app.screen.width,
     height: app.screen.height,
     resize() {
@@ -109,7 +116,8 @@ export function createScene(render: RenderApp): Scene {
     update(dt) {
       const c = camera;
       if (c.target) {
-        const want = c.moving ? LOOK_AHEAD * c.facing : 0;
+        const reach = Math.min(LOOK_AHEAD, (LOOK_AHEAD_MAX_FRACTION * scene.width) / (2 * scene.scale));
+        const want = c.moving ? reach * c.facing : 0;
         c.lookAhead += (want - c.lookAhead) * ease(c.moving ? 1 / LOOK_IN : 1 / LOOK_OUT, dt);
         const wantX = c.target.x + c.lookAhead;
         c.x += (wantX - c.x) * ease(SPRING_X, dt);
@@ -135,7 +143,8 @@ export function createScene(render: RenderApp): Scene {
     },
     fit() {
       const { width, height } = scene;
-      scene.scale = (HERO_SCREEN_FRACTION * height * camera.zoom) / HERO_HEIGHT;
+      const portrait = width < height ? PORTRAIT_ZOOM : 1;
+      scene.scale = (HERO_SCREEN_FRACTION * height * camera.zoom * portrait) / HERO_HEIGHT;
       for (const name of LAYER_ORDER) {
         const layer = layers[name];
         const f = PARALLAX[name];

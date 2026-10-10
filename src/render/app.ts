@@ -1,4 +1,5 @@
-import { Application, RendererType, type Ticker } from "pixi.js";
+import { Application, RendererType, UPDATE_PRIORITY, type Ticker } from "pixi.js";
+import { refreshFrom, shouldStepDown } from "./quality";
 
 export type Quality = "ultra" | "high" | "medium" | "low";
 export type RenderApp = {
@@ -25,6 +26,9 @@ export type NextProbe = {
   /** Set by the look scene once it runs. */
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean };
   heroScreenHeight?: number;
+  heroScreenX?: number;
+  /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
+  headTintChain?: number;
   art?: { heads: number; bodies: number };
 };
 declare global {
@@ -79,23 +83,38 @@ export async function createRenderApp(
       out.onQuality(q);
     },
     destroy() {
-      app.ticker.remove(watch);
+      app.ticker.remove(begin);
+      app.ticker.remove(end);
       app.destroy(true, { children: true, texture: true });
       delete window.__next;
     },
   };
-  // Frame-time watch: a 1 s average over 15 ms steps the tier down once, never up.
+  // Frame watch: each second, the work per frame and the frames dropped against the display's
+  // own rate decide whether to step one tier down. Never up. Vsync alone never trips it.
   let acc = 0,
+    work = 0,
     n = 0,
-    settle = 2;
-  const watch = (t: Ticker) => {
+    settle = 2,
+    frameStart = 0,
+    refresh = Infinity;
+  const intervals: number[] = [];
+  const begin = () => {
+    frameStart = performance.now();
+  };
+  const end = (t: Ticker) => {
     acc += t.deltaMS;
+    work += performance.now() - frameStart;
+    intervals.push(t.deltaMS);
     n++;
     if (acc < 1000) return;
     out.frameMs = acc / n;
     out.fps = Math.round(1000 / out.frameMs);
+    refresh = Math.min(refresh, refreshFrom(intervals));
     if (settle > 0) settle--;
-    else if (out.frameMs > 15 && !readForcedQuality()) {
+    else if (
+      !readForcedQuality() &&
+      shouldStepDown({ workMs: work / n, intervalMs: out.frameMs, refreshMs: refresh })
+    ) {
       const i = ORDER.indexOf(quality);
       if (i < ORDER.length - 1) out.setQuality(ORDER[i + 1]);
     }
@@ -103,9 +122,13 @@ export async function createRenderApp(
     probe.frameMs = out.frameMs;
     probe.fps = out.fps;
     acc = 0;
+    work = 0;
     n = 0;
+    intervals.length = 0;
   };
-  app.ticker.add(watch);
+  app.ticker.add(begin, undefined, UPDATE_PRIORITY.HIGH);
+  // After the application's own render listener, which runs at LOW.
+  app.ticker.add(end, undefined, UPDATE_PRIORITY.UTILITY);
   window.__next = probe;
   return out;
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createWorld } from "../src/sim/world.ts";
-import { HERO_H, HERO_CROUCH_H, RUN, STEP } from "../src/sim/constants.ts";
+import { HERO_H, HERO_CROUCH_H, MAX_FALL, RUN, STEP } from "../src/sim/constants.ts";
 import { HERO_HEIGHT } from "../src/sim/rig/skeleton.ts";
 
 const NONE = {
@@ -116,6 +116,42 @@ test("down crouches to 200 px, run + down slides under a pass, and he stands onl
   run(w, 1.5, { right: true });
   assert.equal(w.hero.h, HERO_H);
   assert.equal(w.hero.crouch, false);
+});
+
+test("a mezzanine floor overhead does not swallow the floor he walks on", () => {
+  const st = flat({
+    floor: [
+      { x0: -2000, x1: 20000, y0: 0, y1: 0 },
+      { x0: 1000, x1: 3000, y0: -520, y1: -520 },
+    ],
+  });
+  const w = createWorld(st, { x: 500, y: 0 });
+  run(w, 2, { right: true, run: true });
+  assert.equal(w.hero.y, 0, `still on the lobby floor: ${w.hero.y}`);
+  assert.ok(w.hero.x > 1200 && w.hero.onGround, `walked under the mezzanine: ${w.hero.x}`);
+  // And a small step up is climbed, a small drop walked down, both within the snap.
+  const steps = flat({
+    floor: [
+      { x0: -2000, x1: 600, y0: 0, y1: 0 },
+      { x0: 600, x1: 1200, y0: -20, y1: -20 },
+      { x0: 1200, x1: 20000, y0: 0, y1: 0 },
+    ],
+  });
+  const s = createWorld(steps, { x: 400, y: 0 });
+  run(s, 1, { right: true });
+  assert.ok(s.hero.x > 600 && s.hero.x < 1200 && s.hero.y === -20 && s.hero.onGround, `on the step: ${s.hero.x},${s.hero.y}`);
+  run(s, 2, { right: true });
+  assert.ok(s.hero.x > 1200 && s.hero.y === 0 && s.hero.onGround, `back down: ${s.hero.x},${s.hero.y}`);
+});
+
+test("a long fall never exceeds the terminal speed", () => {
+  const w = createWorld(flat({ bounds: { x: -2000, y: -9000, w: 22000, h: 10000 } }), { x: 100, y: -8000 });
+  let fastest = 0;
+  for (let i = 0; i < 240; i++) {
+    w.step(input());
+    fastest = Math.max(fastest, w.hero.vy);
+  }
+  assert.ok(fastest <= MAX_FALL + 1e-9 && fastest > 2000, `fastest ${fastest}`);
 });
 
 test("stepping is deterministic for the same inputs", () => {

@@ -15,6 +15,7 @@ import {
   JUMP_CUT,
   JUMP_V0,
   LAND_T,
+  MAX_FALL,
   RUN,
   SLIDE_DECEL,
   SLIDE_END,
@@ -102,7 +103,7 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number): 
 
   let g = h.vy < 0 ? GRAVITY_UP : GRAVITY_DOWN;
   if (Math.abs(h.vy) < APEX_BAND && !h.onGround) g *= APEX_FLOAT;
-  h.vy += g * dt;
+  h.vy = Math.min(MAX_FALL, h.vy + g * dt);
 
   moveBody(h, stage, dt);
 

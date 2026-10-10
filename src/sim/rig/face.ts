@@ -5,7 +5,8 @@ import type { Rect, Solved } from "./fk";
 const ARM = 24;
 const LEG = 30;
 const HANDLE = 14;
-const MALLET_HEAD = 36;
+// The painted mallet head reaches 49 units from its center.
+const MALLET_HEAD = 50;
 const SAMPLES = 11;
 
 const SEGMENTS: [name: string, from: JointName, to: JointName, radius: number][] = [

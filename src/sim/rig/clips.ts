@@ -161,7 +161,8 @@ const crouch: Clip = () =>
     headTilt: 4,
   });
 
-// Feet first, torso reclined, the near heel riding the floor; the mallet points ahead like a lance.
+// Feet first, torso reclined, the near heel riding the floor; the mallet trails behind, so a
+// blend from the shoulder carry swings it round the back and never over the face.
 const slide: Clip = () => {
   const lean = -40;
   return pose({
@@ -171,13 +172,13 @@ const slide: Clip = () => {
         kneeNear: -5,
         hipFar: 85,
         kneeFar: -10,
-        shoulderNear: 20,
+        shoulderNear: -20,
         elbowNear: 10,
         shoulderFar: -50,
         elbowFar: -10,
       },
       lean,
-      20,
+      200,
     ),
     lean,
     root: { x: 0, y: -115 },

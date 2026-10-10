@@ -242,8 +242,9 @@ art fallback path; `&board=1` exposes the look-board renderer.
   `build`). The cut lines are in `art/cuts/hammer-body.json`;
   `node scripts/art-sync.mjs --overlay` draws them over the body as
   `artifacts/body-cuts.png`. `art/ART-REQUEST.md` lists what to generate.
-- Quality tiers `ultra`, `high`, `medium` and `low` step down once when a 1 s
-  average frame exceeds 15 ms, never back up; force one with
+- Quality tiers `ultra`, `high`, `medium` and `low` step down one tier at a
+  time when a second's frames average more than 15 ms of work or arrive late
+  against the display's own rate, never back up; force one with
   `localStorage.setItem("hammer-time-quality", "medium")`.
 
 ```powershell

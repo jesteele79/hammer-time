@@ -3,12 +3,17 @@ import sharp from "sharp";
 
 const MARGIN = 8;
 
-/** Chroma key: green hue 90-150 at saturation above 0.45, with a soft ramp so edges antialias. */
+/**
+ * Chroma key: bright, green-dominant pixels of hue 90-150 at saturation above
+ * 0.45, with a soft ramp so edges antialias. Dark ink is never green: a
+ * (0, 3, 0) pixel has the hue but not the light.
+ */
 function alphaOf(r, g, b) {
+  if (g < 90 || g - Math.max(r, b) < 40) return 255;
   const max = Math.max(r, g, b),
     min = Math.min(r, g, b);
   const sat = max ? (max - min) / max : 0;
-  if (max !== g || sat < 0.35) return 255;
+  if (sat < 0.35) return 255;
   const hue = (60 * ((b - r) / (max - min || 1)) + 120 + 360) % 360;
   if (hue < 90 || hue > 150) return 255;
   const k = Math.min(1, Math.max(0, (sat - 0.45) / 0.1));
@@ -115,6 +120,41 @@ export async function registerHead(png, kind) {
     neck: { x: Math.round((neckSpan[0] + neckSpan[1]) / 2), y: bottom },
     crown: { x: Math.round((topSpan[0] + topSpan[1]) / 2), y: top },
     face,
+  };
+}
+
+/** Outline overlap an expression plate needs to stand in for the neutral one. */
+export const ALIGN_MIN = 0.85;
+
+/** "ok" above the gate; below it "skip" (the neutral plate stands in) unless strict, then "refuse". */
+export function gateExpression(overlap, { strict = false } = {}) {
+  if (overlap >= ALIGN_MIN) return "ok";
+  return strict ? "refuse" : "skip";
+}
+
+/**
+ * An expression plate's anchors, carried over from the neutral plate through
+ * its alignment: alignTo maps a reference point p to (p + d) / scale on the
+ * candidate. A plate framed with a longer neck or a wider margin keeps the
+ * face box where the face is, instead of where a fixed fraction would put it.
+ */
+export function registerAligned(reference, align, { width, height }) {
+  const map = (p) => ({
+    x: Math.round((p.x + align.dx) / align.scale),
+    y: Math.round((p.y + align.dy) / align.scale),
+  });
+  const corner = map({ x: reference.face.x, y: reference.face.y });
+  return {
+    width,
+    height,
+    neck: map(reference.neck),
+    crown: map(reference.crown),
+    face: {
+      x: corner.x,
+      y: corner.y,
+      w: Math.round(reference.face.w / align.scale),
+      h: Math.round(reference.face.h / align.scale),
+    },
   };
 }
 

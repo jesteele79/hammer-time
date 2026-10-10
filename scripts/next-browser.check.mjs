@@ -30,6 +30,11 @@ try {
     if (m.type() === "error") errors.push(m.text());
     if (m.type() === "warning") warnings.push(m.text());
   });
+  // The shipped game's address stays what it was: no flags leak into it.
+  await page.goto(base);
+  await page.waitForLoadState("networkidle");
+  assert.equal(new URL(page.url()).search, "", `the plain address keeps no search: ${page.url()}`);
+
   await booted(`${base}?next=1`);
   verdict.renderer = await page.evaluate(() => window.__next.renderer);
   await page.waitForTimeout(1500);
@@ -39,6 +44,8 @@ try {
   assert.ok(verdict.fps >= 30, `fps ${verdict.fps}`);
   verdict.art = await page.evaluate(() => window.__next.art);
   assert.ok(verdict.art.heads >= 1, "the art registry loaded");
+  // Nothing above the head sprite colors it: the owner's plate reaches the screen as drawn.
+  assert.equal(await page.evaluate(() => window.__next.headTintChain), 0xffffff, "the head plate is untinted");
   await page.screenshot({ path: resolve(out, "next-boot.png") });
 
   const start = (await hero()).x;
@@ -71,6 +78,19 @@ try {
     verdict.fit[`${w}x${hgt}`] = frac;
     assert.ok(frac >= 0.3 && frac <= 0.33, `hero height fraction at ${w}x${hgt}: ${frac}`);
   }
+  // A phone in portrait: he runs and stays on the screen.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  await page.keyboard.down("ShiftLeft");
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(1200);
+  const portrait = await page.evaluate(() => ({ x: window.__next.heroScreenX, w: window.innerWidth }));
+  await page.keyboard.up("ArrowRight");
+  await page.keyboard.up("ShiftLeft");
+  verdict.fit["390x844"] = portrait.x / portrait.w;
+  assert.ok(portrait.x > 40 && portrait.x < portrait.w - 40, `on screen in portrait: ${portrait.x} of ${portrait.w}`);
+  await page.screenshot({ path: resolve(out, "next-portrait.png") });
+  await page.waitForTimeout(600);
 
   await booted(`${base}?next=1&gl=1`);
   verdict.fallback = await page.evaluate(() => window.__next.renderer);

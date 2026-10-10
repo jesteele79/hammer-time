@@ -13,13 +13,17 @@ const collider = (b: { x: number; y: number; w: number; h: number }): Rect => ({
 const overlaps = (a: Rect, b: Rect) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const blockers = (stage: Stage) => [...stage.solids, ...stage.passes];
 
-/** The floor's height under `x`, or null where there is none; the highest floor wins. */
-export function floorAt(stage: Stage, x: number): number | null {
+/**
+ * The highest floor under `x` that is no higher than `reach`, or null where
+ * there is none. A mezzanine overhead is not the floor under his feet.
+ */
+export function floorAt(stage: Stage, x: number, reach = -Infinity): number | null {
   let best: number | null = null;
   for (const f of stage.floor) {
     if (x < f.x0 - LEDGE || x > f.x1 + LEDGE) continue;
     const k = f.x1 > f.x0 ? Math.min(1, Math.max(0, (x - f.x0) / (f.x1 - f.x0))) : 0;
     const y = f.y0 + (f.y1 - f.y0) * k;
+    if (y < reach) continue;
     if (best === null || y < best) best = y;
   }
   return best;
@@ -58,8 +62,8 @@ export function moveBody(body: Body, stage: Stage, dt: number): void {
   }
 
   if (body.vy >= 0) {
-    const fy = floorAt(stage, body.x);
-    // Land when the feet cross the floor this step, or stick to it while walking it.
+    // Grounded, the floor may sit a step above or below the feet; airborne, only one the feet crossed counts.
+    const fy = floorAt(stage, body.x, wasOnGround ? body.y - SNAP : prevY);
     if (fy !== null && body.y >= fy - (wasOnGround ? SNAP : 0) && prevY <= fy + (wasOnGround ? SNAP : 0)) {
       body.y = fy;
       body.vy = 0;

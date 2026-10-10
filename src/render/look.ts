@@ -139,7 +139,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   };
 
   const supportY = (x: number, y: number) => {
-    let best = floorAt(LOBBY_STAGE, x) ?? y;
+    let best = floorAt(LOBBY_STAGE, x, y - 1) ?? y;
     for (const p of LOBBY_STAGE.platforms) if (x >= p.x0 && x <= p.x1 && p.y >= y - 1 && p.y < best) best = p.y;
     return best;
   };
@@ -172,7 +172,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     const expression: Expression = h.state === "idle" && h.stateT > 4 ? "bored" : "neutral";
     character.container.position.set(x, y);
     character.container.zIndex = y;
-    character.apply(solved, expression, h.facing, floorY - y);
+    character.apply(solved, expression, h.facing, floorY - y, scene.ambient);
 
     if (h.state !== lastState) {
       if (h.state === "land") particles.emit("dust", x, floorY, 10);
@@ -200,6 +200,8 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     if (window.__next) {
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
+      window.__next.heroScreenX = scene.toScreen({ x, y }).x;
+      window.__next.headTintChain = character.headTintChain();
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,
         bodies: Object.keys(registry.hammer.bodies).length,

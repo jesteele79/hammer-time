@@ -3,18 +3,46 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { keyOut, registerHead, alignTo, sliceBody } from "./art-cut.mjs";
+import { keyOut, registerHead, registerAligned, alignTo, gateExpression, sliceBody } from "./art-cut.mjs";
 
-/** A green canvas with a filled dark circle and a 'neck' stub at the bottom. */
-async function plate(dx = 0, dy = 0, scale = 1) {
+/** A green canvas with a filled circle and a 'neck' stub at the bottom. */
+async function plate(dx = 0, dy = 0, scale = 1, { fill = "#b5642a", stub = 60, height = 400 } = {}) {
   const r = 100 * scale;
-  const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
-    <rect width="400" height="400" fill="#00ff00"/>
-    <circle cx="${200 + dx}" cy="${180 + dy}" r="${r}" fill="#b5642a" stroke="#101010" stroke-width="6"/>
-    <rect x="${180 + dx}" y="${270 + dy}" width="40" height="60" fill="#b5642a" stroke="#101010" stroke-width="6"/>
+  const svg = `<svg width="400" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="400" height="${height}" fill="#00ff00"/>
+    <circle cx="${200 + dx}" cy="${180 + dy}" r="${r}" fill="${fill}" stroke="#101010" stroke-width="6"/>
+    <rect x="${180 + dx}" y="${270 + dy}" width="40" height="${stub}" fill="${fill}" stroke="#101010" stroke-width="6"/>
   </svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
+
+test("near-black ink is not green: a (0,3,0) fill survives the key", async () => {
+  const { png, width, height } = await keyOut(await plate(0, 0, 1, { fill: "#000300" }));
+  const { data, info } = await sharp(png).raw().toBuffer({ resolveWithObject: true });
+  const at = (x, y) => data.subarray((y * info.width + x) * 4, (y * info.width + x) * 4 + 4);
+  const c = at(Math.round(width / 2), Math.round(height * 0.45));
+  assert.equal(c[3], 255, `the dark fill stays opaque: alpha ${c[3]}`);
+  assert.equal(at(0, 0)[3], 0, "the green is still keyed");
+});
+
+test("a reframed expression plate takes its anchors from the neutral through the alignment", async () => {
+  const neutral = await keyOut(await plate());
+  const taller = await keyOut(await plate(0, 0, 1, { stub: 130, height: 470 }));
+  const ref = await registerHead(neutral.png, "profile");
+  const a = await alignTo(neutral.png, taller.png);
+  assert.ok(a.overlap >= 0.85, `a longer neck stub still passes the gate: ${a.overlap}`);
+  const reg = registerAligned(ref, a, { width: taller.width, height: taller.height });
+  assert.equal(reg.width, taller.width);
+  assert.ok(Math.abs(reg.face.y - ref.face.y) <= 4, `face box stays put: ${reg.face.y} vs ${ref.face.y}`);
+  assert.ok(Math.abs(reg.face.h - ref.face.h) <= 4, `face box keeps its height: ${reg.face.h} vs ${ref.face.h}`);
+  assert.ok(Math.abs(reg.neck.y - ref.neck.y) <= 4, `the head still attaches where the neutral does: ${reg.neck.y}`);
+});
+
+test("the expression gate skips a misaligned plate in a dev run and refuses it when strict", () => {
+  assert.equal(gateExpression(0.9), "ok");
+  assert.equal(gateExpression(0.8), "skip");
+  assert.equal(gateExpression(0.8, { strict: true }), "refuse");
+});
 
 test("keying removes the green, keeps outlines and crops to the subject with a margin", async () => {
   const { png, bbox, width, height } = await keyOut(await plate());
@@ -60,6 +88,10 @@ test("every owner file still matches art/manifest.json", () => {
   const manifest = JSON.parse(readFileSync("art/manifest.json", "utf8"));
   const files = Object.entries(manifest.files);
   assert.ok(files.length >= 24, `manifest lists ${files.length} files`);
+  const names = files.map(([f]) => f);
+  assert.ok(names.some((f) => f.endsWith(".txt")), "the prompts beside the plates are guarded too");
+  assert.ok(names.includes("art/incoming/hammer/manifest.json"), "the batch manifest is guarded");
+  assert.ok(names.includes("public/absolute-bullshit.mp3"), "the recording is guarded");
   for (const [file, sha] of files) {
     assert.ok(existsSync(file), `${file} exists`);
     assert.equal(

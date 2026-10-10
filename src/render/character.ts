@@ -15,6 +15,7 @@ import {
 import { HERO_W } from "../sim/constants";
 import type { Placement, Solved } from "../sim/rig/fk";
 import { NECK_REST_Y } from "../sim/rig/skeleton";
+import { multiplyTint } from "./lighting";
 import { PALETTE } from "./palette";
 
 export type Character = {
@@ -22,7 +23,10 @@ export type Character = {
   shadow: Graphics;
   /** Resolves once every plate is loaded; `apply` works before then with empty textures. */
   ready: Promise<void>;
-  apply(solved: Solved, expression: Expression, facing: 1 | -1, heightAboveFloor: number): void;
+  /** `ambient` tints the body parts and the mallet; the head plate is never tinted. */
+  apply(solved: Solved, expression: Expression, facing: 1 | -1, heightAboveFloor: number, ambient?: number): void;
+  /** The product of every tint from the head sprite up to the stage: 0xffffff when nothing colors it. */
+  headTintChain(): number;
 };
 
 const PART_NAMES: PartName[] = [
@@ -46,6 +50,7 @@ const FAR_OF: Partial<Record<PartName, PartName>> = {
   shinFar: "shinNear",
 };
 const SHADOW_RX = HERO_W * 0.55;
+const FAR_TINT = parseInt(PALETTE.farLimb.slice(1), 16);
 
 let warned = false;
 function fallback(message: string) {
@@ -80,7 +85,6 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     if (!part) continue;
     const sprite = new Sprite();
     sprite.anchor.set(part.pivot.x / part.width, part.pivot.y / part.height);
-    if (FAR_OF[name]) sprite.tint = PALETTE.farLimb;
     container.addChild(sprite);
     sprites.set(name, { sprite, part });
   }
@@ -121,13 +125,17 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     container,
     shadow,
     ready,
-    apply(solved, expression, facing, heightAboveFloor) {
+    apply(solved, expression, facing, heightAboveFloor, ambient = 0xffffff) {
       const K = solved.scale * (NECK_REST_Y / body.span);
-      for (const [name, { sprite, part }] of sprites) placeLimb(sprite, part, solved.parts[name], facing, BODY_PLATE_FACING, K, false);
+      for (const [name, { sprite, part }] of sprites) {
+        placeLimb(sprite, part, solved.parts[name], facing, BODY_PLATE_FACING, K, false);
+        sprite.tint = FAR_OF[name] ? multiplyTint(ambient, FAR_TINT) : ambient;
+      }
       if (malletSprite && mallet?.pivot && mallet.tip) {
         const pl = solved.parts.mallet;
         const len = Math.hypot(mallet.tip.x - mallet.pivot.x, mallet.tip.y - mallet.pivot.y);
         placeLimb(malletSprite, { pivot: mallet.pivot, tip: mallet.tip }, pl, facing, MALLET_PLATE_FACING, pl.length / len, true);
+        malletSprite.tint = ambient;
       }
       const wanted = (opts.noart && expression !== "neutral" ? undefined : heads[expression]) ?? neutral;
       if (wanted !== headPlate || head.texture === Texture.EMPTY) {
@@ -145,6 +153,11 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
 
       const k = Math.max(0.3, 1 - heightAboveFloor / 500);
       shadow.clear().ellipse(0, heightAboveFloor, SHADOW_RX * k, 16 * k).fill({ color: 0x000000, alpha: 0.35 });
+    },
+    headTintChain() {
+      let chain = 0xffffff;
+      for (let node: Container | null = head; node; node = node.parent) chain = multiplyTint(chain, node.tint);
+      return chain;
     },
   };
 }

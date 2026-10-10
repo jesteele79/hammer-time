@@ -49,6 +49,23 @@ test("no sampled frame of any clip puts a limb or the mallet over the face", () 
       }
 });
 
+test("no blend between any two clips, at any head scale, with the run lean, crosses the face", () => {
+  const names = Object.keys(CLIPS);
+  for (const a of names)
+    for (const b of names) {
+      if (a === b) continue;
+      for (const headScale of [0.22, 0.26, 0.3])
+        for (let i = 0; i <= 20; i++) {
+          const pa = CLIPS[a](0.5, { ...ctx, speed: 640 });
+          const pb = CLIPS[b](0.5, { ...ctx, speed: 640 });
+          const p = blend(pa, pb, i / 20);
+          p.lean += 6;
+          const r = faceClear(solve(p, 1, headScale));
+          assert.ok(r.ok, `${a}->${b} t=${i / 20} head ${headScale}: ${r.offender} crosses the face`);
+        }
+    }
+});
+
 test("facing left mirrors the solved rig exactly", () => {
   const p = CLIPS.run(0.3, { ...ctx, speed: 640 });
   const r = solve(p, 1, 0.26),
