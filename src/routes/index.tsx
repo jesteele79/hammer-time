@@ -8,6 +8,7 @@ export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
     next: flag(search.next),
     gl: flag(search.gl),
+    noart: flag(search.noart),
   }),
   component: Home,
 });
@@ -15,6 +16,6 @@ export const Route = createFileRoute("/")({
 const flag = (v: unknown) => v === true || v === 1 || v === "1";
 
 function Home() {
-  const { next, gl } = Route.useSearch();
-  return next ? <NextGame forceWebgl={gl} /> : <KilnHop />;
+  const { next, gl, noart } = Route.useSearch();
+  return next ? <NextGame forceWebgl={gl} noart={noart} /> : <KilnHop />;
 }

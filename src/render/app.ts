@@ -22,6 +22,10 @@ export type NextProbe = {
   fps: number;
   /** Distinct coarse colors in a 1/20-scale read of the stage: the "is anything drawn" probe. */
   sample: () => number;
+  /** Set by the look scene once it runs. */
+  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean };
+  heroScreenHeight?: number;
+  art?: { heads: number; bodies: number };
 };
 declare global {
   interface Window {
@@ -53,7 +57,8 @@ export async function createRenderApp(
     frameMs: 0,
     fps: 0,
     sample: () => {
-      const { pixels } = app.renderer.extract.pixels({ target: app.stage, resolution: 0.05 });
+      // Only the visible screen: the stage's own bounds span the whole level.
+      const { pixels } = app.renderer.extract.pixels({ target: app.stage, frame: app.screen, resolution: 0.05 });
       const seen = new Set<number>();
       for (let i = 0; i < pixels.length; i += 4)
         seen.add((pixels[i] >> 4) * 4096 + (pixels[i + 1] >> 4) * 256 + (pixels[i + 2] >> 4));

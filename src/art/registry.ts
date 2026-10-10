@@ -25,13 +25,17 @@ export type HeadPlate = {
   /** Brow to chin, nose to cheek: nothing is ever drawn over it. */
   face: Rect;
 };
+/** A sliced body part; `pivot` is the joint it hangs from and `tip` the joint it reaches, in part pixels. */
 export type BodyPart = { file: string; width: number; height: number; pivot: Point; tip: Point };
+/** `span` is the collar-to-sole height of the body plate, in its pixels. */
+export type Body = { parts: Partial<Record<PartName, BodyPart>>; span: number };
+export type Prop = { file: string; width: number; height: number; pivot?: Point; tip?: Point };
 export type Registry = {
   version: number;
   hammer: {
     heads: Partial<Record<Expression, HeadPlate>>;
-    bodies: Partial<Record<Costume, { parts: Partial<Record<PartName, BodyPart>> }>>;
-    props: Record<string, { file: string; width: number; height: number }>;
+    bodies: Partial<Record<Costume, Body>>;
+    props: Record<string, Prop>;
     portrait: HeadPlate | null;
   };
   backdrops: Record<string, { far?: string }>;
@@ -42,6 +46,9 @@ export const ART_BASE = "/art/";
 export const HEAD_FACE_PROFILE = { x: 0, y: 0.36, w: 0.48, h: 0.46 };
 /** The owner's profile plates are drawn facing left (spec §6.1); the game flips them to face right. */
 export const HEAD_PLATE_FACING: 1 | -1 = -1;
+/** The painted bodies face left too; the mallet plate's handle leans back for a right-facing carry. */
+export const BODY_PLATE_FACING: 1 | -1 = -1;
+export const MALLET_PLATE_FACING: 1 | -1 = 1;
 /** The neutral plate as registered on 2026-10-10, for the solver when no registry is loaded. */
 export const HEAD_PLATE_DEFAULT: HeadPlate = {
   file: "hammer/head-neutral.png",

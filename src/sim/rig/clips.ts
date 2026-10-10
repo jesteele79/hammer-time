@@ -140,7 +140,7 @@ const land: Clip = (u) => {
   });
 };
 
-// Hips 75 and knees −120 put the ankles back on the floor with the root 79 down.
+// Hips 75 and knees −120 put the ankles back on the floor with the root 69 down.
 const crouch: Clip = () =>
   pose({
     rot: carry(
@@ -157,7 +157,7 @@ const crouch: Clip = () =>
       },
       0,
     ),
-    root: { x: 0, y: -79 },
+    root: { x: 0, y: -69 },
     headTilt: 4,
   });
 
@@ -180,7 +180,7 @@ const slide: Clip = () => {
       20,
     ),
     lean,
-    root: { x: 0, y: -120 },
+    root: { x: 0, y: -115 },
   });
 };
 

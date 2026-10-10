@@ -91,6 +91,9 @@ async function heads(registry) {
   }
 }
 
+// Where a prop is held and where it reaches, in the keyed crop's pixels.
+const PROP_ANCHORS = { mallet: { pivot: { x: 965, y: 1295 }, tip: { x: 300, y: 235 } } };
+
 async function props(registry) {
   for (const name of ["mallet", "towel", "wristwatch"]) {
     const file = join(HAMMER_IN, `${name}.png`);
@@ -98,7 +101,7 @@ async function props(registry) {
     const keyed = await keyOut(readFileSync(file));
     const outFile = `hammer/${name}.png`;
     writeFileSync(join(OUT, outFile), keyed.png);
-    registry.hammer.props[name] = { file: outFile, width: keyed.width, height: keyed.height };
+    registry.hammer.props[name] = { file: outFile, width: keyed.width, height: keyed.height, ...PROP_ANCHORS[name] };
     console.log(`prop ${name}: ${keyed.width}x${keyed.height}`);
   }
 }
@@ -115,7 +118,7 @@ async function bodies(registry) {
     if (!existsSync(file)) continue;
     const keyed = await keyOut(readFileSync(file));
     const parts = await sliceBody(keyed, cuts, costume);
-    registry.hammer.bodies[costume] = { parts: {} };
+    registry.hammer.bodies[costume] = { parts: {}, span: cuts.sole - cuts.collar };
     for (const [name, part] of Object.entries(parts)) {
       const outFile = `hammer/${costume}-${name}.png`;
       writeFileSync(join(OUT, outFile), part.png);

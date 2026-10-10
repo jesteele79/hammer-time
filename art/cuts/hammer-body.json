@@ -1,5 +1,5 @@
 {
-  "note": "Polygons in pixels of the keyed crop of art/incoming/hammer/body-*.png (all four share the framing). Check with: node scripts/art-sync.mjs --overlay -> artifacts/body-cuts.png. material: skin keeps only skin-like pixels, cloth only the rest.",
+  "note": "Polygons in pixels of the keyed crop of art/incoming/hammer/body-*.png (all four share the framing). Check with: node scripts/art-sync.mjs --overlay -> artifacts/body-cuts.png. material: skin keeps only skin-like pixels, cloth only the rest. collar/sole: the torso's collar line and the near shoe's sole in crop pixels; the renderer scales the body so collar-to-sole spans the skeleton's neck height.",
   "space": "crop",
   "parts": {
     "torso": {
@@ -161,8 +161,8 @@
         670
       ],
       "tip": [
-        185,
-        870
+        210,
+        805
       ]
     },
     "upperArmFar": {
@@ -239,8 +239,8 @@
         690
       ],
       "tip": [
-        50,
-        840
+        70,
+        830
       ],
       "fillFrom": [
         60,
@@ -268,8 +268,8 @@
         ]
       ],
       "pivot": [
-        325,
-        897
+        328,
+        850
       ],
       "tip": [
         330,
@@ -317,7 +317,7 @@
       ],
       "tip": [
         310,
-        1255
+        1295
       ],
       "fillFrom": [
         300,
@@ -345,8 +345,8 @@
         ]
       ],
       "pivot": [
-        465,
-        897
+        468,
+        850
       ],
       "tip": [
         470,
@@ -394,7 +394,7 @@
       ],
       "tip": [
         420,
-        1380
+        1410
       ]
     }
   },
@@ -418,5 +418,7 @@
         ]
       }
     }
-  }
+  },
+  "collar": 290,
+  "sole": 1415
 }

@@ -21,7 +21,7 @@ export function emptyInput(): Input {
   return { held: none(), pressed: none() };
 }
 
-/** KeyboardEvent.code to action. */
+/** KeyboardEvent.code to action, the same keys the first build taught. */
 export const KEY_BINDINGS: Record<string, Action> = {
   ArrowLeft: "left",
   KeyA: "left",
@@ -29,20 +29,22 @@ export const KEY_BINDINGS: Record<string, Action> = {
   KeyD: "right",
   Space: "jump",
   KeyW: "jump",
+  KeyZ: "jump",
   ArrowUp: "jump",
   ShiftLeft: "run",
   ShiftRight: "run",
+  KeyJ: "run",
   ArrowDown: "down",
   KeyS: "down",
-  KeyJ: "hammer",
+  KeyH: "hammer",
   KeyX: "hammer",
-  KeyK: "fire",
+  KeyF: "fire",
   KeyC: "fire",
-  KeyL: "towel",
-  KeyV: "towel",
-  KeyI: "super",
-  KeyU: "lecture",
+  KeyK: "fire",
+  KeyT: "towel",
+  KeyQ: "super",
   KeyE: "lecture",
+  KeyL: "lecture",
 };
 
 /** The input for one step from the keys down now and the actions held last step. */

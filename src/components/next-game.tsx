@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 /** The rebuild's canvas. Pixi is browser-only, so everything loads after mount. */
-export function NextGame({ forceWebgl = false }: { forceWebgl?: boolean }) {
+export function NextGame({ forceWebgl = false, noart = false }: { forceWebgl?: boolean; noart?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let dispose: (() => void) | undefined;
@@ -14,7 +14,11 @@ export function NextGame({ forceWebgl = false }: { forceWebgl?: boolean }) {
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const look = startLook(render);
+      const look = await startLook(render, { noart });
+      if (cancelled) {
+        look.stop();
+        return render.destroy();
+      }
       dispose = () => {
         look.stop();
         render.destroy();
@@ -24,7 +28,7 @@ export function NextGame({ forceWebgl = false }: { forceWebgl?: boolean }) {
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl]);
+  }, [forceWebgl, noart]);
   return (
     <div
       ref={host}

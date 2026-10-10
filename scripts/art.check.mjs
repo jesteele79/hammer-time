@@ -70,7 +70,7 @@ test("every owner file still matches art/manifest.json", () => {
   }
 });
 
-test("a body slices into ten opaque parts with pivots inside them", async () => {
+test("a body slices into ten opaque parts with pivots inside or just above them", async () => {
   const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
   const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
   const parts = await sliceBody(keyed, cuts);
@@ -94,8 +94,9 @@ test("a body slices into ten opaque parts with pivots inside them", async () => 
     for (let i = 3; i < data.length; i += 4) if (data[i] > 127) opaque++;
     assert.ok(opaque > 0.08 * info.width * info.height, `${name} has substance`);
     assert.ok(
-      p.pivot.x >= 0 && p.pivot.x <= p.width && p.pivot.y >= 0 && p.pivot.y <= p.height,
-      `${name} pivot inside`,
+      // A thigh hangs from a hip hidden under the shorts, up to 48 px above its own pixels.
+      p.pivot.x >= 0 && p.pivot.x <= p.width && p.pivot.y >= -48 && p.pivot.y <= p.height,
+      `${name} pivot inside or just above`,
     );
   }
 });
