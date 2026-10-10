@@ -143,9 +143,11 @@ recording is captioned only when it actually plays: a student greeting, a
 lecture payoff, a paper swat or a pig hit that lands a recording shows that
 recording's words. Every other Hammer line is a thought bubble: a scalloped
 cloud above and behind his head with two puffs trailing toward the back of his
-head. Near the top or the sides of the screen it moves behind his face, then
-below it, and is never drawn over his face. Staff, students and the pig keep
-speech bubbles.
+head. A thought waits while a recording's caption is up, and a recording cut
+short by damage, pause or mute takes its caption with it. Thoughts, recording
+captions and "ABSOLUTE BULLSHIT" all sit above and behind his head; near the
+top or the sides of the screen they move behind his face, then below it, and
+are never drawn over his face. Staff, students and the pig keep speech bubbles.
 
 Five additional supplied recordings preload alongside it. Staff mallet contacts
 (office and hospitality) have a 35% chance of "They need to get fired," "They
@@ -172,18 +174,19 @@ npm run test:game
 npm run build
 ```
 
-The 41 game checks cover protected files, mallet hits/misses, immediate voice
+The 44 game checks cover protected files, mallet hits/misses, immediate voice
 scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
 distinct rewards, seeded pickup placement, all passages and supply routes,
 hospitality behavior, paper telegraph/duck/swat/contact, and boss combo rules,
 refills and exit lock. Rig checks cover the untouched rest pose, face clearance
 for every drawn pose (now including snot, towel, watch check with a far-arm
 probe and a collar check, foot tap and the squatting slam), the mallet arc,
-planted feet through the squat, and the mallet meeting the floor at the slam in
-both directions; mechanic checks cover snot charges, hot snot, puddle slips,
+planted feet through the squat (including every drawn slam frame on the
+ground), and the mallet meeting the floor at the slam in both directions; mechanic checks cover snot charges, hot snot, puddle slips,
 lectures and the super smash landing. Line checks cover the single table (only
 the six recordings carry clips), the spoken-or-thought caption switch, student
-greetings, and thought bubble placement across the whole view. Idle checks
+greetings, captions staying in step with the voice, and placement of thoughts,
+recording captions and the damage line across the whole view. Idle checks
 cover the watch, tap and harrumph timing, cancellation by input, staff, paper
 and the pig, spoken captions surviving the harrumph, and reset on a new level. Voice checks cover supplied-file integrity, shuffled
 target pools/crossover, chance skips, cooldown/no overlap, actual event triggers,
