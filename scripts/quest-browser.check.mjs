@@ -102,10 +102,19 @@ try {
     const tally = await page.locator(".veil").innerText();
     assert.match(tally, /COMPED|GOOD TIPPER|SPLIT THE CHECK|WATER ONLY/);
     await shot("quest-tally.png");
-    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    // Close the tally with Space, then hold it: auto-repeat must not start a run from the title.
+    await page.keyboard.down("Space");
     await waitMode("title");
+    await page.evaluate(() =>
+      window.dispatchEvent(new KeyboardEvent("keydown", { code: "Space", key: " ", repeat: true })),
+    );
+    await page.waitForTimeout(250);
+    assert.equal(await mode(), "title", "a held Space's auto-repeat does not start a run");
+    await page.keyboard.up("Space");
     assert.ok(
-      Number.isFinite(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-hungry")))),
+      Number.isFinite(
+        Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-hungry"))),
+      ),
       "practice best stored",
     );
     verdict.practice = true;
@@ -120,7 +129,9 @@ try {
     }, doorX);
     await page.waitForTimeout(400);
     await shot("quest-door.png");
-    const scoreBefore = Number((await page.locator(".hud div").nth(1).innerText()).replace(/\D/g, ""));
+    const scoreBefore = Number(
+      (await page.locator(".hud div").nth(1).innerText()).replace(/\D/g, ""),
+    );
     await page.keyboard.down("ArrowDown");
     await waitMode("card");
     await page.keyboard.up("ArrowDown");
@@ -130,12 +141,17 @@ try {
     await page.keyboard.press("Enter");
     await waitMode("play");
     assert.equal(await page.evaluate(() => window.__kiln.spentDoors), 1);
-    assert.ok(Math.abs((await page.evaluate(() => window.__kiln.x)) - doorX) < 2, "back at the door");
+    assert.ok(
+      Math.abs((await page.evaluate(() => window.__kiln.x)) - doorX) < 2,
+      "back at the door",
+    );
     await page.keyboard.down("ArrowDown");
     await page.waitForTimeout(300);
     await page.keyboard.up("ArrowDown");
     assert.equal(await mode(), "play", "a spent door stays shut");
-    const scoreAfter = Number((await page.locator(".hud div").nth(1).innerText()).replace(/\D/g, ""));
+    const scoreAfter = Number(
+      (await page.locator(".hud div").nth(1).innerText()).replace(/\D/g, ""),
+    );
     assert.ok(scoreAfter >= scoreBefore, "quest score added to the run");
     await shot("quest-door-after.png");
     verdict.door = true;

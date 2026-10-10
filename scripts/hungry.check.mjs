@@ -557,3 +557,41 @@ test("paper hits only the body it reaches: once ducked under it is gone, and mid
   steps(s, 60);
   assert.equal(s.plateTotal, -PLANE_HIT, "standing there, it hits");
 });
+
+test("the key that dismisses the tally does not carry into a jump back in the lobby", () => {
+  const g = game();
+  g.visualsReady = () => true;
+  g.audio.ready = true;
+  const door = g.level.doors[0];
+  g.enemies = [];
+  g.students = [];
+  g.player.x = door.x * 16 + 12;
+  g.player.onGround = true;
+  g.actions = { down: true };
+  questStep(g, 1 / 60);
+  g.actions = {};
+  questStep(g, 2);
+  g.quest.time = 59.99;
+  questStep(g, 2 / 60);
+  assert.equal(g.mode, "questTally");
+  // Space is down as the tally closes: frame() samples it on the next tick.
+  const deep = new Proxy(function () {}, { get: () => deep, apply: () => deep, set: () => true });
+  Object.assign(g, {
+    ctx: deep,
+    render() {},
+    emit() {},
+    keys: new Set(["Space"]),
+    probe: new Set(),
+    probeActive: false,
+    touch: Object.fromEntries(Object.keys(NONE).map((k) => [k, false])),
+    prevJump: false,
+    acc: 0,
+  });
+  g.finishQuest();
+  g.frame(1 / 60);
+  assert.equal(g.mode, "play");
+  assert.ok(
+    g.player.vy >= 0 && g.player.jumpBuf === 0,
+    `no jump from the dismissing key (vy ${g.player.vy})`,
+  );
+});

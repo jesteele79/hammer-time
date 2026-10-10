@@ -585,6 +585,7 @@ export class Game {
       }
       if (
         (this.mode === "title" || this.mode === "over" || this.mode === "win") &&
+        !e.repeat &&
         (e.code === "Enter" || e.code === "Space")
       ) {
         e.preventDefault();
@@ -2203,6 +2204,9 @@ export class Game {
       r = this.questResult,
       info = this.questInfo;
     if (this.mode !== "questTally" || !q || !r || !info) return;
+    // The key that closed the tally is still down: it must not jump, swing or fire on return.
+    this.prevJump = this.prevFire = this.prevHammer = this.prevTowel = true;
+    this.prevSuper = this.prevLecture = true;
     q.exit();
     this.quest = null;
     this.questResult = null;
