@@ -60,6 +60,8 @@ const initial: Hud = {
   hot: false,
   patience: 2,
   lectureReady: true,
+  quest: null,
+  questResult: null,
 };
 const pad = (n: number, len = 6) => String(Math.max(0, Math.floor(n))).padStart(len, "0");
 function readBest() {

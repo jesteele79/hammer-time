@@ -21,7 +21,9 @@ import { clearOfFace, comicBox, comicStar } from "./layout";
 import { drawPerson as drawPersonArt } from "./people";
 import { SNOT_FIRE_U, SUPER_CUT_FROM, SWING_ACTIVE, WIPE_FLICK, WIPE_SCRUB, WIPE_SHINE } from "./rig";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
-import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
+import { buildLevels, seededRandom, type EnemyRole, type StudentSpawn, type Level } from "./levels";
+import { HungryQuest } from "./quests/hungry";
+import type { Quest, QuestContext, QuestHud, QuestId, QuestResult } from "./quests/quest";
 import { drawFurniture, drawSign, drawRoomDecor, drawCrate, drawFloorGap } from "./scenery";
 import {
   ASIDES,
@@ -38,7 +40,18 @@ import {
 import type { TauntId } from "./taunts";
 
 export type Mode =
-  "title" | "card" | "play" | "pause" | "die" | "slide" | "walkoff" | "tally" | "over" | "win";
+  | "title"
+  | "card"
+  | "play"
+  | "pause"
+  | "die"
+  | "slide"
+  | "walkoff"
+  | "tally"
+  | "over"
+  | "win"
+  | "quest"
+  | "questTally";
 
 export type Hud = {
   score: number;
@@ -64,6 +77,9 @@ export type Hud = {
   /** Hits Hammer can still take before the next one costs a life. */
   patience: number;
   lectureReady: boolean;
+  /** Present while a side quest runs (and on its title card and tally). */
+  quest: QuestHud | null;
+  questResult: (QuestResult & { practice: boolean }) | null;
 };
 
 export type TouchAction =
@@ -226,6 +242,8 @@ export type GameHooks = {
   onMode: (mode: Mode) => void;
   onHud: (hud: Hud) => void;
   onRecord: (score: number) => void;
+  /** A practice quest finished with this score. */
+  onQuestRecord?: (id: QuestId, score: number) => void;
 };
 
 const FONT: Record<string, string[]> = {
@@ -273,6 +291,22 @@ const FONT: Record<string, string[]> = {
 };
 
 const STEP = 1 / 60;
+const DOOR_W = 40;
+const ACTIONS: TouchAction[] = [
+  "left",
+  "right",
+  "jump",
+  "run",
+  "down",
+  "fire",
+  "towel",
+  "hammer",
+  "super",
+  "lecture",
+];
+const blank = () =>
+  Object.fromEntries(ACTIONS.map((a) => [a, false])) as Record<TouchAction, boolean>;
+const QUESTS: Partial<Record<QuestId, () => Quest>> = { hungry: () => new HungryQuest() };
 const CHAIN = [100, 200, 400, 800, 1000, 2000, 4000, 8000];
 
 function clamp(n: number, a: number, b: number) {
@@ -313,9 +347,18 @@ declare global {
       lecture: number;
       idle: number;
       staffGap: number;
+      quest: string;
+      questScore: number;
+      spentDoors: number;
     };
     /** Development-only QA levers; absent from production builds. */
-    __kilnDev?: { charge: (n: number) => number; heat: (n: number) => number };
+    __kilnDev?: {
+      charge: (n: number) => number;
+      heat: (n: number) => number;
+      /** Fast-forward the running side quest; returns its seconds left. */
+      questSkip: (seconds: number) => number;
+      teleport: (x: number) => number;
+    };
   }
 }
 
@@ -340,6 +383,13 @@ export class Game {
   private banterSoft = false;
   private banterSpoken = false;
   private idleT = 0;
+  private quest: Quest | null = null;
+  private questInfo: { id: QuestId; practice: boolean; returnX: number } | null = null;
+  private questResult: QuestResult | null = null;
+  private questPressed = blank();
+  private questPrev = blank();
+  private spentDoors = new Set<string>();
+  private cardNext: "play" | "quest" = "play";
   private items: Item[] = [];
   private embers: Ember[] = [];
   private bits: Bit[] = [];
@@ -406,6 +456,7 @@ export class Game {
   private bossPig = new Image();
   private wood = new Image();
   private steel = new Image();
+  private nurse = new Image();
   private heat = 0;
   private checkpoint = 0;
   private hurtT = 0;
@@ -490,6 +541,7 @@ export class Game {
     this.bossPig.src = "/boss-pig-reference.webp";
     this.wood.src = "/wood-surface.webp";
     this.steel.src = "/steel-surface.webp";
+    this.nurse.src = "/scrubs.png";
     this.runSeed = Math.floor(Math.random() * 0xffffffff);
     const built = buildLevels(this.runSeed);
     this.courses = built.courses;
@@ -505,6 +557,11 @@ export class Game {
         return;
       this.probeActive = false;
       this.keys.add(e.code);
+      if (this.mode === "questTally" && !e.repeat && (e.code === "Enter" || e.code === "Space")) {
+        e.preventDefault();
+        this.finishQuest();
+        return;
+      }
       if (!e.repeat) {
         if (e.code === "Escape" || e.code === "KeyP") this.togglePause();
         if (this.mode === "play") {
@@ -518,6 +575,7 @@ export class Game {
       }
       if (
         this.mode === "play" ||
+        this.mode === "quest" ||
         this.mode === "pause" ||
         this.mode === "slide" ||
         this.mode === "walkoff"
@@ -542,7 +600,7 @@ export class Game {
       this.keys.clear();
       this.pointers.clear();
       this.recomputeTouch();
-      if (this.mode === "play") this.togglePause();
+      if (this.mode === "play" || this.mode === "quest") this.togglePause();
     };
     this.onVis = () => {
       if (document.visibilityState === "hidden") this.onBlur();
@@ -595,6 +653,10 @@ export class Game {
     this.checkpoint = 0;
     this.snap = null;
     this.fade = 0;
+    this.spentDoors = new Set();
+    this.quest = null;
+    this.questInfo = null;
+    this.questResult = null;
     this.loadLevel(this.courses[this.levelIndex], 1, 0, true);
     this.audio.startMusic("day");
     this.mode = "card";
@@ -602,7 +664,12 @@ export class Game {
   }
 
   togglePause() {
-    if (this.mode === "play" || this.mode === "slide" || this.mode === "walkoff") {
+    if (
+      this.mode === "play" ||
+      this.mode === "quest" ||
+      this.mode === "slide" ||
+      this.mode === "walkoff"
+    ) {
       this.pausedFrom = this.mode;
       this.mode = "pause";
       this.audio.stopMusic();
@@ -612,6 +679,7 @@ export class Game {
       this.player.jumpBuf = 0;
     } else if (this.mode === "pause") {
       this.mode = this.pausedFrom;
+      this.questPrev = { ...blank(), ...this.actions };
       this.audio.startMusic(this.level.music);
     }
   }
@@ -627,6 +695,7 @@ export class Game {
     this.audio.unlock();
     if (down) this.pointers.set(id, action);
     else this.pointers.delete(id);
+    if (down && this.mode === "quest") this.questPressed[action] = true;
     if (down && this.mode === "play") {
       if (action === "jump") this.player.jumpBuf = 0.12;
       if (action === "hammer") this.hammerEdge = true;
@@ -693,6 +762,9 @@ export class Game {
       puddles: { get: () => this.puddles.length },
       lecture: { get: () => this.lecture },
       idle: { get: () => this.idleT },
+      quest: { get: () => this.quest?.id ?? "" },
+      questScore: { get: () => this.quest?.hud().score ?? 0 },
+      spentDoors: { get: () => this.spentDoors.size },
       staffGap: {
         get: () => {
           const p = this.player;
@@ -708,6 +780,16 @@ export class Game {
       window.__kilnDev = {
         charge: (n) => (this.charge = clamp(n, 0, 10)),
         heat: (n) => (this.heat = clamp(n, 0, 100)),
+        questSkip: (seconds) => {
+          for (let i = 0; i < seconds * 60 && this.quest && !this.quest.result(); i++)
+            this.quest.step(STEP, { held: blank(), pressed: blank() });
+          return this.quest?.hud().timer ?? 0;
+        },
+        teleport: (x) => {
+          this.player.x = x;
+          this.camX = clamp(x - VIEW_W * 0.32, 0, Math.max(0, this.level.w * TILE - VIEW_W));
+          return x;
+        },
       };
   }
 
@@ -749,6 +831,9 @@ export class Game {
   private frame(dt: number) {
     if (this.mode !== "pause") this.clock += dt;
     this.sample();
+    if (this.mode === "quest")
+      for (const k of ACTIONS) if (this.actions[k] && !this.questPrev[k]) this.questPressed[k] = true;
+    this.questPrev = { ...blank(), ...this.actions };
     if (this.mode === "play" && this.actions.jump && !this.prevJump) this.player.jumpBuf = 0.12;
     if (this.mode === "play" && !this.actions.jump && this.prevJump) this.jumpRelease = true;
     this.prevJump = this.actions.jump;
@@ -816,8 +901,10 @@ export class Game {
 
     if (this.mode === "card") {
       this.cardT -= dt;
-      if (this.cardT <= 0 && this.visualsReady() && (this.audio.ready || this.audio.failed))
-        this.mode = "play";
+      if (this.cardT <= 0 && this.visualsReady() && (this.audio.ready || this.audio.failed)) {
+        this.mode = this.cardNext;
+        this.cardNext = "play";
+      }
       return;
     }
     if (this.mode === "die") {
@@ -840,6 +927,11 @@ export class Game {
       }
       return;
     }
+    if (this.mode === "quest") {
+      this.stepQuest(dt);
+      return;
+    }
+    if (this.mode === "questTally") return;
     if (this.mode === "over" || this.mode === "win" || this.mode === "title") return;
 
     this.player.freeze = Math.max(0, this.player.freeze - dt);
@@ -864,6 +956,7 @@ export class Game {
       this.collectItems();
       this.touchEnemies();
       this.tryPipe();
+      this.tryDoor();
       this.tryFlag();
       const nextCheckpoint = this.level.checkpoints
         .filter((x) => x * TILE > this.checkpoint && x * TILE <= this.player.x)
@@ -2016,6 +2109,180 @@ export class Game {
       this.hitBoss("bonk", 2, cx, cy);
   }
 
+  private questContext(rng: () => number): QuestContext {
+    return {
+      audio: this.audio,
+      images: {
+        server: this.server,
+        hotelStaff: this.hotelStaff,
+        student: this.student,
+        worker: this.worker,
+        nurse: this.nurse,
+        coke: this.zeroCan,
+        nuts: this.nuts,
+        buccees: this.beaver,
+        wood: this.wood,
+        steel: this.steel,
+      },
+      drawHero: (ctx, pose, cam = 0) => drawHero(ctx, this.heroAssets(), pose, cam),
+      rng,
+      say: (text, seconds) => this.say(text, seconds, true),
+      comic: (x, y, text, big) => this.comic(x, y, text, big),
+      reduced: this.reduce,
+    };
+  }
+
+  private startQuest(id: QuestId, opts: { table?: string; practice: boolean; returnX: number }) {
+    const make = QUESTS[id];
+    if (!make) return false;
+    const quest = make();
+    const seed = (this.runSeed ^ Math.floor(opts.returnX * 7919)) >>> 0;
+    quest.enter(this.questContext(seededRandom(seed)), { table: opts.table, practice: opts.practice });
+    this.quest = quest;
+    this.questInfo = { id, practice: opts.practice, returnX: opts.returnX };
+    this.questResult = null;
+    this.questPressed = blank();
+    this.questPrev = { ...blank(), ...this.actions };
+    this.comics = [];
+    this.banterT = 0;
+    this.curse = 0;
+    this.mode = "card";
+    this.cardNext = "quest";
+    this.cardT = 1.65;
+    return true;
+  }
+
+  /** Practice from the title: no run, back to the title after the tally. */
+  newQuest(id: QuestId) {
+    if (this.mode !== "title" && this.mode !== "over" && this.mode !== "win") return;
+    this.audio.unlock();
+    this.loadLevel(this.courses[0], 1, 0, true);
+    if (this.startQuest(id, { table: "banquet", practice: true, returnX: 0 }))
+      this.audio.startMusic("day");
+  }
+
+  /** The unspent, unlocked side-quest door Hammer stands in front of. */
+  private doorInFront() {
+    const p = this.player,
+      cx = p.x + p.w / 2;
+    return this.level.doors.find(
+      (door) =>
+        !door.locked &&
+        !this.spentDoors.has(`${this.level.id}:${door.x}`) &&
+        Math.abs(cx - (door.x * TILE + DOOR_W / 2)) <= DOOR_W / 2,
+    );
+  }
+
+  private tryDoor() {
+    const p = this.player;
+    if (!this.actions.down || !p.onGround || this.swing > 0 || this.superT > 0) return;
+    if (this.mode !== "play") return;
+    const door = this.doorInFront();
+    if (!door) return;
+    this.spentDoors.add(`${this.level.id}:${door.x}`);
+    this.startQuest(door.quest, { table: door.table, practice: false, returnX: p.x });
+  }
+
+  private stepQuest(dt: number) {
+    const q = this.quest!;
+    const pressed = this.questPressed;
+    this.questPressed = blank();
+    q.step(dt, { held: { ...blank(), ...this.actions }, pressed });
+    this.banterT = Math.max(0, this.banterT - dt);
+    const done = q.result();
+    if (!done) return;
+    this.questResult = done;
+    this.mode = "questTally";
+    this.audio.stopMusic();
+    this.audio.clear();
+  }
+
+  /** Continue from the tally: pay out and go back to the door, or back to the title. */
+  finishQuest() {
+    const q = this.quest,
+      r = this.questResult,
+      info = this.questInfo;
+    if (this.mode !== "questTally" || !q || !r || !info) return;
+    q.exit();
+    this.quest = null;
+    this.questResult = null;
+    this.questInfo = null;
+    this.comics = [];
+    this.banterT = 0;
+    if (info.practice) {
+      this.hooks.onQuestRecord?.(info.id, r.score);
+      this.mode = "title";
+      return;
+    }
+    this.scoreAdd(r.score);
+    this.addZeros(r.coins);
+    this.charge = Math.min(10, this.charge + r.charge);
+    this.lives += r.lives;
+    if (r.hot || r.fullBelly) this.player.form = 2;
+    const p = this.player,
+      feet = p.y + p.h;
+    p.x = info.returnX;
+    p.vx = 0;
+    p.vy = 0;
+    p.crouch = false;
+    p.slideT = 0;
+    p.h = HERO_BODY_HEIGHT;
+    p.y = feet - p.h;
+    p.onGround = true;
+    p.invuln = Math.max(p.invuln, 0.6);
+    this.idleT = 0;
+    if (r.star) this.startTreat();
+    this.audio.startMusic(this.level.music);
+    this.mode = "play";
+  }
+
+  private renderQuest() {
+    this.paintStage(0, false, "hotel");
+    this.quest!.render(this.ctx, this.clock);
+    this.drawHeroLine(0);
+    this.drawComics(0);
+    this.gradeStage();
+  }
+
+  private drawDoors(cam: number) {
+    const ctx = this.ctx,
+      base = GROUND_ROW * TILE,
+      front = this.doorInFront();
+    for (const door of this.level.doors) {
+      const x = door.x * TILE - cam;
+      if (x < -DOOR_W || x > VIEW_W) continue;
+      const spent = this.spentDoors.has(`${this.level.id}:${door.x}`);
+      ctx.save();
+      ctx.fillStyle = "#2a1d14";
+      ctx.fillRect(x - 3, base - 66, DOOR_W + 6, 66);
+      ctx.fillStyle = spent ? "#4a3424" : "#6b4428";
+      ctx.fillRect(x, base - 58, DOOR_W / 2 - 0.5, 58);
+      ctx.fillRect(x + DOOR_W / 2 + 0.5, base - 58, DOOR_W / 2 - 0.5, 58);
+      ctx.fillStyle = "rgba(255,236,200,0.12)";
+      ctx.fillRect(x + 3, base - 54, DOOR_W / 2 - 6, 50);
+      ctx.fillRect(x + DOOR_W / 2 + 3, base - 54, DOOR_W / 2 - 6, 50);
+      ctx.fillStyle = "#d9b45a";
+      ctx.fillRect(x + DOOR_W / 2 - 3, base - 30, 1.5, 8);
+      ctx.fillRect(x + DOOR_W / 2 + 1.5, base - 30, 1.5, 8);
+      ctx.font = "800 5px 'Segoe UI',sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#e8c060";
+      ctx.fillText(door.label, x + DOOR_W / 2, base - 60);
+      if (spent) {
+        ctx.fillStyle = "#f4efe4";
+        ctx.fillRect(x + 8, base - 48, DOOR_W - 16, 8);
+        ctx.fillStyle = "#2a1d14";
+        ctx.font = "700 3.4px 'Segoe UI',sans-serif";
+        ctx.fillText("THANK YOU", x + DOOR_W / 2, base - 42.6);
+      } else if (door === front) {
+        ctx.fillStyle = `rgba(255,229,152,${0.6 + 0.4 * Math.sin(this.clock * 6)})`;
+        ctx.font = "900 9px 'Segoe UI',sans-serif";
+        ctx.fillText("↓", x + DOOR_W / 2, base - 70);
+      }
+      ctx.restore();
+    }
+  }
+
   private tryPipe() {
     if (!this.actions.down || this.player.pipeLock > 0 || !this.player.onGround) return;
     const feet = this.player.y + this.player.h;
@@ -2678,6 +2945,7 @@ export class Game {
   }
 
   private render(dt: number) {
+    if (this.quest) return this.renderQuest();
     const ctx = this.ctx;
     const cam = Math.floor(this.camX);
     this.paintStage(cam, this.level.sky !== "day");
@@ -2708,6 +2976,7 @@ export class Game {
     }
     // The exit is a venue door, rather than the original platformer flagpole.
     this.drawCastle(cam);
+    this.drawDoors(cam);
     this.drawPuddles(cam);
     for (const it of this.items) this.drawPickup(it, cam);
     for (const e of this.enemies) this.drawEnemy(e, cam);
@@ -2783,19 +3052,19 @@ export class Game {
     void dt;
   }
 
-  private paintStage(cam: number, night: boolean) {
+  private paintStage(cam: number, night: boolean, theme: Level["theme"] = this.level.theme) {
     const ctx = this.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = true;
     ctx.fillStyle = "#141c28";
     ctx.fillRect(0, 0, DISPLAY_W, DISPLAY_H);
-    const roomBg = this.level.theme === "campus" ? this.campusBg : this.hotelBg;
+    const roomBg = theme === "campus" ? this.campusBg : this.hotelBg;
     if (roomBg.complete && roomBg.naturalWidth > 0) {
       const cover = Math.max(DISPLAY_W / roomBg.naturalWidth, DISPLAY_H / roomBg.naturalHeight);
       const dw = roomBg.naturalWidth * cover;
       const dh = roomBg.naturalHeight * cover;
       const span = dw;
-      const venueOffset = this.level.theme === "restaurant" ? DISPLAY_W * 0.3 : 0;
+      const venueOffset = theme === "restaurant" ? DISPLAY_W * 0.3 : 0;
       let x = -((cam * 1.6 + venueOffset) % span);
       if (x > 0) x -= span;
       const y = (DISPLAY_H - dh) / 2;
@@ -3329,7 +3598,7 @@ export class Game {
 
   /** Where his face is on screen right now; words in front of him slide off it. */
   private faceOnScreen(cam: number) {
-    const face = heroFace(this.heroPose());
+    const face = heroFace(this.activePose());
     return { x: face.x - cam, y: face.y, w: face.w, h: face.h };
   }
 
@@ -3464,6 +3733,7 @@ export class Game {
         this.bossPig,
         this.wood,
         this.steel,
+        this.nurse,
       ].every((image) => image.complete && image.naturalWidth > 0)
     );
   }
@@ -3501,20 +3771,24 @@ export class Game {
     };
   }
 
+  private heroAssets() {
+    return {
+      idle: this.heroIdle,
+      body: this.heroBody,
+      upper: this.heroUpper,
+      fore: this.heroFore,
+      hand: this.heroHand,
+      towel: this.towel,
+    };
+  }
+
+  /** Hammer as he is drawn right now: in a quest, the quest's pose. */
+  private activePose(): HeroPose {
+    return this.quest ? this.quest.pose() : this.heroPose();
+  }
+
   private drawRig(cam: number) {
-    drawHero(
-      this.ctx,
-      {
-        idle: this.heroIdle,
-        body: this.heroBody,
-        upper: this.heroUpper,
-        fore: this.heroFore,
-        hand: this.heroHand,
-        towel: this.towel,
-      },
-      this.heroPose(),
-      cam,
-    );
+    drawHero(this.ctx, this.heroAssets(), this.heroPose(), cam);
   }
 
   private drawPlayer(cam: number) {
@@ -3631,17 +3905,18 @@ export class Game {
    * three sit above and behind his head and are never drawn over his face.
    */
   private drawHeroLine(cam: number) {
-    const face = heroFace(this.heroPose());
+    const pose = this.activePose();
+    const face = heroFace(pose);
     const crown = { x: face.crown.x - cam, y: face.crown.y },
       shown = { ...face, x: face.x - cam },
       view = { w: VIEW_W, h: VIEW_H };
     const place = (size: { w: number; h: number }) =>
-      thoughtLayout(size, crown, this.player.facing, shown, view).cloud;
+      thoughtLayout(size, crown, pose.facing as 1 | -1, shown, view).cloud;
     if (this.curse > 0) this.drawCurse(place);
     else if (this.banterT > 0 && this.banterSpoken)
       this.drawSpeech(this.heroBanter, 0, 0, "#e7bd6a", place);
     else if (this.banterT > 0)
-      drawThought(this.ctx, this.heroBanter, crown, this.player.facing, shown, view);
+      drawThought(this.ctx, this.heroBanter, crown, pose.facing as 1 | -1, shown, view);
   }
 
   private drawCurse(place: (size: { w: number; h: number }) => Point) {
@@ -3707,7 +3982,12 @@ export class Game {
       hot: this.player.form === 2,
       patience: this.player.form + 1,
       lectureReady: this.lectureCd <= 0,
-      hint: this.hint(),
+      hint: this.quest ? this.quest.hud().hint : this.hint(),
+      quest: this.quest ? this.quest.hud() : null,
+      questResult:
+        this.mode === "questTally" && this.questResult
+          ? { ...this.questResult, practice: this.questInfo?.practice ?? false }
+          : null,
     };
   }
 
@@ -3721,6 +4001,8 @@ export class Game {
       return "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left";
     if (this.planes.some((plane) => near(plane.x, 100)))
       return "Paper incoming · duck, jump or swat with H";
+    const door = this.doorInFront();
+    if (door) return "↓ " + door.label + " · side quest";
     if (this.banterT > 0) return "Hammer: " + this.heroBanter;
     if (p.crouch) return "Stay low · release ↓ when clear to stand";
     if (this.level.id === "bonus") return "Staff stash · ↓ on the left cart to return";

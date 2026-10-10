@@ -1,5 +1,6 @@
 import { GROUND_ROW, ID, MAP_H, TILE, type TileId } from "./constants";
 import { STUDENT_EXCHANGES, type Line } from "./lines";
+import type { QuestId } from "./quests/quest";
 
 export type Sky = "day" | "cellar";
 export type SceneTheme = "hotel" | "restaurant" | "campus";
@@ -14,6 +15,8 @@ export type Prop = {
   kind: "counter" | "shelf" | "pass" | "cart";
 };
 export type Sign = { x: number; label: string; note?: string };
+/** A side-quest door: ↓ in front of it, on the floor, enters the quest once per run. */
+export type Door = { x: number; label: string; quest: QuestId; table: string; locked?: boolean };
 export type StudentSpawn = {
   x: number;
   hammer: Line;
@@ -38,6 +41,7 @@ export type Level = {
   enemies: EnemySpawn[];
   props: Prop[];
   signs: Sign[];
+  doors: Door[];
   students: StudentSpawn[];
   deco: { x: number; y: number; k: "shrub" | "stack" }[];
   spawnX: number;
@@ -101,6 +105,7 @@ function base(
     enemies: [],
     props: [],
     signs: [],
+    doors: [],
     students: [],
     deco: [],
     spawnX: 32,
@@ -109,6 +114,9 @@ function base(
     checkpoints: [60],
     boss: null,
   };
+}
+function door(level: Level, x: number, label: string, quest: QuestId, table: string) {
+  level.doors.push({ x, label, quest, table });
 }
 function staff(level: Level, x: number, role: EnemyRole) {
   level.enemies.push({ x, role, kind: role === "hotel" ? "shell" : "soot" });
@@ -214,6 +222,7 @@ export function buildLevels(seed = 0xc0ffee): { courses: Level[]; bonus: Level }
     { x: 62, y: 12, k: "shrub" },
   ];
   furniture(lobby, 110, 10, 4, 2, "counter");
+  door(lobby, 115, "BUFFET", "hungry", "banquet");
   furniture(lobby, 136, 9, 6, 1, "pass");
   furniture(lobby, 154, 9, 3, 1, "shelf");
   furniture(lobby, 159, 7, 4, 1, "shelf");

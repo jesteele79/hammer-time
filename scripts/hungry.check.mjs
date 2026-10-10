@@ -25,6 +25,7 @@ import {
   reactionFor,
 } from "../src/game/quests/hungry.ts";
 import { seededRandom } from "../src/game/levels.ts";
+import { game } from "./game-harness.mjs";
 const run = (f, seconds, blockers = []) => {
   for (let i = 0; i < Math.round(seconds * 60); i++) stepFood(f, 1 / 60, blockers);
 };
@@ -383,4 +384,112 @@ test("an angry nurse slaps a hand in her zone: nothing eaten, a 1 s stun", () =>
   assert.ok(q.stun > 0.4, "stunned for about a second");
   assert.ok(said.includes("I've HAD my shots."));
   assert.equal(nurse.line, "Sanitize!");
+});
+
+function questStep(g, seconds) {
+  for (let i = 0; i < Math.round(seconds * 60); i++) {
+    g.clock += 1 / 60;
+    g.step(1 / 60);
+  }
+}
+
+test("the BUFFET door runs the quest, pays out, returns him to the door and is spent", () => {
+  const g = game();
+  g.visualsReady = () => true;
+  g.audio.ready = true;
+  const door = g.level.doors.find((d) => d.quest === "hungry");
+  assert.ok(door && door.label === "BUFFET");
+  const p = g.player;
+  g.enemies = [];
+  g.students = [];
+  p.x = door.x * 16 + 12;
+  p.onGround = true;
+  g.actions = { down: true };
+  questStep(g, 1 / 60);
+  assert.equal(g.mode, "card");
+  g.actions = {};
+  questStep(g, 2);
+  assert.equal(g.mode, "quest");
+  const q = g.quest;
+  const before = { score: g.score, coins: g.coins, charge: g.charge };
+  q.plateTotal = 2600;
+  q.coins = 2;
+  q.charge = 3;
+  q.time = 59.99;
+  questStep(g, 2 / 60);
+  assert.equal(g.mode, "questTally");
+  assert.equal(g.hud().questResult.grade, "GOOD TIPPER");
+  g.finishQuest();
+  assert.equal(g.mode, "play");
+  assert.equal(g.score - before.score, 2600);
+  assert.equal(g.coins - before.coins, 2);
+  assert.equal(g.charge - before.charge, 3);
+  assert.equal(g.player.form, 2, "full belly: patience back to 3");
+  assert.ok(Math.abs(g.player.x - (door.x * 16 + 12)) < 1, "back at the door");
+  assert.equal(g.player.crouch, false);
+  assert.ok(g.player.invuln > 0);
+  g.actions = { down: true };
+  questStep(g, 0.2);
+  assert.equal(g.mode, "play", "a spent door stays shut");
+});
+
+test("the door only opens from the floor in front of it, never mid-jump or mid-swing", () => {
+  const g = game();
+  const door = g.level.doors[0];
+  g.enemies = [];
+  g.students = [];
+  const p = g.player;
+  p.x = door.x * 16 - 40;
+  p.onGround = true;
+  g.actions = { down: true };
+  questStep(g, 1 / 60);
+  assert.equal(g.mode, "play", "beside it");
+  p.x = door.x * 16 + 12;
+  p.onGround = false;
+  p.vy = -200;
+  g.tryDoor();
+  assert.equal(g.mode, "play", "in the air");
+  p.onGround = true;
+  g.swing = 0.3;
+  g.tryDoor();
+  assert.equal(g.mode, "play", "mid-swing");
+});
+
+test("practice quests start from the title, record a best and never touch a run", () => {
+  const g = game();
+  g.mode = "title";
+  const records = [];
+  g.hooks = { ...g.hooks, onQuestRecord: (id, score) => records.push([id, score]), onMode() {} };
+  g.visualsReady = () => true;
+  g.audio.ready = true;
+  g.score = 0;
+  g.lives = 3;
+  g.newQuest("hungry");
+  questStep(g, 2);
+  assert.equal(g.mode, "quest");
+  g.quest.plateTotal = 1500;
+  g.quest.coins = 5;
+  g.quest.time = 59.99;
+  questStep(g, 2 / 60);
+  g.finishQuest();
+  assert.equal(g.mode, "title");
+  assert.deepEqual(records, [["hungry", 1500]]);
+  assert.equal(g.score, 0);
+  assert.equal(g.coins, 0);
+});
+
+test("pause works inside a quest and resumes it without inventing a press", () => {
+  const g = game();
+  g.visualsReady = () => true;
+  g.audio.ready = true;
+  g.mode = "title";
+  g.newQuest("hungry");
+  questStep(g, 2);
+  assert.equal(g.mode, "quest");
+  g.actions = { jump: true };
+  g.togglePause();
+  assert.equal(g.mode, "pause");
+  g.togglePause();
+  assert.equal(g.mode, "quest");
+  assert.equal(g.questPrev.jump, true, "a button held through the pause is not a fresh press");
 });
