@@ -257,6 +257,19 @@ export class AudioBus {
       g.disconnect();
     };
   }
+  /** Food going down: a short low crunch and a blip. */
+  chomp() {
+    this.noise(0.07, 0.18, 700, "lowpass");
+    this.blip(180, 0.05, "square", 0.08, 120);
+  }
+  /** A plate sliding along the tablecloth. */
+  slide() {
+    this.noise(0.16, 0.05, 1800, "bandpass", 900);
+  }
+  /** The banquet's service bell. */
+  ding() {
+    [1568, 2093].forEach((f, i) => this.blip(f, 0.18, "sine", 0.09, undefined, i * 0.05));
+  }
   boom() {
     this.blip(72, 0.38, "sine", 0.8, 32);
     this.noise(0.3, 0.22, 380, "lowpass", 120);

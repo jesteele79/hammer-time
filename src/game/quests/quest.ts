@@ -65,4 +65,6 @@ export interface Quest {
   /** Null while running. */
   result(): QuestResult | null;
   exit(): void;
+  /** Hammer as the quest draws him, so the host can keep words off his face. */
+  pose(): HeroPose;
 }
