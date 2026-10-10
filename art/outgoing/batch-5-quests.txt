@@ -1,0 +1,77 @@
+HAMMER TIME — ART BATCH 5: PICKUPS, PROPS, FOOD, SIDE-QUEST SCENES
+Attach first: hammer-profile.png (for the style). For items 1 to 3 also attach the pickup photo named.
+
+You are producing small game objects and two more background scenes in the same ink style as the attached portrait.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference portrait.
+
+RULES (every image):
+- One object per image (the food sheet is the one exception).
+- Flat bright green background like a green screen.
+- No readable text, letters, logos or watermarks.
+- Whole object in frame with margin. Square images are fine for objects.
+- Largest size available. PNG or WebP.
+
+PICKUPS AND PROPS (save to art/incoming/props/)
+
+1. coke-zero.png (attach coke-zero.png photo)
+A black Coke Zero style can, slightly beaded with condensation, a red disc on the label with no readable text.
+
+2. nuts.png (attach nuts-bag.png photo)
+A small snack bag of mixed nuts, blue and gold packaging, no readable text.
+
+3. buccees.png (attach buccees.png photo)
+A yellow and red snack bag with a cartoon beaver face on it, no readable text.
+
+4. pepper-crate.png
+A small wooden crate stencilled with a big exclamation mark, a red chili pepper on its label.
+
+5. time-clock.png
+A wall-mounted punch time clock with a card slot and a time card sticking out, seen side-on.
+
+6. keycard.png
+A hotel keycard, dark grey with a gold stripe and a stylized letter M.
+
+7. suitcase.png
+A hard-shell brown suitcase lying on its side.
+
+8. luggage-cart.png
+A brass hotel luggage cart with a red velvet base, side view, empty.
+
+9. dessert-cart.png
+A steel dessert trolley with a white cloth, loaded with cakes and pies, side view.
+
+10. scalpel.png
+A surgical scalpel, side view, steel blade, grey handle.
+
+11. boarding-pass.png
+A boarding pass card, blue and yellow, with a barcode and empty fields, no readable text.
+
+12. paper-plane.png
+A folded paper airplane, side view.
+
+FOOD SHEET (save to art/incoming/props/)
+
+13. food-sheet.png
+One image: a 4 by 4 grid of sixteen dishes seen from slightly above, each on its own white plate (except where noted), evenly spaced in a grid, same lighting, nothing touching a neighbor, on flat green. In this order, left to right then top to bottom:
+Row 1: shrimp cocktail; bread basket; deviled eggs; a kolache pastry.
+Row 2: a bowl of caramel corn puffs; a ribeye steak; chicken fried steak with gravy; a brisket plate.
+Row 3: shrimp and grits; a club sandwich; a slice of pie; a slice of cheesecake.
+Row 4: a cup of banana pudding; a hot sauce bottle (no plate); a white to-go box (no plate); a leather check folder with a receipt (no plate).
+
+SIDE-QUEST SCENES (save to art/incoming/backdrops/) — wide landscape, 3:1 or wider, no people, no readable text, stop at the floor line.
+
+14. ballroom-far.png
+A hotel ballroom wall for a banquet: red drapes with gold swags, a chandelier, a long buffet table against the wall with silver chafing dishes, a dessert cart, warm light.
+
+15. ballroom-mid.png
+On green, spaced apart: a tall silver coffee urn on a stand, a pair of banquet chairs, a folded screen room divider.
+
+16. gate-far.png
+An airport gate area: a floor-to-ceiling window with a plane parked at the jet bridge, a gate podium with a monitor, rows of seats, a departures board with no readable text.
+
+17. gate-mid.png
+On green, spaced apart: a stanchion with a retractable belt, a trash can, a rolling carry-on suitcase, a standing sign with no text.
+
+Save pickups, props and the food sheet to art/incoming/props/ and the scenes to art/incoming/backdrops/

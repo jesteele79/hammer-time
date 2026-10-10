@@ -1,0 +1,50 @@
+HAMMER TIME — ART BATCH 6: LATER VENUES, MORE CAST, TITLE ART
+Attach first: hammer-profile.png (for the style). Item 11 also needs hammer-three-quarter.png and pig-toy.jpg.
+
+Same style and rules as the earlier batches.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference portrait.
+
+RULES: one subject per image; flat bright green background (except the "far" scenes and the title art); no readable text, logos or watermarks; whole subject in frame; largest size; PNG or WebP. Scenes: wide landscape 3:1 or wider, no people, stop at the floor line.
+
+SCENES (save to art/incoming/backdrops/)
+
+1. hospital-far.png
+A hospital skills-lab corridor: pale green walls, a wooden wall rail, frosted doors with small windows, fluorescent ceiling panels, an IV pole and a parked gurney against the wall.
+
+2. hospital-mid.png
+On green, spaced apart: a nurse station counter, a tall supply rack with bins, a hand sanitizer dispenser on a post, a vending machine with no readable text.
+
+3. lounge-far.png
+A hotel executive lounge: dark wood walls, a breakfast buffet counter, a coffee machine, a wall of windows with a city at dusk, leather armchairs.
+
+4. buccees-far.png
+A giant travel-center interior: a wall of beef jerky, a brisket counter with a heat lamp, a wall of snacks, a bright cartoon beaver mural with no text.
+
+CAST (save to art/incoming/cast/) — strict LEFT-facing profile, standing straight, feet apart, near arm out and down at 30 degrees, far arm visible behind, exactly like the earlier cast.
+
+5. tech.png
+A surgical tech in navy scrubs and a scrub cap, mask pulled down under the chin.
+
+6. resident.png
+A young resident doctor in a short white coat over scrubs, stethoscope around the neck, holding a tablet in the near hand.
+
+7. administrator.png
+A hospital administrator in a grey suit, ID badge with no text, carrying a leather folder.
+
+8. titanium.png
+A smug business traveler in a navy suit, mid-sixties, silver hair, phone to his ear in the near hand, a rolling carry-on at his side.
+
+PROPS (save to art/incoming/props/)
+
+9. gurney.png — A hospital gurney with a white sheet, side view.
+10. iv-pole.png — A steel IV pole with a hanging fluid bag.
+
+TITLE ART (save to art/incoming/brand/)
+
+11. key-art.png (attach hammer-three-quarter.png and pig-toy.jpg)
+Landscape 16:9. The man from the portraits in three-quarter view, holding a wooden croquet-style mallet over his shoulder, facing off against the pink stuffed toy pig from the photo across a grand hotel lobby, dramatic warm lamp light, the same ink style. No text.
+
+12. share-card.png
+The same scene, 1200 by 630 landscape, with empty space on the left third for a title the game adds later. No text.

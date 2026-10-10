@@ -1,0 +1,37 @@
+HAMMER TIME — ART BATCH 3: THE CAST
+Attach first: hammer-profile.png (for the style). For each item also attach the photo it names.
+
+You are producing the other characters of the game in the same drawn style as the attached portrait. They are rigged and animated from these images, so the pose is strict and must be identical for everyone:
+
+POSE (every character): full body in strict LEFT-facing profile, standing straight, feet flat and slightly apart. Near arm held out and down at about 30 degrees from the body, hand open unless the item gives it something to hold; far arm visible behind the body in the same position. A clear gap between the near arm and the torso. Both shoes fully visible. Nothing behind the back.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference portrait. Use the attached photo for the costume and the kind of person only.
+
+RULES (every image):
+- One character per image, whole body in frame with margin, feet included.
+- Flat bright green background like a green screen.
+- No text, logos or watermarks.
+- Largest size available. PNG or WebP.
+
+ITEMS
+
+1. server.png (attach npc-server.png)
+A young woman server, dark hair tied back, white shirt, black vest and black apron, black trousers, holding a round serving tray at shoulder height in the near hand.
+
+2. bellhop.png (attach npc-bellhop.png)
+A bellhop in a red jacket with gold buttons and braid, black trousers, a red pillbox hat, white gloves.
+
+3. office.png (attach npc-office.png)
+An office worker, light blue shirt with the sleeves rolled, loosened tie, lanyard badge with no text, pleated khakis, brown shoes, holding a paper coffee cup in the near hand.
+
+4. student.png (attach npc-student.png)
+A college student in a grey hoodie and jeans with a backpack over one shoulder, white earbuds, sneakers, one hand holding a folded paper airplane.
+
+5. nurse.png (attach nurse-scrubs.png)
+A nurse in teal scrubs with a badge reel, white clogs, hair in a bun, holding a clipboard in the near hand.
+
+6. gate-agent.png
+A Southwest-style airline gate agent: dark blue polo shirt, grey trousers, lanyard, holding a clipboard in the near hand and a handheld boarding-pass scanner clipped to the belt.
+
+Save all of these to: art/incoming/cast/

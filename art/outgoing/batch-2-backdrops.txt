@@ -1,0 +1,38 @@
+HAMMER TIME — ART BATCH 2: BACKDROPS
+Attach first: hammer-profile.png (for the style). For each item also attach the venue photo it names.
+
+You are producing wide background scenes for a side-scrolling game, in the same drawn style as the attached portrait. These scenes sit behind the action: show the walls and what hangs on or stands against them, and stop at the floor line. The game draws the floor and everything the character stands on. No people anywhere. No readable text anywhere.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image. Use the attached photo for layout and mood only; the result must be an illustration, not a filtered photo.
+
+RULES (every image):
+- Wide landscape, 3:1 or wider.
+- "far" images: the full wall scene, edge to edge.
+- "mid" and "fore" images: only the listed objects, on a flat bright green background like a green screen, with space between objects so they can be cut apart.
+- No text, letters, logos or watermarks. No people.
+- Largest size available. PNG or WebP.
+
+ITEMS
+
+Lobby (attach venue-lobby.jpg)
+1. lobby-far.png — A grand hotel lobby wall: warm wood paneling, brass wall lamps, a long front desk against the wall, framed art, tall windows with night outside, warm light.
+2. lobby-mid.png — On green, spaced apart: two tall potted palms, a marble column, a brass luggage cart, a round side table with a lamp.
+3. lobby-fore.png — On green: one large leafy plant in a brass pot, and one marble pillar, as foreground pieces.
+
+Restaurant (attach venue-restaurant.jpg)
+4. restaurant-far.png — A hotel restaurant and open kitchen pass: tiled wall, hanging copper pans, a pass window with heat lamps, stacked plates, a back bar with bottles, menu board with no readable text.
+5. restaurant-mid.png — On green, spaced apart: a prep counter, a tall rolling rack of trays, a bar stool, a swinging kitchen door.
+6. restaurant-fore.png — On green: a stainless steel counter end, and a stack of bus tubs.
+
+Campus (attach venue-campus.jpg)
+7. campus-far.png — A college dining commons: brick and glass wall, bulletin boards covered in flyers with no readable text, a long serving counter, pendant lights, a sunny quad seen through the windows.
+8. campus-mid.png — On green, spaced apart: a round cafe table with two chairs, a tray return cart, a tall trash and recycling station, a potted ficus.
+9. campus-fore.png — On green: a brick pillar, and a tall banner stand with no text.
+
+Pig arena (attach pig-toy.jpg for the mood only; no pig in the scene)
+10. arena-far.png — A hotel gift shop at night: shelves of stuffed animals, a neon sign shape with no letters, a glass door, a cash register counter, dim light with one bright spotlight area in the middle.
+11. arena-mid.png — On green, spaced apart: a display shelf of plush toys, a spinning postcard rack, a stack of gift boxes.
+12. arena-fore.png — On green: a large stuffed bear seen from behind, and a display table corner.
+
+Save all of these to: art/incoming/backdrops/

@@ -1,0 +1,36 @@
+HAMMER TIME — ART BATCH 4: THE PIG
+Attach first: hammer-profile.png (for the style) and pig-toy.jpg (the pig).
+
+You are producing six poses of the stuffed toy pig in the attached photo, drawn in the same ink style as the attached portrait. It must still read as the same soft toy every time: pale pink velour, visible stitched panels in the same places, a broad snout, an upright pear-shaped body, short stubby limbs, small ears. All six the same height and the same pink.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference portrait.
+
+RULES (every image):
+- One pig per image, whole body in frame with margin.
+- Strict LEFT-facing profile.
+- Flat bright green background like a green screen.
+- No text, logos or watermarks.
+- Largest size available. PNG or WebP.
+
+ITEMS
+
+1. idle.png
+The pig standing upright in profile, relaxed, arms at its sides, a calm face.
+
+2. windup.png
+The same pig leaning back on its heels, eyes squinting, body coiled, about to charge.
+
+3. charge.png
+The same pig leaning far forward mid-run, arms back, cheeks puffed, mouth set.
+
+4. hop.png
+The same pig in the air, legs tucked up, body stretched tall, eyes wide.
+
+5. hurt.png
+The same pig flinching, eyes squeezed shut, a tuft of white stuffing popping out of a seam on its side.
+
+6. defeated.png
+The same pig slumped and half deflated, stuffing showing at two seams, eyes drawn as flat X stitches, still cute.
+
+Save all of these to: art/incoming/pig/

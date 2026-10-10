@@ -1,0 +1,61 @@
+HAMMER TIME — ART BATCH 1: HAMMER
+Attach first: hammer-profile.png and hammer-three-quarter.png (the same man, the style to match).
+
+You are producing game art of the man in the attached portraits. Every image must be the same man, the same age, the same artist's style. Keep the clean-shaven look with the mustache exactly as in the references. Produce one image per item when I ask for it, and label it with the file name given.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+ITEMS
+
+1. head-profile.png
+The exact head from hammer-profile.png: same angle, same framing, same expression. Head and neck only, cut cleanly at the base of the neck. No jacket, no shirt collar, no clothing at all. Flat green background.
+
+2. head-three-quarter.png
+The exact head and shoulders from hammer-three-quarter.png, same framing, keeping the black jacket and pink patterned shirt. Flat green background instead of wood.
+
+3. body-affliction.png
+Full body in strict left-facing profile, standing straight, feet flat and slightly apart. Near arm held out and down at about 30 degrees from the body with the hand open and empty; far arm visible behind the body in the same position. Black Affliction t-shirt with a blue rose and wing print and the word AFFLICTION across the chest, dark blue athletic shorts to the knee, white and navy running shoes, white ankle socks. Mid-sixties, stocky, the same man as the references, same head as item 1. No mallet. A clear gap between the near arm and the torso; both shoes fully visible; shirt hem below the waist; no hands behind the back.
+
+4. mallet.png
+A heavy wooden croquet-style mallet: a thick cylinder head of rough-grained pale wood with dark end grain, a long straight oak handle with a worn grip, lying diagonally. Whole head and full handle in frame. Same ink style.
+
+5. head-profile-angry.png
+Item 1 again with one change: brow pulled down, jaw set, eyes narrowed, mouth a tight line. Furious but contained. Same size, same position of ear and chin as item 1, nothing else changed.
+
+6. head-profile-hurt.png
+Item 1 again with one change: eyes wide, mouth open mid-shout, eyebrows up, caught off guard. Same size and position as item 1.
+
+7. head-profile-smug.png
+Item 1 again with one change: chin up, one eyebrow raised, a small satisfied smirk, looking down his nose. Same size and position as item 1.
+
+8. head-profile-bored.png
+Item 1 again with one change: half-lidded eyes, mouth flat, the face of a man checking his watch. Same size and position as item 1.
+
+9. head-profile-chomp.png
+Item 1 again with one change: mouth wide open about to bite, eyes locked forward. Same size and position as item 1.
+
+10. body-scrubs.png
+Item 3 again, same man, same pose, same height, same shoes, with green hospital scrubs (V-neck top and pants) and a white badge clip on the chest instead of the t-shirt and shorts.
+
+11. body-suit.png
+Item 3 again, same pose and height, wearing a black suit jacket open over the pink patterned dress shirt from the references, no tie, dark trousers, black dress shoes.
+
+12. body-banquet.png
+Item 3 again, exactly the same, with a white cloth napkin tucked into the collar like a bib.
+
+13. towel.png
+A white hotel hand towel with a thin blue stripe, hanging loosely from a point at the top, slightly creased. Same ink style.
+
+14. wristwatch.png
+A gold wristwatch with a cream dial, seen from the side, band open. Same ink style.
+
+Save all of these to: art/incoming/hammer/
