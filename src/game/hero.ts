@@ -39,8 +39,10 @@ import {
   displayU,
   farArm,
   hurtJoints,
+  coilJoints,
   idleJoints,
   lectureJoints,
+  lungeJoints,
   rigPoint,
   scalpAngle,
   scalpPoint,
@@ -88,6 +90,10 @@ export type HeroPose = {
   anger?: number;
   /** Seconds standing idle; drives the watch check and foot tap. */
   idle?: number;
+  /** Banquet dive: extension 0..1 and reach in world px. */
+  lunge?: { u: number; reach: number };
+  /** 0..1 wind-up before a charged dive. */
+  coil?: number;
 };
 
 const SCALE = HERO_HEIGHT / 1371;
@@ -117,6 +123,8 @@ export function heroJoints(p: HeroPose, continuous = false): Joints {
     const u = 1 - p.swing / SWING_SECONDS;
     return swingJoints(continuous ? u : displayU(u, STRIKE_FROM, STRIKE_TO));
   }
+  if (p.lunge && p.lunge.u > 0) return lungeJoints(p.lunge.u, p.lunge.reach);
+  if ((p.coil ?? 0) > 0) return coilJoints(p.coil!);
   if ((p.lecture ?? 0) > 0) return lectureJoints(1 - p.lecture! / LECTURE_SECONDS, p.clock);
   if (p.wipe > 0) return wipeJoints(1 - p.wipe / WIPE_SECONDS);
   if (p.snot > 0) return snotJoints(1 - p.snot / SNOT_SECONDS);
@@ -134,6 +142,13 @@ export function heroMallet(p: HeroPose, continuous = false) {
 
 export function heroNostril(p: HeroPose) {
   return artworkToWorld(p, rigPoint(heroJoints(p), NOSTRIL, "head"));
+}
+
+/** World position of the far hand when it is out (the dive, the watch, the towel), else null. */
+export function heroFarHand(p: HeroPose): Point | null {
+  const j = heroJoints(p);
+  if (!j.far) return null;
+  return artworkToWorld(p, rigPoint(j, farArm(j).hand, "torso"));
 }
 
 /** World-space face box and the crown above it, for anything placed near his head. */

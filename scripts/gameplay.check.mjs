@@ -8,7 +8,7 @@ import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
 import * as LINES from "../src/game/lines.ts";
 import { createHash } from "node:crypto";
 import { SUPER_SECONDS, SWING_SECONDS, sweptHeadHits } from "../src/game/combat.ts";
-import { heroMallet, heroJoints, artworkToWorld, heroFace, legAngles } from "../src/game/hero.ts";
+import { heroMallet, heroJoints, artworkToWorld, heroFace, heroFarHand, legAngles } from "../src/game/hero.ts";
 import { thoughtLayout } from "../src/game/thought.ts";
 import { clearOfFace, comicBox, comicStar } from "../src/game/layout.ts";
 import {
@@ -50,6 +50,8 @@ import {
   tapJoints,
   watchJoints,
   wipeJoints,
+  coilJoints,
+  lungeJoints,
 } from "../src/game/rig.ts";
 import { buildLevels } from "../src/game/levels.ts";
 import { ID } from "../src/game/constants.ts";
@@ -975,6 +977,35 @@ test("no drawn frame of any hero pose puts the arm or mallet over the face", () 
     return elbow.y + (hand.y - elbow.y) * 0.78;
   };
   assert.ok(wrist(watchJoints(0.5)) > 380 && wrist(watchJoints(0.5)) < 520, "watch at chest height");
+  // The dive: near arm and mallet trail behind, the far arm leads below his chin.
+  const farFace = (j, label) => {
+    if (!j.far) return;
+    const { elbow, hand } = farArm(j);
+    const [a, b] = FACE.map((corner) => rigPoint(j, corner, "head"));
+    const box = {
+      x0: Math.min(a.x, b.x),
+      x1: Math.max(a.x, b.x),
+      y0: Math.min(a.y, b.y),
+      y1: Math.max(a.y, b.y),
+    };
+    for (const [from, to, r] of [
+      [FAR_SHOULDER, elbow, 46],
+      [elbow, hand, 42],
+    ])
+      for (let t = 0; t <= 1.0001; t += 0.1) {
+        const p = rigPoint(j, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }, "torso");
+        const dx = Math.max(box.x0 - p.x, 0, p.x - box.x1),
+          dy = Math.max(box.y0 - p.y, 0, p.y - box.y1);
+        assert.ok(Math.hypot(dx, dy) > r, `${label}: far arm crosses the face`);
+      }
+  };
+  for (let i = 0; i <= 100; i++)
+    for (const reach of [0, 90, 170, 250]) {
+      const u = i / 100;
+      clear(lungeJoints(u, reach), `lunge ${u} ${reach}`);
+      farFace(lungeJoints(u, reach), `lunge ${u} ${reach}`);
+      clear(coilJoints(u), `coil ${u}`);
+    }
 });
 
 test("snot is always loaded: three charges that refill; pepper makes it hot", () => {
@@ -1538,4 +1569,27 @@ test("comic words and floating scores are never drawn over his face", () => {
         assert.ok(rects.length > 0);
         for (const r of rects) assert.ok(!hits(r, face), `score text on the face at x=${x} foot=${foot}`);
       }
+});
+
+test("the dive's far hand lands at tabletop height, its reach ahead of the rest point", () => {
+  const pose = (u, reach) => ({
+    x: 18,
+    foot: 192,
+    facing: 1,
+    phase: 0,
+    moving: false,
+    air: false,
+    reduced: false,
+    mega: 0,
+    swing: 0,
+    lunge: { u, reach },
+  });
+  const rest = heroFarHand(pose(1, 0));
+  assert.ok(rest.y > 160 && rest.y < 172, `hand at tabletop height: ${rest.y}`);
+  for (const reach of [90, 170, 250]) {
+    const hand = heroFarHand(pose(1, reach));
+    assert.ok(Math.abs(hand.x - rest.x - reach) < 1e-6, "reach is measured from the rest point");
+    assert.ok(Math.abs(hand.y - rest.y) < 1e-6);
+  }
+  assert.equal(heroFarHand({ ...pose(0, 0), lunge: undefined }), null, "no far hand at rest");
 });

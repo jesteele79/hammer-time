@@ -1,4 +1,5 @@
 import {
+  HERO_HEIGHT,
   IDLE_TAP_AT,
   IDLE_WATCH_AT,
   SWING_SECONDS,
@@ -382,6 +383,36 @@ export function idleJoints(t: number, reduced: boolean): Joints | null {
     return watchJoints((t - IDLE_WATCH_AT) / WATCH_SECONDS);
   if (t >= IDLE_TAP_AT && !reduced) return tapJoints(t - IDLE_TAP_AT);
   return null;
+}
+
+/**
+ * Hungry Hungry Hammer dive: lean out over the table and scoot along it, far
+ * hand first at tabletop height. `reach` is in world pixels; the head stays level.
+ */
+export const LUNGE_LEAN = 55;
+export const LUNGE_HAND = { x: 568, y: 22 };
+const LUNGE_POLE = { x: 330, y: 650 };
+export function lungeJoints(u: number, reach: number): Joints {
+  const k = Math.max(0, Math.min(1, u));
+  return {
+    ...REST,
+    lean: LUNGE_LEAN * k,
+    dx: (reach * k * 1371) / HERO_HEIGHT,
+    stride: 0.8 * k,
+    A: A0 + 60 * k,
+    F: F0 + 70 * k,
+    H: H0 + 50 * k,
+    far:
+      k > 0.02
+        ? { x: FAR_REST.x + (LUNGE_HAND.x - FAR_REST.x) * k, y: FAR_REST.y + (LUNGE_HAND.y - FAR_REST.y) * k }
+        : null,
+    pole: LUNGE_POLE,
+  };
+}
+/** Winding up a charged dive: sit back on the heels. */
+export function coilJoints(c: number): Joints {
+  const k = Math.max(0, Math.min(1, c));
+  return { ...REST, lean: -7 * k, squat: 0.25 * k, stride: -0.25 * k };
 }
 
 export const AIR: Joints = { ...REST, A: A0 - 22, F: F0 - 42, H: H0 - 26, lean: -2 };
