@@ -11,6 +11,7 @@ import type { HeroState, Stage } from "../sim/types";
 import { createWorld } from "../sim/world";
 import type { RenderApp } from "./app";
 import { loadBackdrop } from "./backdrop";
+import { createBoards } from "./boards";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
 import { PALETTE } from "./palette";
@@ -48,7 +49,7 @@ const DUST_EVERY = 0.12;
 export type Look = { stop(): void };
 
 /** The look test: Hammer in the lobby under the keyboard, no HUD, one label. */
-export async function startLook(render: RenderApp, opts: { noart?: boolean } = {}): Promise<Look> {
+export async function startLook(render: RenderApp, opts: { noart?: boolean; board?: boolean } = {}): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
   const world = createWorld(LOBBY_STAGE, { x: 400, y: 0 });
@@ -76,12 +77,19 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean } = {
   scene.layers.post.addChild(vignette, title);
 
   const down = new Set<string>();
+  // A tap shorter than a frame still counts for the frame's steps.
+  const tapped = new Set<string>();
   const onKey = (e: KeyboardEvent) => {
     if (e.code in KEY_BINDINGS) e.preventDefault();
-    if (e.type === "keydown") down.add(e.code);
-    else down.delete(e.code);
+    if (e.type === "keydown") {
+      down.add(e.code);
+      tapped.add(e.code);
+    } else down.delete(e.code);
   };
-  const onBlur = () => down.clear();
+  const onBlur = () => {
+    down.clear();
+    tapped.clear();
+  };
   window.addEventListener("keydown", onKey);
   window.addEventListener("keyup", onKey);
   window.addEventListener("blur", onBlur);
@@ -141,8 +149,9 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean } = {
     time += dt;
     acc += dt;
     let steps = 0;
+    const keys = tapped.size ? new Set([...down, ...tapped]) : down;
     while (acc >= STEP && steps < 5) {
-      const input = inputFromKeys(down, prevHeld);
+      const input = inputFromKeys(keys, prevHeld);
       prevHeld = input.held;
       prev = cur;
       world.step(input);
@@ -150,6 +159,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean } = {
       acc -= STEP;
       steps++;
     }
+    if (steps > 0) tapped.clear();
     if (steps === 5) acc = 0;
     const alpha = acc / STEP;
     const h = cur.hero;
@@ -197,9 +207,22 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean } = {
     }
   };
   app.ticker.add(tick);
+  if (opts.board) {
+    // The boards move Hammer without stepping the sim; the next tick re-places him from the world.
+    const placeHero = (x: number) => {
+      world.hero.x = x;
+      world.hero.vx = 0;
+      cur = prev = world.snapshot();
+      const solved = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), 1, HEAD_SCALE, headPlate);
+      character.container.position.set(x, 0);
+      character.apply(solved, "neutral", 1, 0);
+    };
+    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero);
+  }
   return {
     stop() {
       app.ticker.remove(tick);
+      delete window.__nextBoard;
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
       window.removeEventListener("blur", onBlur);

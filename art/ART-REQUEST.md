@@ -8,6 +8,11 @@ code-drawn stand-in in the same style, so no piece blocks the build.
 The three portraits already in `art/reference/` are the style and the face.
 Every new image must match them.
 
+**Delivered 2026-10-10:** batch 1 (Hammer) — `head-profile.png` with the five
+expression plates, `head-three-quarter.png`, the four bodies, `mallet.png`,
+`towel.png` and `wristwatch.png` — all under `art/incoming/hammer/`, hashed
+and registered. Batches 2 to 6 are still open.
+
 ## 1. Rules that apply to every image
 
 **Consistency recipe.** Use the same tool that made the three portraits. Attach

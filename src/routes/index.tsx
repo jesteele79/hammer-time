@@ -9,6 +9,7 @@ export const Route = createFileRoute("/")({
     next: flag(search.next),
     gl: flag(search.gl),
     noart: flag(search.noart),
+    board: flag(search.board),
   }),
   component: Home,
 });
@@ -16,6 +17,6 @@ export const Route = createFileRoute("/")({
 const flag = (v: unknown) => v === true || v === 1 || v === "1";
 
 function Home() {
-  const { next, gl, noart } = Route.useSearch();
-  return next ? <NextGame forceWebgl={gl} noart={noart} /> : <KilnHop />;
+  const { next, gl, noart, board } = Route.useSearch();
+  return next ? <NextGame forceWebgl={gl} noart={noart} board={board} /> : <KilnHop />;
 }
