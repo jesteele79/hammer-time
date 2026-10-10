@@ -513,3 +513,24 @@ test("the dive stops at the first food in reach, so nothing near him goes out of
   dive(p, CHARGE_SECONDS);
   assert.equal(student.plate.length, 0, "with the path clear a charged dive robs the first plate");
 });
+
+test("specials robbed off a plate pay out like eaten ones; a robbed check still costs 400", () => {
+  for (const [kind, check] of [
+    ["coke", (q) => q.coins === 1],
+    ["buccees", (q) => q.star],
+    ["togo", (q) => q.togo === 5],
+  ]) {
+    const { q } = quiet();
+    q.rivals[1].plate.push(makeFood(960, kind, q.rivals[1].x, TABLE.top, 0, 0));
+    dive(q, CHARGE_SECONDS);
+    assert.equal(q.steals, 1, kind);
+    assert.ok(check(q) && q.specials.includes(kind), `${kind} pays out`);
+  }
+  const { q, said } = quiet();
+  q.togo = 3;
+  q.rivals[1].plate.push(makeFood(961, "check", q.rivals[1].x, TABLE.top, 0, 0));
+  dive(q, CHARGE_SECONDS);
+  assert.equal(q.plateTotal, -400, "no YOINK on the bill, and the to-go box does not double it");
+  assert.equal(q.togo, 3);
+  assert.ok(said.includes("YOU picked up the bill?"));
+});

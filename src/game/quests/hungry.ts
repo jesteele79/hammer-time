@@ -343,14 +343,11 @@ export class HungryQuest implements Quest {
     if (L.charged) {
       const r = this.rivals.find((r) => r.plate.length && Math.abs(hand - r.x) <= PLATE_RADIUS);
       if (r) {
-        const item = r.plate.pop()!;
-        this.take(item, 100);
+        this.eat(r.plate.pop()!, hand, 100, "YOINK!");
         this.steals++;
         r.anger++;
         r.calm = 0;
         this.retaliate(r);
-        this.ctx.comic(hand, TABLE.top - 22, "YOINK!", false);
-        this.ctx.audio.chomp();
         this.think("That's MINE now.");
         return;
       }
@@ -361,7 +358,8 @@ export class HungryQuest implements Quest {
     for (const f of bite) this.eat(f, hand);
   }
 
-  private eat(f: Food, hand: number) {
+  /** Eaten off the cloth or robbed off a plate: specials pay out either way, the bill always stings. */
+  private eat(f: Food, hand: number, bonus = 0, word = "NOM") {
     if (f.kind === "check") {
       this.plateTotal += f.value;
       this.bill = true;
@@ -378,9 +376,9 @@ export class HungryQuest implements Quest {
       this.specials.push(f.kind);
       if (f.kind !== "togo") this.think("Room charge.");
     }
-    this.take(f, 0);
+    this.take(f, bonus);
     this.crumbs = 0.6;
-    this.ctx.comic(hand, TABLE.top - 22, "NOM", false);
+    this.ctx.comic(hand, TABLE.top - 22, word, false);
     this.ctx.audio.chomp();
   }
 
