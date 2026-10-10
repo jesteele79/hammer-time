@@ -18,6 +18,7 @@ import {
 import { drawHero, heroFace, heroMallet, heroNostril, type HeroPose } from "./hero";
 import { drawThought, thoughtLayout } from "./thought";
 import { clearOfFace, comicBox, comicStar } from "./layout";
+import { drawPerson as drawPersonArt } from "./people";
 import { SNOT_FIRE_U, SUPER_CUT_FROM, SWING_ACTIVE, WIPE_FLICK, WIPE_SCRUB, WIPE_SHINE } from "./rig";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
@@ -3391,30 +3392,9 @@ export class Game {
     clock: number,
     stunned: boolean,
   ) {
-    if (!image.complete || !image.naturalWidth || x < -55 || x > VIEW_W + 55) return;
-    const ctx = this.ctx,
-      h = ENEMY_HEIGHT,
-      w = (crop[2] / crop[3]) * h;
-    ctx.save();
-    ctx.translate(x, feet);
-    ctx.fillStyle = "rgba(10,16,18,0.3)";
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 8, 1.6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.scale(leftFacing ? (facing > 0 ? -1 : 1) : facing < 0 ? -1 : 1, 1);
-    if (stunned) {
-      const length = 34,
-        thickness = (crop[2] / crop[3]) * length;
-      ctx.translate(0, -thickness / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.drawImage(image, ...crop, -thickness / 2, -length / 2, thickness, length);
-    } else {
-      const step = Math.sin(clock * 9);
-      ctx.rotate(step * 0.02);
-      ctx.drawImage(image, ...crop, -w * 0.42, -h - Math.abs(step) * 0.6, w, h);
-    }
-    ctx.restore();
+    drawPersonArt(this.ctx, image, crop, x, feet, facing, leftFacing, clock, stunned);
   }
+
 
   private drawSpeech(
     text: string,
