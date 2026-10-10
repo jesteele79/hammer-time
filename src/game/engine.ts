@@ -5,6 +5,7 @@ import {
   HERO_CROUCH_HEIGHT,
   ENEMY_HEIGHT,
   ENEMY_BODY_HEIGHT,
+  IDLE_HARRUMPH_AT,
   LECTURE_SECONDS,
   SNOT_SECONDS,
   SUPER_SECONDS,
@@ -308,6 +309,7 @@ declare global {
       sinus: number;
       puddles: number;
       lecture: number;
+      idle: number;
       staffGap: number;
     };
     /** Development-only QA levers; absent from production builds. */
@@ -335,6 +337,7 @@ export class Game {
   private banterT = 0;
   private banterSoft = false;
   private banterSpoken = false;
+  private idleT = 0;
   private items: Item[] = [];
   private embers: Ember[] = [];
   private bits: Bit[] = [];
@@ -685,6 +688,7 @@ export class Game {
       sinus: { get: () => this.sinus },
       puddles: { get: () => this.puddles.length },
       lecture: { get: () => this.lecture },
+      idle: { get: () => this.idleT },
       staffGap: {
         get: () => {
           const p = this.player;
@@ -839,6 +843,8 @@ export class Game {
     if (this.mode === "play") this.controlPlayer(dt);
     else if (this.mode === "slide") this.slide(dt);
     else if (this.mode === "walkoff") this.walkoff(dt);
+    if (this.mode === "play") this.stepIdle(dt);
+    else this.idleT = 0;
     this.stepSuper();
 
     if (this.mode === "play") this.tickClock(dt);
@@ -1058,6 +1064,37 @@ export class Game {
     if (p.skid && Math.random() < 0.4) this.puff(p.x + p.w / 2, p.y + p.h, "#e7d2b4");
     else if (p.onGround && Math.abs(p.vx) > 80 && Math.random() < 0.25)
       this.puff(p.x + 4, p.y + p.h, "#d8c2a4");
+  }
+
+  /** Standing around with nothing to hit, he gets impatient. */
+  private stepIdle(dt: number) {
+    const p = this.player;
+    const near = (x: number) => Math.abs(x - (p.x + p.w / 2)) < 120;
+    const threat =
+      this.enemies.some((e) => e.alive && e.state !== "flat" && near(e.x + e.w / 2)) ||
+      this.planes.some((plane) => plane.life > 0 && near(plane.x)) ||
+      (this.boss?.active === true && this.boss.state !== "defeated");
+    const busy =
+      Object.values(this.actions).some(Boolean) ||
+      !p.onGround ||
+      Math.abs(p.vx) > 1 ||
+      p.crouch ||
+      p.freeze > 0 ||
+      this.swing > 0 ||
+      this.superT > 0 ||
+      this.snotT > 0 ||
+      this.wipe > 0 ||
+      this.lecture > 0 ||
+      this.hurtT > 0;
+    if (busy || threat) {
+      this.idleT = 0;
+      return;
+    }
+    this.idleT += dt;
+    if (this.idleT < IDLE_HARRUMPH_AT) return;
+    this.idleT = 0;
+    this.audio.harrumph();
+    if (this.banterT <= 0 || this.banterSoft) this.say(ASIDES.anyDayNow.text, 1.6, true);
   }
 
   /** The slam lands with the body: plunge after the overhead load, burst on contact. */
@@ -2230,6 +2267,7 @@ export class Game {
     this.banterT = 0;
     this.banterSoft = false;
     this.banterSpoken = false;
+    this.idleT = 0;
     this.items = [];
     this.embers = [];
     this.splashes = [];
@@ -3451,6 +3489,7 @@ export class Game {
       clock: this.clock,
       crouch: p.crouch,
       lecture: this.lecture,
+      idle: this.idleT,
       dead: this.mode === "die",
       anger: Math.min(1, (p.form === 0 ? 0.75 : 0) + (this.heat >= 80 ? 0.5 : 0)),
     };

@@ -39,6 +39,7 @@ import {
   displayU,
   farArm,
   hurtJoints,
+  idleJoints,
   lectureJoints,
   rigPoint,
   scalpAngle,
@@ -85,6 +86,8 @@ export type HeroPose = {
   dead?: boolean;
   /** 0..1 temper shown as a popping vein beside the head. */
   anger?: number;
+  /** Seconds standing idle; drives the watch check and foot tap. */
+  idle?: number;
 };
 
 const SCALE = HERO_HEIGHT / 1371;
@@ -121,7 +124,8 @@ export function heroJoints(p: HeroPose, continuous = false): Joints {
   if (p.crouch) return CROUCH;
   if (p.air) return AIR;
   if (p.moving && !p.reduced) return walkJoints(p.phase);
-  return REST;
+  const idle = p.idle ? idleJoints(p.idle, p.reduced) : null;
+  return idle ?? REST;
 }
 
 export function heroMallet(p: HeroPose, continuous = false) {
@@ -160,6 +164,7 @@ const HEAD_CLIP = [
 ];
 const CAP = 52;
 const KNEE_CAP = 62;
+const HEEL = { x: 88, y: 1348 };
 
 function outline(ctx: CanvasRenderingContext2D, ...shapes: number[][][]) {
   for (const shape of shapes) {
@@ -253,12 +258,31 @@ function farArmLayer(ctx: CanvasRenderingContext2D, a: HeroAssets, j: Joints) {
   ctx.rotate(turn(elbow, hand) - turn(ELBOW, FIST));
   ctx.translate(-ELBOW.x, -ELBOW.y);
   foreSegment(ctx, upper, fore);
+  wristWatch(ctx);
   ctx.restore();
   ctx.save();
   ctx.translate(FAR_SHOULDER.x, FAR_SHOULDER.y);
   ctx.rotate(turn(FAR_SHOULDER, elbow) - turn(SHOULDER, ELBOW));
   ctx.translate(-SHOULDER.x, -SHOULDER.y);
   upperSegment(ctx, upper);
+  ctx.restore();
+}
+
+/** He always wears it; it only shows when the far arm comes out front. */
+function wristWatch(ctx: CanvasRenderingContext2D) {
+  const wrist = { x: ELBOW.x + (FIST.x - ELBOW.x) * 0.78, y: ELBOW.y + (FIST.y - ELBOW.y) * 0.78 };
+  ctx.save();
+  pivot(ctx, wrist, Math.atan2(FIST.y - ELBOW.y, FIST.x - ELBOW.x) - Math.PI / 2);
+  ctx.fillStyle = "#2a2622";
+  ctx.fillRect(wrist.x - 34, wrist.y - 11, 68, 22);
+  ctx.fillStyle = "#d9b45a";
+  ctx.beginPath();
+  ctx.arc(wrist.x + 26, wrist.y, 15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#f6efd8";
+  ctx.beginPath();
+  ctx.arc(wrist.x + 26, wrist.y, 10, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -318,7 +342,10 @@ function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, j: Join
       // Planted feet stay flat while the shin folds over them.
       pivot(ctx, ANKLE, -(tilt + (thigh + knee) * squat));
       if (rear) ctx.drawImage(a.idle, 130, 1175, 215, 121, 81, 1200, 215, 121);
-      else ctx.drawImage(a.idle, 43, 1225, 258, 146, 43, 1225, 258, 146);
+      else {
+        pivot(ctx, HEEL, -0.24 * j.tap);
+        ctx.drawImage(a.idle, 43, 1225, 258, 146, 43, 1225, 258, 146);
+      }
     }
     ctx.restore();
     // A folded knee keeps the thigh on top, ending in a round cap like the elbow.

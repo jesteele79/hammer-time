@@ -1,4 +1,11 @@
-import { SWING_SECONDS, SUPER_SECONDS, type Point } from "./combat";
+import {
+  IDLE_TAP_AT,
+  IDLE_WATCH_AT,
+  SWING_SECONDS,
+  SUPER_SECONDS,
+  WATCH_SECONDS,
+  type Point,
+} from "./combat";
 
 /**
  * Joints on the approved 456×1371 cut-out canvas. Every pose is expressed as
@@ -54,6 +61,8 @@ export type Joints = {
   pole: Point;
   /** 0..1: hips sink and sit back, knees bend, feet stay planted. */
   squat: number;
+  /** 0..1: the front toe lifts off the floor, heel planted. */
+  tap: number;
 };
 
 export const REST: Joints = {
@@ -66,6 +75,7 @@ export const REST: Joints = {
   far: null,
   pole: { x: 250, y: 560 },
   squat: 0,
+  tap: 0,
 };
 
 /** Squat: the hips sink and sit back; both legs solve to keep the feet planted. */
@@ -340,6 +350,33 @@ export function walkJoints(phase: number): Joints {
     F: F0 - 13 * swing,
     H: H0 - 12 * Math.sin(phase * Math.PI * 2 - 0.7),
   };
+}
+
+/** Watch check: elbow at his side, forearm out front, wrist at chest height. */
+export const WATCH_HAND = { x: 590, y: 430 };
+const WATCH_POLE = { x: 300, y: 720 };
+export function watchJoints(u: number): Joints {
+  const up = track([[0, 0], [0.15, 1, out], [0.85, 1], [1, 0]], u);
+  return {
+    ...REST,
+    lean: -1.5 * up,
+    far:
+      up > 0.02
+        ? { x: FAR_REST.x + (WATCH_HAND.x - FAR_REST.x) * up, y: FAR_REST.y + (WATCH_HAND.y - FAR_REST.y) * up }
+        : null,
+    pole: WATCH_POLE,
+  };
+}
+/** Impatient foot: the front toe taps twice a second. */
+export function tapJoints(t: number): Joints {
+  return { ...REST, tap: Math.max(0, Math.sin(t * Math.PI * 4)) };
+}
+/** Standing around: the watch comes up first, then the foot starts tapping. */
+export function idleJoints(t: number, reduced: boolean): Joints | null {
+  if (t >= IDLE_WATCH_AT && t < IDLE_WATCH_AT + WATCH_SECONDS)
+    return watchJoints((t - IDLE_WATCH_AT) / WATCH_SECONDS);
+  if (t >= IDLE_TAP_AT && !reduced) return tapJoints(t - IDLE_TAP_AT);
+  return null;
 }
 
 export const AIR: Joints = { ...REST, A: A0 - 22, F: F0 - 42, H: H0 - 26, lean: -2 };

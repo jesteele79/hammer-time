@@ -41,6 +41,14 @@ import {
   rotateAround,
   squatLeg,
   squatOffset,
+  FACE,
+  FAR_SHOULDER,
+  NECKLINE,
+  farArm,
+  snotJoints,
+  tapJoints,
+  watchJoints,
+  wipeJoints,
 } from "../src/game/rig.ts";
 import { buildLevels } from "../src/game/levels.ts";
 import { ID } from "../src/game/constants.ts";
@@ -891,10 +899,7 @@ test("the rest pose is the untouched original still", () => {
 
 test("no drawn frame of any hero pose puts the arm or mallet over the face", () => {
   // Eyes, nose, mustache, mouth and chin on the cut-out canvas.
-  const face = [
-    { x: 282, y: 96 },
-    { x: 368, y: 266 },
-  ];
+  const face = FACE;
   const clear = (j, label) => {
     const [a, b] = face.map((corner) => rigPoint(j, corner, "head"));
     const box = {
@@ -932,6 +937,43 @@ test("no drawn frame of any hero pose puts the arm or mallet over the face", () 
     [hurtJoints(0.18), "hurt"],
   ])
     clear(pose, label);
+  // The far arm is drawn behind the head, but the watch check brings it out front.
+  const collar = Math.max(...NECKLINE.map(([, y]) => y));
+  const farClear = (j, label) => {
+    const { elbow, hand } = farArm(j);
+    const [a, b] = FACE.map((corner) => rigPoint(j, corner, "head"));
+    const box = {
+      x0: Math.min(a.x, b.x),
+      x1: Math.max(a.x, b.x),
+      y0: Math.min(a.y, b.y),
+      y1: Math.max(a.y, b.y),
+    };
+    for (const [from, to, r] of [
+      [FAR_SHOULDER, elbow, 46],
+      [elbow, hand, 42],
+    ])
+      for (let t = 0; t <= 1.0001; t += 0.1) {
+        const p = rigPoint(j, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }, "torso");
+        const dx = Math.max(box.x0 - p.x, 0, p.x - box.x1),
+          dy = Math.max(box.y0 - p.y, 0, p.y - box.y1);
+        assert.ok(Math.hypot(dx, dy) > r, `${label}: far arm crosses the face`);
+      }
+    for (let t = 0; t <= 1.0001; t += 0.1)
+      assert.ok(elbow.y + (hand.y - elbow.y) * t > collar, `${label}: far forearm above the collar`);
+  };
+  for (let i = 0; i <= 400; i++) {
+    const u = i / 400;
+    clear(snotJoints(u), `snot ${u}`);
+    clear(wipeJoints(u), `wipe ${u}`);
+    clear(watchJoints(u), `watch ${u}`);
+    farClear(watchJoints(u), `watch ${u}`);
+    clear(tapJoints(u * 3), `tap ${u}`);
+  }
+  const wrist = (j) => {
+    const { elbow, hand } = farArm(j);
+    return elbow.y + (hand.y - elbow.y) * 0.78;
+  };
+  assert.ok(wrist(watchJoints(0.5)) > 380 && wrist(watchJoints(0.5)) < 520, "watch at chest height");
 });
 
 test("snot is always loaded: three charges that refill; pepper makes it hot", () => {
@@ -1247,4 +1289,87 @@ test("the super smash slam squats so the mallet head meets the floor", () => {
       "the floor shockwave starts at the mallet head",
     );
   }
+});
+
+function idleGame() {
+  const g = game();
+  g.enemies = [];
+  g.students = [];
+  g.planes = [];
+  g.actions = {};
+  g.player.onGround = true;
+  g.player.vx = 0;
+  return g;
+}
+const idleFor = (g, seconds) => {
+  for (let i = 0; i < Math.round(seconds * 60); i++) g.step(1 / 60);
+};
+
+test("standing still he checks his watch, taps his foot, then harrumphs; any input cancels", () => {
+  const g = idleGame();
+  let harrumphs = 0;
+  g.audio.harrumph = () => harrumphs++;
+  idleFor(g, 2.4);
+  assert.equal(heroJoints(g.heroPose()).far, null, "not yet");
+  idleFor(g, 0.4);
+  assert.ok(heroJoints(g.heroPose()).far, "watch check at 2.5 s");
+  idleFor(g, 2.6);
+  assert.ok(g.idleT > 5, "still idle at 5.4 s");
+  const tap = heroJoints({ ...g.heroPose(), idle: 5.125 });
+  assert.ok(tap.tap > 0.9 && !tap.far, "foot tap after 5 s, watch lowered");
+  assert.equal(heroJoints({ ...g.heroPose(), idle: 5.125, reduced: true }).tap, 0, "no tapping under reduced motion");
+  idleFor(g, 2.7);
+  assert.equal(harrumphs, 1);
+  assert.equal(g.heroBanter, "Any day now.");
+  assert.equal(g.banterSpoken, false);
+  assert.ok(g.idleT < 0.5, "the cycle starts over");
+  idleFor(g, 3);
+  g.actions = { run: true };
+  g.step(1 / 60);
+  assert.equal(g.idleT, 0);
+  assert.equal(heroJoints(g.heroPose()).far, null);
+});
+
+test("no idling with staff, paper or the pig nearby, and none survives a respawn", () => {
+  const g = idleGame();
+  g.enemies = [
+    {
+      ...g.courses[0].enemies[0],
+      x: g.player.x + 100,
+      y: 150,
+      w: 16,
+      h: 42,
+      alive: true,
+      awake: true,
+      state: "walk",
+      kind: "soot",
+      role: "hotel",
+      freeze: 99,
+      vx: 0,
+      vy: 0,
+      home: g.player.x + 100,
+    },
+  ];
+  idleFor(g, 3);
+  assert.equal(g.idleT, 0, "staffer 100 px away");
+  g.enemies = [];
+  g.planes = [{ x: g.player.x + 90, y: 160, ox: g.player.x + 90, oy: 160, vx: 0, life: 9, phase: 0 }];
+  idleFor(g, 3);
+  assert.equal(g.idleT, 0, "paper in the air");
+  const boss = bossGame();
+  boss.enemies = [];
+  boss.actions = {};
+  boss.boss.state = "recover";
+  boss.boss.timer = 99;
+  assert.ok(boss.boss.active, "the pig is awake");
+  idleFor(boss, 3);
+  assert.equal(boss.idleT, 0, "pig awake");
+  const h = idleGame();
+  idleFor(h, 3);
+  h.say("They need to get fired.", 6, false, true);
+  idleFor(h, 5.2);
+  assert.ok(h.idleT < 0.5, "the harrumph fired while the caption was up");
+  assert.equal(h.heroBanter, "They need to get fired.", "a spoken caption is never overwritten by the idle line");
+  h.loadLevel(h.courses[0], 1, 0, true);
+  assert.equal(h.idleT, 0);
 });

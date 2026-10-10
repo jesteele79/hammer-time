@@ -5,6 +5,11 @@ export const SUPER_SECONDS = 0.66;
 export const SNOT_SECONDS = 0.45;
 export const WIPE_SECONDS = 0.95;
 export const LECTURE_SECONDS = 0.8;
+/** Idle beats: watch check, then a foot tap, then a harrumph; the cycle repeats. */
+export const IDLE_WATCH_AT = 2.5;
+export const WATCH_SECONDS = 2.1;
+export const IDLE_TAP_AT = 5;
+export const IDLE_HARRUMPH_AT = 8;
 export const HERO_HEIGHT = 50;
 export const HERO_BODY_HEIGHT = 46;
 export const HERO_BODY_WIDTH = 14;
