@@ -17,6 +17,7 @@ import {
 } from "./combat";
 import { drawHero, heroFace, heroMallet, heroNostril, type HeroPose } from "./hero";
 import { drawThought, thoughtLayout } from "./thought";
+import { clearOfFace, comicBox, comicStar } from "./layout";
 import { SNOT_FIRE_U, SUPER_CUT_FROM, SWING_ACTIVE, WIPE_FLICK, WIPE_SCRUB, WIPE_SHINE } from "./rig";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
@@ -2770,7 +2771,7 @@ export class Game {
     this.drawEmbers(cam);
     for (const plane of this.planes) this.drawPlane(plane, cam);
     this.drawHeroLine(cam);
-    for (const t of this.texts) this.px(t.text, t.x - cam, t.y, "#fff6d8");
+    this.drawFloaters(cam);
     this.drawComics(cam);
     if (this.fade > 0) {
       ctx.fillStyle = `rgba(12,8,6,${clamp(this.fade, 0, 1)})`;
@@ -3325,32 +3326,48 @@ export class Game {
     }
   }
 
+  /** Where his face is on screen right now; words in front of him slide off it. */
+  private faceOnScreen(cam: number) {
+    const face = heroFace(this.heroPose());
+    return { x: face.x - cam, y: face.y, w: face.w, h: face.h };
+  }
+
+  private drawFloaters(cam: number) {
+    const face = this.faceOnScreen(cam),
+      view = { w: VIEW_W, h: VIEW_H };
+    for (const t of this.texts) {
+      const at = clearOfFace({ x: t.x - cam, y: t.y, w: t.text.length * 4, h: 6 }, face, view);
+      this.px(t.text, at.x, at.y, "#fff6d8");
+    }
+  }
+
   private drawComics(cam: number) {
     const ctx = this.ctx;
+    const face = this.faceOnScreen(cam),
+      view = { w: VIEW_W, h: VIEW_H };
     for (const c of this.comics) {
       const age = c.max - c.life;
       const pop = Math.min(1, age / 0.08) * (1 + 0.25 * Math.max(0, 1 - age / 0.16));
       const size = c.big ? 9 : 5.2;
       ctx.save();
+      ctx.font = `900 ${size}px 'Arial Black','Segoe UI',sans-serif`;
+      const w = ctx.measureText(c.text).width;
+      // Clamped into view first, then slid off his face, so the clamp can't push it back on.
+      const x = clamp(c.x - cam, 20, VIEW_W - 20),
+        y = clamp(c.y, 14, VIEW_H - 10);
+      const box = comicBox(x, y, w, c.big),
+        clear = clearOfFace(box, face, view);
       ctx.globalAlpha = clamp(c.life / 0.18, 0, 1);
-      ctx.translate(clamp(c.x - cam, 20, VIEW_W - 20), clamp(c.y, 14, VIEW_H - 10));
+      ctx.translate(x + clear.x - box.x, y + clear.y - box.y);
       ctx.rotate(c.rot);
       ctx.scale(pop, pop);
-      ctx.font = `900 ${size}px 'Arial Black','Segoe UI',sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      const w = ctx.measureText(c.text).width;
-      const rx = w / 2 + size * 0.9,
-        ry = size * 1.15;
       ctx.fillStyle = c.big ? "#f7c948" : "#fff4cf";
       ctx.strokeStyle = "#1b120c";
       ctx.lineWidth = 0.8;
       ctx.beginPath();
-      for (let i = 0; i < 18; i++) {
-        const a = (i / 18) * Math.PI * 2,
-          k = i % 2 ? 0.78 : 1.08;
-        ctx.lineTo(Math.cos(a) * rx * k, Math.sin(a) * ry * k);
-      }
+      for (const q of comicStar(w, c.big)) ctx.lineTo(q.x, q.y);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();

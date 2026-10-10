@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import { SUPER_SECONDS, SWING_SECONDS, sweptHeadHits } from "../src/game/combat.ts";
 import { heroMallet, heroJoints, artworkToWorld, heroFace, legAngles } from "../src/game/hero.ts";
 import { thoughtLayout } from "../src/game/thought.ts";
+import { clearOfFace, comicBox, comicStar } from "../src/game/layout.ts";
 import {
   AIR,
   CROUCH,
@@ -1467,4 +1468,74 @@ test("captions follow the voice: thoughts wait for a live recording; a cut recor
   assert.equal(g.banterT, 0, "mute stops the recording and its caption");
   g.say("Ahh. Better.", 1.2, true);
   assert.equal(g.heroBanter, "Ahh. Better.", "with nothing spoken, thoughts show");
+});
+
+test("a comic burst's box holds its drawn star at any pop and tilt; clearing a box moves it least", () => {
+  for (const big of [false, true])
+    for (const width of [12, 40, 70]) {
+      const box = comicBox(100, 60, width, big);
+      for (let pop = 0; pop <= 1.125; pop += 0.125)
+        for (let rot = -0.15; rot <= 0.1501; rot += 0.03)
+          for (const p of comicStar(width, big)) {
+            const x = 100 + (p.x * Math.cos(rot) - p.y * Math.sin(rot)) * pop,
+              y = 60 + (p.x * Math.sin(rot) + p.y * Math.cos(rot)) * pop;
+            assert.ok(x > box.x && x < box.x + box.w && y > box.y && y < box.y + box.h, `star point outside at pop ${pop}`);
+          }
+    }
+  const view = { w: 384, h: 216 };
+  const face = { x: 100, y: 50, w: 4, h: 6 };
+  const hits = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  assert.deepEqual(clearOfFace({ x: 10, y: 10, w: 20, h: 8 }, face, view), { x: 10, y: 10, w: 20, h: 8 }, "a clear box stays put");
+  const moved = clearOfFace({ x: 95, y: 49, w: 20, h: 8 }, face, view);
+  assert.ok(!hits(moved, face));
+  assert.ok(moved.x === 95 || moved.y === 49, "it slides along one axis only");
+  for (const [fx, fy] of [[0, 0], [380, 0], [0, 210], [380, 210], [190, 100]]) {
+    const f = { x: fx, y: fy, w: 4, h: 6 };
+    const out = clearOfFace({ x: fx - 30, y: fy - 5, w: 70, h: 22 }, f, view);
+    assert.ok(!hits(out, f), `cleared near ${fx},${fy}`);
+    assert.ok(out.x >= 0 && out.y >= 0 && out.x + out.w <= 384 && out.y + out.h <= 216, `in view near ${fx},${fy}`);
+  }
+});
+
+test("comic words and floating scores are never drawn over his face", () => {
+  const centers = [],
+    rects = [];
+  const ctx = new Proxy(
+    {
+      measureText: (text) => ({ width: text.length * 5 }),
+      translate: (x, y) => centers.push({ x, y }),
+      fillRect: (x, y, w, h) => rects.push({ x, y, w, h }),
+    },
+    { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => ((t[k] = v), true) },
+  );
+  const hits = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const g = game();
+  g.ctx = ctx;
+  for (const facing of [1, -1])
+    for (let x = 6; x <= 378; x += 24)
+      // From his face just inside the top of the view down to the floor.
+      for (const foot of [52, 61, 70, 100, 192]) {
+        const p = g.player;
+        p.facing = facing;
+        p.x = x - p.w / 2;
+        p.y = foot - p.h;
+        const face = heroFace(g.heroPose());
+        const cx = face.x + face.w / 2,
+          cy = face.y + face.h / 2;
+        for (const [text, big] of [
+          ["HAMMER TIME!", true],
+          ["HONK!", false],
+        ]) {
+          g.comics = [{ x: cx, y: cy, text, life: 1, max: 1.1, rot: 0.15, big }];
+          centers.length = 0;
+          g.drawComics(0);
+          const at = centers[0];
+          assert.ok(!hits(comicBox(at.x, at.y, text.length * 5, big), face), `${text} on the face at x=${x} foot=${foot}`);
+        }
+        g.texts = [{ x: cx - 6, y: cy - 2, vy: 0, life: 0.5, text: "200" }];
+        rects.length = 0;
+        g.drawFloaters(0);
+        assert.ok(rects.length > 0);
+        for (const r of rects) assert.ok(!hits(r, face), `score text on the face at x=${x} foot=${foot}`);
+      }
 });

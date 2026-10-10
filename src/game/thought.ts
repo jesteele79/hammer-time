@@ -1,11 +1,10 @@
 import type { Point } from "./combat";
+import { overlaps, type Rect } from "./layout";
 
-export type Rect = { x: number; y: number; w: number; h: number };
+export type { Rect };
 type View = { w: number; h: number };
 
 const EDGE = 2;
-const overlaps = (a: Rect, b: Rect, pad: number) =>
-  a.x < b.x + b.w + pad && a.x + a.w + pad > b.x && a.y < b.y + b.h + pad && a.y + a.h + pad > b.y;
 
 /**
  * Above and behind the head, clamped to the view. When an edge would push the
