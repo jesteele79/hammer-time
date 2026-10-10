@@ -1,0 +1,9 @@
+PASTE THIS INTO GPT OR GROK (attach 3 files first: the batch .txt file and the two portraits hammer-profile.png and hammer-three-quarter.png from art/outgoing/references)
+
+I'm making art for a game called Hammer Time. The attached text file is the brief: read it fully before doing anything. The two attached portraits are the man the game is about and the exact drawing style to match; every image you make must look like the same artist drew the same man. Follow the STYLE block and the RULES in the brief word for word (flat green background, no text, one subject per image, largest size). Work through the ITEMS one at a time: make item 1 now, then wait. After each image I'll say "keep" or "redo" and name the next item. Label each image with the file name from the brief.
+
+---
+
+The repo is private, so links don't work for GPT. If you make it public, this shorter version works instead (change the batch number to switch batches):
+
+I'm making art for a game. Read the brief at https://raw.githubusercontent.com/jesteele79/hammer-time/claude/hammer-pass/art/outgoing/batch-1-hammer.txt and follow its STYLE and RULES exactly. The man and the style to match are https://raw.githubusercontent.com/jesteele79/hammer-time/claude/hammer-pass/art/outgoing/references/hammer-profile.png and https://raw.githubusercontent.com/jesteele79/hammer-time/claude/hammer-pass/art/outgoing/references/hammer-three-quarter.png (also attached). Make item 1 now, then wait; after each image I'll say keep or redo and name the next item.
