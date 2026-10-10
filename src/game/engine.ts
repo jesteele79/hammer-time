@@ -1954,6 +1954,8 @@ export class Game {
     ] as const)
       this.rings.push({ x: slam.x, y: floor, r: 4, grow, life: 0.42, max: 0.42, color, floor: true });
     this.comic(cx, p.y - 16, "HAMMER TIME!", true);
+    // The hop's thought gives way to the burst so the two never stack.
+    if (this.banterT > 0 && !this.banterSpoken && this.heroBanter === ASIDES.hammerTime.text) this.banterT = 0;
     this.audio.boom();
     for (let i = 0; i < 16; i++) {
       const a = (i / 16) * Math.PI * 2;

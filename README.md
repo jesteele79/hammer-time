@@ -43,7 +43,10 @@ drawn frame puts an arm or the mallet over his face (a test sweeps every pose).
   and a hit-stop. The real shoulder, elbow and wrist each have a joint, and the
   sleeve travels with the shoulder.
 - **Super smash.** A hop, a long overhead load, then a slam that fires on
-  touchdown with a floor shockwave and "HAMMER TIME!"
+  touchdown with "HAMMER TIME!" He folds forward and sinks into a squat: the
+  hips drop and sit back, the pelvis tips, both knees bend while the shoes stay
+  flat where they stand, and the mallet head lands on the floor in front of
+  his toes. The floor shockwave starts at the mallet head.
 - **Snot rocket.** He rears back to load his sinuses, then snaps forward and
   honks; no hand comes up to the face. Snot is always loaded: three charges
   that refill over about a second and a half each. Pepper from a ! crate makes
@@ -56,6 +59,12 @@ drawn frame puts an arm or the mallet over his face (a test sweeps every pose).
   and back of the head, gets flicked out behind him in a spray of sweat, goes
   back in the pocket and leaves a glint. Heat drains while he wipes; at full
   heat a kettle whistle blows and steam rises off his head.
+- **Impatience.** Left standing on the floor with no input and nothing within
+  reach (no staffer within 120 px, no paper in the air, no awake pig), he
+  checks his watch at 2.5 seconds (the far forearm comes out front, the watch
+  at chest height, never above the collar), taps his front toe from 5 seconds,
+  and at 8 seconds harrumphs and thinks "Any day now." The cycle repeats. Any
+  input, a respawn or a new level resets it.
 
 ## Start screen
 
@@ -128,6 +137,16 @@ after the first interaction. Accepted damage immediately starts Web Audio
 playback, ducks music and suppresses repeats during immunity. Staff, paper and
 boss contacts share this path. Pause, mute and teardown stop the voice.
 
+Hammer's lines live in one table (`src/game/lines.ts`), each a `Line` with
+text and an optional recording. Only the six recordings are spoken, and a
+recording is captioned only when it actually plays: a student greeting, a
+lecture payoff, a paper swat or a pig hit that lands a recording shows that
+recording's words. Every other Hammer line is a thought bubble: a scalloped
+cloud above and behind his head with two puffs trailing toward the back of his
+head. Near the top or the sides of the screen it moves behind his face, then
+below it, and is never drawn over his face. Staff, students and the pig keep
+speech bubbles.
+
 Five additional supplied recordings preload alongside it. Staff mallet contacts
 (office and hospitality) have a 35% chance of "They need to get fired," "They
 can't take feedback" or "They get all butt hurt." Student encounters, lectures
@@ -153,13 +172,20 @@ npm run test:game
 npm run build
 ```
 
-The 33 game checks cover protected files, mallet hits/misses, immediate voice
+The 41 game checks cover protected files, mallet hits/misses, immediate voice
 scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
 distinct rewards, seeded pickup placement, all passages and supply routes,
 hospitality behavior, paper telegraph/duck/swat/contact, and boss combo rules,
 refills and exit lock. Rig checks cover the untouched rest pose, face clearance
-for every drawn pose, and the mallet arc; mechanic checks cover snot charges,
-hot snot, puddle slips, lectures and the super smash landing. Voice checks cover supplied-file integrity, shuffled
+for every drawn pose (now including snot, towel, watch check with a far-arm
+probe and a collar check, foot tap and the squatting slam), the mallet arc,
+planted feet through the squat, and the mallet meeting the floor at the slam in
+both directions; mechanic checks cover snot charges, hot snot, puddle slips,
+lectures and the super smash landing. Line checks cover the single table (only
+the six recordings carry clips), the spoken-or-thought caption switch, student
+greetings, and thought bubble placement across the whole view. Idle checks
+cover the watch, tap and harrumph timing, cancellation by input, staff, paper
+and the pig, spoken captions surviving the harrumph, and reset on a new level. Voice checks cover supplied-file integrity, shuffled
 target pools/crossover, chance skips, cooldown/no overlap, actual event triggers,
 and damage priority. A physics playthrough clears the extended route geometry
 with staff active; paper timing is tested separately. Another playthrough
@@ -178,8 +204,11 @@ node scripts/voice-browser.check.mjs http://127.0.0.1:8080/
 ```
 
 These checks capture desktop, portrait and landscape views, character actions,
-all venue selectors, paper defense, a complete boss fight, boss phone HUD,
-pause and ten touch controls. Repeat against production preview on port 8081,
+the idle watch check, the super slam (development builds), all venue
+selectors, paper defense, a complete boss fight, boss phone HUD, pause and ten
+touch controls. `--poses` also renders a pose board: every move, the watch
+check, the foot tap, the slam frame by frame and thought bubbles at the view
+edges. Repeat against production preview on port 8081,
 omitting `--poses`, which imports the development renderer. Captures and verdicts
 are saved under `artifacts/`. Voice browser checks use actual Web Audio decoding
 and playback during student and pig encounters, and verify damage, pause and mute.

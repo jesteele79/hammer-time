@@ -69,17 +69,18 @@ export function drawThought(
   ctx.font = "italic 600 4px 'Segoe UI',sans-serif";
   const lines = wrap(ctx, text, 76);
   const size = {
-    w: Math.max(...lines.map((l) => ctx.measureText(l).width)) + 14,
-    h: lines.length * 5 + 9,
+    w: Math.max(...lines.map((l) => ctx.measureText(l).width)) + 16,
+    h: lines.length * 5 + 12,
   };
   const { cloud, puffs } = thoughtLayout(size, crown, facing, face, view);
   const { x, y, w, h } = cloud;
-  const lobes = [
-    [x + w * 0.3, y + h * 0.5, w * 0.32, h * 0.5],
-    [x + w * 0.5, y + h * 0.42, w * 0.3, h * 0.48],
-    [x + w * 0.7, y + h * 0.5, w * 0.32, h * 0.5],
-    [x + w * 0.5, y + h * 0.62, w * 0.42, h * 0.4],
-  ];
+  // Four lobes in a staggered row: the scalloped edge reads as a cloud, not a caption.
+  const lobes = [0.22, 0.42, 0.6, 0.78].map((cx, i) => [
+    x + w * cx,
+    y + h * (i % 2 ? 0.45 : 0.55),
+    w * 0.22,
+    h * 0.45,
+  ]);
   const shapes = () => {
     ctx.beginPath();
     for (const [cx, cy, rx, ry] of lobes) {
@@ -101,6 +102,7 @@ export function drawThought(
   ctx.fill();
   ctx.fillStyle = "#2a1c12";
   ctx.textAlign = "center";
-  lines.forEach((part, i) => ctx.fillText(part, x + w / 2, y + 8 + i * 5));
+  const first = y + h / 2 - (lines.length - 1) * 2.5 + 1.5;
+  lines.forEach((part, i) => ctx.fillText(part, x + w / 2, first + i * 5));
   ctx.restore();
 }

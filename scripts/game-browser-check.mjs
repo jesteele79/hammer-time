@@ -72,6 +72,18 @@ try {
   assert.equal(await page.evaluate(() => window.__kiln.x), pausedX);
   await page.getByRole("button", { name: "Back to work" }).click();
   await page.screenshot({ path: resolve(out, "gameplay.png") });
+  // Left alone, he checks his watch; with the dev lever, the super smash slams the floor.
+  await page.evaluate(() => window.__controlsTest.setKeys([]));
+  await page.waitForFunction(() => window.__kiln.idle > 2.9, {}, { timeout: 9000 });
+  await page.screenshot({ path: resolve(out, "game-idle-watch.png") });
+  const slam = await page.evaluate(() => Boolean(window.__kilnDev));
+  if (slam) {
+    await page.evaluate(() => window.__kilnDev.charge(10));
+    await page.keyboard.press("q");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: resolve(out, "game-slam.png") });
+    await page.waitForTimeout(700);
+  }
   for (const viewport of [
     { width: 390, height: 844 },
     { width: 844, height: 390 },
@@ -94,9 +106,10 @@ try {
   }
   // Optional development-only pose board uses the live renderer and source art.
   if (capturePoses) {
-    await page.setViewportSize({ width: 1800, height: 520 });
-    await page.evaluate(async () => {
-      const { drawHero } = await import("/src/game/hero.ts");
+    const board = await page.evaluate(async () => {
+      const { drawHero, heroFace } = await import("/src/game/hero.ts");
+      const { drawThought } = await import("/src/game/thought.ts");
+      const { SUPER_SECONDS } = await import("/src/game/combat.ts");
       const urls = {
         idle: "hero-idle-calm.png",
         body: "hero-body.png",
@@ -115,52 +128,115 @@ try {
           assets[key] = img;
         }),
       );
+      const base = {
+        x: 0,
+        foot: 0,
+        facing: 1,
+        phase: 0,
+        moving: false,
+        air: false,
+        landing: 0,
+        swing: 0,
+        mega: 0,
+        wipe: 0,
+        snot: 0,
+        heat: 0,
+        hurt: 0,
+        star: 0,
+        reduced: false,
+        clock: 1,
+      };
+      const slam = (u) => SUPER_SECONDS * (1 - u);
+      const poses = [
+        { label: "Walk", moving: true, phase: 0.18, heat: 75 },
+        { label: "Wind-up", swing: 0.32, heat: 75 },
+        { label: "Strike", swing: 0.19, heat: 75 },
+        { label: "Brow wipe", wipe: 0.5, heat: 75 },
+        { label: "Snot rocket", snot: 0.24, heat: 75 },
+        { label: "Crouch / slide", crouch: true, heat: 75 },
+        { label: "Watch check", idle: 3.5 },
+        { label: "Foot tap", idle: 5.125 },
+        { label: "Slam load", mega: slam(0.38), air: true },
+        { label: "Slam", mega: slam(0.6) },
+        { label: "Slam hold", mega: slam(0.74) },
+        { label: "Slam, facing left", mega: slam(0.6), facing: -1 },
+        ...[0.46, 0.5, 0.54, 0.58, 0.68, 0.86].map((u) => ({
+          label: `Slam u=${u}`,
+          mega: slam(u),
+          air: u < 0.58,
+        })),
+      ];
+      const thoughts = [
+        { label: "Thought", text: "Are you going to finish that?", x: 190, foot: 192 },
+        {
+          label: "Long thought",
+          text: "I don't PAY Business Select. I AM business select.",
+          x: 120,
+          foot: 192,
+        },
+        { label: "Top edge", text: "TITANIUM. Look again.", x: 200, foot: 56 },
+        { label: "Left edge", text: "Any day now.", x: 4, foot: 192 },
+        { label: "Right edge, facing left", text: "Room charge.", x: 380, foot: 192, facing: -1 },
+        { label: "Mid-jump", text: "HAMMER TIME.", x: 260, foot: 130, air: true },
+      ];
+      const cellH = 520,
+        sceneW = 600,
+        sceneH = 338,
+        rows = Math.ceil(poses.length / 6);
       const canvas = document.createElement("canvas");
       canvas.width = 1800;
-      canvas.height = 520;
-      canvas.style = "width:1800px;height:520px";
-      document.body.replaceChildren(canvas);
+      canvas.height = rows * cellH + 2 * (sceneH + 40);
       const ctx = canvas.getContext("2d");
       ctx.fillStyle = "#192532";
-      ctx.fillRect(0, 0, 1800, 520);
-      const states = [
-        { label: "Walk", moving: true, phase: 0.18 },
-        { label: "Wind-up", swing: 0.32 },
-        { label: "Strike", swing: 0.19 },
-        { label: "Brow wipe", wipe: 0.5 },
-        { label: "Snot rocket", snot: 0.24 },
-        { label: "Crouch / slide", crouch: true },
-      ];
-      states.forEach((state, i) => {
-        ctx.save();
-        ctx.translate(i * 300 + 145, 450);
-        ctx.scale(8, 8);
-        drawHero(ctx, assets, {
-          x: 0,
-          foot: 0,
-          facing: 1,
-          phase: 0,
-          moving: false,
-          air: false,
-          landing: 0,
-          swing: 0,
-          mega: 0,
-          wipe: 0,
-          snot: 0,
-          heat: 75,
-          hurt: 0,
-          star: 0,
-          reduced: false,
-          clock: 1,
-          ...state,
-        });
-        ctx.restore();
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const label = (text, x, y) => {
         ctx.fillStyle = "#ead8b4";
         ctx.font = "bold 18px Segoe UI";
-        ctx.fillText(state.label, i * 300 + 100, 490);
+        ctx.fillText(text, x, y);
+      };
+      poses.forEach((state, i) => {
+        const cx = (i % 6) * 300,
+          cy = Math.floor(i / 6) * cellH;
+        ctx.fillStyle = "#5a6b7c";
+        ctx.fillRect(cx + 8, cy + 450, 284, 2);
+        ctx.save();
+        ctx.translate(cx + (state.facing === -1 ? 175 : 125), cy + 450);
+        ctx.scale(8, 8);
+        drawHero(ctx, assets, { ...base, ...state });
+        ctx.restore();
+        label(state.label, cx + 16, cy + 490);
       });
+      // Thought bubbles in view space near game scale (the game draws the view at 5x).
+      // Each scene crops 128x72 view units around Hammer; the darker margin is outside the view.
+      thoughts.forEach((t, i) => {
+        const ox = (i % 3) * sceneW,
+          oy = rows * cellH + Math.floor(i / 3) * (sceneH + 40);
+        const view = { w: 384, h: 216 };
+        const crop = { w: 180, h: 101.25 };
+        const left = Math.min(Math.max(t.x - crop.w / 2, -8), view.w - crop.w + 8);
+        const top = Math.min(Math.max(t.foot - 96, -8), view.h - crop.h + 8);
+        const k = (sceneW - 24) / crop.w;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(ox + 12, oy + 4, sceneW - 24, crop.h * k);
+        ctx.clip();
+        ctx.translate(ox + 12, oy + 4);
+        ctx.scale(k, k);
+        ctx.translate(-left, -top);
+        ctx.fillStyle = "#24364a";
+        ctx.fillRect(0, 0, view.w, view.h);
+        ctx.fillStyle = "#5a6b7c";
+        ctx.fillRect(0, 192, view.w, 0.5);
+        const pose = { ...base, x: t.x, foot: t.foot, facing: t.facing ?? 1, air: t.air ?? false };
+        drawHero(ctx, assets, pose);
+        const face = heroFace(pose);
+        drawThought(ctx, t.text, face.crown, pose.facing, face, view);
+        ctx.restore();
+        label(t.label, ox + 16, oy + sceneH + 30);
+      });
+      return canvas.toDataURL("image/png");
     });
-    await page.screenshot({ path: resolve(out, "character-poses.png") });
+    writeFileSync(resolve(out, "character-poses.png"), Buffer.from(board.split(",")[1], "base64"));
   }
   assert.deepEqual(errors, []);
   writeFileSync(
@@ -173,6 +249,8 @@ try {
         towel: true,
         hammer: true,
         pause: true,
+        idle: true,
+        slam,
         touchButtons: 10,
         viewports: ["1280x800", "390x844", "844x390"],
         pageErrors: errors,
@@ -182,7 +260,7 @@ try {
     ),
   );
   console.log(
-    "PASS: pepper, snot, towel, hammer, pause, 10 touch controls, portrait and landscape; no page errors.",
+    `PASS: pepper, snot, towel, hammer, pause, idle watch${slam ? ", super slam" : ""}, 10 touch controls, portrait and landscape; no page errors.`,
   );
 } catch (err) {
   console.error("Browser check failure", errors, await page?.locator("body").innerText());

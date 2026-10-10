@@ -40,7 +40,11 @@ try {
     assert.equal(await page.evaluate(() => window.__kiln.scene), scene);
     await page.screenshot({ path: resolve(out, `surroundings-${scene}.png`) });
     if (scene === "campus") {
-      assert.match(await page.locator("body").innerText(), /syllabus|rookie/);
+      // The written opener, or the student recording that played instead.
+      assert.match(
+        await page.locator("body").innerText(),
+        /Hammer: (Read the syllabus, rookie\.|They got a problem\.|Go grow some man balls\.)/,
+      );
     }
     if (scene === "lobby") {
       await page.keyboard.down("ArrowDown");

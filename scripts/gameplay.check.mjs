@@ -1288,6 +1288,10 @@ test("the super smash slam squats so the mallet head meets the floor", () => {
       g.rings.some((ring) => ring.floor && Math.abs(ring.x - head.x) < 1),
       "the floor shockwave starts at the mallet head",
     );
+    assert.ok(
+      g.comics.some((c) => c.text === "HAMMER TIME!") && !(g.banterT > 0 && g.heroBanter === "HAMMER TIME."),
+      "the slam's comic burst replaces the hop's thought",
+    );
   }
 });
 
