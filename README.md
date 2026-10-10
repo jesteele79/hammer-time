@@ -99,14 +99,16 @@ from the start screen.
   cart crashing in at 42 seconds and spilling eight plates. Coke Zero, nuts,
   a Buc-ee's bag, hot sauce, a to-go box and the check each drop once.
 - **The dive.** Hammer dives along the front of the table, far hand first,
-  and eats everything within 10 px of his hand. A tap reaches 90 px, plus 10
-  px for every plate he has eaten, up to 250. Holding the button grows the
-  dive to 250 by half a second, with a marker on the cloth showing where it
-  will land; a charged dive that ends on a rival's plate steals the top item
-  for its value plus a 100-point YOINK.
+  and stops at the first food his hand reaches, eating everything within 10 px
+  of it. A tap reaches up to 90 px, plus 10 px for every plate he has eaten,
+  up to 250. Holding the button stretches the dive to 250 by half a second,
+  with a marker on the cloth showing where it will stop; a charged dive with a
+  clear path to a rival's plate robs the top item for its value plus a
+  100-point YOINK (specials on it pay out as if eaten).
 - **The rivals.** A student, a bellhop and a nurse grab food that settles
   near them after a reaction delay, faster the angrier they get. Robbed, the
-  student throws paper down the table (duck or swat; a hit costs 150), the
+  student winds up ("Heads up!") and throws paper down the table (duck under
+  it or swat it; a hit costs 150), the
   bellhop drops a suitcase that stops food and dives for four seconds, and an
   angry nurse slaps a hand that reaches into her zone.
 - **The server** walks behind the table bussing plates ("Are we still working
@@ -223,7 +225,7 @@ npm run test:game
 npm run build
 ```
 
-The 68 game checks (47 in `gameplay.check.mjs`, 21 in `hungry.check.mjs`)
+The 72 game checks (47 in `gameplay.check.mjs`, 25 in `hungry.check.mjs`)
 cover protected files, mallet hits/misses, immediate voice
 scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
 distinct rewards, seeded pickup placement, all passages and supply routes,
