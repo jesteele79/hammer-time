@@ -1,0 +1,28 @@
+Use case: identity-preserve
+Asset type: Hammer Time game character head-and-shoulders portrait
+Output label (outside the artwork only): head-three-quarter.png
+
+Input images:
+Image 1, hammer-three-quarter.png: PRIMARY EDIT TARGET. Preserve this exact man's head and shoulders, viewing angle, gaze, expression, facial proportions, hair, mustache, black jacket, and pink patterned shirt.
+Image 2, hammer-profile.png: supplemental reference for the same man's identity and the same artist's drawing style. Do not substitute this image's profile view for Image 1's three-quarter view.
+
+Primary request — ITEM 2, head-three-quarter.png:
+The exact head and shoulders from hammer-three-quarter.png, same framing, keeping the black jacket and pink patterned shirt. Flat green background instead of wood.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Edit invariants:
+Preserve the exact Image 1 man's age, warm brown skin, short receding salt-and-pepper hair, forehead creases, brown eyes and leftward gaze, distinctive nose, full cheeks, chin, ear, and neat salt-and-pepper mustache, with the rest of the face clean-shaven. Preserve the original neutral closed-mouth expression and exact three-quarter head angle. Preserve the black jacket's lapels, pink shirt's collar, buttons and pattern, and the original head-and-shoulders portrait framing.
+Replace the wood backdrop with one completely solid bright chroma green color, #00FF00, edge to edge: absolutely no variation, texture, vignette, gradient, scene elements, or background shadows.
+Keep the whole isolated head-and-shoulders bust inside the frame with a small green margin all round, while preserving the reference's proportions and composition. Do not add limbs, a full body, accessories, or props.
+The output filename is a delivery label, never text inside the image.
+Create exactly one image in portrait format at the largest native resolution available, with highest quality.

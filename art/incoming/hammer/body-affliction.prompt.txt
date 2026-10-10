@@ -1,0 +1,32 @@
+Use case: stylized-concept
+Asset type: Hammer Time game character full-body sprite
+Output label (outside artwork only): body-affliction.png
+
+Input images:
+Image 1, head-profile.png: primary identity reference and the exact head to use for this man's full-body image. This head has been approved. Keep its head angle, expression, proportions, hair, and mustache.
+Image 2, hammer-profile.png: supplemental identity and artist-style reference.
+Image 3, hammer-three-quarter.png: supplemental identity and artist-style reference; do not use its camera angle or clothing.
+
+Primary request — ITEM 3, body-affliction.png:
+Full body in strict left-facing profile, standing straight, feet flat and slightly apart. Near arm held out and down at about 30 degrees from the body with the hand open and empty; far arm visible behind the body in the same position. Black Affliction t-shirt with a blue rose and wing print and the word AFFLICTION across the chest, dark blue athletic shorts to the knee, white and navy running shoes, white ankle socks. Mid-sixties, stocky, the same man as the references, same head as item 1. No mallet. A clear gap between the near arm and the torso; both shoes fully visible; shirt hem below the waist; no hands behind the back.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Keep this exact mid-sixties, stocky man: warm brown skin, short receding salt-and-pepper hair, forehead creases, distinctive nose and ear, full cheek and chin, brown eyes, neatly shaped salt-and-pepper mustache, otherwise clean-shaven. Every character must look drawn by the same artist as the reference portraits. Do not invent another man or another illustration style.
+
+Composition and pose:
+Show one complete man from the top of his hair to both soles, isolated on green with generous margin. His head, torso, legs and both shoes point LEFT, in a consistent standing side profile. Use the approved head from Image 1; keep the neutral closed-mouth expression. He is stocky with an older man's realistic build expressed as an inked caricature, not muscular or youthful.
+Both arms angle forward and down roughly 30 degrees away from a vertical torso; the near arm must leave an obvious green wedge of space between arm and belly. Both open empty hands and the farther arm must be distinguishable. Both feet stay flat and slightly separated so both shoes can be read. No hand behind the back, no bent elbows crossing the torso, no prop.
+Shirt chest print: one blue rose and wings, with the single word "AFFLICTION" spelled A-F-F-L-I-C-T-I-O-N. This is the only permitted text because this item explicitly requests it. No extra slogans, logos or lettering anywhere.
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.
+Exception to no-text: retain only the requested AFFLICTION word on the shirt.

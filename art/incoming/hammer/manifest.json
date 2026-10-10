@@ -1,0 +1,348 @@
+{
+  "project": "Hammer Time",
+  "batch": 1,
+  "brief": "art/outgoing/batch-1-hammer.txt",
+  "generated_with": "built-in image_gen",
+  "created_at_utc": "2026-10-10T16:23:30.313481+00:00",
+  "user_authorization": "Approved the first head on green and authorized completion of all remaining renderings without per-image review.",
+  "background": "Opaque bright green. Native generated backgrounds have small RGB variations, not a single exact RGB value.",
+  "resolution": "Largest native resolution requested in every generation prompt. Actual delivered dimensions are recorded per file; tool maximum was not independently verified.",
+  "assets": [
+    {
+      "item": 1,
+      "filename": "head-profile.png",
+      "path": "art/incoming/hammer/head-profile.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1769086,
+      "sha256": "22768be2c412ee8fdc19247c841a6a432e53e9679a618f4b5de9b827c1bab68b",
+      "top_left_rgb": [
+        24,
+        241,
+        24
+      ],
+      "top_right_rgb": [
+        18,
+        241,
+        19
+      ],
+      "final_prompt": "art/incoming/hammer/head-profile.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 2,
+      "filename": "head-three-quarter.png",
+      "path": "art/incoming/hammer/head-three-quarter.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1816789,
+      "sha256": "337c34eddceefbbc14f617947b89304fbbac06e384920a4953811b843afabb92",
+      "top_left_rgb": [
+        26,
+        242,
+        26
+      ],
+      "top_right_rgb": [
+        25,
+        241,
+        24
+      ],
+      "final_prompt": "art/incoming/hammer/head-three-quarter.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 3,
+      "filename": "body-affliction.png",
+      "path": "art/incoming/hammer/body-affliction.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1575123,
+      "sha256": "eeea7babb6bad1136097ee8ebc9ab4aa26780651384682d2da4de493f6c0ca9f",
+      "top_left_rgb": [
+        18,
+        241,
+        15
+      ],
+      "top_right_rgb": [
+        16,
+        242,
+        11
+      ],
+      "final_prompt": "art/incoming/hammer/body-affliction-correction.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 4,
+      "filename": "mallet.png",
+      "path": "art/incoming/hammer/mallet.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1552016,
+      "sha256": "99548985f6e9bddb6d371839556b205e51a2e4dd4367773671dc36b8c9931a34",
+      "top_left_rgb": [
+        17,
+        242,
+        19
+      ],
+      "top_right_rgb": [
+        15,
+        239,
+        12
+      ],
+      "final_prompt": "art/incoming/hammer/mallet.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 5,
+      "filename": "head-profile-angry.png",
+      "path": "art/incoming/hammer/head-profile-angry.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1757921,
+      "sha256": "8d7c4ab315a0fdd18817a34e9248a00af10788b3e3c602aad8c0fc986bcb73ff",
+      "top_left_rgb": [
+        20,
+        243,
+        32
+      ],
+      "top_right_rgb": [
+        19,
+        241,
+        31
+      ],
+      "final_prompt": "art/incoming/hammer/head-profile-angry.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 6,
+      "filename": "head-profile-hurt.png",
+      "path": "art/incoming/hammer/head-profile-hurt.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1792419,
+      "sha256": "b1bae6ab785c221b097a30bf541b6d98b333bcd4708b5d9bf88b13ee251ee122",
+      "top_left_rgb": [
+        21,
+        243,
+        33
+      ],
+      "top_right_rgb": [
+        24,
+        243,
+        34
+      ],
+      "final_prompt": "art/incoming/hammer/head-profile-hurt.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 7,
+      "filename": "head-profile-smug.png",
+      "path": "art/incoming/hammer/head-profile-smug.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1769618,
+      "sha256": "9cf6ef2087647f9b238e1aeeb7880d3c5f7d6e63c1d776fcfa63882326724943",
+      "top_left_rgb": [
+        21,
+        243,
+        35
+      ],
+      "top_right_rgb": [
+        22,
+        242,
+        35
+      ],
+      "final_prompt": "art/incoming/hammer/head-profile-smug.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 8,
+      "filename": "head-profile-bored.png",
+      "path": "art/incoming/hammer/head-profile-bored.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1768122,
+      "sha256": "2ae20040ca1a127e90283e209034df3cd0092eecd0192277d5baa48faa41239a",
+      "top_left_rgb": [
+        21,
+        242,
+        36
+      ],
+      "top_right_rgb": [
+        16,
+        242,
+        31
+      ],
+      "final_prompt": "art/incoming/hammer/head-profile-bored.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 9,
+      "filename": "head-profile-chomp.png",
+      "path": "art/incoming/hammer/head-profile-chomp.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1789315,
+      "sha256": "8aecd179e0a87679c3d6a3b21b57c36380678b6fb28459dd8d2f931510f90c66",
+      "top_left_rgb": [
+        22,
+        243,
+        36
+      ],
+      "top_right_rgb": [
+        19,
+        240,
+        33
+      ],
+      "final_prompt": "art/incoming/hammer/head-profile-chomp.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 10,
+      "filename": "body-scrubs.png",
+      "path": "art/incoming/hammer/body-scrubs.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1517124,
+      "sha256": "4f67ddaba85d0c2f909def28d3beb5dc2b8be61f9862b64ec1b9545b8d90f6d5",
+      "top_left_rgb": [
+        15,
+        243,
+        17
+      ],
+      "top_right_rgb": [
+        20,
+        241,
+        16
+      ],
+      "final_prompt": "art/incoming/hammer/body-scrubs.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 11,
+      "filename": "body-suit.png",
+      "path": "art/incoming/hammer/body-suit.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1461539,
+      "sha256": "050e8706a06eae47f30615c05c46eec74f04e783f87d6e9a289f303ed4356cec",
+      "top_left_rgb": [
+        17,
+        242,
+        16
+      ],
+      "top_right_rgb": [
+        17,
+        240,
+        14
+      ],
+      "final_prompt": "art/incoming/hammer/body-suit.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 12,
+      "filename": "body-banquet.png",
+      "path": "art/incoming/hammer/body-banquet.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1570274,
+      "sha256": "47575f42d190a686944fa06d588a61334a84d7dc2a3e0f84e0eb99b5473f8fc2",
+      "top_left_rgb": [
+        18,
+        243,
+        16
+      ],
+      "top_right_rgb": [
+        15,
+        241,
+        11
+      ],
+      "final_prompt": "art/incoming/hammer/body-banquet.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 13,
+      "filename": "towel.png",
+      "path": "art/incoming/hammer/towel.png",
+      "width": 1086,
+      "height": 1448,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1319780,
+      "sha256": "784e9b22a427dc28d569b670ca010801953a7fdcaad86957ddf6b49e234671f9",
+      "top_left_rgb": [
+        17,
+        242,
+        15
+      ],
+      "top_right_rgb": [
+        14,
+        240,
+        8
+      ],
+      "final_prompt": "art/incoming/hammer/towel.prompt.txt",
+      "status": "rendered and visually inspected"
+    },
+    {
+      "item": 14,
+      "filename": "wristwatch.png",
+      "path": "art/incoming/hammer/wristwatch.png",
+      "width": 1312,
+      "height": 1199,
+      "format": "PNG",
+      "mode": "RGB",
+      "opaque": true,
+      "bytes": 1657967,
+      "sha256": "5232de70659bd1462ea19289ad6664083784538e5422b71223761fdb05047d64",
+      "top_left_rgb": [
+        15,
+        242,
+        17
+      ],
+      "top_right_rgb": [
+        16,
+        241,
+        15
+      ],
+      "final_prompt": "art/incoming/hammer/wristwatch-correction.prompt.txt",
+      "status": "rendered and visually inspected"
+    }
+  ]
+}

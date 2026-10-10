@@ -1,0 +1,30 @@
+Use case: identity-preserve
+Asset type: Hammer Time game full-body outfit sprite
+Output label (outside artwork only): body-banquet.png
+
+Input images:
+Image 1, body-affliction.png: PRIMARY EDIT TARGET. Keep its exact pose, body scale, head, hand and foot placement. Image 2, head-profile.png: approved head identity reference. Image 3, hammer-three-quarter.png: clothing, identity, and artist-style reference.
+
+Primary request — ITEM 12, body-banquet.png:
+Item 3 again, exactly the same, with a white cloth napkin tucked into the collar like a bib.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Keep this exact mid-sixties, stocky man: warm brown skin, short receding salt-and-pepper hair, forehead creases, distinctive nose and ear, full cheek and chin, brown eyes, neatly shaped salt-and-pepper mustache, otherwise clean-shaven. Every character must look drawn by the same artist as the reference portraits. Do not invent another man or another illustration style.
+
+Targeted details and invariants:
+Change only one thing: add a white cloth napkin tucked into the existing black Affliction T-shirt collar, hanging against the upper chest like a bib. Preserve all existing pose, body, head, arms, hands, shorts, socks, shoes and shirt print; the napkin may naturally occlude part of the print. Do not convert this outfit into a suit or restaurant scene.
+
+Use the exact item 3 side-facing stance, with BOTH arms forward and down 30 degrees from vertical, both hands open and empty, strict left-facing body, both shoes fully inside frame, and the same 1086 by 1448 portrait canvas and figure height. Do not turn the torso toward the camera or change to a different pose.
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.
+Only the already requested AFFLICTION word on the underlying shirt is permitted; no new text.

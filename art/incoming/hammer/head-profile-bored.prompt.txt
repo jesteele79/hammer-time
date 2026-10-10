@@ -1,0 +1,29 @@
+Use case: identity-preserve
+Asset type: Hammer Time game character expression sprite
+Output label (outside artwork only): head-profile-bored.png
+
+Input images:
+Image 1, head-profile.png: PRIMARY EDIT TARGET, the approved head and neck. Image 2, hammer-profile.png: supplemental identity and artist-style reference.
+
+Primary request — ITEM 8, head-profile-bored.png:
+Item 1 again with one change: half-lidded eyes, mouth flat, the face of a man checking his watch. Same size and position as item 1.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Keep this exact mid-sixties, stocky man: warm brown skin, short receding salt-and-pepper hair, forehead creases, distinctive nose and ear, full cheek and chin, brown eyes, neatly shaped salt-and-pepper mustache, otherwise clean-shaven. Every character must look drawn by the same artist as the reference portraits. Do not invent another man or another illustration style.
+
+Targeted details and invariants:
+Only change his face to an unimpressed bored expression with half-lidded eyes and a flat closed mouth. 'Checking his watch' describes the expression only: this is head and neck only, with no actual watch, arm, hand, or accessory.
+Preserve the approved head-and-neck-only cutout, completely bare neck, original LEFT-facing head angle, precise same scale and position within the original 1086 by 1448 portrait canvas, original hair texture and mustache, clean-shaven cheek/chin, and a green margin all around. No jacket, collar, shirt, shoulders or body. Change only the requested expression.
+
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.

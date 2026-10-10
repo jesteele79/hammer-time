@@ -1,0 +1,27 @@
+Use case: stylized-concept
+Asset type: Hammer Time game isolated prop
+Output label (outside artwork only): mallet.png
+
+Input images:
+Image 1, hammer-profile.png, and Image 2, hammer-three-quarter.png: DRAWING STYLE REFERENCES ONLY. Copy the artist's ink outlines, cel shading and highlight treatment. Do not depict either person, portrait, skin, clothing, or wood background.
+
+Primary request — ITEM 4, mallet.png:
+A heavy wooden croquet-style mallet: a thick cylinder head of rough-grained pale wood with dark end grain, a long straight oak handle with a worn grip, lying diagonally. Whole head and full handle in frame. Same ink style.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Targeted details and invariants:
+One mallet only, no person and no hand. Keep the silhouette of a wooden cylinder hammer head with a single long straight wood shaft. Place it diagonally so the whole shaft, worn grip, both ends of the cylinder head, and every contour are visible inside a generous green margin.
+
+
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.

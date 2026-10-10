@@ -1,0 +1,29 @@
+Use case: precise-object-edit
+Asset type: Hammer Time isolated prop
+Output label outside artwork: wristwatch.png
+
+Input images:
+Image 1, wristwatch.png: EDIT TARGET. Preserve this watch's gold case, cream dial, side angle, hands, unlabeled tick markers, crown, black ink outlines and cel shading.
+Image 2, hammer-profile.png: artist-style reference only. No person.
+
+Primary request — ITEM 14:
+A gold wristwatch with a cream dial, seen from the side, band open. Same ink style.
+
+Targeted correction:
+Change ONLY the band and clasp configuration so the watch is clearly FULLY UNCLASPED. There must be TWO visibly separate free band ends with a wide green gap between them. The band must NOT form any closed loop or complete circle, and the clasp must not connect both sides.
+Arrange the two attached gold bracelet halves in a loose open C shape or extend them away from the watch case; show the open clasp on one end and the unconnected matching end clearly separated. It remains ONE watch, with both band halves still attached to its case. Keep the same side view with the cream dial visible at an angle, golden case thickness and crown.
+No hand, wrist, person, numerals, lettering, logo, signature or watermark. Preserve the reference rendering style and saturated gold tones with small white glints.
+Show the entire watch and both open band ends inside the frame with green margin.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.

@@ -1,0 +1,34 @@
+Use case: identity-preserve
+Asset type: Hammer Time full-body game sprite
+Output label outside artwork: body-affliction.png
+
+Input images:
+Image 1, body-affliction.png: EDIT TARGET. Correct its body orientation and arm pose, preserving this exact man's head, proportions, clothing, print and illustration style.
+Image 2, head-profile.png: approved identity and head reference.
+Image 3, hammer-profile.png: same man and same artist style reference.
+
+Primary request — ITEM 3:
+Full body in strict left-facing profile, standing straight, feet flat and slightly apart. Near arm held out and down at about 30 degrees from the body with the hand open and empty; far arm visible behind the body in the same position. Black Affliction t-shirt with a blue rose and wing print and the word AFFLICTION across the chest, dark blue athletic shorts to the knee, white and navy running shoes, white ankle socks. Mid-sixties, stocky, the same man as the references, same head as item 1. No mallet. A clear gap between the near arm and the torso; both shoes fully visible; shirt hem below the waist; no hands behind the back.
+
+Targeted corrections:
+Use an orthographic side elevation, with the torso, hips, legs and both shoes pointing exactly LEFT. The torso must present its SIDE to the viewer, not its chest. The shirt front and chest print are foreshortened toward the left. Keep Image 2's approved head angle and exact neutral expression.
+Both arms extend in the SAME direction: FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical. The nearer arm lies visibly to the LEFT of the belly with a clear triangular GREEN GAP between forearm and belly. Its elbow remains nearly straight. The farther arm is parallel, slightly offset so its outline and its open empty hand are distinguishable. Both hands are in front of the body, NEVER one hand behind the back or on the image-right side of the hips.
+Both soles are flat at the same horizontal ground level with a small forward-back stagger so both shoes are fully distinguishable. Both toes face exactly left. No visible floor or ground shadow.
+Keep the original clothing colors and requested blue rose/wing print and the word AFFLICTION. No additional text or props.
+The figure remains entirely inside the canvas with margin around hair, fingertips, and shoes.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Keep this exact mid-sixties, stocky man: warm brown skin, short receding salt-and-pepper hair, forehead creases, distinctive nose and ear, full cheek and chin, brown eyes, neatly shaped salt-and-pepper mustache, otherwise clean-shaven. Every character must look drawn by the same artist as the reference portraits. Do not invent another man or another illustration style.
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.
+Only the specifically requested shirt word AFFLICTION is permitted.

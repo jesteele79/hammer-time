@@ -1,0 +1,27 @@
+Use case: identity-preserve
+Asset type: Hammer Time game character head sprite
+Output label (outside the artwork only): head-profile.png
+
+Input images:
+Image 1, hammer-profile.png: PRIMARY EDIT TARGET. Preserve this exact man's head, angle, expression, facial proportions, hair, mustache, and drawing style.
+Image 2, hammer-three-quarter.png: supplemental reference for the same man's identity and the same artist's style. Do not substitute this image's view or expression for Image 1.
+
+Primary request — ITEM 1, head-profile.png:
+The exact head from hammer-profile.png: same angle, same framing, same expression. Head and neck only, cut cleanly at the base of the neck. No jacket, no shirt collar, no clothing at all. Flat green background.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Edit invariants and execution:
+Match Image 1's exact view and gaze to the left, including the small visible part of the far eye; do not turn the head to another angle. Keep the same mid-sixties man, warm brown skin, short receding salt-and-pepper hair, forehead creases, brown eyes, distinctive nose, ear, full cheek, chin, and neat salt-and-pepper mustache. Keep the rest of the face clean-shaven. Keep the original neutral closed-mouth expression.
+Remove the wood backdrop and all clothing. Finish the exposed neck with a clean natural silhouette and a clean outlined cut at its base, without shoulders, torso, shirt collar, jacket remnants, accessories, or additional objects. Preserve the head's proportions, alignment, and reference framing while leaving bright green margin around the entire isolated head and neck.
+Use one perfectly uniform bright chroma green background, #00FF00, with no background detail or cast shadow. The filename is a delivery label and must NOT appear in the image.
+Create exactly one portrait-format image at the largest native size available and highest quality.

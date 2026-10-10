@@ -1,0 +1,27 @@
+Use case: stylized-concept
+Asset type: Hammer Time game isolated prop
+Output label (outside artwork only): towel.png
+
+Input images:
+Image 1, hammer-profile.png, and Image 2, hammer-three-quarter.png: DRAWING STYLE REFERENCES ONLY. Copy the artist's ink outlines, cel shading and highlight treatment. Do not depict either person, portrait, skin, clothing, or wood background.
+
+Primary request — ITEM 13, towel.png:
+A white hotel hand towel with a thin blue stripe, hanging loosely from a point at the top, slightly creased. Same ink style.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen. No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks unless the item asks for them.
+- The whole subject inside the frame with margin all round. Feet included for full bodies.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like hammer-profile.png.
+
+Targeted details and invariants:
+One hanging white hand towel only, with a single thin blue stripe. Suggest a suspension point by the pinched towel top; no visible hand, person, hook, hanger, wall or other object. Keep white cloth readable using the same flat inked shadow and highlight treatment. Whole towel visible with margin.
+
+
+
+Create exactly one subject in one PNG image at the largest supported native resolution and highest quality. Use a completely uniform bright chroma green (#00FF00) background with no variation, vignette, gradient, texture, scene, floor, cast shadow, text or watermark. The output filename is a delivery label only: never put it inside the image. Keep a green margin around the entire subject.
