@@ -605,6 +605,7 @@ export class Game {
       this.mode = "pause";
       this.audio.stopMusic();
       this.audio.stopVoice();
+      this.hushVoice();
       this.fireEdge = this.hammerEdge = this.towelEdge = this.superEdge = this.lectureEdge = false;
       this.player.jumpBuf = 0;
     } else if (this.mode === "pause") {
@@ -616,6 +617,7 @@ export class Game {
   toggleMute() {
     this.audio.unlock();
     this.audio.setMuted(!this.audio.muted);
+    if (this.audio.muted) this.hushVoice();
     return this.audio.muted;
   }
 
@@ -1215,10 +1217,19 @@ export class Game {
 
   /** Soft lines (written jabs, asides) give way to the next encounter; the rest play out. */
   private say(text: string, seconds: number, soft = false, spoken = false) {
+    // A thought never talks over a recording that is still playing.
+    if (!spoken && this.banterSpoken && this.banterT > 0) return;
     this.heroBanter = text;
     this.banterT = seconds;
     this.banterSoft = soft;
     this.banterSpoken = spoken;
+  }
+
+  /** A recording cut short (damage, pause, mute) takes its caption with it. */
+  private hushVoice() {
+    if (!this.banterSpoken) return;
+    this.banterT = 0;
+    this.banterSpoken = false;
   }
 
   /** A recorded line that actually played is captioned as speech. */
@@ -2127,6 +2138,7 @@ export class Game {
     if (!quiet) {
       this.curse = 1.6;
       this.audio.curse();
+      this.hushVoice();
     }
     this.swing = this.superT = this.snotT = this.lecture = 0;
     this.shake = 0.18;
@@ -2330,6 +2342,7 @@ export class Game {
     this.hitstop = 0.04;
     this.shake = 0.12;
     this.audio.curse();
+    this.hushVoice();
     if (p.form > 0) this.shrink();
     else this.kill(true);
     p.vx = dir * 180;

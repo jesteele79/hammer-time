@@ -1439,3 +1439,32 @@ test("Hammer's spoken captions and the damage line never cover his face", () => 
             assert.ok(!hits(r, face), `${kind} caption covers the face at x=${x} foot=${foot} facing=${facing}`);
         }
 });
+
+test("captions follow the voice: thoughts wait for a live recording; a cut recording takes its caption", () => {
+  const g = game();
+  g.enemies = [];
+  g.students = [];
+  g.player.onGround = true;
+  g.actions = {};
+  g.voice("feedback");
+  g.say("HAMMER TIME.", 1.1, true);
+  assert.equal(g.heroBanter, "They can't take feedback.", "a thought waits for the recording");
+  g.lectureEdge = true;
+  g.controlPlayer(1 / 60);
+  assert.ok(g.lecture > 0, "the lecture still starts");
+  assert.equal(g.heroBanter, "They can't take feedback.", "its opener does not talk over the recording");
+  g.hurt({ x: g.player.x + 20, w: 14 });
+  assert.equal(g.banterT, 0, "damage cuts the recording and its caption");
+  g.voice("fired");
+  g.togglePause();
+  assert.equal(g.mode, "pause");
+  assert.equal(g.banterT, 0, "pause stops the recording and its caption");
+  g.togglePause();
+  g.audio.muted = false;
+  g.audio.setMuted = (muted) => (g.audio.muted = muted);
+  g.voice("butt-hurt");
+  g.toggleMute();
+  assert.equal(g.banterT, 0, "mute stops the recording and its caption");
+  g.say("Ahh. Better.", 1.2, true);
+  assert.equal(g.heroBanter, "Ahh. Better.", "with nothing spoken, thoughts show");
+});
