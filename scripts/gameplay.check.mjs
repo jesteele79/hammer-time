@@ -213,17 +213,20 @@ test("provided taunts preserve their sources and use valid short PCM speech file
   }
 });
 
-test("taunt bags cycle staff/student lines, allow occasional crossover and give the pig all five", () => {
-  const staff = new TauntRotation(() => 0.25);
-  const primary = Array.from({ length: 20 }, () => staff.next("staff"));
-  for (let i = 0; i < primary.length; i += 2)
-    assert.deepEqual(new Set(primary.slice(i, i + 2)), new Set(["fired", "feedback"]));
-  for (let i = 1; i < primary.length; i++) assert.notEqual(primary[i], primary[i - 1]);
-  const crossover = new TauntRotation(() => 0.1);
-  const studentLines = new Set(["problem", "man-balls", "butt-hurt"]);
-  assert.deepEqual(new Set(Array.from({ length: 3 }, () => crossover.next("staff"))), studentLines);
-  const student = new TauntRotation(() => 0.25);
-  assert.deepEqual(new Set(Array.from({ length: 3 }, () => student.next("student"))), studentLines);
+test("taunt bags cycle the staff and student pools separately and give the pig all five", () => {
+  const staffLines = new Set(["fired", "feedback", "butt-hurt"]);
+  const studentLines = new Set(["problem", "man-balls"]);
+  for (const seed of [0.1, 0.25, 0.9]) {
+    const staff = new TauntRotation(() => seed);
+    const primary = Array.from({ length: 21 }, () => staff.next("staff"));
+    for (let i = 0; i < primary.length; i += 3)
+      assert.deepEqual(new Set(primary.slice(i, i + 3)), staffLines);
+    for (let i = 1; i < primary.length; i++) assert.notEqual(primary[i], primary[i - 1]);
+    const student = new TauntRotation(() => seed);
+    const personal = Array.from({ length: 20 }, () => student.next("student"));
+    for (let i = 0; i < personal.length; i += 2)
+      assert.deepEqual(new Set(personal.slice(i, i + 2)), studentLines);
+  }
   const pig = new TauntRotation(() => 0.25);
   const heard = Array.from({ length: 30 }, () => pig.next("pig"));
   for (let i = 0; i < heard.length; i += 5)

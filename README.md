@@ -129,11 +129,11 @@ playback, ducks music and suppresses repeats during immunity. Staff, paper and
 boss contacts share this path. Pause, mute and teardown stop the voice.
 
 Five additional supplied recordings preload alongside it. Staff mallet contacts
-have a 35% chance of a line: usually "They need to get fired" or "They can't
-take feedback," with a 20% crossover chance to the student pool. Student
-encounters and successful paper swats have a 50% chance of "They got a problem,"
-"Go grow some man balls" or "They get all butt hurt." Accepted pig bonks and
-snots have a 45% chance of any of the five. Each pool cycles a shuffled bag before
+(office and hospitality) have a 35% chance of "They need to get fired," "They
+can't take feedback" or "They get all butt hurt." Student encounters, lectures
+and successful paper swats have a 50% chance of "They got a problem" or "Go grow
+some man balls." Accepted pig bonks and snots have a 45% chance of any of the
+five. Each pool cycles a shuffled bag before
 repeating; cooldown is at least 3.5 seconds, and lines never overlap or queue.
 Damage interrupts a taunt immediately with "absolute bullshit." Muting and
 pausing stop both kinds of voice. Optional clip failures never block starting.

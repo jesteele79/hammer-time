@@ -16,9 +16,10 @@ export const TAUNT_CHANCE: Record<TauntTarget, number> = {
 };
 export const TAUNT_GAP_SECONDS = 3.5;
 
-const STAFF: TauntId[] = ["fired", "feedback"];
-const STUDENT: TauntId[] = ["problem", "man-balls", "butt-hurt"];
-const POOLS = { staff: STAFF, crossover: STUDENT, student: STUDENT, pig: [...STAFF, ...STUDENT] };
+/** Office and hospitality staff get the workplace lines; students get the personal ones. */
+const STAFF: TauntId[] = ["fired", "feedback", "butt-hurt"];
+const STUDENT: TauntId[] = ["problem", "man-balls"];
+const POOLS = { staff: STAFF, student: STUDENT, pig: [...STAFF, ...STUDENT] };
 type Pool = keyof typeof POOLS;
 
 /** Each pool exhausts a shuffled bag before refilling, including across retries. */
@@ -29,7 +30,7 @@ export class TauntRotation {
   constructor(private random: () => number = Math.random) {}
 
   next(target: TauntTarget): TauntId {
-    const pool: Pool = target === "staff" && this.random() < 0.2 ? "crossover" : target;
+    const pool: Pool = target;
     let bag = this.bags.get(pool);
     if (!bag?.length) {
       bag = [...POOLS[pool]];
