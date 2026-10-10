@@ -4,6 +4,12 @@ I'm making art for a game called Hammer Time. The attached text file is the brie
 
 ---
 
+IF GPT IS IN "WORK ON LAPTOP" MODE (it can read this computer), paste this instead and attach nothing:
+
+The brief and reference images are on this laptop in the folder C:\Users\jeste\Desktop\hammer-time\art\outgoing\. Open batch-1-hammer.txt there and read it fully. The two portraits to match are references\hammer-profile.png and references\hammer-three-quarter.png in the same folder: they are the man and the exact drawing style; every image must look like the same artist drew the same man. Follow the brief's STYLE block and RULES word for word (flat green background, no text, one subject per image, largest size). Make item 1 now, label it with the file name from the brief, and wait. After each image I'll say keep or redo and name the next item. Save keepers to C:\Users\jeste\Desktop\hammer-time\art\incoming\hammer\.
+
+---
+
 The repo is private, so links don't work for GPT. If you make it public, this shorter version works instead (change the batch number to switch batches):
 
 I'm making art for a game. Read the brief at https://raw.githubusercontent.com/jesteele79/hammer-time/claude/hammer-pass/art/outgoing/batch-1-hammer.txt and follow its STYLE and RULES exactly. The man and the style to match are https://raw.githubusercontent.com/jesteele79/hammer-time/claude/hammer-pass/art/outgoing/references/hammer-profile.png and https://raw.githubusercontent.com/jesteele79/hammer-time/claude/hammer-pass/art/outgoing/references/hammer-three-quarter.png (also attached). Make item 1 now, then wait; after each image I'll say keep or redo and name the next item.
