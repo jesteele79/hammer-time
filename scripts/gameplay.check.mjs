@@ -1404,3 +1404,38 @@ test("on the ground the drawn squat never lifts, sinks or slides a shoe", () => 
     }
   }
 });
+
+test("Hammer's spoken captions and the damage line never cover his face", () => {
+  const rects = [];
+  const ctx = new Proxy(
+    {
+      measureText: (text) => ({ width: text.length * 2 }),
+      fillRect: (x, y, w, h) => rects.push({ x, y, w, h }),
+      roundRect: (x, y, w, h) => rects.push({ x, y, w, h }),
+    },
+    {
+      get: (t, k) => (k in t ? t[k] : () => {}),
+      set: (t, k, v) => ((t[k] = v), true),
+    },
+  );
+  const hits = (a, b) =>
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const g = game();
+  g.ctx = ctx;
+  for (const kind of ["spoken", "damage"])
+    for (const facing of [1, -1])
+      for (let x = 6; x <= 378; x += 12)
+        for (const foot of [34, 50, 61, 70, 85, 120, 192]) {
+          const p = g.player;
+          p.facing = facing;
+          p.x = x - p.w / 2;
+          p.y = foot - p.h;
+          g.curse = kind === "damage" ? 1 : 0;
+          g.say("They need to get fired. They can't take feedback.", 2, false, true);
+          rects.length = 0;
+          g.drawHeroLine(0);
+          const face = heroFace(g.heroPose());
+          for (const r of rects)
+            assert.ok(!hits(r, face), `${kind} caption covers the face at x=${x} foot=${foot} facing=${facing}`);
+        }
+});

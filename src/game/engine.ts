@@ -16,7 +16,7 @@ import {
   type Point,
 } from "./combat";
 import { drawHero, heroFace, heroMallet, heroNostril, type HeroPose } from "./hero";
-import { drawThought } from "./thought";
+import { drawThought, thoughtLayout } from "./thought";
 import { SNOT_FIRE_U, SUPER_CUT_FROM, SWING_ACTIVE, WIPE_FLICK, WIPE_SCRUB, WIPE_SHINE } from "./rig";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
@@ -2756,20 +2756,7 @@ export class Game {
     if (this.mode === "die") this.drawPlayer(cam);
     this.drawEmbers(cam);
     for (const plane of this.planes) this.drawPlane(plane, cam);
-    if (this.curse > 0) this.drawCurse(cam);
-    else if (this.banterT > 0 && this.banterSpoken)
-      this.drawSpeech(this.heroBanter, this.player.x - cam, this.player.y - 26, "#e7bd6a");
-    else if (this.banterT > 0) {
-      const face = heroFace(this.heroPose());
-      drawThought(
-        ctx,
-        this.heroBanter,
-        { x: face.crown.x - cam, y: face.crown.y },
-        this.player.facing,
-        { ...face, x: face.x - cam },
-        { w: VIEW_W, h: VIEW_H },
-      );
-    }
+    this.drawHeroLine(cam);
     for (const t of this.texts) this.px(t.text, t.x - cam, t.y, "#fff6d8");
     this.drawComics(cam);
     if (this.fade > 0) {
@@ -3399,7 +3386,13 @@ export class Game {
     ctx.restore();
   }
 
-  private drawSpeech(text: string, x: number, y: number, accent: string) {
+  private drawSpeech(
+    text: string,
+    x: number,
+    y: number,
+    accent: string,
+    place?: (size: { w: number; h: number }) => Point,
+  ) {
     const ctx = this.ctx;
     ctx.save();
     ctx.font = "600 4px 'Segoe UI',sans-serif";
@@ -3415,8 +3408,9 @@ export class Game {
     }
     lines.push(line);
     const w = Math.max(...lines.map((part) => ctx.measureText(part).width)) + 12;
-    const bx = clamp(x - w / 3, 3, VIEW_W - w - 3),
-      by = Math.max(20, y);
+    const at = place?.({ w, h: lines.length * 6 + 7 });
+    const bx = at ? at.x : clamp(x - w / 3, 3, VIEW_W - w - 3),
+      by = at ? at.y : Math.max(20, y);
     ctx.fillStyle = "rgba(9,17,24,0.94)";
     ctx.beginPath();
     ctx.roundRect(bx, by, w, lines.length * 6 + 7, 2);
@@ -3622,11 +3616,30 @@ export class Game {
     }
   }
 
-  private drawCurse(cam: number) {
+  /**
+   * Hammer's words: the damage line, a recording's caption, or a thought. All
+   * three sit above and behind his head and are never drawn over his face.
+   */
+  private drawHeroLine(cam: number) {
+    const face = heroFace(this.heroPose());
+    const crown = { x: face.crown.x - cam, y: face.crown.y },
+      shown = { ...face, x: face.x - cam },
+      view = { w: VIEW_W, h: VIEW_H };
+    const place = (size: { w: number; h: number }) =>
+      thoughtLayout(size, crown, this.player.facing, shown, view).cloud;
+    if (this.curse > 0) this.drawCurse(place);
+    else if (this.banterT > 0 && this.banterSpoken)
+      this.drawSpeech(this.heroBanter, 0, 0, "#e7bd6a", place);
+    else if (this.banterT > 0)
+      drawThought(this.ctx, this.heroBanter, crown, this.player.facing, shown, view);
+  }
+
+  private drawCurse(place: (size: { w: number; h: number }) => Point) {
     const line = DAMAGE_LINE.text;
     const w = line.length * 4;
-    const x = clamp(this.player.x - cam - 6, 2, VIEW_W - w - 2);
-    const y = clamp(this.player.y - 18, 4, VIEW_H - 16);
+    const box = place({ w: w + 4, h: 11 });
+    const x = box.x + 3,
+      y = box.y + 3;
     const ctx = this.ctx;
     ctx.fillStyle = "#f7f3ea";
     ctx.fillRect(x - 3, y - 3, w + 4, 11);
