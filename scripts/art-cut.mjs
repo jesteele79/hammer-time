@@ -192,20 +192,66 @@ const DRAW_ORDER = [
   "forearmNear",
 ];
 
+/** Orange-brown skin, as painted in the plates: hue 8-45, saturation over 0.3, not too dark. */
+function isSkin(r, g, b) {
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  if (max < 70) return false;
+  const sat = (max - min) / max;
+  if (sat < 0.3) return false;
+  let hue;
+  if (max === r) hue = (60 * ((g - b) / (max - min)) + 360) % 360;
+  else if (max === g) hue = 60 * ((b - r) / (max - min)) + 120;
+  else hue = 60 * ((r - g) / (max - min)) + 240;
+  return hue >= 8 && hue <= 45;
+}
+
+/** A skin mask grown by `radius` so the arm's outline and shadow stay with the arm. */
+function skinMask(data, W, H, radius) {
+  const skin = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++)
+    if (data[i * 4 + 3] > 127 && isSkin(data[i * 4], data[i * 4 + 1], data[i * 4 + 2])) skin[i] = 1;
+  const grown = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      if (!skin[y * W + x]) continue;
+      for (let dy = -radius; dy <= radius; dy++)
+        for (let dx = -radius; dx <= radius; dx++) {
+          const xx = x + dx,
+            yy = y + dy;
+          if (xx >= 0 && xx < W && yy >= 0 && yy < H && dx * dx + dy * dy <= radius * radius) grown[yy * W + xx] = 1;
+        }
+    }
+  return grown;
+}
+
 /**
- * Cuts a keyed A-pose body into rig parts. A pixel claimed by two polygons
- * goes to the later part in the draw order. Where a part was painted behind
- * another (the torso under the near arm, the far leg under the near leg) the
- * uncovered hole is filled with the part's base color sampled at `fillFrom`,
- * and the hole's boundary gets a 4 px outline so the part keeps its edge.
+ * Cuts a keyed A-pose body into rig parts. A part's polygon is coarse; its
+ * `material` ("skin", "cloth" or absent for anything) decides which pixels
+ * inside it are the part's. A pixel claimed by two parts goes to the later one
+ * in the draw order. Where a part was painted behind another (the torso under
+ * the near arm, the far leg under the near leg) the uncovered hole is filled
+ * with the part's base color sampled at `fillFrom`, and the hole's boundary
+ * gets an outline so the part keeps its edge. Polygon coordinates are in the
+ * keyed crop's pixels when `cuts.space` is "crop", else in source pixels.
  */
-export async function sliceBody(keyed, cuts) {
+export async function sliceBody(keyed, cuts, costume = "affliction") {
   const { data, info } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const W = info.width,
     H = info.height;
+  const offset = cuts.space === "crop" ? { x: 0, y: 0 } : keyed.offset;
   const names = Object.keys(cuts.parts);
+  const skin = skinMask(data, W, H, 5);
+  // A costume may override a part's material and fill (a jacket sleeve is cloth where a bare arm is skin).
+  const spec = (name) => ({ ...cuts.parts[name], ...(cuts.overrides?.[costume]?.[name] ?? {}) });
   const masks = {};
-  for (const name of names) masks[name] = polygonMask(cuts.parts[name].polygon, W, H, keyed.offset);
+  for (const name of names) {
+    const m = polygonMask(cuts.parts[name].polygon, W, H, offset);
+    const material = spec(name).material;
+    if (material === "skin") for (let i = 0; i < m.length; i++) m[i] = m[i] && skin[i] ? 1 : 0;
+    if (material === "cloth") for (let i = 0; i < m.length; i++) m[i] = m[i] && !skin[i] ? 1 : 0;
+    masks[name] = m;
+  }
   // Ownership: the last part in draw order that claims an opaque pixel wins it.
   const owner = new Int8Array(W * H).fill(-1);
   const order = DRAW_ORDER.filter((n) => names.includes(n)).concat(names.filter((n) => !DRAW_ORDER.includes(n)));
@@ -213,15 +259,18 @@ export async function sliceBody(keyed, cuts) {
     const m = masks[name];
     for (let i = 0; i < m.length; i++) if (m[i] && data[i * 4 + 3] > 0) owner[i] = idx;
   });
+  // Holes are judged against the coarse polygon, so a cloth part under a skin arm gets filled.
+  const coarse = {};
+  for (const name of names) coarse[name] = polygonMask(cuts.parts[name].polygon, W, H, offset);
   const parts = {};
   for (const [idx, name] of order.entries()) {
-    const spec = cuts.parts[name];
-    const m = masks[name];
+    const part = spec(name);
+    const m = coarse[name];
     const buf = Buffer.alloc(W * H * 4);
     let fill = null;
-    if (spec.fillFrom) {
-      const fx = spec.fillFrom[0] - keyed.offset.x,
-        fy = spec.fillFrom[1] - keyed.offset.y;
+    if (part.fillFrom) {
+      const fx = part.fillFrom[0] - offset.x,
+        fy = part.fillFrom[1] - offset.y;
       const i = (fy * W + fx) * 4;
       fill = [data[i], data[i + 1], data[i + 2]];
     }
@@ -237,10 +286,9 @@ export async function sliceBody(keyed, cuts) {
         if (owner[i] === idx) {
           buf.set(data.subarray(o, o + 4), o);
         } else if (owner[i] > idx && fill) {
-          // Painted behind a later part: restore the base fill, outlined where the hole meets the owner.
-          const edge = [i - 1, i + 1, i - W, i + W].some((j) => j >= 0 && j < W * H && (owner[j] === idx || !m[j]));
-          const near = [i - 2, i + 2, i - 2 * W, i + 2 * W].some((j) => j >= 0 && j < W * H && !m[j]);
-          const c = edge || near ? [16, 16, 16] : fill;
+          // Painted behind a later part: restore the base fill, outlined along the polygon's edge.
+          const near = [i - 3, i + 3, i - 3 * W, i + 3 * W].some((j) => j >= 0 && j < W * H && !m[j]);
+          const c = near ? [16, 16, 16] : fill;
           buf[o] = c[0];
           buf[o + 1] = c[1];
           buf[o + 2] = c[2];
@@ -260,8 +308,8 @@ export async function sliceBody(keyed, cuts) {
       .extract({ left, top, width: cw, height: ch })
       .png()
       .toBuffer();
-    const local = ([x, y]) => ({ x: x - keyed.offset.x - left, y: y - keyed.offset.y - top });
-    parts[name] = { png, width: cw, height: ch, pivot: local(spec.pivot), tip: local(spec.tip) };
+    const local = ([x, y]) => ({ x: x - offset.x - left, y: y - offset.y - top });
+    parts[name] = { png, width: cw, height: ch, pivot: local(part.pivot), tip: local(part.tip) };
   }
   return parts;
 }

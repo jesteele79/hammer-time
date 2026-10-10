@@ -114,7 +114,7 @@ async function bodies(registry) {
     const file = join(HAMMER_IN, `body-${costume}.png`);
     if (!existsSync(file)) continue;
     const keyed = await keyOut(readFileSync(file));
-    const parts = await sliceBody(keyed, cuts);
+    const parts = await sliceBody(keyed, cuts, costume);
     registry.hammer.bodies[costume] = { parts: {} };
     for (const [name, part] of Object.entries(parts)) {
       const outFile = `hammer/${costume}-${name}.png`;
@@ -127,19 +127,20 @@ async function bodies(registry) {
         tip: part.tip,
       };
     }
-    console.log(`body ${costume}: ${Object.keys(parts).length} parts`);
+    console.log(`body ${costume}: ${Object.keys(parts).length} parts (crop offset ${keyed.offset.x},${keyed.offset.y}, ${keyed.width}x${keyed.height})`);
     if (overlay && costume === "affliction") await drawOverlay(keyed, cuts);
   }
 }
 
 /** The polygons and pivots drawn over the keyed body, for checking the cuts by eye. */
 async function drawOverlay(keyed, cuts) {
+  const off = cuts.space === "crop" ? { x: 0, y: 0 } : keyed.offset;
   const colors = ["#ff3b3b", "#3bb0ff", "#ffd23b", "#3bff7a", "#ff7ad9", "#ffa03b", "#8a3bff", "#3bfff0", "#c0ff3b", "#ff3b9b"];
   const shapes = Object.entries(cuts.parts)
     .map(([name, p], i) => {
-      const pts = p.polygon.map(([x, y]) => `${x - keyed.offset.x},${y - keyed.offset.y}`).join(" ");
-      const [px, py] = [p.pivot[0] - keyed.offset.x, p.pivot[1] - keyed.offset.y];
-      const [tx, ty] = [p.tip[0] - keyed.offset.x, p.tip[1] - keyed.offset.y];
+      const pts = p.polygon.map(([x, y]) => `${x - off.x},${y - off.y}`).join(" ");
+      const [px, py] = [p.pivot[0] - off.x, p.pivot[1] - off.y];
+      const [tx, ty] = [p.tip[0] - off.x, p.tip[1] - off.y];
       const c = colors[i % colors.length];
       return `<polygon points="${pts}" fill="${c}" fill-opacity="0.18" stroke="${c}" stroke-width="3"/>
         <circle cx="${px}" cy="${py}" r="9" fill="${c}"/><circle cx="${tx}" cy="${ty}" r="6" fill="#fff" stroke="${c}" stroke-width="3"/>

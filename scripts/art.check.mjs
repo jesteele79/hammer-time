@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { keyOut, registerHead, alignTo } from "./art-cut.mjs";
+import { keyOut, registerHead, alignTo, sliceBody } from "./art-cut.mjs";
 
 /** A green canvas with a filled dark circle and a 'neck' stub at the bottom. */
 async function plate(dx = 0, dy = 0, scale = 1) {
@@ -66,6 +66,36 @@ test("every owner file still matches art/manifest.json", () => {
       createHash("sha256").update(readFileSync(file)).digest("hex"),
       sha,
       `${file} unchanged`,
+    );
+  }
+});
+
+test("a body slices into ten opaque parts with pivots inside them", async () => {
+  const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
+  const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
+  const parts = await sliceBody(keyed, cuts);
+  const names = [
+    "torso",
+    "hips",
+    "upperArmNear",
+    "forearmNear",
+    "upperArmFar",
+    "forearmFar",
+    "thighNear",
+    "shinNear",
+    "thighFar",
+    "shinFar",
+  ];
+  assert.deepEqual(Object.keys(parts).sort(), names.sort());
+  for (const name of names) {
+    const p = parts[name];
+    const { data, info } = await sharp(p.png).raw().toBuffer({ resolveWithObject: true });
+    let opaque = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] > 127) opaque++;
+    assert.ok(opaque > 0.08 * info.width * info.height, `${name} has substance`);
+    assert.ok(
+      p.pivot.x >= 0 && p.pivot.x <= p.width && p.pivot.y >= 0 && p.pivot.y <= p.height,
+      `${name} pivot inside`,
     );
   }
 });
