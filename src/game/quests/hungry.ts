@@ -220,6 +220,20 @@ export class HungryQuest implements Quest {
     for (const s of this.suitcases) if (s.x0 > HAND0 && end > s.x0 - 2) end = s.x0 - 2;
     return Math.max(0, end - HAND0);
   }
+  /**
+   * How far the dive goes: it stops at the first food its hand reaches, or on a
+   * charged dive at the first plate worth robbing, never past `max` or a suitcase.
+   */
+  private diveTo(max: number, charged: boolean) {
+    const limit = HAND0 + this.blocked(max);
+    let end = limit;
+    for (const f of this.food)
+      if (nearTable(f) && f.x <= limit + EAT_RADIUS) end = Math.min(end, Math.max(HAND0, f.x));
+    if (charged)
+      for (const r of this.rivals)
+        if (r.plate.length && r.x <= limit + PLATE_RADIUS) end = Math.min(end, r.x);
+    return end - HAND0;
+  }
   private extension() {
     const L = this.lunge;
     if (!L || L.phase === "charge") return 0;
@@ -302,10 +316,9 @@ export class HungryQuest implements Quest {
     }
     if (L.phase === "charge") {
       L.held += dt;
-      L.reach = this.reachFor(L.held);
+      L.charged = L.held > TAP_SECONDS;
+      L.reach = this.diveTo(this.reachFor(L.held), L.charged);
       if (!held || L.held >= CHARGE_SECONDS) {
-        L.charged = L.held > TAP_SECONDS;
-        L.reach = this.blocked(L.reach);
         L.phase = "out";
         L.t = 0;
         this.ctx.audio.whoosh();

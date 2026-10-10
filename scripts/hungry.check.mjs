@@ -493,3 +493,23 @@ test("pause works inside a quest and resumes it without inventing a press", () =
   assert.equal(g.mode, "quest");
   assert.equal(g.questPrev.jump, true, "a button held through the pause is not a fresh press");
 });
+
+test("the dive stops at the first food in reach, so nothing near him goes out of reach as he eats", () => {
+  const { q } = quiet();
+  q.eaten = 20;
+  const near = place(q, "bread", HAND0 + 25);
+  const far = place(q, "ribeye", HAND0 + 200);
+  dive(q, 0.05);
+  assert.ok(!q.food.includes(near) && q.food.includes(far), "a tap takes the nearest plate first");
+  dive(q, 0.05);
+  assert.ok(!q.food.includes(far), "then the next one along");
+  const p = quiet().q;
+  const student = p.rivals[0];
+  student.plate.push(makeFood(950, "pie", student.x, TABLE.top, 0, 0));
+  const inWay = place(p, "bread", HAND0 + 60);
+  dive(p, CHARGE_SECONDS);
+  assert.ok(!p.food.includes(inWay), "food in the way is taken first");
+  assert.equal(student.plate.length, 1);
+  dive(p, CHARGE_SECONDS);
+  assert.equal(student.plate.length, 0, "with the path clear a charged dive robs the first plate");
+});
