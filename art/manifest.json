@@ -1,0 +1,28 @@
+{
+  "files": {
+    "art/incoming/hammer/body-affliction.png": "eeea7babb6bad1136097ee8ebc9ab4aa26780651384682d2da4de493f6c0ca9f",
+    "art/incoming/hammer/body-banquet.png": "47575f42d190a686944fa06d588a61334a84d7dc2a3e0f84e0eb99b5473f8fc2",
+    "art/incoming/hammer/body-scrubs.png": "4f67ddaba85d0c2f909def28d3beb5dc2b8be61f9862b64ec1b9545b8d90f6d5",
+    "art/incoming/hammer/body-suit.png": "050e8706a06eae47f30615c05c46eec74f04e783f87d6e9a289f303ed4356cec",
+    "art/incoming/hammer/head-profile-angry.png": "8d7c4ab315a0fdd18817a34e9248a00af10788b3e3c602aad8c0fc986bcb73ff",
+    "art/incoming/hammer/head-profile-bored.png": "2ae20040ca1a127e90283e209034df3cd0092eecd0192277d5baa48faa41239a",
+    "art/incoming/hammer/head-profile-chomp.png": "8aecd179e0a87679c3d6a3b21b57c36380678b6fb28459dd8d2f931510f90c66",
+    "art/incoming/hammer/head-profile-hurt.png": "b1bae6ab785c221b097a30bf541b6d98b333bcd4708b5d9bf88b13ee251ee122",
+    "art/incoming/hammer/head-profile-smug.png": "9cf6ef2087647f9b238e1aeeb7880d3c5f7d6e63c1d776fcfa63882326724943",
+    "art/incoming/hammer/head-profile.png": "22768be2c412ee8fdc19247c841a6a432e53e9679a618f4b5de9b827c1bab68b",
+    "art/incoming/hammer/head-three-quarter.png": "337c34eddceefbbc14f617947b89304fbbac06e384920a4953811b843afabb92",
+    "art/incoming/hammer/mallet.png": "99548985f6e9bddb6d371839556b205e51a2e4dd4367773671dc36b8c9931a34",
+    "art/incoming/hammer/towel.png": "784e9b22a427dc28d569b670ca010801953a7fdcaad86957ddf6b49e234671f9",
+    "art/incoming/hammer/wristwatch.png": "5232de70659bd1462ea19289ad6664083784538e5422b71223761fdb05047d64",
+    "art/reference/hammer-expressions.webp": "91577161effc1033cafbd12702e835e2b3047c8f10d539dfb7e51951504a0699",
+    "art/reference/hammer-profile.webp": "901105f884696603a893f11b1097524e5c0cea7b161b3a073f00bc5551f5834c",
+    "art/reference/hammer-three-quarter.webp": "c9668184474581dc63405c9dd51a9b3beb1d10639b481f20df6e261f1715249c",
+    "public/absolute-bullshit.mp3": "f171f19b42972d41d9dde9fde5c5d84403121eace9939a0b10f5a7707a3f2e2b",
+    "public/damage-voice.wav": "d8e58d35f0b2b6a845a91fb57336363c7c1db2dadc47ab8b135edd771be65808",
+    "public/voice/butt-hurt.wav": "1ccf2659beced58e3bbf5c5c3668bf23182dc5dd8f28e06ff12828b723f34779",
+    "public/voice/feedback.wav": "94b83ab4ee9141c0fcb8d7312d5bccbc786a98b5152b252ad52661d3ef7e52a0",
+    "public/voice/fired.wav": "2f0829868f633d04c5607fc4935b42ccb61d0176e27b72b8f3f4305672bbcbf3",
+    "public/voice/man-balls.wav": "87ac6becedb898d43a28b4043ffe5f69d82f131a2fcc7b0806a200049a09f3cc",
+    "public/voice/problem.wav": "cdffe26bc7eb0f268f5a2673e9fe6e12608f42beffab67d5ae4866ca276b3e03"
+  }
+}
