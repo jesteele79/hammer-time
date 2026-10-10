@@ -10,6 +10,7 @@ import {
 } from "./combat";
 import {
   AIR,
+  ANKLE,
   CROUCH,
   CROWN,
   ELBOW,
@@ -18,6 +19,8 @@ import {
   FIST,
   GRIP,
   HIP,
+  KNEE,
+  LEG_HIPS,
   MALLET_HEAD,
   NECK,
   NECKLINE,
@@ -40,7 +43,10 @@ import {
   rigPoint,
   scalpAngle,
   scalpPoint,
+  pelvisTilt,
   snotJoints,
+  squatLeg,
+  squatOffset,
   superJoints,
   swingJoints,
   walkJoints,
@@ -153,6 +159,7 @@ const HEAD_CLIP = [
   [180, 323], [163, 305], [140, 274], [118, 254], [100, 205],
 ];
 const CAP = 52;
+const KNEE_CAP = 62;
 
 function outline(ctx: CanvasRenderingContext2D, ...shapes: number[][][]) {
   for (const shape of shapes) {
@@ -255,36 +262,51 @@ function farArmLayer(ctx: CanvasRenderingContext2D, a: HeroAssets, j: Joints) {
   ctx.restore();
 }
 
-function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, stance: number) {
+function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, j: Joints) {
+  const stance = j.stride;
   const stride = p.moving && !p.reduced ? Math.sin(p.phase * Math.PI * 2) : 0;
+  const squat = p.crouch ? 0 : j.squat;
+  const sink = squatOffset(squat);
+  const tilt = pelvisTilt(squat);
   const leg = (rear: boolean) => {
     ctx.save();
     if (p.crouch) ctx.translate(0, -180);
-    const hipX = rear ? 210 : 143;
-    const thigh = p.crouch
+    const hip = rear ? LEG_HIPS.rear : LEG_HIPS.front;
+    const posed = p.crouch
       ? -1.36
       : p.air
         ? rear
           ? 0.12
           : -0.32
         : stride * (rear ? -0.24 : 0.24) + stance * (rear ? -0.2 : 0.11);
-    ctx.translate(hipX, 935);
-    ctx.rotate(thigh);
-    ctx.translate(-hipX, -935);
-    ctx.save();
-    ctx.beginPath();
-    outline(ctx, [[80, 920], [241, 932], [199, 1085], [177, 1120], [83, 1120], [72, 1080]]);
-    ctx.clip();
-    ctx.drawImage(a.idle, 0, 0);
-    ctx.restore();
-    const knee = p.crouch
+    const bent = p.crouch
       ? 2.72
       : p.air
         ? 0.45
         : Math.max(0, stride * (rear ? -1 : 1)) * 0.28 + Math.max(0, stance) * (rear ? 0.18 : 0.06);
-    ctx.translate(143, 1098);
-    ctx.rotate(knee);
-    ctx.translate(-143, -1098);
+    // The squat blends toward the solved leg, which keeps the foot where it stands.
+    const ik = squatLeg(hip, squat);
+    const thigh = posed + (ik.thigh - posed) * squat;
+    const knee = bent + (ik.knee - bent) * squat;
+    ctx.translate(sink.x, sink.y);
+    pivot(ctx, HIP, tilt);
+    pivot(ctx, hip, thigh);
+    const folded = squat > 0;
+    const thighPiece = () => {
+      ctx.save();
+      ctx.beginPath();
+      if (folded) {
+        outline(ctx, [[80, 920], [241, 932], [199, 1085], [195, KNEE.y], [80, KNEE.y], [72, 1080]]);
+        ctx.moveTo(KNEE.x + KNEE_CAP, KNEE.y);
+        ctx.arc(KNEE.x, KNEE.y, KNEE_CAP, 0, Math.PI * 2);
+      } else outline(ctx, [[80, 920], [241, 932], [199, 1085], [177, 1120], [83, 1120], [72, 1080]]);
+      ctx.clip();
+      ctx.drawImage(a.idle, 0, 0);
+      ctx.restore();
+    };
+    if (!folded) thighPiece();
+    ctx.save();
+    pivot(ctx, KNEE, knee);
     ctx.save();
     ctx.beginPath();
     outline(ctx, [[85, 1080], [190, 1080], [150, 1248], [76, 1255]]);
@@ -293,9 +315,14 @@ function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, stance:
     ctx.restore();
     // Different original shoe crops keep the layered feet readable.
     if (!p.crouch) {
+      // Planted feet stay flat while the shin folds over them.
+      pivot(ctx, ANKLE, -(tilt + (thigh + knee) * squat));
       if (rear) ctx.drawImage(a.idle, 130, 1175, 215, 121, 81, 1200, 215, 121);
       else ctx.drawImage(a.idle, 43, 1225, 258, 146, 43, 1225, 258, 146);
     }
+    ctx.restore();
+    // A folded knee keeps the thigh on top, ending in a round cap like the elbow.
+    if (folded) thighPiece();
     ctx.restore();
     if (p.crouch) ctx.drawImage(a.idle, 43, 1225, 258, 146, rear ? 116 : 180, 771, 185, 106);
   };
@@ -305,6 +332,8 @@ function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, stance:
   // Shorts are rebuilt from clean denim samples; they reach up under the shirt
   // so a leaning torso never opens a gap at the waist.
   ctx.save();
+  ctx.translate(sink.x, sink.y);
+  pivot(ctx, HIP, tilt);
   ctx.beginPath();
   outline(
     ctx,
@@ -598,7 +627,11 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
   const wipeU = wiping ? 1 - p.wipe / WIPE_SECONDS : 0;
   const ribbon = wiping && wipeU > 0.03 && wipeU < 0.93 ? towelPath(wipeU, p.clock) : null;
   const lean = (j.lean * Math.PI) / 180;
-  const torsoFrame = () => pivot(ctx, HIP, lean);
+  const sink = squatOffset(j.squat);
+  const torsoFrame = () => {
+    ctx.translate(sink.x, sink.y);
+    pivot(ctx, HIP, lean);
+  };
   const headFrame = () => {
     torsoFrame();
     pivot(ctx, NECK, -lean);
@@ -616,7 +649,7 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
     drawTowel(ctx, a.towel, ribbon, "back");
     ctx.restore();
   }
-  legs(ctx, a, p, j.stride);
+  legs(ctx, a, p, j);
   ctx.save();
   torsoFrame();
   torso(ctx, a, lean);
@@ -637,7 +670,7 @@ export function drawHero(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPo
   torsoFrame();
   nearArm(ctx, a, j);
   // At rest the far hand peeks out in front of the shorts, as in the original still.
-  if (!j.far && ready(a.hand)) ctx.drawImage(a.hand, 275, 729, 50, 62, 275, 729, 50, 62);
+  if (!j.far && !j.squat && ready(a.hand)) ctx.drawImage(a.hand, 275, 729, 50, 62, 275, 729, 50, 62);
   ctx.restore();
 
   ctx.save();

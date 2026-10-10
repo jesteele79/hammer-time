@@ -1908,13 +1908,14 @@ export class Game {
     const cx = p.x + p.w / 2 + p.facing * 10;
     const cy = p.y + p.h * 0.55;
     const floor = p.y + p.h;
+    const slam = heroMallet(this.heroPose());
     this.hitstop = 0.08;
     for (const [grow, color] of [
       [150, "#fff3d0"],
       [105, "#e9b866"],
       [62, "#ffffff"],
     ] as const)
-      this.rings.push({ x: cx, y: floor, r: 4, grow, life: 0.42, max: 0.42, color, floor: true });
+      this.rings.push({ x: slam.x, y: floor, r: 4, grow, life: 0.42, max: 0.42, color, floor: true });
     this.comic(cx, p.y - 16, "HAMMER TIME!", true);
     this.audio.boom();
     for (let i = 0; i < 16; i++) {

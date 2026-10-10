@@ -32,6 +32,15 @@ import {
   superJoints,
   swingJoints,
   walkJoints,
+  ANKLE,
+  KNEE,
+  LEG_HIPS,
+  MALLET_OUTLINE,
+  HIP,
+  pelvisTilt,
+  rotateAround,
+  squatLeg,
+  squatOffset,
 } from "../src/game/rig.ts";
 import { buildLevels } from "../src/game/levels.ts";
 import { ID } from "../src/game/constants.ts";
@@ -1172,4 +1181,70 @@ test("a thought cloud sits above and behind the head and never covers the face",
               `${label}: puff on the face`,
             );
         }
+});
+
+test("the squat bends both knees and keeps both feet planted", () => {
+  for (const hip of Object.values(LEG_HIPS))
+    for (let s = 0; s <= 1.0001; s += 0.05) {
+      const { thigh, knee } = squatLeg(hip, s);
+      const o = squatOffset(s);
+      // The renderer's chain: knee inside thigh inside the tipped pelvis, then the sink.
+      const chain = (q) => rotateAround(q, HIP, pelvisTilt(s));
+      const foot = chain(rotateAround(rotateAround(ANKLE, KNEE, knee), hip, thigh));
+      assert.ok(
+        Math.hypot(foot.x + o.x - ANKLE.x, foot.y + o.y - ANKLE.y) < 0.5,
+        `foot slides at ${s}`,
+      );
+      const k = chain(rotateAround(KNEE, hip, thigh));
+      if (s > 0.3) assert.ok(k.x > chain(hip).x, "knees go forward, never backward");
+    }
+  assert.deepEqual(squatLeg(LEG_HIPS.front, 0), { thigh: 0, knee: 0 });
+  assert.deepEqual(squatOffset(0), { x: 0, y: 0 });
+  assert.equal(pelvisTilt(0), 0);
+  assert.ok(pelvisTilt(1) > 0, "the seat sits back as he sinks");
+});
+
+test("the super smash slam squats so the mallet head meets the floor", () => {
+  const lowest = (u) =>
+    Math.max(...MALLET_OUTLINE.map((p) => rigPoint(superJoints(u), p, "mallet").y));
+  for (let u = 0.58; u <= 0.76; u += 0.01) {
+    assert.equal(superJoints(u).squat, 1, `full squat at ${u}`);
+    const y = lowest(u);
+    assert.ok(y > 1350 && y < 1390, `mallet at ${Math.round(y)} on u=${u.toFixed(2)}`);
+  }
+  assert.ok(lowest(0.42) < 900, "still overhead before the cut");
+  for (const facing of [1, -1]) {
+    const g = game();
+    g.enemies = [];
+    g.students = [];
+    g.actions = {};
+    g.player.onGround = true;
+    g.player.facing = facing;
+    g.charge = 10;
+    g.superEdge = true;
+    let gap = null,
+      head = null;
+    const burst = g.superBurst;
+    g.superBurst = function () {
+      const pose = this.heroPose();
+      const j = heroJoints(pose);
+      const low = Math.max(
+        ...MALLET_OUTLINE.map((p) => artworkToWorld(pose, rigPoint(j, p, "mallet")).y),
+      );
+      gap = low - (this.player.y + this.player.h);
+      head = heroMallet(pose);
+      burst.call(this);
+    };
+    for (let i = 0; i < 90 && gap === null; i++) g.step(1 / 60);
+    assert.ok(
+      gap !== null && Math.abs(gap) <= 1,
+      `facing ${facing}: mallet ${gap} px off the floor at the burst`,
+    );
+    const center = g.player.x + g.player.w / 2;
+    assert.ok((head.x - center) * facing > 3, "the mallet lands in front of him");
+    assert.ok(
+      g.rings.some((ring) => ring.floor && Math.abs(ring.x - head.x) < 1),
+      "the floor shockwave starts at the mallet head",
+    );
+  }
 });

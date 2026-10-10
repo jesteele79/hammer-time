@@ -52,6 +52,8 @@ export type Joints = {
   far: Point | null;
   /** Point the far elbow bends toward, so it stays hidden behind the body. */
   pole: Point;
+  /** 0..1: hips sink and sit back, knees bend, feet stay planted. */
+  squat: number;
 };
 
 export const REST: Joints = {
@@ -63,7 +65,36 @@ export const REST: Joints = {
   H: H0,
   far: null,
   pole: { x: 250, y: 560 },
+  squat: 0,
 };
+
+/** Squat: the hips sink and sit back; both legs solve to keep the feet planted. */
+export const SQUAT_DROP = 180;
+export const SQUAT_BACK = 110;
+export const KNEE = { x: 143, y: 1098 };
+export const ANKLE = { x: 113, y: 1250 };
+export const LEG_HIPS = { rear: { x: 210, y: 935 }, front: { x: 143, y: 935 } };
+/** Drawn outline of the mallet head, in mallet space. */
+export const MALLET_OUTLINE: readonly Point[] = [
+  { x: 271, y: 992 },
+  { x: 296, y: 900 },
+  { x: 352, y: 830 },
+  { x: 366, y: 826 },
+  { x: 448, y: 869 },
+  { x: 453, y: 880 },
+  { x: 425, y: 956 },
+  { x: 375, y: 1036 },
+  { x: 281, y: 1005 },
+];
+
+export function squatOffset(squat: number): Point {
+  return { x: squat ? -SQUAT_BACK * squat : 0, y: SQUAT_DROP * squat };
+}
+/** The pelvis tips forward with the squat (radians, around HIP), so the seat sits back. */
+export const PELVIS_TILT = 30;
+export function pelvisTilt(squat: number) {
+  return squat > 0 ? rad(PELVIS_TILT * squat) : 0;
+}
 
 type Ease = (t: number) => number;
 const linear: Ease = (t) => t;
@@ -107,7 +138,36 @@ export function rigPoint(j: Joints, point: Point, frame: Frame): Point {
   if (frame === "mallet" || frame === "fore") q = rotateAround(q, ELBOW, e);
   if (frame === "upper" || frame === "fore" || frame === "mallet") q = rotateAround(q, SHOULDER, s);
   q = rotateAround(q, HIP, rad(j.lean));
-  return { x: q.x + j.dx, y: q.y };
+  const o = squatOffset(j.squat);
+  return { x: q.x + j.dx + o.x, y: q.y + o.y };
+}
+
+/**
+ * Thigh and knee rotations, inside the tipped pelvis, that put the ankle back
+ * where it stands with the knee forward.
+ */
+export function squatLeg(hip: Point, squat: number) {
+  if (squat <= 0) return { thigh: 0, knee: 0 };
+  const o = squatOffset(squat);
+  const tilt = pelvisTilt(squat);
+  const tipped = rotateAround(hip, HIP, tilt);
+  const h = { x: tipped.x + o.x, y: tipped.y + o.y };
+  const thighLen = Math.hypot(KNEE.x - hip.x, KNEE.y - hip.y),
+    shinLen = Math.hypot(ANKLE.x - KNEE.x, ANKLE.y - KNEE.y);
+  const dx = ANKLE.x - h.x,
+    dy = ANKLE.y - h.y;
+  const d = Math.min(thighLen + shinLen - 1e-6, Math.hypot(dx, dy));
+  const base = Math.atan2(dy, dx);
+  const bend = Math.acos((thighLen ** 2 + d ** 2 - shinLen ** 2) / (2 * thighLen * d));
+  const knees = [base + bend, base - bend].map((a) => ({
+    x: h.x + Math.cos(a) * thighLen,
+    y: h.y + Math.sin(a) * thighLen,
+  }));
+  const k = knees[0].x >= knees[1].x ? knees[0] : knees[1];
+  const thigh = Math.atan2(k.y - h.y, k.x - h.x) - Math.atan2(KNEE.y - hip.y, KNEE.x - hip.x) - tilt;
+  const knee =
+    Math.atan2(ANKLE.y - k.y, ANKLE.x - k.x) - Math.atan2(ANKLE.y - KNEE.y, ANKLE.x - KNEE.x) - thigh - tilt;
+  return { thigh, knee };
 }
 
 /** Two-bone reach for the far arm; the elbow takes the side nearer its pole. */
@@ -154,7 +214,8 @@ export function displayU(u: number, from: number, to: number) {
   return u > from && u < to ? to : u;
 }
 
-function keyed(table: Record<"A" | "F" | "H" | "lean" | "dx" | "stride", readonly Key[]>, u: number): Joints {
+type Table = Record<"A" | "F" | "H" | "lean" | "dx" | "stride", readonly Key[]> & { squat?: readonly Key[] };
+function keyed(table: Table, u: number): Joints {
   return {
     ...REST,
     A: track(table.A, u),
@@ -163,6 +224,7 @@ function keyed(table: Record<"A" | "F" | "H" | "lean" | "dx" | "stride", readonl
     lean: track(table.lean, u),
     dx: track(table.dx, u),
     stride: track(table.stride, u),
+    squat: table.squat ? track(table.squat, u) : 0,
   };
 }
 
@@ -170,16 +232,20 @@ export function swingJoints(u: number) {
   return keyed(SWING, u);
 }
 
-/** Super smash: a hop, a long overhead load, then a slam carried by the landing. */
+/**
+ * Super smash: a hop, a long overhead load, then a slam carried by the landing.
+ * He folds forward and sinks into a squat so the mallet head meets the floor.
+ */
 export const SUPER_CUT_FROM = 0.42;
 export const SUPER_CUT_TO = 0.46;
 const SUPER = {
-  A: [[0, A0], [0.3, 256, out], [SUPER_CUT_FROM, 264, linear], [SUPER_CUT_TO, 352, linear], [0.54, 404, out], [0.72, 412], [1, A0 + 360]],
-  F: [[0, F0], [0.3, 248, out], [SUPER_CUT_FROM, 258, linear], [SUPER_CUT_TO, 346, linear], [0.54, 400, out], [0.72, 410], [1, F0 + 360]],
-  H: [[0, H0], [0.3, 218, out], [SUPER_CUT_FROM, 232, linear], [SUPER_CUT_TO, 404, linear], [0.54, 452, out], [0.72, 462], [1, H0 + 360]],
-  lean: [[0, 0], [0.34, -9, out], [SUPER_CUT_FROM, -10], [SUPER_CUT_TO, 4, linear], [0.54, 16, out], [0.72, 15], [1, 0]],
-  dx: [[0, 0], [0.34, -14, out], [SUPER_CUT_TO, 10, linear], [0.54, 36, out], [0.72, 36], [1, 0]],
-  stride: [[0, 0], [0.34, -0.4], [SUPER_CUT_TO, 0.5, linear], [0.54, 1, out], [0.76, 1], [1, 0]],
+  A: [[0, A0], [0.3, 256, out], [SUPER_CUT_FROM, 264, linear], [SUPER_CUT_TO, 352, linear], [0.56, 405, out], [0.76, 405], [1, A0 + 360]],
+  F: [[0, F0], [0.3, 248, out], [SUPER_CUT_FROM, 258, linear], [SUPER_CUT_TO, 346, linear], [0.56, 400, out], [0.76, 400], [1, F0 + 360]],
+  H: [[0, H0], [0.3, 218, out], [SUPER_CUT_FROM, 232, linear], [SUPER_CUT_TO, 404, linear], [0.56, 390, out], [0.76, 390], [1, H0 + 360]],
+  lean: [[0, 0], [0.34, -9, out], [SUPER_CUT_FROM, -10], [SUPER_CUT_TO, 4, linear], [0.56, 45, out], [0.76, 45], [1, 0]],
+  dx: [[0, 0], [0.34, -14, out], [SUPER_CUT_TO, 10, linear], [0.56, 36, out], [0.76, 36], [1, 0]],
+  stride: [[0, 0], [0.34, -0.4], [SUPER_CUT_TO, 0.5, linear], [0.56, 1, out], [0.76, 1], [1, 0]],
+  squat: [[0, 0], [SUPER_CUT_TO, 0], [0.56, 1, out], [0.78, 1], [1, 0]],
 } satisfies Record<string, Key[]>;
 
 export function superJoints(u: number) {
