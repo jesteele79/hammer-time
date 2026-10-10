@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { ArrowRight, ChevronDown, Keyboard, Pause, Volume2, VolumeX } from "lucide-react";
 import { Game, type Hud, type Mode, type TouchAction } from "@/game/engine";
+import type { QuestId } from "@/game/quests/quest";
 import { DISPLAY_H, DISPLAY_W } from "@/game/constants";
 
 const BEST_KEY = "hammer-time-best";
+const QUEST_BEST: Partial<Record<QuestId, string>> = { hungry: "hammer-time-best-hungry" };
 const starts = [
   {
     name: "Full shift",
@@ -64,9 +66,9 @@ const initial: Hud = {
   questResult: null,
 };
 const pad = (n: number, len = 6) => String(Math.max(0, Math.floor(n))).padStart(len, "0");
-function readBest() {
+function readBest(key = BEST_KEY) {
   try {
-    return Number(localStorage.getItem(BEST_KEY) || 0) || 0;
+    return Number(localStorage.getItem(key) || 0) || 0;
   } catch {
     return 0;
   }
@@ -82,6 +84,7 @@ export function KilnHop() {
     [muted, setMuted] = useState(false),
     [best, setBest] = useState(0);
   const [ready, setReady] = useState(false);
+  const [questBest, setQuestBest] = useState({ hungry: 0 });
   const [venue, setVenue] = useState(0);
   const chooseVenue = (next: number) => {
     setVenue(next);
@@ -120,9 +123,21 @@ export function KilnHop() {
         }
         setBest(value);
       },
+      onQuestRecord: (id, score) => {
+        const key = QUEST_BEST[id];
+        if (!key) return;
+        const value = Math.max(readBest(key), score);
+        try {
+          localStorage.setItem(key, String(value));
+        } catch {
+          /* Storage may be unavailable. */
+        }
+        setQuestBest((b) => ({ ...b, [id]: value }));
+      },
     });
     gameRef.current = game;
     setBest(readBest());
+    setQuestBest({ hungry: readBest(QUEST_BEST.hungry) });
     return () => {
       obs.disconnect();
       game.destroy();
@@ -142,7 +157,7 @@ export function KilnHop() {
     onLostPointerCapture: (e: PointerEvent<HTMLButtonElement>) =>
       gameRef.current?.setPointer(e.pointerId, action, false),
   });
-  const active = ["play", "pause", "slide", "walkoff"].includes(mode),
+  const active = ["play", "pause", "slide", "walkoff", "quest"].includes(mode),
     start = () => gameRef.current?.newGame(venue);
   const controls: [string, string][] = [
     ["← →", "Move"],
@@ -263,6 +278,18 @@ export function KilnHop() {
                 </button>
               ))}
             </nav>
+            <section className="start-quests" aria-label="Side quests">
+              <span className="start-quests-k">Side quests</span>
+              <button
+                className="start-quest"
+                aria-label="Play Hungry Hungry Hammer"
+                disabled={!ready}
+                onClick={() => gameRef.current?.newQuest("hungry")}
+              >
+                <b>Hungry Hungry Hammer</b>
+                <small>Banquet table · best {pad(questBest.hungry)}</small>
+              </button>
+            </section>
             <footer className="start-footer">
               <div className="start-loadout" aria-label="Signature power-ups">
                 <span>
@@ -318,7 +345,7 @@ export function KilnHop() {
         </div>
         <div>
           <span className="hud-k">Score</span>
-          <b>{pad(hud.score)}</b>
+          <b>{pad(hud.quest ? hud.quest.score : hud.score)}</b>
         </div>
         <div>
           <span className="hud-k">Coke Zero</span>
@@ -333,10 +360,10 @@ export function KilnHop() {
         </div>
         <div>
           <span className="hud-k">
-            {hud.world} · {hud.name}
+            {hud.quest ? hud.quest.subtitle : `${hud.world} · ${hud.name}`}
           </span>
           <b>
-            {hud.time}
+            {hud.quest ? (hud.quest.timer ?? "–") : hud.time}
             <small> sec</small>
           </b>
         </div>
@@ -419,7 +446,20 @@ export function KilnHop() {
                 </small>
               </div>
             )}
-            {mode === "card" && (
+            {mode === "card" && hud.quest && (
+              <div className="veil">
+                <div className="panel">
+                  <p className="kicker">Side quest</p>
+                  <h2>{hud.quest.title}</h2>
+                  <p>{hud.quest.subtitle}</p>
+                  <p className="dek">
+                    Tap Space to dive · hold to reach farther and rob a plate.
+                    <br />H bonks the server. ↓ ducks paper.
+                  </p>
+                </div>
+              </div>
+            )}
+            {mode === "card" && !hud.quest && (
               <div className="veil">
                 <div className="panel">
                   <p className="kicker">
@@ -463,6 +503,27 @@ export function KilnHop() {
                 </div>
               </div>
             )}
+            {mode === "questTally" && hud.questResult && (
+              <div className="veil">
+                <div className="panel quest-tally">
+                  <p className="kicker">Quest</p>
+                  <h2>{hud.questResult.grade}</h2>
+                  <p className="best">
+                    Score {pad(hud.questResult.score)}
+                    {hud.questResult.practice &&
+                      ` · Best ${pad(Math.max(questBest.hungry, hud.questResult.score))}`}
+                  </p>
+                  <ul className="notes">
+                    {hud.questResult.lines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                  <button className="btn-nes" onClick={() => gameRef.current?.finishQuest()}>
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
             {(mode === "over" || mode === "win") && (
               <div className="veil">
                 <div className="panel">
@@ -490,7 +551,22 @@ export function KilnHop() {
           {active ? hud.hint : "An arcade platformer with very personal customer service."}
           {active && hud.checkpoint && <span className="saved"> · Checkpoint saved</span>}
         </p>
-        <div className="meters">
+        {hud.quest?.meter && (
+          <div className="meters">
+            <div className="quest-meter">
+              <span>
+                {hud.quest.meter.label} <b>{hud.quest.meter.text}</b>
+              </span>
+              <meter
+                min="0"
+                max={hud.quest.meter.max}
+                value={hud.quest.meter.value}
+                aria-label={hud.quest.meter.label}
+              />
+            </div>
+          </div>
+        )}
+        <div className="meters" hidden={Boolean(hud.quest)}>
           <div className="heat-meter" data-hot={hud.heat >= 80}>
             <span>
               Heat <b>{Math.round(hud.heat)}%</b>
@@ -587,7 +663,11 @@ export function KilnHop() {
                 ? "Shift complete"
                 : mode === "card"
                   ? "Get ready"
-                  : ""}
+                  : mode === "quest"
+                    ? "Side quest"
+                    : mode === "questTally"
+                      ? "Quest results"
+                      : ""}
       </p>
     </main>
   );
