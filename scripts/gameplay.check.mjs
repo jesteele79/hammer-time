@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { Game } from "../src/game/engine.ts";
 import { AudioBus } from "../src/game/audio.ts";
 import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
 import * as LINES from "../src/game/lines.ts";
@@ -54,68 +53,10 @@ import {
   lungeJoints,
 } from "../src/game/rig.ts";
 import { buildLevels } from "../src/game/levels.ts";
+import { game, bossGame } from "./game-harness.mjs";
 import { ID } from "../src/game/constants.ts";
 import { HERO_BODY_HEIGHT, HERO_CROUCH_HEIGHT } from "../src/game/combat.ts";
 
-function game() {
-  const g = Object.create(Game.prototype);
-  Object.assign(g, {
-    mode: "play",
-    star: 0,
-    charge: 0,
-    score: 0,
-    coins: 0,
-    lives: 3,
-    heat: 0,
-    checkpoint: 0,
-    hurtT: 0,
-    curse: 0,
-    shake: 0,
-    swing: 0,
-    superT: 0,
-    wipe: 0,
-    nose: 0,
-    snotT: 0,
-    fireCd: 0,
-    snotFired: false,
-    hitstop: 0,
-    levelIndex: 0,
-    reduce: false,
-    snap: null,
-    camX: 0,
-    clock: 0,
-    bumps: new Map(),
-    bits: [],
-    sheets: [],
-    texts: [],
-    embers: [],
-    splashes: [],
-    enemies: [],
-    items: [],
-    hammerVictims: new Set(),
-    hammerBlocks: new Set(),
-    actions: {},
-    hooks: { onRecord() {} },
-    audio: new Proxy(
-      {
-        voiceCount: 0,
-        curse() {
-          this.voiceCount++;
-        },
-      },
-      {
-        get(t, k) {
-          return k in t ? t[k] : () => {};
-        },
-      },
-    ),
-  });
-  const built = buildLevels();
-  g.courses = built.courses;
-  g.bonus = built.bonus;
-  g.loadLevel(built.courses[0], 1, 0, true);
-  return g;
-}
 test("locked character files and source voice stay byte-for-byte unchanged", () => {
   for (const file of [
     "hero-idle-calm.png",
@@ -755,15 +696,6 @@ test("paper can be ducked or swatted; a body hit uses the accepted damage voice"
   assert.equal(swat.score, 50);
 });
 
-function bossGame() {
-  const g = game();
-  g.levelIndex = 3;
-  g.loadLevel(g.courses[3], 2, 0, true);
-  g.player.x = g.level.boss.arenaStart * 16 + 2;
-  g.player.onGround = true;
-  g.stepBoss(1 / 60);
-  return g;
-}
 function bonk(g) {
   const b = g.boss;
   b.hurt = 0;
