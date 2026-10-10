@@ -23,6 +23,9 @@ import {
   CHARGE_SECONDS,
   gradeFor,
   reactionFor,
+  HAMMER_X,
+  PLANE_SPEED,
+  PLANE_HIT,
 } from "../src/game/quests/hungry.ts";
 import { seededRandom } from "../src/game/levels.ts";
 import { game } from "./game-harness.mjs";
@@ -533,4 +536,24 @@ test("specials robbed off a plate pay out like eaten ones; a robbed check still 
   assert.equal(q.plateTotal, -400, "no YOINK on the bill, and the to-go box does not double it");
   assert.equal(q.togo, 3);
   assert.ok(said.includes("YOU picked up the bill?"));
+});
+
+test("paper hits only the body it reaches: once ducked under it is gone, and mid-dive it misses", () => {
+  const { q } = quiet();
+  q.planes.push({ x: HAMMER_X + 30, vx: -PLANE_SPEED });
+  for (let i = 0; i < 30; i++) q.step(1 / 60, input({ down: true }));
+  const before = q.plateTotal;
+  steps(q, 60);
+  assert.equal(q.plateTotal, before, "standing up after it passed costs nothing");
+  const d = quiet().q;
+  d.eaten = 30;
+  d.step(1 / 60, input({ jump: true }, { jump: true }));
+  while (d.lunge?.phase !== "hold") d.step(1 / 60, input({ jump: true }));
+  d.planes.push({ x: HAMMER_X + 10, vx: -PLANE_SPEED });
+  steps(d, 60);
+  assert.equal(d.plateTotal, 0, "he is 250 px down the table when it reaches his spot");
+  const s = quiet().q;
+  s.planes.push({ x: HAMMER_X + 30, vx: -PLANE_SPEED });
+  steps(s, 60);
+  assert.equal(s.plateTotal, -PLANE_HIT, "standing there, it hits");
 });

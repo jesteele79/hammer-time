@@ -284,6 +284,7 @@ export function drawHungry(
   }
   // Paper planes.
   for (const p of q.planes) {
+    if ((p.wait ?? 0) > 0) continue;
     ctx.fillStyle = "#eef2ef";
     ctx.beginPath();
     ctx.moveTo(p.x - 5, PLANE_Y);

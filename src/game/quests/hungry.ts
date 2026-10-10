@@ -44,6 +44,8 @@ export const SUITCASE_SECONDS = 4;
 export const PLANE_Y = 150;
 export const PLANE_SPEED = 130;
 export const PLANE_HIT = 150;
+/** Seconds between "Heads up!" and the throw, like the students in the main game. */
+export const PLANE_WINDUP = 0.6;
 export const CART_AT = 42;
 export const HAMMER_X = 18;
 export const HAMMER_FOOT = 192;
@@ -115,7 +117,11 @@ export type Server = {
   lineT: number;
   quiet: number;
 };
-export type Plane = { x: number; vx: number };
+/**
+ * `wait`: the student's wind-up before the throw ("Heads up!"). `dodged`: it met
+ * him while he was ducked under the table edge and flies on past.
+ */
+export type Plane = { x: number; vx: number; wait?: number; dodged?: boolean };
 export type Suitcase = { x0: number; x1: number; t: number };
 export type Cart = { x: number; spilled: boolean };
 type Dump = { at: number; kinds: readonly FoodKind[]; count: number; done: boolean };
@@ -416,7 +422,7 @@ export class HungryQuest implements Quest {
   /** Robbed rivals hit back: paper, luggage, or a nurse who stays angry. */
   private retaliate(r: Rival) {
     if (r.kind === "student") {
-      this.planes.push({ x: r.x - 10, vx: -PLANE_SPEED });
+      this.planes.push({ x: r.x - 10, vx: -PLANE_SPEED, wait: PLANE_WINDUP });
       r.line = "Heads up!";
       this.ctx.audio.whoosh();
     } else if (r.kind === "bellhop") {
@@ -534,15 +540,25 @@ export class HungryQuest implements Quest {
     }
   }
 
+  /** Paper hits his body where it is now: at the near end, or far down the table mid-dive. */
   private stepPlanes(dt: number) {
+    const body = HAMMER_X + (this.lunge?.reach ?? 0) * this.extension();
     this.planes = this.planes.filter((p) => {
+      if ((p.wait ?? 0) > 0) {
+        p.wait! -= dt;
+        return true;
+      }
       p.x += p.vx * dt;
       if (p.x < -20) return false;
-      if (p.x > HAMMER_X + 8 || this.duck) return true;
+      if (p.dodged || Math.abs(p.x - body) > 6) return true;
+      if (this.duck) {
+        p.dodged = true;
+        return true;
+      }
       this.plateTotal -= PLANE_HIT;
       this.hits++;
       this.ctx.audio.splat();
-      this.ctx.comic(HAMMER_X + 16, PLANE_Y - 10, `-${PLANE_HIT}`, false);
+      this.ctx.comic(body + 16, PLANE_Y - 10, `-${PLANE_HIT}`, false);
       return false;
     });
   }
