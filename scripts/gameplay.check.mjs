@@ -8,7 +8,7 @@ import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
 import * as LINES from "../src/game/lines.ts";
 import { createHash } from "node:crypto";
 import { SUPER_SECONDS, SWING_SECONDS, sweptHeadHits } from "../src/game/combat.ts";
-import { heroMallet, heroJoints, artworkToWorld, heroFace } from "../src/game/hero.ts";
+import { heroMallet, heroJoints, artworkToWorld, heroFace, legAngles } from "../src/game/hero.ts";
 import { thoughtLayout } from "../src/game/thought.ts";
 import {
   AIR,
@@ -1240,7 +1240,10 @@ test("the squat bends both knees and keeps both feet planted", () => {
       const k = chain(rotateAround(KNEE, hip, thigh));
       if (s > 0.3) assert.ok(k.x > chain(hip).x, "knees go forward, never backward");
     }
-  assert.deepEqual(squatLeg(LEG_HIPS.front, 0), { thigh: 0, knee: 0 });
+  const still = squatLeg(LEG_HIPS.front, 0);
+  assert.deepEqual([still.thigh, still.knee], [0, 0]);
+  assert.equal(squatLeg(LEG_HIPS.front, 0.5).flipped, false, "the front knee already points forward");
+  assert.equal(squatLeg(LEG_HIPS.rear, 0.5).flipped, true, "the rear knee swaps to the forward side");
   assert.deepEqual(squatOffset(0), { x: 0, y: 0 });
   assert.equal(pelvisTilt(0), 0);
   assert.ok(pelvisTilt(1) > 0, "the seat sits back as he sinks");
@@ -1376,4 +1379,28 @@ test("no idling with staff, paper or the pig nearby, and none survives a respawn
   assert.equal(h.heroBanter, "They need to get fired.", "a spoken caption is never overwritten by the idle line");
   h.loadLevel(h.courses[0], 1, 0, true);
   assert.equal(h.idleT, 0);
+});
+
+test("on the ground the drawn squat never lifts, sinks or slides a shoe", () => {
+  const stand = { x: 0, foot: 0, facing: 1, phase: 0, moving: false, air: false, reduced: false, mega: 0, swing: 0 };
+  // Exactly the renderer's chain: knee in thigh in tipped pelvis, then the sink.
+  const ankleOf = (j, rear) => {
+    const a = legAngles(stand, j, rear);
+    const q = rotateAround(rotateAround(rotateAround(ANKLE, KNEE, a.knee), a.hip, a.thigh), HIP, a.tilt);
+    const o = squatOffset(a.squat);
+    return { x: q.x + o.x, y: q.y + o.y, angle: a.tilt + a.thigh + a.knee + a.shoe };
+  };
+  for (let u = 0.46; u <= 1.0001; u += 0.01) {
+    const j = superJoints(u);
+    for (const rear of [false, true]) {
+      const drawn = ankleOf(j, rear),
+        stood = ankleOf({ ...j, squat: 0 }, rear);
+      const off = Math.hypot(drawn.x - stood.x, drawn.y - stood.y);
+      const label = `${rear ? "rear" : "front"} u=${u.toFixed(2)} squat=${j.squat.toFixed(2)}`;
+      // Under 0.05 squat the rear knee swaps sides; that one frame may drift half a world pixel.
+      const limit = j.squat >= 0.05 ? 0.5 : 1371 / 50 / 2;
+      assert.ok(off < limit, `${label}: ankle ${off.toFixed(1)} art px off`);
+      assert.ok(Math.abs(drawn.angle - stood.angle) < 1e-6, `${label}: shoe tips`);
+    }
+  }
 });

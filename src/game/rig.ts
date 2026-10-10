@@ -153,19 +153,24 @@ export function rigPoint(j: Joints, point: Point, frame: Frame): Point {
 }
 
 /**
- * Thigh and knee rotations, inside the tipped pelvis, that put the ankle back
- * where it stands with the knee forward.
+ * Thigh and knee rotations, inside the tipped pelvis, that keep the ankle where
+ * the unsquatted leg (`from`) puts it, with the knee forward.
  */
-export function squatLeg(hip: Point, squat: number) {
-  if (squat <= 0) return { thigh: 0, knee: 0 };
+export function squatLeg(hip: Point, squat: number, from = { thigh: 0, knee: 0 }) {
+  if (squat <= 0) return { ...from, flipped: false };
+  const foot = rotateAround(rotateAround(ANKLE, KNEE, from.knee), hip, from.thigh);
+  // Whether the unsquatted knee sits behind its hip-to-foot line, so solving forward swaps sides.
+  const fromKnee = rotateAround(KNEE, hip, from.thigh);
+  const side = (foot.x - hip.x) * (fromKnee.y - hip.y) - (foot.y - hip.y) * (fromKnee.x - hip.x);
+  const flipped = side > 0;
   const o = squatOffset(squat);
   const tilt = pelvisTilt(squat);
   const tipped = rotateAround(hip, HIP, tilt);
   const h = { x: tipped.x + o.x, y: tipped.y + o.y };
   const thighLen = Math.hypot(KNEE.x - hip.x, KNEE.y - hip.y),
     shinLen = Math.hypot(ANKLE.x - KNEE.x, ANKLE.y - KNEE.y);
-  const dx = ANKLE.x - h.x,
-    dy = ANKLE.y - h.y;
+  const dx = foot.x - h.x,
+    dy = foot.y - h.y;
   const d = Math.min(thighLen + shinLen - 1e-6, Math.hypot(dx, dy));
   const base = Math.atan2(dy, dx);
   const bend = Math.acos((thighLen ** 2 + d ** 2 - shinLen ** 2) / (2 * thighLen * d));
@@ -176,8 +181,8 @@ export function squatLeg(hip: Point, squat: number) {
   const k = knees[0].x >= knees[1].x ? knees[0] : knees[1];
   const thigh = Math.atan2(k.y - h.y, k.x - h.x) - Math.atan2(KNEE.y - hip.y, KNEE.x - hip.x) - tilt;
   const knee =
-    Math.atan2(ANKLE.y - k.y, ANKLE.x - k.x) - Math.atan2(ANKLE.y - KNEE.y, ANKLE.x - KNEE.x) - thigh - tilt;
-  return { thigh, knee };
+    Math.atan2(foot.y - k.y, foot.x - k.x) - Math.atan2(ANKLE.y - KNEE.y, ANKLE.x - KNEE.x) - thigh - tilt;
+  return { thigh, knee, flipped };
 }
 
 /** Two-bone reach for the far arm; the elbow takes the side nearer its pole. */

@@ -286,32 +286,47 @@ function wristWatch(ctx: CanvasRenderingContext2D) {
   ctx.restore();
 }
 
-function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, j: Joints) {
+/**
+ * Thigh, knee and extra shoe rotation for one leg, inside the squat's sink and
+ * pelvis tilt. The renderer draws exactly this chain.
+ */
+export function legAngles(p: HeroPose, j: Joints, rear: boolean) {
   const stance = j.stride;
   const stride = p.moving && !p.reduced ? Math.sin(p.phase * Math.PI * 2) : 0;
+  const squat = p.crouch ? 0 : j.squat;
+  const tilt = pelvisTilt(squat);
+  const hip = rear ? LEG_HIPS.rear : LEG_HIPS.front;
+  const posed = p.crouch
+    ? -1.36
+    : p.air
+      ? rear
+        ? 0.12
+        : -0.32
+      : stride * (rear ? -0.24 : 0.24) + stance * (rear ? -0.2 : 0.11);
+  const bent = p.crouch
+    ? 2.72
+    : p.air
+      ? 0.45
+      : Math.max(0, stride * (rear ? -1 : 1)) * 0.28 + Math.max(0, stance) * (rear ? 0.18 : 0.06);
+  // The solved leg keeps the foot where the unsquatted leg stands; a knee that
+  // has to swap to its forward side gets a one-frame blend instead of a pop.
+  const ik = squatLeg(hip, squat, { thigh: posed, knee: bent });
+  const t = ik.flipped ? Math.min(1, squat / 0.05) : 1,
+    w = t * t * (3 - 2 * t);
+  const thigh = posed + (ik.thigh - posed) * w;
+  const knee = bent + (ik.knee - bent) * w;
+  // The shoe keeps the unsquatted foot's angle while the shin folds over it.
+  return { hip, squat, tilt, thigh, knee, shoe: posed + bent - (tilt + thigh + knee) };
+}
+
+function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, j: Joints) {
   const squat = p.crouch ? 0 : j.squat;
   const sink = squatOffset(squat);
   const tilt = pelvisTilt(squat);
   const leg = (rear: boolean) => {
     ctx.save();
     if (p.crouch) ctx.translate(0, -180);
-    const hip = rear ? LEG_HIPS.rear : LEG_HIPS.front;
-    const posed = p.crouch
-      ? -1.36
-      : p.air
-        ? rear
-          ? 0.12
-          : -0.32
-        : stride * (rear ? -0.24 : 0.24) + stance * (rear ? -0.2 : 0.11);
-    const bent = p.crouch
-      ? 2.72
-      : p.air
-        ? 0.45
-        : Math.max(0, stride * (rear ? -1 : 1)) * 0.28 + Math.max(0, stance) * (rear ? 0.18 : 0.06);
-    // The squat blends toward the solved leg, which keeps the foot where it stands.
-    const ik = squatLeg(hip, squat);
-    const thigh = posed + (ik.thigh - posed) * squat;
-    const knee = bent + (ik.knee - bent) * squat;
+    const { hip, thigh, knee, shoe } = legAngles(p, j, rear);
     ctx.translate(sink.x, sink.y);
     pivot(ctx, HIP, tilt);
     pivot(ctx, hip, thigh);
@@ -339,8 +354,7 @@ function legs(ctx: CanvasRenderingContext2D, a: HeroAssets, p: HeroPose, j: Join
     ctx.restore();
     // Different original shoe crops keep the layered feet readable.
     if (!p.crouch) {
-      // Planted feet stay flat while the shin folds over them.
-      pivot(ctx, ANKLE, -(tilt + (thigh + knee) * squat));
+      pivot(ctx, ANKLE, shoe);
       if (rear) ctx.drawImage(a.idle, 130, 1175, 215, 121, 81, 1200, 215, 121);
       else {
         pivot(ctx, HEEL, -0.24 * j.tap);
