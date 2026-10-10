@@ -20,15 +20,18 @@ import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } f
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
 import { drawFurniture, drawSign, drawRoomDecor, drawCrate, drawFloorGap } from "./scenery";
 import {
+  ASIDES,
+  DAMAGE_LINE,
   IMPACT_WORDS,
   LECTURES,
   RETORTS,
   STAFF_COMEBACKS,
   STAFF_LINES,
   STAFF_SIGHS,
-  SUBTITLES,
+  TAUNT_LINES,
   pick,
 } from "./lines";
+import type { TauntId } from "./taunts";
 
 export type Mode =
   "title" | "card" | "play" | "pause" | "die" | "slide" | "walkoff" | "tally" | "over" | "win";
@@ -330,6 +333,7 @@ export class Game {
   private heroBanter = "";
   private banterT = 0;
   private banterSoft = false;
+  private banterSpoken = false;
   private items: Item[] = [];
   private embers: Ember[] = [];
   private bits: Bit[] = [];
@@ -1004,7 +1008,7 @@ export class Game {
       this.lectureCd = LECTURE_SECONDS + 0.6;
       this.lectureHit = false;
       p.vx *= 0.2;
-      this.say(pick(LECTURES, this.clock * 13), 1.8);
+      this.say(pick(LECTURES, this.clock * 13).text, 1.8);
       this.audio.harrumph();
     }
     this.lectureEdge = false;
@@ -1090,7 +1094,7 @@ export class Game {
     else if (stroke === 7) {
       this.audio.glint();
       if (this.banterT <= 0) {
-        this.say("Ahh. Better.", 1.2, true);
+        this.say(ASIDES.better.text, 1.2, true);
       }
     }
   }
@@ -1133,10 +1137,7 @@ export class Game {
     this.heat = Math.max(0, this.heat - 15);
     if (!schooled && !frozen) return;
     this.comic(cx + p.facing * 34, p.y - 2, schooled ? "SCHOOLED!" : "LISTEN UP!", false);
-    const said = this.audio.taunt(schooled ? "student" : "staff");
-    if (typeof said === "string" && said in SUBTITLES) {
-      this.say(SUBTITLES[said], 2);
-    }
+    this.voice(this.audio.taunt(schooled ? "student" : "staff"));
   }
 
   private stepPuddles(dt: number) {
@@ -1175,19 +1176,25 @@ export class Game {
   }
 
   /** Soft lines (written jabs, asides) give way to the next encounter; the rest play out. */
-  private say(text: string, seconds: number, soft = false) {
+  private say(text: string, seconds: number, soft = false, spoken = false) {
     this.heroBanter = text;
     this.banterT = seconds;
     this.banterSoft = soft;
+    this.banterSpoken = spoken;
+  }
+
+  /** A recorded line that actually played is captioned as speech. */
+  private voice(said: unknown) {
+    const line = typeof said === "string" ? TAUNT_LINES[said as TauntId] : undefined;
+    if (!line) return false;
+    this.say(line.text, 2, false, true);
+    return true;
   }
 
   /** Captions the recorded line when one plays; otherwise an occasional written jab. */
-  private quip(e: Enemy, said: unknown) {
-    if (typeof said === "string" && said in SUBTITLES) {
-      this.say(SUBTITLES[said as keyof typeof SUBTITLES], 2);
-    } else if (this.banterT <= 0 && Math.random() < 0.45) {
-      this.say(pick(STAFF_COMEBACKS[e.role ?? "office"], e.home / TILE + this.clock * 3), 1.6, true);
-    }
+  private quip(e: Pick<Enemy, "role" | "home">, said: unknown) {
+    if (this.voice(said) || this.banterT > 0 || Math.random() >= 0.45) return;
+    this.say(pick(STAFF_COMEBACKS[e.role ?? "office"], e.home / TILE + this.clock * 3).text, 1.6, true);
   }
 
   private updateStance(dt: number) {
@@ -1451,8 +1458,7 @@ export class Game {
       ) {
         student.greeted = true;
         student.speechT = 4.2;
-        this.say(student.hammer, 2.1);
-        this.audio.taunt("student");
+        if (!this.voice(this.audio.taunt("student"))) this.say(student.hammer.text, 2.1);
       }
     }
   }
@@ -1572,7 +1578,7 @@ export class Game {
     b.hp = Math.max(0, b.hp - amount);
     this.audio.thud();
     this.shake = Math.max(this.shake, 0.065);
-    this.audio.taunt("pig");
+    this.voice(this.audio.taunt("pig"));
     this.hitstop = 0.04;
     this.float(x, y, kind === "bonk" ? "BONK!" : "SNOT!");
     for (let i = 0; i < 7; i++)
@@ -1853,7 +1859,7 @@ export class Game {
         this.comic(plane.x, plane.y - 8, "SWAT!", false);
         this.audio.thud();
         this.scoreAdd(50);
-        this.audio.taunt("student");
+        this.voice(this.audio.taunt("student"));
       }
     }
     const xs = path.map((q) => q.x),
@@ -1893,7 +1899,7 @@ export class Game {
     this.audio.power();
     this.shake = Math.max(this.shake, 0.08);
     this.flyPapers(p.x + p.w / 2, p.y, 10);
-    this.say("HAMMER TIME.", 1.1, true);
+    this.say(ASIDES.hammerTime.text, 1.1, true);
   }
 
   private superBurst() {
@@ -2221,6 +2227,7 @@ export class Game {
     this.heroBanter = "";
     this.banterT = 0;
     this.banterSoft = false;
+    this.banterSpoken = false;
     this.items = [];
     this.embers = [];
     this.splashes = [];
@@ -3562,7 +3569,7 @@ export class Game {
   }
 
   private drawCurse(cam: number) {
-    const line = "ABSOLUTE BULLSHIT";
+    const line = DAMAGE_LINE.text;
     const w = line.length * 4;
     const x = clamp(this.player.x - cam - 6, 2, VIEW_W - w - 2);
     const y = clamp(this.player.y - 18, 4, VIEW_H - 16);

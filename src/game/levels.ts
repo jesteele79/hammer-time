@@ -1,4 +1,5 @@
 import { GROUND_ROW, ID, MAP_H, TILE, type TileId } from "./constants";
+import { STUDENT_EXCHANGES, type Line } from "./lines";
 
 export type Sky = "day" | "cellar";
 export type SceneTheme = "hotel" | "restaurant" | "campus";
@@ -15,7 +16,7 @@ export type Prop = {
 export type Sign = { x: number; label: string; note?: string };
 export type StudentSpawn = {
   x: number;
-  hammer: string;
+  hammer: Line;
   reply: string;
   throws?: boolean;
   delay?: number;
@@ -158,18 +159,9 @@ function randomRewards(level: Level, rng: () => number, stash = false) {
   }
 }
 
-const studentLines = [
-  ["Read the syllabus, rookie.", "It's on the rubric."],
-  ["That's not extra credit.", "I just asked for directions."],
-  ["Office hours are over.", "Sir, this is the dining hall."],
-  ["Your group project is a mess.", "We put your name on it."],
-  ["Put the phone down, scholar.", "I'm rating your customer service."],
-  ["That paper better be double-spaced.", "It's a paper airplane."],
-  ["No extensions. Ever.", "You missed the deadline too."],
-];
 function students(level: Level, xs: number[], rng: () => number) {
   level.students = xs.map((x, i) => {
-    const [hammer, reply] = studentLines[i % studentLines.length];
+    const { hammer, reply } = STUDENT_EXCHANGES[i % STUDENT_EXCHANGES.length];
     return { x, hammer, reply, throws: true, delay: 2 + rng() * 3 };
   });
 }
@@ -315,11 +307,7 @@ export function buildLevels(seed = 0xc0ffee): { courses: Level[]; bonus: Level }
   );
   supply(campus, 7, 7, ID.power);
   supply(campus, 12, 11, ID.nut);
-  campus.students = [
-    { x: 17, hammer: "Read the syllabus, rookie.", reply: "It's on the rubric." },
-    { x: 62, hammer: "That's not extra credit.", reply: "I just asked for directions." },
-    { x: 96, hammer: "Office hours are over.", reply: "Sir, this is the dining hall." },
-  ];
+  campus.students = [17, 62, 96].map((x, i) => ({ x, ...STUDENT_EXCHANGES[i] }));
   staff(campus, 24, "server");
   furniture(campus, 29, 10, 4, 2, "counter");
   supply(campus, 34, 7, ID.treat);

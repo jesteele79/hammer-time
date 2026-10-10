@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { Game } from "../src/game/engine.ts";
 import { AudioBus } from "../src/game/audio.ts";
 import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
+import * as LINES from "../src/game/lines.ts";
 import { createHash } from "node:crypto";
 import { SUPER_SECONDS, SWING_SECONDS, sweptHeadHits } from "../src/game/combat.ts";
 import { heroMallet, heroJoints, artworkToWorld } from "../src/game/hero.ts";
@@ -591,7 +592,7 @@ test("hospitality staff dominate the cast; student bodies stay outside combat ta
   g.player.x = student.x - 20;
   g.stepStudents(1 / 60);
   g.touchEnemies();
-  assert.equal(g.heroBanter, student.hammer);
+  assert.equal(g.heroBanter, student.hammer.text);
   assert.equal(student.greeted, true);
   assert.equal(g.player.form, 2);
   assert.equal(g.audio.voiceCount, 0, "student dialogue is not accepted damage");
@@ -1065,4 +1066,59 @@ test("the hammer's contact arc sweeps over the top in front, never behind him", 
     landed = at(0.46);
   assert.ok(cocked.x < p.x && cocked.y < p.foot - 50, "loaded overhead, behind the head");
   assert.ok(landed.x > p.x + 8 && landed.y > p.foot - 30, "lands low in front");
+});
+
+test("only the six recordings are spoken lines; every other Hammer line is text", () => {
+  const found = [];
+  const walk = (v) => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") {
+      if (typeof v.text === "string" && Object.keys(v).every((k) => k === "text" || k === "clip"))
+        found.push(v);
+      else Object.values(v).forEach(walk);
+    }
+  };
+  walk(Object.values(LINES));
+  const clips = found.filter((line) => line.clip).map((line) => line.clip);
+  assert.deepEqual(clips.sort(), [...Object.keys(TAUNT_FILES), "damage"].sort());
+  for (const [id, line] of Object.entries(LINES.TAUNT_LINES)) assert.equal(line.clip, id);
+  assert.equal(LINES.DAMAGE_LINE.clip, "damage");
+  assert.ok(found.length >= 35, "Hammer's written lines live in the table");
+  assert.equal(LINES.pick(["a", "b"], NaN), "a", "a junk seed still picks a line");
+});
+
+test("a played clip is captioned as speech; anything else is a thought", () => {
+  const g = game();
+  g.voice("fired");
+  assert.equal(g.heroBanter, "They need to get fired.");
+  assert.equal(g.banterSpoken, true);
+  g.banterT = 0;
+  assert.equal(g.voice(null), false);
+  assert.equal(g.voice(3), false, "stubbed taunts that return junk are not speech");
+  const random = Math.random;
+  Math.random = () => 0;
+  try {
+    g.quip({ role: "server", home: 0 }, null);
+  } finally {
+    Math.random = random;
+  }
+  assert.ok(LINES.STAFF_COMEBACKS.server.some((line) => line.text === g.heroBanter));
+  assert.equal(g.banterSpoken, false);
+});
+
+test("student greetings caption the clip that played, or think the written line", () => {
+  for (const [said, spoken] of [
+    ["man-balls", true],
+    [null, false],
+  ]) {
+    const g = game();
+    g.loadLevel(g.courses[2], 2, 0, true);
+    g.enemies = [];
+    g.audio.taunt = () => said;
+    const student = g.students[0];
+    g.player.x = student.x - 20;
+    g.stepStudents(1 / 60);
+    assert.equal(g.heroBanter, spoken ? "Go grow some man balls." : student.hammer.text);
+    assert.equal(g.banterSpoken, spoken);
+  }
 });
