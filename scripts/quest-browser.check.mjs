@@ -85,6 +85,13 @@ try {
     await page.setViewportSize(viewport);
     await page.waitForTimeout(250);
     assert.equal(await page.locator(".touchbar button").count(), 10);
+    const timer = await page.evaluate(() => {
+      const col = [...document.querySelectorAll(".hud > div")].find((d) =>
+        /sec/.test(d.textContent ?? ""),
+      );
+      return col && getComputedStyle(col).display !== "none" ? col.innerText : "";
+    });
+    assert.match(timer, /banquet\s+\d+/i, `the quest timer is visible at ${viewport.width}px`);
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,

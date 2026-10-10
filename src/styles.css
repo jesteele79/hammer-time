@@ -761,6 +761,17 @@ button:focus-visible {
   .hud > div:nth-child(5) {
     display: none;
   }
+  /* In a side quest the round timer matters more than the run's cans and lives. */
+  .stage[data-mode="quest"] .hud {
+    grid-template-columns: 0.7fr 1fr 1.5fr auto;
+  }
+  .stage[data-mode="quest"] .hud > div:nth-child(5) {
+    display: block;
+  }
+  .stage[data-mode="quest"] .hud > div:nth-child(3),
+  .stage[data-mode="quest"] .hud > div:nth-child(4) {
+    display: none;
+  }
   .hud small {
     display: none;
   }
