@@ -8,7 +8,8 @@ import { TAUNT_FILES, TauntRotation } from "../src/game/taunts.ts";
 import * as LINES from "../src/game/lines.ts";
 import { createHash } from "node:crypto";
 import { SUPER_SECONDS, SWING_SECONDS, sweptHeadHits } from "../src/game/combat.ts";
-import { heroMallet, heroJoints, artworkToWorld } from "../src/game/hero.ts";
+import { heroMallet, heroJoints, artworkToWorld, heroFace } from "../src/game/hero.ts";
+import { thoughtLayout } from "../src/game/thought.ts";
 import {
   AIR,
   CROUCH,
@@ -1121,4 +1122,54 @@ test("student greetings caption the clip that played, or think the written line"
     assert.equal(g.heroBanter, spoken ? "Go grow some man balls." : student.hammer.text);
     assert.equal(g.banterSpoken, spoken);
   }
+});
+
+test("a thought cloud sits above and behind the head and never covers the face", () => {
+  const view = { w: 384, h: 216 };
+  const hits = (a, b) =>
+    a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  const pose = {
+    x: 200,
+    foot: 192,
+    facing: 1,
+    phase: 0,
+    moving: false,
+    air: false,
+    landing: 0,
+    swing: 0,
+    mega: 0,
+    wipe: 0,
+    snot: 0,
+    heat: 0,
+    hurt: 0,
+    star: 0,
+    reduced: false,
+    clock: 0,
+  };
+  const rest = heroFace(pose);
+  const normal = thoughtLayout({ w: 60, h: 14 }, rest.crown, 1, rest, view);
+  assert.ok(normal.cloud.y + normal.cloud.h <= rest.crown.y - 17, "above the head");
+  assert.ok(normal.cloud.x + normal.cloud.w / 2 < rest.crown.x, "behind the head");
+  for (const facing of [1, -1])
+    for (let x = 0; x <= 384; x += 6)
+      for (const foot of [60, 80, 120, 192])
+        for (const size of [
+          { w: 30, h: 14 },
+          { w: 82, h: 24 },
+        ]) {
+          const p = { ...pose, x, foot, facing };
+          const face = heroFace(p);
+          const { cloud, puffs } = thoughtLayout(size, face.crown, facing, face, view);
+          const label = `x=${x} foot=${foot} facing=${facing} w=${size.w}`;
+          assert.ok(!hits(cloud, face), `${label}: cloud covers the face`);
+          assert.ok(
+            cloud.x >= 0 && cloud.y >= 0 && cloud.x + cloud.w <= 384 && cloud.y + cloud.h <= 216,
+            `${label}: off view`,
+          );
+          for (const c of puffs)
+            assert.ok(
+              !hits({ x: c.x - c.r, y: c.y - c.r, w: 2 * c.r, h: 2 * c.r }, face),
+              `${label}: puff on the face`,
+            );
+        }
 });

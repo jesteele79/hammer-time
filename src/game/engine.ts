@@ -14,7 +14,8 @@ import {
   sweptHeadHits,
   type Point,
 } from "./combat";
-import { drawHero, heroMallet, heroNostril, type HeroPose } from "./hero";
+import { drawHero, heroFace, heroMallet, heroNostril, type HeroPose } from "./hero";
+import { drawThought } from "./thought";
 import { SNOT_FIRE_U, SUPER_CUT_FROM, SWING_ACTIVE, WIPE_FLICK, WIPE_SCRUB, WIPE_SHINE } from "./rig";
 import { DISPLAY_H, DISPLAY_W, GROUND_ROW, ID, TILE, VIEW_H, VIEW_W, isSolid } from "./constants";
 import { buildLevels, type EnemyRole, type StudentSpawn, type Level } from "./levels";
@@ -2715,8 +2716,19 @@ export class Game {
     this.drawEmbers(cam);
     for (const plane of this.planes) this.drawPlane(plane, cam);
     if (this.curse > 0) this.drawCurse(cam);
-    else if (this.banterT > 0)
+    else if (this.banterT > 0 && this.banterSpoken)
       this.drawSpeech(this.heroBanter, this.player.x - cam, this.player.y - 26, "#e7bd6a");
+    else if (this.banterT > 0) {
+      const face = heroFace(this.heroPose());
+      drawThought(
+        ctx,
+        this.heroBanter,
+        { x: face.crown.x - cam, y: face.crown.y },
+        this.player.facing,
+        { ...face, x: face.x - cam },
+        { w: VIEW_W, h: VIEW_H },
+      );
+    }
     for (const t of this.texts) this.px(t.text, t.x - cam, t.y, "#fff6d8");
     this.drawComics(cam);
     if (this.fade > 0) {

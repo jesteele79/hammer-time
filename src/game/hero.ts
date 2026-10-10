@@ -11,7 +11,9 @@ import {
 import {
   AIR,
   CROUCH,
+  CROWN,
   ELBOW,
+  FACE,
   FAR_SHOULDER,
   FIST,
   GRIP,
@@ -122,6 +124,19 @@ export function heroMallet(p: HeroPose, continuous = false) {
 
 export function heroNostril(p: HeroPose) {
   return artworkToWorld(p, rigPoint(heroJoints(p), NOSTRIL, "head"));
+}
+
+/** World-space face box and the crown above it, for anything placed near his head. */
+export function heroFace(p: HeroPose) {
+  const j = heroJoints(p);
+  const [a, b] = FACE.map((c) => artworkToWorld(p, rigPoint(j, c, "head")));
+  return {
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    w: Math.abs(b.x - a.x),
+    h: Math.abs(b.y - a.y),
+    crown: artworkToWorld(p, rigPoint(j, CROWN, "head")),
+  };
 }
 
 /* Clip outlines on the cut-out canvas. */

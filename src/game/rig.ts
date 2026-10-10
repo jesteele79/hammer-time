@@ -13,6 +13,13 @@ export const FIST = { x: 150, y: 800 };
 export const GRIP = { x: 150, y: 812 };
 export const MALLET_HEAD = { x: 357, y: 934 };
 export const NOSTRIL = { x: 349, y: 187 };
+/** Eyes, nose, mustache, mouth and chin: nothing is ever drawn over this box. */
+export const FACE: readonly [Point, Point] = [
+  { x: 282, y: 96 },
+  { x: 368, y: 266 },
+];
+/** Top of the bald crown, in head space. */
+export const CROWN = { x: 232, y: 0 };
 /** The head rides the torso but stays level, so the face is never tilted. */
 export const NECK = { x: 215, y: 290 };
 export const NECKLINE = [
