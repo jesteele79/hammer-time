@@ -165,6 +165,13 @@ try {
           mega: slam(u),
           air: u < 0.58,
         })),
+        // The banquet dive, shifted back by its reach so it stays in its cell.
+        { label: "Dive charge", coil: 1 },
+        { label: "Dive out", lunge: { u: 0.5, reach: 170 }, x: -85 },
+        { label: "Dive 90 px", lunge: { u: 1, reach: 90 }, x: -90 },
+        { label: "Dive 250 px", lunge: { u: 1, reach: 250 }, x: -250 },
+        { label: "Spring back", lunge: { u: 0.4, reach: 250 }, x: -100 },
+        { label: "Duck at the table", crouch: true },
       ];
       const thoughts = [
         { label: "Thought", text: "Are you going to finish that?", x: 190, foot: 192 },

@@ -25,6 +25,7 @@ and preserve the existing Grok platform integrations.
 | Towel off                | T, while standing and warm                |
 | Super smash              | Q, at 10 charge                           |
 | Staff stash              | Down while standing on its marked cart    |
+| Side quest door          | Down on the floor in front of the door    |
 | Pause                    | Escape or P                               |
 
 Touch controls support simultaneous movement and actions. Landscape gives a
@@ -75,7 +76,55 @@ The menu includes signature pickups, a stored personal best, mute and an
 expandable How to play section. The game HUD and touch pad appear after launch.
 Keyboard activation of menu buttons selects or opens that control without
 accidentally starting the game; Enter or Space outside a control starts the
-selected run. Small phones can scroll the menu.
+selected run. Small phones can scroll the menu. A Side quests row under the
+venues starts a practice round of Hungry Hungry Hammer and shows its stored
+best; practice never touches a run.
+
+## Side quests: Hungry Hungry Hammer
+
+Hungry Hungry Hippos at a banquet table. Enter it from the BUFFET door in the
+hotel lobby (Down on the floor in front of it; once per run) or practice it
+from the start screen.
+
+| Action                          | Keyboard                    |
+| ------------------------------- | --------------------------- |
+| Dive along the table            | Space, F or Jump; tap       |
+| Charged dive (rob a plate)      | Hold up to half a second    |
+| Bonk the near end of the table  | H or X                      |
+| Duck under paper                | Down                        |
+| Continue from the tally         | Enter, Space or Continue    |
+
+- **The round.** Sixty seconds. Food drops from the chute in waves:
+  appetizers, then entrees from 20 seconds, then desserts, with the dessert
+  cart crashing in at 42 seconds and spilling eight plates. Coke Zero, nuts,
+  a Buc-ee's bag, hot sauce, a to-go box and the check each drop once.
+- **The dive.** Hammer dives along the front of the table, far hand first,
+  and eats everything within 10 px of his hand. A tap reaches 90 px, plus 10
+  px for every plate he has eaten, up to 250. Holding the button grows the
+  dive to 250 by half a second, with a marker on the cloth showing where it
+  will land; a charged dive that ends on a rival's plate steals the top item
+  for its value plus a 100-point YOINK.
+- **The rivals.** A student, a bellhop and a nurse grab food that settles
+  near them after a reaction delay, faster the angrier they get. Robbed, the
+  student throws paper down the table (duck or swat; a hit costs 150), the
+  bellhop drops a suitcase that stops food and dives for four seconds, and an
+  angry nurse slaps a hand that reaches into her zone.
+- **The server** walks behind the table bussing plates ("Are we still working
+  on that?"). Bonk him when he is near Hammer's end and his tray spills four
+  extra plates and he leaves for fifteen seconds; the same swing stuns a rival
+  leaning into range and slams suitcases off the table.
+- **Scoring.** The plate total plus combo bonuses (grabs within 1.2 seconds:
+  x2 from the fifth, x3 from the tenth). The check costs 400; the to-go box
+  doubles the next five grabs. Grades: COMPED 3000, GOOD TIPPER 2000, SPLIT
+  THE CHECK 1200, WATER ONLY below.
+- **Rewards on return** to the lobby: the score, Coke Zero eaten, smash charge
+  from nuts, a Buc-ee's boost, and hot snot from hot sauce or a full belly
+  (GOOD TIPPER or better: patience back to three). The door then says THANK
+  YOU for the rest of the run.
+
+The food is drawn procedurally (plates with tags) until the requested food
+sprite sheet exists; the Coke Zero, nuts and Buc-ee's photos are the approved
+pickups. Every Hammer line in the quest is a thought bubble.
 
 ## Routes and surroundings
 
@@ -174,7 +223,8 @@ npm run test:game
 npm run build
 ```
 
-The 44 game checks cover protected files, mallet hits/misses, immediate voice
+The 68 game checks (47 in `gameplay.check.mjs`, 21 in `hungry.check.mjs`)
+cover protected files, mallet hits/misses, immediate voice
 scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
 distinct rewards, seeded pickup placement, all passages and supply routes,
 hospitality behavior, paper telegraph/duck/swat/contact, and boss combo rules,
@@ -182,7 +232,9 @@ refills and exit lock. Rig checks cover the untouched rest pose, face clearance
 for every drawn pose (now including snot, towel, watch check with a far-arm
 probe and a collar check, foot tap and the squatting slam), the mallet arc,
 planted feet through the squat (including every drawn slam frame on the
-ground), and the mallet meeting the floor at the slam in both directions; mechanic checks cover snot charges, hot snot, puddle slips,
+ground), the mallet meeting the floor at the slam in both directions, and the
+banquet dive (face clearance at every extension and reach, the far hand at
+tabletop height); mechanic checks cover snot charges, hot snot, puddle slips,
 lectures and the super smash landing. Line checks cover the single table (only
 the six recordings carry clips), the spoken-or-thought caption switch, student
 greetings, captions staying in step with the voice, and placement of thoughts,
@@ -193,6 +245,12 @@ target pools/crossover, chance skips, cooldown/no overlap, actual event triggers
 and damage priority. A physics playthrough clears the extended route geometry
 with staff active; paper timing is tested separately. Another playthrough
 clears the full boss using movement and attack inputs with three lives intact.
+Hungry Hungry Hammer checks cover the food physics, waves, the cart and the
+specials, tap and charged reach, held and mashed buttons, eating, the check,
+the to-go box, combos, rivals' reactions and anger, every payback, the server
+and the bonk, the 60-second round, grades and rewards, and the engine host:
+the door round trip with rewards, door conditions, practice records and
+pause.
 
 For browser checks, use installed Chrome or Playwright's bundled Chromium:
 
@@ -204,14 +262,17 @@ node scripts/surroundings.check.mjs http://127.0.0.1:8080/
 node scripts/start-screen.check.mjs http://127.0.0.1:8080/
 node scripts/pig-boss.check.mjs http://127.0.0.1:8080/
 node scripts/voice-browser.check.mjs http://127.0.0.1:8080/
+node scripts/quest-browser.check.mjs http://127.0.0.1:8080/
 ```
 
 These checks capture desktop, portrait and landscape views, character actions,
 the idle watch check, the super slam (development builds), all venue
 selectors, paper defense, a complete boss fight, boss phone HUD, pause and ten
 touch controls. `--poses` also renders a pose board: every move, the watch
-check, the foot tap, the slam frame by frame and thought bubbles at the view
-edges. Repeat against production preview on port 8081,
+check, the foot tap, the slam frame by frame, the banquet dive and thought
+bubbles at the view edges. The quest check plays a practice round (dive,
+bonk, duck, pause, phones, tally, stored best) and, in development builds,
+the BUFFET door round trip in a real run. Repeat against production preview on port 8081,
 omitting `--poses`, which imports the development renderer. Captures and verdicts
 are saved under `artifacts/`. Voice browser checks use actual Web Audio decoding
 and playback during student and pig encounters, and verify damage, pause and mute.
