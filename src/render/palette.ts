@@ -13,8 +13,8 @@ export const PALETTE = {
   marbleFront: "#b8ad99",
   brass: "#c9a24a",
   lampGlow: "#ffd9a0",
-  /** Far limbs, parts only, never the head. */
-  farLimb: "#c9c9c9",
+  /** Far limbs, parts only, never the head: a warm shadow, not a grey. */
+  farLimb: "#b9a69a",
   leaf: "#4f7a4a",
   wallWood: "#4a3327",
 };

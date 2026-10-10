@@ -57,7 +57,7 @@ export function createBoards(
     const characters = cells.map((cell) => {
       const ch = createCharacter(registry, cell.costume);
       const plate = registry.hammer.heads.neutral!;
-      const solved = solve(CLIPS[cell.clip](cell.u, CTX), 1, cell.headScale, plate);
+      const solved = solve(CLIPS[cell.clip](cell.u, CTX), -1, cell.headScale, plate);
       ch.container.position.set(150 + cell.col * CELL_W + CELL_W / 2, 50 + cell.row * CELL_H + CELL_H - 32);
       ch.apply(solved, cell.expression, 1, 0);
       board.addChild(ch.container);
@@ -66,7 +66,7 @@ export function createBoards(
     await Promise.all(characters.map((c) => c.ready));
     for (const [i, ch] of characters.entries()) {
       const cell = cells[i];
-      ch.apply(solve(CLIPS[cell.clip](cell.u, CTX), 1, cell.headScale, registry.hammer.heads.neutral!), cell.expression, 1, 0);
+      ch.apply(solve(CLIPS[cell.clip](cell.u, CTX), -1, cell.headScale, registry.hammer.heads.neutral!), cell.expression, 1, 0);
     }
     return snapshot(board, width, height);
   };

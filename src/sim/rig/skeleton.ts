@@ -45,7 +45,7 @@ const handleEnd = (grip: Point): Point => ({
 
 // Parents before children: the solver walks this order. Heights follow the owner's
 // painted body (art/cuts/hammer-body.json at 296 units per collar-to-sole span):
-// shoulder 270, elbow 192, wrist 150, pelvis 155, hip 149, knee 92, sole 0.
+// shoulder 270, elbow 204, wrist 157, fingertips 115, pelvis 155, hip 149, knee 92, sole 0.
 const TABLE: Record<JointName, { parent: JointName | null; rest: Point }> = {
   root: { parent: null, rest: { x: 0, y: 0 } },
   pelvis: { parent: "root", rest: { x: 0, y: 155 } },
@@ -53,13 +53,13 @@ const TABLE: Record<JointName, { parent: JointName | null; rest: Point }> = {
   neck: { parent: "chest", rest: { x: 6, y: 296 } },
   head: { parent: "neck", rest: { x: 6, y: 296 } },
   shoulderNear: { parent: "chest", rest: { x: 10, y: 270 } },
-  elbowNear: { parent: "shoulderNear", rest: { x: 10, y: 192 } },
-  wristNear: { parent: "elbowNear", rest: { x: 10, y: 150 } },
-  handNear: { parent: "wristNear", rest: { x: 10, y: 123 } },
+  elbowNear: { parent: "shoulderNear", rest: { x: 10, y: 204 } },
+  wristNear: { parent: "elbowNear", rest: { x: 10, y: 157 } },
+  handNear: { parent: "wristNear", rest: { x: 10, y: 115 } },
   shoulderFar: { parent: "chest", rest: { x: -14, y: 268 } },
-  elbowFar: { parent: "shoulderFar", rest: { x: -14, y: 190 } },
-  wristFar: { parent: "elbowFar", rest: { x: -14, y: 148 } },
-  handFar: { parent: "wristFar", rest: { x: -14, y: 121 } },
+  elbowFar: { parent: "shoulderFar", rest: { x: -14, y: 202 } },
+  wristFar: { parent: "elbowFar", rest: { x: -14, y: 155 } },
+  handFar: { parent: "wristFar", rest: { x: -14, y: 113 } },
   hipNear: { parent: "pelvis", rest: { x: 10, y: 149 } },
   kneeNear: { parent: "hipNear", rest: { x: 12, y: 92 } },
   // The ankle is the sole's center, 13 units ahead of the knee as the painted shoe sits.
@@ -69,8 +69,8 @@ const TABLE: Record<JointName, { parent: JointName | null; rest: Point }> = {
   kneeFar: { parent: "hipFar", rest: { x: -8, y: 92 } },
   ankleFar: { parent: "kneeFar", rest: { x: 5, y: 0 } },
   toeFar: { parent: "ankleFar", rest: { x: 41, y: 0 } },
-  grip: { parent: "wristNear", rest: { x: 10, y: 136 } },
-  malletHead: { parent: "grip", rest: handleEnd({ x: 10, y: 136 }) },
+  grip: { parent: "wristNear", rest: { x: 10, y: 143 } },
+  malletHead: { parent: "grip", rest: handleEnd({ x: 10, y: 143 }) },
 };
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);

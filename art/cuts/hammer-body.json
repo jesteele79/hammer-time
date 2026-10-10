@@ -1,5 +1,5 @@
 {
-  "note": "Polygons in pixels of the keyed crop of art/incoming/hammer/body-*.png (all four share the framing). Check with: node scripts/art-sync.mjs --overlay -> artifacts/body-cuts.png. material: skin keeps only skin-like pixels, cloth only the rest. collar/sole: the torso's collar line and the near shoe's sole in crop pixels; the renderer scales the body so collar-to-sole spans the skeleton's neck height.",
+  "note": "Polygons in pixels of the keyed crop of art/incoming/hammer/body-*.png (all four share the framing). Check with: node scripts/art-sync.mjs --overlay -> artifacts/body-cuts.png. material: skin keeps only skin-like pixels, cloth only the rest. collar/sole: the torso's collar line and the near shoe's sole in crop pixels; the renderer scales the body so collar-to-sole spans the skeleton's neck height. caps: [x, y, r, material?] discs unioned into a part at a joint so limbs end in a ball. sleeveNear stays with the shirt and is drawn over the bare arm; a 'fill' cap paints skin under it. cover: a part drawn over others that never counts as a hole in them. fillShade darkens a part's fill caps (skin in the shade of a sleeve).",
   "space": "crop",
   "parts": {
     "torso": {
@@ -55,7 +55,7 @@
       "material": "cloth",
       "polygon": [
         [
-          225,
+          248,
           822
         ],
         [
@@ -67,7 +67,7 @@
           905
         ],
         [
-          228,
+          250,
           905
         ]
       ],
@@ -87,7 +87,7 @@
     "upperArmNear": {
       "polygon": [
         [
-          302,
+          340,
           296
         ],
         [
@@ -99,20 +99,24 @@
           556
         ],
         [
-          440,
-          562
+          470,
+          592
         ],
         [
-          352,
-          688
+          435,
+          652
         ],
         [
-          262,
-          668
+          300,
+          632
         ],
         [
           300,
           560
+        ],
+        [
+          330,
+          380
         ]
       ],
       "pivot": [
@@ -120,20 +124,51 @@
         390
       ],
       "tip": [
-        295,
-        668
-      ]
+        370,
+        640
+      ],
+      "caps": [
+        [
+          370,
+          640,
+          44
+        ],
+        [
+          399,
+          400,
+          46,
+          "fill"
+        ],
+        [
+          392,
+          459,
+          46,
+          "fill"
+        ],
+        [
+          384,
+          519,
+          46,
+          "fill"
+        ]
+      ],
+      "fillFrom": [
+        330,
+        600
+      ],
+      "material": "skin",
+      "fillShade": 0.82
     },
     "forearmNear": {
       "material": "skin",
       "polygon": [
         [
-          262,
-          668
+          300,
+          632
         ],
         [
-          352,
-          688
+          435,
+          652
         ],
         [
           300,
@@ -157,12 +192,20 @@
         ]
       ],
       "pivot": [
-        295,
-        670
+        370,
+        640
       ],
       "tip": [
-        210,
-        805
+        240,
+        765
+      ],
+      "caps": [
+        [
+          370,
+          640,
+          52,
+          "skin"
+        ]
       ]
     },
     "upperArmFar": {
@@ -355,6 +398,13 @@
       "fillFrom": [
         480,
         1000
+      ],
+      "caps": [
+        [
+          470,
+          1067,
+          54
+        ]
       ]
     },
     "shinNear": {
@@ -395,7 +445,53 @@
       "tip": [
         420,
         1410
+      ],
+      "caps": [
+        [
+          470,
+          1067,
+          54,
+          "skin"
+        ]
       ]
+    },
+    "sleeveNear": {
+      "material": "cloth",
+      "polygon": [
+        [
+          302,
+          296
+        ],
+        [
+          492,
+          300
+        ],
+        [
+          492,
+          556
+        ],
+        [
+          425,
+          552
+        ],
+        [
+          320,
+          578
+        ],
+        [
+          300,
+          560
+        ]
+      ],
+      "pivot": [
+        400,
+        390
+      ],
+      "tip": [
+        380,
+        566
+      ],
+      "cover": true
     }
   },
   "overrides": {
@@ -411,6 +507,13 @@
         ]
       },
       "upperArmFar": {
+        "material": "any",
+        "fillFrom": [
+          420,
+          470
+        ]
+      },
+      "upperArmNear": {
         "material": "any",
         "fillFrom": [
           420,

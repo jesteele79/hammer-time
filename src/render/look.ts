@@ -167,7 +167,8 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     const y = prev.hero.y + (h.y - prev.hero.y) * alpha;
 
     const pose = animate(h, dt);
-    const solved = solve(pose, h.facing, HEAD_SCALE, headPlate);
+    // Solved facing left, the plates' own facing; the character mirrors itself for the right.
+    const solved = solve(pose, -1, HEAD_SCALE, headPlate);
     const floorY = supportY(x, y);
     const expression: Expression = h.state === "idle" && h.stateT > 4 ? "bored" : "neutral";
     character.container.position.set(x, y);
@@ -215,9 +216,9 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       world.hero.x = x;
       world.hero.vx = 0;
       cur = prev = world.snapshot();
-      const solved = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), 1, HEAD_SCALE, headPlate);
+      const solved = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), -1, HEAD_SCALE, headPlate);
       character.container.position.set(x, 0);
-      character.apply(solved, "neutral", 1, 0);
+      character.apply(solved, "neutral", 1, 0, scene.ambient);
     };
     window.__nextBoard = createBoards(render, scene, registry, particles, placeHero);
   }

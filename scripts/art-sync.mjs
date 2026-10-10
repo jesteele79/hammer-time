@@ -7,7 +7,16 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import sharp from "sharp";
-import { keyOut, registerHead, registerAligned, alignTo, gateExpression, ALIGN_MIN, sliceBody } from "./art-cut.mjs";
+import {
+  keyOut,
+  registerHead,
+  registerAligned,
+  alignTo,
+  gateExpression,
+  ALIGN_MIN,
+  sliceBody,
+  buildStrip,
+} from "./art-cut.mjs";
 import { ink } from "./ink.mjs";
 
 const OUT = "public/art";
@@ -15,6 +24,8 @@ const HAMMER_IN = "art/incoming/hammer";
 const MANIFEST = "art/manifest.json";
 const EXPRESSIONS = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const COSTUMES = ["affliction", "scrubs", "suit", "banquet"];
+// The chains a rope bends as one piece; the far limbs reuse the near strips.
+const STRIPS = { armNear: ["upperArmNear", "forearmNear"], legNear: ["thighNear", "shinNear"], torso: ["torso"] };
 const args = process.argv.slice(2);
 const overlay = args.includes("--overlay");
 const strict = args.includes("--strict");
@@ -130,7 +141,7 @@ async function bodies(registry) {
     if (!existsSync(file)) continue;
     const keyed = await keyOut(readFileSync(file));
     const parts = await sliceBody(keyed, cuts, costume);
-    registry.hammer.bodies[costume] = { parts: {}, span: cuts.sole - cuts.collar };
+    registry.hammer.bodies[costume] = { parts: {}, strips: {}, span: cuts.sole - cuts.collar };
     for (const [name, part] of Object.entries(parts)) {
       const outFile = `hammer/${costume}-${name}.png`;
       writeFileSync(join(OUT, outFile), part.png);
@@ -140,6 +151,19 @@ async function bodies(registry) {
         height: part.height,
         pivot: part.pivot,
         tip: part.tip,
+      };
+    }
+    for (const [name, chain] of Object.entries(STRIPS)) {
+      if (!chain.every((p) => parts[p])) continue;
+      const strip = await buildStrip(chain.map((p) => parts[p]));
+      const outFile = `hammer/${costume}-strip-${name}.png`;
+      writeFileSync(join(OUT, outFile), strip.png);
+      registry.hammer.bodies[costume].strips[name] = {
+        file: outFile,
+        width: strip.width,
+        height: strip.height,
+        centerY: strip.centerY,
+        joints: strip.joints,
       };
     }
     console.log(`body ${costume}: ${Object.keys(parts).length} parts (crop offset ${keyed.offset.x},${keyed.offset.y}, ${keyed.width}x${keyed.height})`);

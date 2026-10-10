@@ -13,7 +13,9 @@ export type PartName =
   | "thighNear"
   | "shinNear"
   | "thighFar"
-  | "shinFar";
+  | "shinFar"
+  | "sleeveNear"
+  | "sleeveFar";
 
 export type HeadPlate = {
   file: string;
@@ -27,8 +29,19 @@ export type HeadPlate = {
 };
 /** A sliced body part; `pivot` is the joint it hangs from and `tip` the joint it reaches, in part pixels. */
 export type BodyPart = { file: string; width: number; height: number; pivot: Point; tip: Point };
+export type StripName = "armNear" | "legNear" | "torso";
+/**
+ * A limb chain laid out as one horizontal strip, bones along +x on the row
+ * `centerY`; `joints` are the chain's joint x positions, first to last. A rope
+ * mesh bends it as a single piece.
+ */
+export type Strip = { file: string; width: number; height: number; centerY: number; joints: number[] };
 /** `span` is the collar-to-sole height of the body plate, in its pixels. */
-export type Body = { parts: Partial<Record<PartName, BodyPart>>; span: number };
+export type Body = {
+  parts: Partial<Record<PartName, BodyPart>>;
+  strips: Partial<Record<StripName, Strip>>;
+  span: number;
+};
 export type Prop = { file: string; width: number; height: number; pivot?: Point; tip?: Point };
 export type Registry = {
   version: number;

@@ -24,11 +24,19 @@ function carry(rot: Partial<Record<JointName, number>>, lean: number, worldDeg =
   return rot;
 }
 
-const idle: Clip = (u) =>
-  pose({
-    rot: carry({ shoulderNear: -8, elbowNear: 95, shoulderFar: 4, elbowFar: 6 }, 0),
-    squash: { x: 1, y: 1 + 0.008 * Math.sin(TAU * u) },
+// The hand rests the handle on the shoulder; the chest rises and the body sways with the breath.
+const idle: Clip = (u) => {
+  const breath = Math.sin(TAU * u);
+  return pose({
+    rot: carry(
+      { shoulderNear: -4 - 1.5 * breath, elbowNear: 100, shoulderFar: 3 + 1.5 * breath, elbowFar: 8, chest: 1.2 * breath },
+      0,
+    ),
+    lean: 0.8 * breath,
+    headTilt: 0.6 * breath,
+    squash: { x: 1, y: 1 + 0.008 * breath },
   });
+};
 
 // The mallet arm barely swings: the handle rests on the shoulder. The free arm counters the legs.
 const walk: Clip = (u) => {
@@ -43,8 +51,8 @@ const walk: Clip = (u) => {
         kneeNear: -38 * Math.max(0, c),
         hipFar: -22 * s,
         kneeFar: -38 * Math.max(0, -c),
-        shoulderNear: -8 - 5 * s,
-        elbowNear: 95,
+        shoulderNear: -4 - 5 * s,
+        elbowNear: 98,
         shoulderFar: 4 + 14 * s,
         elbowFar: 6 + 8 * Math.max(0, s),
       },
@@ -68,8 +76,8 @@ const run: Clip = (u) => {
         kneeNear: -62 * Math.max(0, c),
         hipFar: -34 * s,
         kneeFar: -62 * Math.max(0, -c),
-        shoulderNear: -8 - 6 * s,
-        elbowNear: 100,
+        shoulderNear: -4 - 6 * s,
+        elbowNear: 102,
         shoulderFar: 4 + 26 * s,
         elbowFar: 40 + 20 * Math.max(0, s),
       },
@@ -125,8 +133,8 @@ const land: Clip = (u) => {
   return pose({
     rot: carry(
       {
-        shoulderNear: -8,
-        elbowNear: 95,
+        shoulderNear: -4,
+        elbowNear: 100,
         shoulderFar: 4,
         elbowFar: 6,
         hipNear: 20 * k,

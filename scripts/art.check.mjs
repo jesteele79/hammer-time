@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { keyOut, registerHead, registerAligned, alignTo, gateExpression, sliceBody } from "./art-cut.mjs";
+import { keyOut, registerHead, registerAligned, alignTo, gateExpression, sliceBody, buildStrip } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
 async function plate(dx = 0, dy = 0, scale = 1, { fill = "#b5642a", stub = 60, height = 400 } = {}) {
@@ -102,13 +102,28 @@ test("every owner file still matches art/manifest.json", () => {
   }
 });
 
-test("a body slices into ten opaque parts with pivots inside or just above them", async () => {
+test("an arm lays out as one strip, joints left to right along an opaque center row", async () => {
+  const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
+  const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
+  const parts = await sliceBody(keyed, cuts);
+  const strip = await buildStrip([parts.upperArmNear, parts.forearmNear]);
+  assert.ok(strip.width > strip.height, `wider than tall: ${strip.width}x${strip.height}`);
+  assert.equal(strip.joints.length, 3);
+  assert.ok(strip.joints[0] < strip.joints[1] && strip.joints[1] < strip.joints[2], `joints advance: ${strip.joints}`);
+  const { data, info } = await sharp(strip.png).raw().toBuffer({ resolveWithObject: true });
+  const alphaAt = (x, y) => data[(Math.round(y) * info.width + Math.round(x)) * 4 + 3];
+  const [s, e, w] = strip.joints;
+  for (const x of [(s + e) / 2, e, (e + w) / 2]) assert.ok(alphaAt(x, strip.centerY) > 127, `paint on the bone at x=${x}`);
+});
+
+test("a body slices into eleven opaque parts with pivots inside or just above them", async () => {
   const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
   const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
   const parts = await sliceBody(keyed, cuts);
   const names = [
     "torso",
     "hips",
+    "sleeveNear",
     "upperArmNear",
     "forearmNear",
     "upperArmFar",
@@ -125,9 +140,12 @@ test("a body slices into ten opaque parts with pivots inside or just above them"
     let opaque = 0;
     for (let i = 3; i < data.length; i += 4) if (data[i] > 127) opaque++;
     assert.ok(opaque > 0.08 * info.width * info.height, `${name} has substance`);
+    // The far limbs render from the near strips; their own plates are kept for reach poses.
+    if (name.endsWith("Far")) continue;
     assert.ok(
-      // A thigh hangs from a hip hidden under the shorts, up to 48 px above its own pixels.
-      p.pivot.x >= 0 && p.pivot.x <= p.width && p.pivot.y >= -48 && p.pivot.y <= p.height,
+      // A thigh hangs from a hip under the shorts and an arm from a shoulder under a sleeve:
+      // the pivot may sit up to 120 px above the part's own pixels.
+      p.pivot.x >= 0 && p.pivot.x <= p.width && p.pivot.y >= -120 && p.pivot.y <= p.height,
       `${name} pivot inside or just above`,
     );
   }

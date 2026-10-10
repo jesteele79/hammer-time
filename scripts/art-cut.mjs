@@ -230,6 +230,7 @@ const DRAW_ORDER = [
   "shinNear",
   "upperArmNear",
   "forearmNear",
+  "sleeveNear",
 ];
 
 /** Orange-brown skin, as painted in the plates: hue 8-45, saturation over 0.3, not too dark. */
@@ -285,12 +286,39 @@ export async function sliceBody(keyed, cuts, costume = "affliction") {
   // A costume may override a part's material and fill (a jacket sleeve is cloth where a bare arm is skin).
   const spec = (name) => ({ ...cuts.parts[name], ...(cuts.overrides?.[costume]?.[name] ?? {}) });
   const masks = {};
+  const caps = {};
+  const fillCaps = {};
   for (const name of names) {
     const m = polygonMask(cuts.parts[name].polygon, W, H, offset);
     const material = spec(name).material;
     if (material === "skin") for (let i = 0; i < m.length; i++) m[i] = m[i] && skin[i] ? 1 : 0;
     if (material === "cloth") for (let i = 0; i < m.length; i++) m[i] = m[i] && !skin[i] ? 1 : 0;
+    // Round caps at a joint: a disc the part keeps (or, lost to a later part, has filled in)
+    // so the limb ends in a ball that stays covered however the next part turns. A "fill"
+    // cap is painted flat in the part's base color: skin under a sleeve that only shows
+    // when the arm swings out.
+    const cap = new Uint8Array(W * H);
+    const fillCap = new Uint8Array(W * H);
+    for (const [cx, cy, r, capMaterial] of cuts.parts[name].caps ?? []) {
+      const x0 = cx - offset.x,
+        y0 = cy - offset.y;
+      for (let y = Math.max(0, Math.floor(y0 - r)); y <= Math.min(H - 1, Math.ceil(y0 + r)); y++)
+        for (let x = Math.max(0, Math.floor(x0 - r)); x <= Math.min(W - 1, Math.ceil(x0 + r)); x++) {
+          if ((x - x0) ** 2 + (y - y0) ** 2 > r * r) continue;
+          const i = y * W + x;
+          if (capMaterial === "fill") {
+            fillCap[i] = 1;
+            continue;
+          }
+          if (capMaterial === "skin" && !skin[i]) continue;
+          if (capMaterial === "cloth" && skin[i]) continue;
+          cap[i] = 1;
+          m[i] = 1;
+        }
+    }
     masks[name] = m;
+    caps[name] = cap;
+    fillCaps[name] = fillCap;
   }
   // Ownership: the last part in draw order that claims an opaque pixel wins it.
   const owner = new Int8Array(W * H).fill(-1);
@@ -302,10 +330,14 @@ export async function sliceBody(keyed, cuts, costume = "affliction") {
   // Holes are judged against the coarse polygon, so a cloth part under a skin arm gets filled.
   const coarse = {};
   for (const name of names) coarse[name] = polygonMask(cuts.parts[name].polygon, W, H, offset);
+  // A cover (a sleeve over a bare arm) hides what is under it; it never counts as a hole.
+  const coverIdx = new Set(order.map((n, i) => (spec(n).cover ? i : -1)).filter((i) => i >= 0));
   const parts = {};
   for (const [idx, name] of order.entries()) {
     const part = spec(name);
     const m = coarse[name];
+    const cap = caps[name];
+    const fillCap = fillCaps[name];
     const buf = Buffer.alloc(W * H * 4);
     let fill = null;
     if (part.fillFrom) {
@@ -321,13 +353,20 @@ export async function sliceBody(keyed, cuts, costume = "affliction") {
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         const i = y * W + x;
-        if (!m[i]) continue;
+        if (!m[i] && !cap[i] && !fillCap[i]) continue;
         const o = i * 4;
         if (owner[i] === idx) {
           buf.set(data.subarray(o, o + 4), o);
-        } else if (owner[i] > idx && fill) {
-          // Painted behind a later part: restore the base fill, outlined along the polygon's edge.
-          const near = [i - 3, i + 3, i - 3 * W, i + 3 * W].some((j) => j >= 0 && j < W * H && !m[j]);
+        } else if (fillCap[i] && fill) {
+          // Hidden under a cover, so a shade darker than the lit base.
+          const shade = part.fillShade ?? 1;
+          buf[o] = Math.round(fill[0] * shade);
+          buf[o + 1] = Math.round(fill[1] * shade);
+          buf[o + 2] = Math.round(fill[2] * shade);
+          buf[o + 3] = 255;
+        } else if (owner[i] > idx && fill && !coverIdx.has(owner[i])) {
+          // Painted behind a later part: restore the base fill, outlined along the part's edge.
+          const near = [i - 3, i + 3, i - 3 * W, i + 3 * W].some((j) => j >= 0 && j < W * H && !m[j] && !cap[j]);
           const c = near ? [16, 16, 16] : fill;
           buf[o] = c[0];
           buf[o + 1] = c[1];
@@ -352,4 +391,58 @@ export async function sliceBody(keyed, cuts, costume = "affliction") {
     parts[name] = { png, width: cw, height: ch, pivot: local(part.pivot), tip: local(part.tip) };
   }
   return parts;
+}
+
+/**
+ * Lays a chain of parts out as one horizontal strip: each bone turned to run
+ * along +x, every joint on the center row, each part composited over the one
+ * before it. A rope mesh then bends the strip as a single piece. `joints` are
+ * the x positions of the chain's joints along the strip, first to last.
+ */
+export async function buildStrip(parts) {
+  const placed = [];
+  for (const part of parts) {
+    const dx = part.tip.x - part.pivot.x,
+      dy = part.tip.y - part.pivot.y;
+    const theta = Math.atan2(dy, dx);
+    const png = await sharp(part.png)
+      .rotate((-theta * 180) / Math.PI, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+    const meta = await sharp(png).metadata();
+    // sharp turns about the center and grows the canvas to fit; a point follows the same turn.
+    const map = (p) => {
+      const x = p.x - part.width / 2,
+        y = p.y - part.height / 2;
+      return {
+        x: x * Math.cos(theta) + y * Math.sin(theta) + meta.width / 2,
+        y: -x * Math.sin(theta) + y * Math.cos(theta) + meta.height / 2,
+      };
+    };
+    placed.push({ png, width: meta.width, height: meta.height, pivot: map(part.pivot), tip: map(part.tip) });
+  }
+  const cy = Math.ceil(Math.max(...placed.map((p) => Math.max(p.pivot.y, p.height - p.pivot.y))));
+  const layers = [];
+  const joints = [];
+  let x = placed[0].pivot.x;
+  let minLeft = 0,
+    maxRight = 0;
+  for (const p of placed) {
+    const left = x - p.pivot.x,
+      top = cy - p.pivot.y;
+    layers.push({ p, left, top });
+    minLeft = Math.min(minLeft, left);
+    maxRight = Math.max(maxRight, left + p.width);
+    joints.push(x);
+    x += Math.hypot(p.tip.x - p.pivot.x, p.tip.y - p.pivot.y);
+  }
+  joints.push(x);
+  const shift = -minLeft;
+  const width = Math.ceil(maxRight + shift),
+    height = 2 * cy;
+  const png = await sharp({ create: { width, height, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite(layers.map(({ p, left, top }) => ({ input: p.png, left: Math.round(left + shift), top: Math.round(top) })))
+    .png()
+    .toBuffer();
+  return { png, width, height, centerY: cy, joints: joints.map((j) => j + shift) };
 }

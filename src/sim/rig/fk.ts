@@ -49,6 +49,7 @@ const HEAD_LEVEL_DEG = 8;
 const PARTS: [PartName | "head" | "mallet", joint: JointName, frame: JointName, z: number][] = [
   ["upperArmFar", "shoulderFar", "shoulderFar", 0],
   ["forearmFar", "elbowFar", "elbowFar", 0],
+  ["sleeveFar", "shoulderFar", "chest", 0.5],
   ["thighFar", "hipFar", "hipFar", 1],
   ["shinFar", "kneeFar", "kneeFar", 1],
   ["torso", "neck", "chest", 2],
@@ -57,6 +58,8 @@ const PARTS: [PartName | "head" | "mallet", joint: JointName, frame: JointName, 
   ["shinNear", "kneeNear", "kneeNear", 4],
   ["upperArmNear", "shoulderNear", "shoulderNear", 5],
   ["forearmNear", "elbowNear", "elbowNear", 5],
+  // The sleeve hangs from the shoulder with the chest, over the bare arm.
+  ["sleeveNear", "shoulderNear", "chest", 5.5],
   ["mallet", "grip", "grip", 6],
   ["head", "neck", "head", 7],
 ];
@@ -74,6 +77,8 @@ const SPAN: Record<PartName | "head" | "mallet", number> = {
   shinNear: JOINTS.ankleNear.length!,
   upperArmNear: JOINTS.elbowNear.length!,
   forearmNear: JOINTS.wristNear.length! + JOINTS.handNear.length!,
+  sleeveNear: 46,
+  sleeveFar: 46,
   mallet: JOINTS.malletHead.length!,
   head: 0,
 };
