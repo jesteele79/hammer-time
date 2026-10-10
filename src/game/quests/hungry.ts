@@ -388,15 +388,154 @@ export class HungryQuest implements Quest {
     this.plate.push(item);
   }
 
-  // Task 4 fills these in.
-  private slapped(_hand: number) {
-    return false;
+  private slapped(hand: number) {
+    const nurse = this.rivals.find((r) => r.kind === "nurse" && r.anger > 0 && r.stun <= 0);
+    if (!nurse || Math.abs(hand - nurse.x) > RIVAL_RANGE) return false;
+    this.stun = SLAP_STUN;
+    nurse.line = "Sanitize!";
+    nurse.lineT = 1.4;
+    nurse.lean = RIVAL_LEAN;
+    nurse.leanX = hand;
+    this.ctx.audio.thud();
+    this.ctx.comic(hand, TABLE.top - 22, "SLAP!", false);
+    this.think("I've HAD my shots.");
+    return true;
   }
-  private retaliate(_r: Rival) {}
-  private bonk() {}
-  private stepServer(_dt: number) {}
-  private stepRivals(_dt: number) {}
-  private stepPlanes(_dt: number) {}
+
+  /** Robbed rivals hit back: paper, luggage, or a nurse who stays angry. */
+  private retaliate(r: Rival) {
+    if (r.kind === "student") {
+      this.planes.push({ x: r.x - 10, vx: -PLANE_SPEED });
+      r.line = "Heads up!";
+      this.ctx.audio.whoosh();
+    } else if (r.kind === "bellhop") {
+      this.suitcases.push({ x0: r.x - 36, x1: r.x - 20, t: SUITCASE_SECONDS });
+      r.line = "Your bag, sir.";
+      this.ctx.audio.thud();
+    } else r.line = "Excuse me?";
+    r.lineT = 1.4;
+  }
+
+  /** The mallet comes down on the near end of the table. */
+  private bonk() {
+    const s = this.server;
+    let hit = false;
+    if (s.away <= 0 && s.x <= TABLE.left + BONK_SERVER) {
+      this.dump(this.pool(), 4, s.x, TABLE.top - 30);
+      s.away = SERVER_AWAY;
+      this.ctx.comic(s.x, TABLE.top - 40, "BONK!", false);
+      this.ctx.audio.bonk();
+      this.think("Is Pepsi okay? NO.");
+      hit = true;
+    }
+    for (const r of this.rivals)
+      if (r.lean > 0 && r.leanX <= TABLE.left + BONK_RIVAL && r.stun <= 0) {
+        r.stun = RIVAL_STUN;
+        this.ctx.comic(r.leanX, TABLE.top - 36, "BONK!", false);
+        this.ctx.audio.bonk();
+        hit = true;
+      }
+    this.planes = this.planes.filter((p) => {
+      if (p.x > HAND0 + 60) return true;
+      this.ctx.comic(p.x, PLANE_Y - 8, "SWAT!", false);
+      return false;
+    });
+    if (this.suitcases.length) {
+      this.suitcases = [];
+      this.ctx.comic(TABLE.left + 20, TABLE.top - 30, "SLAM!", false);
+      hit = true;
+    }
+    if (!hit) this.ctx.audio.thud();
+  }
+
+  private stepServer(dt: number) {
+    const s = this.server;
+    s.lineT = Math.max(0, s.lineT - dt);
+    s.quiet = Math.max(0, s.quiet - dt);
+    if (s.away > 0) {
+      s.away -= dt;
+      if (s.away <= 0) {
+        s.x = TABLE.right + 30;
+        s.dir = -1;
+      }
+      return;
+    }
+    s.x += s.dir * SERVER_SPEED * dt;
+    if (s.x < 70) {
+      s.x = 70;
+      s.dir = 1;
+    } else if (s.x > 330 && s.dir > 0) {
+      s.x = 330;
+      s.dir = -1;
+    }
+    const bused = this.food.filter((f) => onTable(f) && Math.abs(f.x - s.x) < 6);
+    if (!bused.length) return;
+    this.food = this.food.filter((f) => !bused.includes(f));
+    this.ctx.audio.slide();
+    if (s.quiet <= 0) {
+      s.line = "Are we still working on that?";
+      s.lineT = 1.6;
+      s.quiet = 6;
+    }
+  }
+
+  private stepRivals(dt: number) {
+    for (const r of this.rivals) {
+      r.lineT = Math.max(0, r.lineT - dt);
+      r.lean = Math.max(0, r.lean - dt);
+      if (r.anger > 0) {
+        r.calm += dt;
+        if (r.calm >= 8) {
+          r.anger--;
+          r.calm = 0;
+        }
+      }
+      if (r.stun > 0) {
+        r.stun = Math.max(0, r.stun - dt);
+        r.wait = -1;
+        r.target = null;
+        continue;
+      }
+      if (r.wait < 0) {
+        const near = this.food
+          .filter((f) => onTable(f) && Math.abs(f.x - r.x) <= RIVAL_RANGE)
+          .sort((a, b) => Math.abs(a.x - r.x) - Math.abs(b.x - r.x))[0];
+        if (near) {
+          r.wait = reactionFor(r);
+          r.target = near.id;
+        }
+        continue;
+      }
+      r.wait -= dt;
+      if (r.wait > 0) continue;
+      r.wait = -1;
+      const f = this.food.find(
+        (f) => f.id === r.target && nearTable(f) && Math.abs(f.x - r.x) <= RIVAL_RANGE,
+      );
+      r.target = null;
+      if (!f) continue;
+      r.lean = RIVAL_LEAN;
+      r.leanX = f.x;
+      this.food = this.food.filter((g) => g !== f);
+      r.plate.push(f);
+      this.ctx.audio.slide();
+      this.think("Are you going to finish that?");
+    }
+  }
+
+  private stepPlanes(dt: number) {
+    this.planes = this.planes.filter((p) => {
+      p.x += p.vx * dt;
+      if (p.x < -20) return false;
+      if (p.x > HAMMER_X + 8 || this.duck) return true;
+      this.plateTotal -= PLANE_HIT;
+      this.hits++;
+      this.ctx.audio.splat();
+      this.ctx.comic(HAMMER_X + 16, PLANE_Y - 10, `-${PLANE_HIT}`, false);
+      return false;
+    });
+  }
+
   private stepCart(dt: number) {
     if (!this.cart && this.time >= this.cartAt) {
       this.cart = { x: 384 + 30, spilled: false };

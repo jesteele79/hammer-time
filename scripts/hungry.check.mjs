@@ -22,6 +22,7 @@ import {
   TAP_SECONDS,
   CHARGE_SECONDS,
   gradeFor,
+  reactionFor,
 } from "../src/game/quests/hungry.ts";
 import { seededRandom } from "../src/game/levels.ts";
 const run = (f, seconds, blockers = []) => {
@@ -260,4 +261,126 @@ test("the waves: 5 appetizers at once, 3 every 4 s, entrees from 20 s, the cart 
     .filter((f) => SPECIALS.includes(f.kind))
     .map((f) => f.kind);
   assert.deepEqual(specials.sort(), [...SPECIALS].sort());
+});
+
+test("rivals take food that settles within 45 px after their reaction, with a lean", () => {
+  const { q } = quiet();
+  const student = q.rivals[0];
+  student.base = 0.55;
+  const f = place(q, "ribeye", student.x - 20);
+  steps(q, Math.floor(0.55 * 60) - 2);
+  assert.ok(q.food.includes(f), "still on the cloth before the reaction");
+  steps(q, 4);
+  assert.ok(!q.food.includes(f) && student.plate.includes(f), "on the student's plate");
+  assert.ok(student.lean > 0);
+});
+
+test("a charged dive robs a plate a tap cannot reach; anger rises, reactions shorten, then cool off", () => {
+  const { q } = quiet();
+  const bellhop = q.rivals[1];
+  bellhop.base = 0.4;
+  bellhop.plate.push(makeFood(900, "brisket", bellhop.x, TABLE.top, 0, 0));
+  dive(q, 0.05);
+  assert.equal(bellhop.plate.length, 1, "a tap cannot reach the plate");
+  const reach = bellhop.x - HAND0;
+  const hold =
+    TAP_SECONDS + (CHARGE_SECONDS - TAP_SECONDS) * ((reach - q.reach()) / (REACH_MAX - q.reach()));
+  dive(q, hold);
+  assert.equal(bellhop.plate.length, 0, "a charged dive robs it");
+  assert.equal(q.steals, 1);
+  assert.equal(q.plateTotal, FOODS.brisket.value + 100, "YOINK bonus");
+  assert.equal(bellhop.anger, 1);
+  assert.ok(Math.abs(reactionFor(bellhop) - 0.32) < 1e-9);
+  steps(q, 8 * 60 + 2);
+  assert.equal(bellhop.anger, 0, "anger falls one level per 8 s");
+  bellhop.anger = 20;
+  assert.equal(reactionFor(bellhop), 0.15, "never faster than 0.15 s");
+});
+
+test("the server buses food unless he is bonked; a bonk dumps his tray and sends him off for 15 s", () => {
+  const { q } = quiet();
+  q.server = { ...q.server, x: 230, dir: -1, away: 0 };
+  const f = place(q, "club", 200);
+  steps(q, 90);
+  assert.ok(!q.food.includes(f), "bused");
+  const b = quiet().q;
+  b.server = { ...b.server, x: TABLE.left + 60, dir: -1, away: 0 };
+  const keep = place(b, "club", 200);
+  b.step(1 / 60, input({}, { hammer: true }));
+  steps(b, 30);
+  assert.ok(b.server.away > 14, "he leaves");
+  assert.equal(b.food.length, 5, "the tray spills four extra plates");
+  steps(b, 10 * 60);
+  assert.ok(b.food.includes(keep), "nobody buses while he is away");
+});
+
+test("a bonk stuns a rival leaning into range for 2 s and slams suitcases off the table", () => {
+  const { q } = quiet();
+  const student = q.rivals[0];
+  student.lean = 0.2;
+  student.leanX = TABLE.left + 80;
+  q.suitcases.push({ x0: 190, x1: 206, t: 4 });
+  q.step(1 / 60, input({}, { hammer: true }));
+  steps(q, 30);
+  assert.ok(student.stun > 1.4 && student.stun <= 2);
+  assert.equal(q.suitcases.length, 0);
+});
+
+test("robbing the student brings paper: ducking lets it pass, H swats it, a hit costs 150", () => {
+  for (const defend of ["duck", "swat", "none"]) {
+    const { q } = quiet();
+    const student = q.rivals[0];
+    student.plate.push(makeFood(901, "pie", student.x, TABLE.top, 0, 0));
+    const reach = student.x - HAND0;
+    dive(
+      q,
+      TAP_SECONDS +
+        (CHARGE_SECONDS - TAP_SECONDS) * ((reach - q.reach()) / (REACH_MAX - q.reach())),
+    );
+    assert.equal(q.planes.length, 1, "a plane comes down the table");
+    const before = q.plateTotal;
+    for (let i = 0; i < 120; i++) {
+      const near = q.planes[0] && q.planes[0].x < HAND0 + 60;
+      q.step(
+        1 / 60,
+        input({ down: defend === "duck" }, { hammer: defend === "swat" && near && i % 20 === 0 }),
+      );
+    }
+    assert.equal(q.planes.length, 0);
+    assert.equal(q.plateTotal - before, defend === "none" ? -150 : 0, defend);
+  }
+});
+
+test("the bellhop's suitcase stops sliding food and dives for 4 s", () => {
+  const { q } = quiet();
+  const bellhop = q.rivals[1];
+  bellhop.plate.push(makeFood(902, "pie", bellhop.x, TABLE.top, 0, 0));
+  const reach = bellhop.x - HAND0;
+  dive(
+    q,
+    TAP_SECONDS + (CHARGE_SECONDS - TAP_SECONDS) * ((reach - q.reach()) / (REACH_MAX - q.reach())),
+  );
+  assert.equal(q.suitcases.length, 1);
+  const s = q.suitcases[0];
+  assert.ok(s.x1 < bellhop.x && s.x0 > HAND0);
+  const beyond = place(q, "ribeye", s.x1 + 10);
+  q.eaten = 30;
+  dive(q, CHARGE_SECONDS + 0.05);
+  assert.ok(q.food.includes(beyond), "the dive stops at the suitcase");
+  steps(q, 4 * 60);
+  assert.equal(q.suitcases.length, 0, "gone after 4 s");
+});
+
+test("an angry nurse slaps a hand in her zone: nothing eaten, a 1 s stun", () => {
+  const { q, said } = quiet();
+  const nurse = q.rivals[2];
+  nurse.anger = 1;
+  q.eaten = 30;
+  const f = place(q, "ribeye", HAND0 + REACH_MAX);
+  assert.ok(Math.abs(f.x - nurse.x) <= 45, "a full-reach tap lands in her zone");
+  dive(q, 0.05);
+  assert.ok(q.food.includes(f), "nothing eaten");
+  assert.ok(q.stun > 0.4, "stunned for about a second");
+  assert.ok(said.includes("I've HAD my shots."));
+  assert.equal(nurse.line, "Sanitize!");
 });
