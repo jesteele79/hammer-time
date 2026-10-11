@@ -54,6 +54,8 @@ export type HeroState = {
   fireCd: number;
   /** Set once he boils over, cleared when he cools below 70. */
   boiled: boolean;
+  /** Seconds until he can lecture again. */
+  lectureCd: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

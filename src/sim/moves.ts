@@ -1,10 +1,10 @@
 import { WALK } from "./constants";
 import type { GameEvent } from "./events";
 import type { Input } from "./input";
-import type { HeroState } from "./types";
+import type { HeroState, Rect } from "./types";
 
 export type MoveKind = "swing" | "super" | "snot" | "wipe" | "lecture" | "watch" | "tap" | "hurt" | "tumble";
-export type Move = { kind: MoveKind; t: number; fired: boolean; burst: boolean; lastU: number; stroke: number; victims: number[] };
+export type Move = { kind: MoveKind; t: number; fired: boolean; burst: boolean; lastU: number; stroke: number; victims: number[]; held: number };
 
 // The shipped game's timings (src/game/combat.ts, src/game/rig.ts); the watch and tap are its idle beats.
 export const MOVE_SECONDS: Record<MoveKind, number> = {
@@ -44,10 +44,18 @@ export const SUPER_PLUNGE = 1215;
 /** Caps while tired, as fractions of the run and walk speeds. */
 export const TIRED = { run: 0.73, walk: 0.67 } as const;
 
-const newMove = (kind: MoveKind): Move => ({ kind, t: 0, fired: false, burst: false, lastU: -1, stroke: -1, victims: [] });
+/**
+ * The shipped lecture (src/game/engine.ts `deliverLecture`): 1.4 s from one to the next, delivered
+ * a fifth of the way in, 15 heat off, and its reach in front of him (-8..112 by +-52 at 50 px tall).
+ */
+export const LECTURE = { cooldown: 1.4, deliver: 0.2, cool: 15, ahead: 762, behind: 54, half: 354 } as const;
+/** Moves that hold him still: no steering and no jump until they end. */
+export const LOCKING: ReadonlySet<MoveKind> = new Set<MoveKind>(["wipe", "lecture", "hurt", "tumble"]);
+
+export const newMove = (kind: MoveKind): Move => ({ kind, t: 0, fired: false, burst: false, lastU: -1, stroke: -1, victims: [], held: 0 });
 export const moveU = (m: Move) => Math.min(1, m.t / MOVE_SECONDS[m.kind]);
 
-/** Starts at most one move, by the shipped priority: towel, snot, super, swing. Nothing starts crouched or sliding. */
+/** Starts at most one move, by the shipped priority: towel, snot, lecture, super, swing. Nothing starts crouched or sliding. */
 export function startMove(h: HeroState, input: Input, alive: number, events: GameEvent[]): void {
   if (h.move || h.crouch) return;
   const p = input.pressed;
@@ -60,6 +68,11 @@ export function startMove(h: HeroState, input: Input, alive: number, events: Gam
     h.fireCd = FIRE_COOLDOWN;
     h.sinus -= 1;
     events.push({ type: "sniff" });
+  } else if (p.lecture && h.onGround && h.lectureCd <= 0) {
+    h.move = newMove("lecture");
+    h.lectureCd = LECTURE.cooldown;
+    h.vx *= 0.2;
+    events.push({ type: "lectureStart" });
   } else if (p.super && h.charge >= CHARGE_MAX) {
     h.move = newMove("super");
     h.charge = 0;
@@ -107,7 +120,23 @@ export function advanceMove(h: HeroState, dt: number, events: GameEvent[]): void
   if (m.t >= MOVE_SECONDS[m.kind]) h.move = null;
 }
 
-/** Heat, the sinus and the snot cooldown, every step. */
+/** The lecture's reach: a box in front of him, world px. */
+export function lectureReach(h: Pick<HeroState, "x" | "y" | "h" | "facing">): Rect {
+  const cy = h.y - h.h / 2;
+  const x = h.facing === 1 ? h.x - LECTURE.behind : h.x - LECTURE.ahead;
+  return { x, y: cy - LECTURE.half, w: LECTURE.ahead + LECTURE.behind, h: 2 * LECTURE.half };
+}
+
+/** A fifth of the way in, once: the lecture lands on everyone in reach and cools him. */
+export function deliverLecture(h: HeroState, events: GameEvent[]): void {
+  const m = h.move;
+  if (m?.kind !== "lecture" || m.fired || moveU(m) < LECTURE.deliver) return;
+  m.fired = true;
+  h.heat = Math.max(0, h.heat - LECTURE.cool);
+  events.push({ type: "lecture", reach: lectureReach(h) });
+}
+
+/** Heat, the sinus and the cooldowns, every step. */
 export function stepHeat(h: HeroState, input: Input, dt: number, events: GameEvent[]): void {
   if (h.move?.kind === "wipe") h.heat = Math.max(0, h.heat - HEAT.wipe * dt);
   else {
@@ -120,4 +149,5 @@ export function stepHeat(h: HeroState, input: Input, dt: number, events: GameEve
   } else if (h.heat < HEAT.cool) h.boiled = false;
   h.sinus = Math.min(SINUS_MAX, h.sinus + dt / SINUS_REFILL);
   h.fireCd = Math.max(0, h.fireCd - dt);
+  h.lectureCd = Math.max(0, h.lectureCd - dt);
 }

@@ -24,7 +24,7 @@ import {
 } from "./constants";
 import type { GameEvent } from "./events";
 import type { Input } from "./input";
-import { HEAT, SINUS_MAX, TIRED } from "./moves";
+import { HEAT, LOCKING, SINUS_MAX, TIRED } from "./moves";
 import { canStand, moveBody } from "./physics";
 import type { HeroMotion, HeroState, Point, Stage } from "./types";
 
@@ -54,6 +54,7 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     hot: opts.hot ?? false,
     fireCd: 0,
     boiled: false,
+    lectureCd: 0,
   };
 }
 
@@ -63,8 +64,8 @@ const approach = (v: number, target: number, step: number) =>
 
 export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, events: GameEvent[] = []): void {
   const { held, pressed } = input;
-  // The towel holds him still: no steering and no jump until it is done.
-  const locked = h.move?.kind === "wipe";
+  // The towel, the lecture and a hit hold him still: no steering and no jump until they end.
+  const locked = h.move !== null && LOCKING.has(h.move.kind);
   const dir = locked ? 0 : (held.right ? 1 : 0) - (held.left ? 1 : 0);
   if (dir !== 0) h.facing = dir > 0 ? 1 : -1;
 
