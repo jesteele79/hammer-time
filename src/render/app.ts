@@ -29,6 +29,8 @@ export type NextProbe = {
   heroScreenX?: number;
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
+  /** His face box on screen, CSS px: nothing in the shell may cover it. */
+  faceScreen?: { x: number; y: number; w: number; h: number };
   art?: { heads: number; bodies: number };
   /** The move layer, set by the look scene: `events` counts every event type seen since boot. */
   moves?: {

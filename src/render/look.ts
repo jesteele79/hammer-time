@@ -1,5 +1,5 @@
 import { Graphics, Sprite, Texture, type Ticker } from "pixi.js";
-import { loadRegistry, type Expression, type Registry } from "../art/registry";
+import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
 import { ASIDES, DAMAGE_LINE, LECTURES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
@@ -27,14 +27,14 @@ import { createBoards } from "./boards";
 import { Bubbles } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
-import { Meters } from "./meters";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
 import { Props } from "./props";
 import { createScene } from "./scene";
 import { createSound } from "./sound";
 import { TOWEL_OUT } from "./towel";
-import { installFonts, label } from "./text";
+import { hudKey, hudOf, type HudPayload } from "./hud";
+import { installFonts } from "./text";
 import { Words } from "./words";
 
 /** The lobby's first stretch: the floor, two counters, a balcony, a service pass and a ramp. */
@@ -94,8 +94,11 @@ export type Look = { stop(): void };
 /** Where things are this frame, in world px, for the effects. */
 type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point };
 
-/** The look test: Hammer in the lobby under the keyboard with the practice carts and the meters. */
-export async function startLook(render: RenderApp, opts: { noart?: boolean; board?: boolean } = {}): Promise<Look> {
+/** The look test: Hammer in the lobby under the keyboard with the practice carts; the shell draws the HUD from `onHud`. */
+export async function startLook(
+  render: RenderApp,
+  opts: { noart?: boolean; board?: boolean; onHud?: (hud: HudPayload) => void } = {},
+): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
   const world = createWorld(
@@ -128,11 +131,9 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
 
   const vignette = new Sprite(vignetteTexture());
   vignette.alpha = 1;
-  const title = label("LOOK TEST · /?next=1", "display", 30);
-  title.position.set(24, 14);
-  title.alpha = 0.8;
-  scene.layers.post.addChild(vignette, title);
-  const meters = new Meters(scene.layers.post);
+  scene.layers.post.addChild(vignette);
+  const portrait = registry.hammer.portrait ? ART_BASE + registry.hammer.portrait.file : null;
+  let hudLast = "";
   const sound = createSound();
   const layers = createLayers();
   const bubbles = new Bubbles(scene.layers.fx);
@@ -469,7 +470,12 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     particles.update(simDt, face);
-    meters.set(h.heat, h.sinus, h.charge);
+    const hud = hudOf(h, portrait);
+    const key = hudKey(hud);
+    if (key !== hudLast) {
+      hudLast = key;
+      opts.onHud?.(hud);
+    }
     vignette.width = scene.width;
     vignette.height = scene.height;
 
@@ -478,6 +484,9 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.headTintChain = character.headTintChain();
+      const tl = scene.toScreen({ x: face.x, y: face.y });
+      const br = scene.toScreen({ x: face.x + face.w, y: face.y + face.h });
+      window.__next.faceScreen = { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,
         bodies: Object.keys(registry.hammer.bodies).length,

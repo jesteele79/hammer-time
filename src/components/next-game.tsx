@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { HudPayload } from "@/render/hud";
+import { NextHud } from "./next-hud";
 
 /** The rebuild's canvas. Pixi is browser-only, so everything loads after mount. */
 export function NextGame({
@@ -11,6 +13,7 @@ export function NextGame({
   board?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const [hud, setHud] = useState<HudPayload | null>(null);
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let cancelled = false;
@@ -22,7 +25,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const look = await startLook(render, { noart, board });
+      const look = await startLook(render, { noart, board, onHud: setHud });
       if (cancelled) {
         look.stop();
         return render.destroy();
@@ -38,10 +41,9 @@ export function NextGame({
     };
   }, [forceWebgl, noart, board]);
   return (
-    <div
-      ref={host}
-      className="next-stage"
-      style={{ position: "fixed", inset: 0, background: "#0d1118" }}
-    />
+    <>
+      <div ref={host} className="next-stage" style={{ position: "fixed", inset: 0, background: "#0d1118" }} />
+      <NextHud hud={hud} />
+    </>
   );
 }

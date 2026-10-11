@@ -268,3 +268,14 @@ test("sweat flies back off his head, away from his face, facing either way", () 
     }
   }
 });
+
+import { HUD_HINT, hudKey, hudOf } from "../src/render/hud.ts";
+
+test("the HUD payload carries the meters, clamped, and changes only when what it shows does", () => {
+  const a = hudOf({ heat: 41.2, sinus: 2.04, charge: 3, patience: 3 }, "/art/hammer/head-three-quarter.png");
+  assert.deepEqual([a.heat, a.sinus, a.charge, a.patience, a.patienceMax, a.chargeMax, a.sinusMax], [41.2, 2.04, 3, 3, 3, 10, 3]);
+  assert.equal(a.hint, HUD_HINT);
+  assert.equal(hudKey(a), hudKey(hudOf({ heat: 41.4, sinus: 2.02, charge: 3, patience: 3 }, a.portrait)), "noise does not re-render");
+  assert.notEqual(hudKey(a), hudKey(hudOf({ heat: 42.6, sinus: 2.04, charge: 3, patience: 3 }, a.portrait)));
+  assert.equal(hudOf({ heat: 140, sinus: -1, charge: 12, patience: 5 }, null).heat, 100);
+});

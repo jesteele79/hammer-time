@@ -14,11 +14,38 @@ const browser = await chromium.launch({
 });
 const errors = [];
 const warnings = [];
-const verdict = { ok: false, renderer: null, fallback: null, fps: 0, content: false, fit: {}, art: null };
+const verdict = { ok: false, renderer: null, fallback: null, fps: 0, content: false, fit: {}, art: null, hud: {} };
 let page;
 /** True when the stage shows a real scene, not a flat fill (the renderer reads its own pixels back). */
 const hasContent = async () => (await page.evaluate(() => window.__next.sample())) > 12;
 const hero = () => page.evaluate(() => window.__next.hero);
+/** The HUD fits the screen without sideways scrolling and never covers his face; a screenshot per size. */
+const hudFits = async (name) => {
+  await page.waitForSelector(".next-hud__panel", { timeout: 5000 });
+  const r = await page.evaluate(() => {
+    const box = (el) => {
+      const b = el.getBoundingClientRect();
+      return { x: b.x, y: b.y, w: b.width, h: b.height };
+    };
+    return {
+      panel: box(document.querySelector(".next-hud__panel")),
+      hint: box(document.querySelector(".next-hud__hint")),
+      face: window.__next.faceScreen,
+      vw: innerWidth,
+      vh: innerHeight,
+      scroll: document.documentElement.scrollWidth,
+    };
+  });
+  const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  assert.ok(r.scroll <= r.vw, `${name}: no horizontal overflow (${r.scroll} > ${r.vw})`);
+  for (const k of ["panel", "hint"]) {
+    const b = r[k];
+    assert.ok(b.x >= 0 && b.y >= 0 && b.x + b.w <= r.vw && b.y + b.h <= r.vh, `${name}: the ${k} is on screen ${JSON.stringify(b)}`);
+    assert.ok(!hit(b, r.face), `${name}: the ${k} covers his face ${JSON.stringify(b)} ${JSON.stringify(r.face)}`);
+  }
+  verdict.hud[name] = { panel: r.panel, hint: r.hint };
+  await page.screenshot({ path: resolve(out, `hud-${name}.png`) });
+};
 const booted = async (url) => {
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.renderer && window.__next?.hero, {}, { timeout: 30000 });
@@ -78,6 +105,9 @@ try {
     verdict.fit[`${w}x${hgt}`] = frac;
     assert.ok(frac >= 0.3 && frac <= 0.33, `hero height fraction at ${w}x${hgt}: ${frac}`);
   }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(400);
+  await hudFits("1280x800");
   // A phone in portrait: he runs and stays on the screen.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
@@ -90,6 +120,10 @@ try {
   verdict.fit["390x844"] = portrait.x / portrait.w;
   assert.ok(portrait.x > 40 && portrait.x < portrait.w - 40, `on screen in portrait: ${portrait.x} of ${portrait.w}`);
   await page.screenshot({ path: resolve(out, "next-portrait.png") });
+  await hudFits("390x844");
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(600);
+  await hudFits("844x390");
   await page.waitForTimeout(600);
 
   await booted(`${base}?next=1&gl=1`);
