@@ -220,7 +220,6 @@ test("a swing at a cart in front hits it once, knocks it away and stops the worl
     const hits = evs.filter((e) => e.type === "hit" && e.by === "mallet");
     assert.equal(hits.length, 1, `one hit (facing ${facing})`);
     assert.ok(cart.vx * facing > 500 || (cart.x - (100 + facing * 230)) * facing > 40, `knocked away: vx ${cart.vx}`);
-    assert.ok(cart.flash > 0 || evs.some((e) => e.type === "hit"), "flashes");
   }
 });
 
@@ -265,6 +264,42 @@ test("a knocked cart rolls to a stop on the floor", () => {
   assert.equal(cart.vx, 0);
   assert.ok(cart.onGround && cart.y === 0);
   assert.ok(cart.x > 300, `rolled ${cart.x}`);
+});
+
+test("a bonked cart is still flashing white the step after the hit", () => {
+  for (const facing of [1, -1]) {
+    const cart = createCart(1, 100 + facing * 230);
+    const w = createWorld(flat(), { x: 100, y: 0 }, { targets: [cart] });
+    w.hero.facing = facing;
+    settle(w);
+    press(w, "hammer");
+    let hit = false;
+    for (let i = 0; i < 120 && !hit; i++) {
+      w.step(input());
+      hit = w.events.some((e) => e.type === "hit" && e.by === "mallet");
+    }
+    assert.ok(hit, `the swing lands (facing ${facing})`);
+    w.step(input());
+    assert.ok(cart.flash > 0 && cart.flash < 0.06, `flashing one step on: ${cart.flash}`);
+  }
+});
+
+test("a super started in the air off a counter still plunges and bursts on landing", () => {
+  const counter = { ...flat(), platforms: [{ x0: -400, x1: 300, y: -180 }] };
+  const w = createWorld(counter, { x: 200, y: -180 }, { charge: CHARGE_MAX });
+  settle(w);
+  assert.ok(w.hero.onGround && w.hero.y === -180, "standing on the counter");
+  while (w.hero.onGround) w.step(input({ right: true }));
+  steps(w, 0.12, { right: true });
+  assert.ok(!w.hero.onGround && w.hero.vy > 0, "falling off the end of it");
+  assert.ok(press(w, "super").some((e) => e.type === "superStart"), "the super starts in the air");
+  let burst = null;
+  for (let i = 0; i < 200 && !burst; i++) {
+    w.step(input());
+    if (w.events.some((e) => e.type === "burst")) burst = { ground: w.hero.onGround, y: w.hero.y };
+  }
+  assert.ok(burst, "it bursts");
+  assert.deepEqual(burst, { ground: true, y: 0 }, "on landing on the floor below");
 });
 
 
