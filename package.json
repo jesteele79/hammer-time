@@ -16,7 +16,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "test:game": "node --loader ./scripts/game-test-loader.mjs --test scripts/gameplay.check.mjs scripts/hungry.check.mjs",
-    "test:next": "node --loader ./scripts/game-test-loader.mjs --test scripts/art.check.mjs scripts/rig.check.mjs scripts/sim.check.mjs scripts/render.check.mjs",
+    "test:next": "node --loader ./scripts/game-test-loader.mjs --test scripts/art.check.mjs scripts/rig.check.mjs scripts/sim.check.mjs scripts/moves.check.mjs scripts/render.check.mjs",
     "art:sync": "node scripts/art-sync.mjs --strict",
     "check:auth": "node scripts/check-auth-invariant.mjs",
     "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
