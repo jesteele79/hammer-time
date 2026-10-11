@@ -280,19 +280,51 @@ running move is never restarted.
   add to it. From 45 he sweats, from 80 he steams and runs slower, and near
   100 he boils over.
 
-The look scene puts two practice luggage carts in the lobby and shows HEAT,
-SNOT and SMASH under the title. It is a practice room: the smash starts full
-and refills two seconds after each slam, which the game itself will not do.
-Comic words (BONK!, HONK!, SPLAT!, HAMMER TIME!) are placed off his face every
-frame, and particles that reach his face are dropped. Sound is the shipped
-game's effects through its `AudioBus`, silent until the first key.
+### His other acts, his body and the HUD
+
+- **E, the lecture:** on the ground he plants his feet, points the mallet at
+  whoever is in front and wags it (0.8 s), thinking a lecture line. A fifth of
+  the way in it lands on everyone in a reach in front of him (R2's staff and
+  students), and it cools him 15. One lecture per 1.4 s.
+- **Standing still:** at 2.5 s he lets the mallet hang and checks the gold
+  watch on his left wrist, from 5 s his near foot taps, and at 8 s he
+  harrumphs ("Any day now."), then round again. He looks bored from the watch
+  check on. Any key or move ends it on the spot.
+- **Getting hit:** three patience pips. A hit costs one, turns him to face it,
+  throws him 540 back and 500 up, shows the hurt face for 0.6 s, plays the
+  "absolute bullshit" recording with its caption, drops hot snot and gives him
+  1.45 s of grace. The last pip knocks him flat: he goes over backward, lands
+  on his back (holding that frame in the air until he touches down), lies a
+  beat, sits up and gets up. In the full game that will be a lost life.
+- **His body:** he breathes, leans up to 9 degrees into speeding up and back
+  when he brakes, squashes on landing and stretches on take-off, and his belly
+  follows through (`src/sim/rig/layers.ts`). On a slope his soles lie along
+  the floor and his knees take up the difference (`src/sim/rig/feet.ts`).
+- **The feel:** he runs at 780 px/s and crosses a 1920 px screen in 2.55 s,
+  stops from a run in 0.14 s, and a jump clears 1.16 times his height.
+  Landings shake the camera in proportion to the fall and never freeze it;
+  falls harder than a jump thud.
+- **The HUD** is the React shell's (`src/components/next-hud.tsx`): the venue,
+  his portrait, patience, heat, snot and smash, and the keys along the bottom,
+  in slate and gold. It fits phones both ways and never covers his face.
+  Score, Coke Zero, lives, the clock and the touch pad come with R2.
+
+The look scene is a practice room: two luggage carts, and a ramp past the
+balcony (30 degrees up, a landing, 15 degrees down) standing in for R2's grand
+staircase. G is a practice hit, since nothing in the lobby can hit him yet;
+his patience comes back when he gets up, and the smash starts full and refills
+two seconds after each slam. The game itself will do neither. Comic words,
+thoughts and captions are placed off his face every frame, and particles that
+reach his face are dropped. Sound is the shipped game's effects through its
+`AudioBus`, silent until the first key.
 
 ```powershell
 npm run test:next
 $env:BROWSER_SMOKE_CHANNEL='chrome'
-node scripts/next-browser.check.mjs http://127.0.0.1:8080/
-node scripts/moves-browser.check.mjs http://127.0.0.1:8080/
-node scripts/look-boards.mjs http://127.0.0.1:8080/
+node scripts/next-browser.check.mjs http://127.0.0.1:8090/
+node scripts/moves-browser.check.mjs http://127.0.0.1:8090/
+node scripts/acts-browser.check.mjs http://127.0.0.1:8090/
+node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
 `test:next` runs the art checks (keying, head registration, the alignment
@@ -307,19 +339,29 @@ face and in view, the towel at his face while his left hand wipes it, the
 towel hand drawn over his head only where it covers nothing else), the
 sim checks (jump height and cut, run speed and stop, coyote time and the jump
 buffer, landing on a platform at speed, crouch and slide under a pass,
-determinism) and the move checks in `moves.check.mjs` (the feel table and the
-hit-stop clock, move timing and priority, mashing, moves in the air,
-crouched or sliding, heat and the towel, snot charges and puddles, the swept
-mallet and once-per-swing hits, the smash's burst, facing left). The rig
-checks also sweep every drawn frame of every move against the face. The
-browser check boots the scene, runs, jumps and idles under the keyboard,
-confirms Hammer's screen height at two aspect ratios, forces WebGL and the
-no-art fallback; the moves browser check swings, bonks a cart, fires and
-splats snot, towels off and smashes in the lobby, and checks the sounds. The
-boards land under `artifacts/`: `hammer-clips.png` (the clips, then the four
-moves), `hammer-moves.png` (each move in ten frames, half again as large),
-`hammer-heads.png`, `hammer-costumes.png` and `lobby-look-1..3.png`; the moves
-check also saves `moves-swing`, `-bonk`, `-snot`, `-wipe` and `-smash.png`.
+determinism, a screen crossed in 2.6 s, landings that never hold him), the
+move checks in `moves.check.mjs` (the feel table and the hit-stop clock, move
+timing and priority, mashing, moves in the air, crouched or sliding, heat and
+the towel, snot charges and puddles, the swept mallet and once-per-swing hits,
+the smash's burst, an in-air smash, facing left) and the act checks in
+`acts.check.mjs` (the lecture, the idle beats and what ends them, patience,
+the hurt, the tumble off a ledge, a hit mid-move). The rig checks also sweep
+every drawn frame of every move against the face, keep his head within 8
+degrees of his body, check every act moves without a jump, stand his feet on
+slopes to 30 degrees and land every act without a snap; the render checks
+place thoughts off his face, draw props between steps and throw sweat away
+from it. The browser check boots the scene, runs, jumps and idles under the
+keyboard, confirms Hammer's screen height at two aspect ratios, fits the HUD
+at 1280 by 800, 390 by 844 and 844 by 390, forces WebGL and the no-art
+fallback; the moves browser check swings, bonks a cart, fires and splats
+snot, towels off and smashes in the lobby, and checks the sounds; the acts
+browser check waits for the watch check, the tap and the harrumph, lectures,
+takes three practice hits, gets up and stands on the ramp. The boards land
+under `artifacts/`: `hammer-clips.png` (the clips, then every move and act),
+`hammer-moves.png` and `hammer-acts.png` (each in ten frames, half again as
+large), `hammer-slopes.png` (standing and walking on five slopes, both ways),
+`hammer-heads.png`, `hammer-costumes.png` and `lobby-look-1..4.png`; the
+checks also save `moves-*.png`, `acts-*.png` and `hud-*.png`.
 
 ## Validation
 

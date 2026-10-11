@@ -516,7 +516,8 @@ export async function startLook(
   if (opts.board) {
     // The boards move Hammer without stepping the sim; the next tick re-places him from the world.
     const placeHero = (x: number) => {
-      const y = supportAt(x, 0) ?? 0;
+      // The boards stand him on the top floor there: the ramp, not the lobby floor beneath it.
+      const y = floorAt(LOBBY_STAGE, x) ?? 0;
       world.hero.x = x;
       world.hero.y = y;
       world.hero.vx = 0;
@@ -525,6 +526,7 @@ export async function startLook(
       const solved = solve(p.pose, 1, HEAD_SCALE, headPlate);
       character.container.position.set(x, y + p.dy);
       character.apply(solved, "neutral", -p.dy, scene.ambient);
+      return y;
     };
     window.__nextBoard = createBoards(render, scene, registry, particles, placeHero);
   }

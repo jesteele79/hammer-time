@@ -314,8 +314,8 @@ the hold rides with the chest, and the slide points the mallet ahead over his
 legs.
 
 Proportions and silhouette: stocky, a slight belly, the shirt hem below the
-waist, the shorts to the knee, white-and-navy running shoes. The near forearm
-carries the wristwatch.
+waist, the shorts to the knee, white-and-navy running shoes. His left wrist
+carries the wristwatch: the right fist holds the mallet (R1b, 2026-10-11).
 
 ### 6.3 Animation
 

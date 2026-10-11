@@ -3,8 +3,10 @@ import type { Costume, Expression, Registry } from "../art/registry";
 import { SUPER_CUT, type MoveKind } from "../sim/moves";
 import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
+import { plantFeet } from "../sim/rig/feet";
 import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
+import { FAR_FLOOR } from "../sim/rig/skeleton";
 import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
 import type { Particles } from "./particles";
@@ -12,7 +14,7 @@ import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts"; resolution?: number };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -34,6 +36,11 @@ const ACTS: MoveKind[] = ["watch", "tap", "hurt", "tumble"];
 const MOVE_FRAMES = 10;
 /** The moves board draws Hammer this much bigger, for a closer look. */
 const MOVE_SCALE = 1.5;
+/** Floors the slopes board stands him on, degrees: negative rises to the right. */
+const SLOPES = [-30, -15, 0, 15, 30];
+/** The slopes board's cells are this much taller, room for him and a 30-degree floor; his feet stand this far up. */
+const SLOPE_TALL = 1.5;
+const SLOPE_FEET = 160;
 /** The GPU caps a texture side at 8192 px, so a bigger board is drawn in tiles and joined on a canvas. */
 const MAX_TEXTURE = 8192;
 
@@ -47,6 +54,9 @@ type Cell = {
   expression: Expression;
   headScale: number;
   move?: MoveKind;
+  facing?: 1 | -1;
+  /** Stood by foot IK on a floor at this angle (degrees, negative rising to the right), drawn under him. */
+  slope?: number;
 };
 
 function cellPose(cell: Cell) {
@@ -80,7 +90,8 @@ export function createBoards(
   scene: Scene,
   registry: Registry,
   particles: Particles,
-  placeHero: (x: number) => void,
+  /** Stands him at x on the floor there and returns the floor's y. */
+  placeHero: (x: number) => number,
 ): Boards {
   const { app } = render;
 
@@ -93,16 +104,19 @@ export function createBoards(
     rowLabels: string[],
     colLabels: string[],
     scale = 1,
+    tall = 1,
   ) => {
     const board = new Container();
     const cellW = CELL_W * scale;
-    const cellH = CELL_H * scale;
+    const cellH = CELL_H * scale * tall;
     const width = cols * cellW + 150;
     const height = rows * cellH + 50;
     const bg = new Graphics().rect(0, 0, width, height).fill("#20242b");
     for (let r = 0; r <= rows; r++) bg.rect(150, 50 + r * cellH, cols * cellW, 2).fill("#343a44");
     for (let c = 0; c <= cols; c++) bg.rect(150 + c * cellW, 50, 2, rows * cellH).fill("#343a44");
     board.addChild(bg);
+    const floors = new Graphics();
+    board.addChild(floors);
     rowLabels.forEach((text, r) => {
       const t = label(text, "display", 30);
       t.position.set(16, 50 + r * cellH + 12);
@@ -121,15 +135,31 @@ export function createBoards(
     await Promise.all(characters.map((c) => c.ready));
     for (const [i, ch] of characters.entries()) {
       const cell = cells[i];
-      const solved = solve(cellPose(cell), 1, cell.headScale, registry.hammer.heads.neutral!);
-      const dy = groundShift(solved, cellGround(cell));
+      const facing = cell.facing ?? 1;
+      const plate = registry.hammer.heads.neutral!;
+      let pose = cellPose(cell);
+      let dy: number;
+      const fx = 150 + cell.col * cellW + cellW * (facing === 1 ? 0.4 : 0.6);
+      const fy = 50 + cell.row * cellH + cellH - (cell.slope === undefined ? 32 : SLOPE_FEET) * scale;
+      if (cell.slope === undefined) dy = groundShift(solve(pose, facing, cell.headScale, plate), cellGround(cell));
+      else {
+        const tan = Math.tan((cell.slope * Math.PI) / 180);
+        const planted = plantFeet(pose, facing, cell.headScale, plate, "planted", (dx) => dx * tan);
+        pose = planted.pose;
+        dy = planted.dy;
+        // The floor under him, and the far foot's line the painting's perspective puts higher.
+        const lift = FAR_FLOOR * solve(pose, facing, cell.headScale, plate).scale * scale;
+        const x0 = 150 + cell.col * cellW + 6;
+        const x1 = x0 + cellW - 12;
+        const at = (x: number) => fy + (x - fx) * tan;
+        floors.moveTo(x0, at(x0) - lift).lineTo(x1, at(x1) - lift).stroke({ width: 3, color: "#5b6472" });
+        floors.moveTo(x0, at(x0)).lineTo(x1, at(x1)).stroke({ width: 4, color: "#101010" });
+      }
+      const solved = solve(pose, facing, cell.headScale, plate);
       const towel = cell.move === "wipe" && cell.u > TOWEL_OUT[0] && cell.u < TOWEL_OUT[1];
       const watch = cell.move === "watch" && cell.u > 0.15 && cell.u < 0.85;
       ch.container.scale.set(scale);
-      ch.container.position.set(
-        150 + cell.col * cellW + cellW * 0.4,
-        50 + cell.row * cellH + cellH - 32 * scale + dy * scale,
-      );
+      ch.container.position.set(fx, fy + dy * scale);
       // A fresh towel hangs at its chain's rest shape: straight down from the hand.
       ch.apply(solved, cell.expression, -dy, undefined, towel, watch);
     }
@@ -159,18 +189,18 @@ export function createBoards(
   };
 
   const lobby = async () => {
-    const positions = [400, 1750, 5000];
+    const positions = [400, 1750, 5000, 7300];
     const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target };
     const frames: string[] = [];
     scene.camera.target = null;
     scene.width = 1920;
     scene.height = 1080;
     for (const x of positions) {
-      placeHero(x);
-      particles.emit("dust", x - 40, 0, 12);
+      const y = placeHero(x);
+      particles.emit("dust", x - 40, y, 12);
       particles.update(0.12);
       scene.camera.x = x + 200;
-      scene.camera.y = -187;
+      scene.camera.y = y - 187;
       scene.fit();
       const target = RenderTexture.create({ width: 1920, height: 1080, resolution });
       app.renderer.render({ container: app.stage, target });
@@ -228,6 +258,23 @@ export function createBoards(
           const cells = ACTS.flatMap((move, row) => moveCells(move, row, MOVE_FRAMES));
           const heads = Array.from({ length: MOVE_FRAMES }, (_, i) => `u = ${(i / MOVE_FRAMES).toFixed(2)}`);
           return sheet(MOVE_FRAMES, ACTS.length, cells, ACTS, heads, MOVE_SCALE);
+        }
+        case "slopes": {
+          // Standing and mid-stride on each floor, facing right then left: foot IK at work.
+          const cells: Cell[] = [];
+          const rows: [ClipName, number, 1 | -1, string][] = [
+            ["idle", 0, 1, "idle R"],
+            ["walk", 0.25, 1, "walk R"],
+            ["idle", 0, -1, "idle L"],
+            ["walk", 0.25, -1, "walk L"],
+          ];
+          rows.forEach(([clip, u, facing], row) =>
+            SLOPES.forEach((slope, col) =>
+              cells.push({ col, row, clip, u, costume: "affliction", expression: "neutral", headScale: 0.26, facing, slope }),
+            ),
+          );
+          const heads = SLOPES.map((d) => (d === 0 ? "flat" : `${d < 0 ? "up" : "down"} ${Math.abs(d)} deg`));
+          return sheet(SLOPES.length, rows.length, cells, rows.map((r) => r[3]), heads, 1, SLOPE_TALL);
         }
         case "lobby":
           return lobby();
