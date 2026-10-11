@@ -1,6 +1,7 @@
 import { HEAD_PLATE_DEFAULT, HEAD_PLATE_FACING, type HeadPlate } from "../../art/registry";
 import {
   HANDLE_REST_DEG,
+  HEAD_SEAT,
   HERO_HEIGHT,
   JOINTS,
   JOINT_NAMES,
@@ -69,7 +70,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 /** Standard 2D forward kinematics over the skeleton, then the head plate placed on the neck. */
 export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: HeadPlate = HEAD_PLATE_DEFAULT): Solved {
   const headPx = headScale * HERO_HEIGHT;
-  const scale = (HERO_HEIGHT - headPx) / NECK_REST_Y;
+  // The plate stands from its neck anchor to its crown; the body is scaled so that, seated, the crown is HERO_HEIGHT up.
+  const above = (headPx * (plate.neck.y - plate.crown.y)) / plate.height;
+  const scale = (HERO_HEIGHT - above) / (NECK_REST_Y + HEAD_SEAT.y);
   const rot = (name: JointName) => (pose.rot[name] ?? 0) * DEG;
   const leanMath = -pose.lean * DEG;
 
@@ -99,12 +102,20 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
   // A counter-clockwise turn facing right reads clockwise on a y-down screen only when mirrored.
   const screenRot = (a: number) => -a * facing;
 
+  // The head's seat turns with the neck.
+  const seatOff = rotate(HEAD_SEAT, frame.neck);
+  const seat = {
+    x: (pos.neck.x + seatOff.x) * scale * facing * sx,
+    y: -(pos.neck.y + seatOff.y) * scale * sy,
+  };
+
   const parts = {} as Record<"head" | "mallet", Placement>;
   for (const [part, joint, frameJoint, z] of PARTS) {
     const extra = part === "mallet" ? (HANDLE_REST_DEG - 90) * DEG : 0;
+    const at = part === "head" ? seat : joints[joint];
     parts[part] = {
-      x: joints[joint].x,
-      y: joints[joint].y,
+      x: at.x,
+      y: at.y,
       rotation: screenRot(frame[frameJoint] + extra),
       scaleX: facing * sx,
       scaleY: sy,
@@ -113,14 +124,14 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     };
   }
 
-  // The plate's neck anchor sits on the neck joint; the plate is drawn facing HEAD_PLATE_FACING.
+  // The plate's neck anchor sits on the seat; the plate is drawn facing HEAD_PLATE_FACING.
   const s = headPx / plate.height;
   const flip = facing * HEAD_PLATE_FACING;
   const headRot = parts.head.rotation;
   const place = (px: number, py: number): Point => {
     const local = { x: (px - plate.neck.x) * s * flip * sx, y: (py - plate.neck.y) * s * sy };
     const r = rotate(local, headRot);
-    return { x: joints.neck.x + r.x, y: joints.neck.y + r.y };
+    return { x: seat.x + r.x, y: seat.y + r.y };
   };
   const f = plate.face;
   const corners = [place(f.x, f.y), place(f.x + f.w, f.y), place(f.x, f.y + f.h), place(f.x + f.w, f.y + f.h)];

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { FAR_FLOOR, HERO_HEIGHT, JOINTS, REST_POSE } from "../src/sim/rig/skeleton.ts";
+import { FAR_FLOOR, HERO_HEIGHT, JOINTS, NECK_REST_Y, REST_POSE } from "../src/sim/rig/skeleton.ts";
 import { groundShift } from "../src/sim/rig/ground.ts";
 import { CLIPS, blend } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
@@ -13,8 +13,29 @@ test("the rest pose stands 340 px tall with the near sole on the floor and the h
   const s = solve(REST_POSE, 1, 0.26);
   const soleY = Math.max(s.joints.toeNear.y, s.joints.heelNear.y);
   assert.ok(Math.abs(soleY) < 1, `near sole at y=0: ${soleY}`);
-  assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 6, `crown at -340: ${s.crown.y}`);
-  assert.ok(Math.abs(s.parts.head.x - s.joints.neck.x) < 12 && s.parts.head.y <= s.joints.neck.y);
+  assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 0.5, `crown at -340: ${s.crown.y}`);
+  assert.ok(Math.abs(s.parts.head.x - s.joints.neck.x) < 12, "the head sits on the neck");
+});
+
+test("the head sits down in the collar, so its own neck runs into the shirt", () => {
+  // In the body painting's pixels, drawn the painting's way (facing left).
+  const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
+  const span = cuts.rig.sole - cuts.rig.joints.neck[1];
+  const s = solve(REST_POSE, -1, 0.26);
+  const K = (s.scale * NECK_REST_Y) / span;
+  const crop = (p) => ({ x: cuts.rig.rootX + p.x / K, y: cuts.rig.sole + p.y / K });
+  const seat = crop(s.parts.head);
+  // The collar's top edge across the throat, measured off the painting.
+  const collar = [[302, 316], [322, 302], [342, 290], [362, 277], [382, 266]];
+  const collarY = (x) => {
+    for (let i = 1; i < collar.length; i++)
+      if (x <= collar[i][0]) {
+        const [a, b] = [collar[i - 1], collar[i]];
+        return a[1] + ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0]);
+      }
+    return collar[collar.length - 1][1];
+  };
+  assert.ok(seat.y > collarY(seat.x) + 15, `its stub sits down in the collar: ${seat.y.toFixed(0)} against the collar at ${collarY(seat.x).toFixed(0)}`);
 });
 
 test("walk and run clips cycle the legs and keep the head within 8 degrees of level", () => {

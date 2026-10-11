@@ -7,6 +7,12 @@ export type Point = { x: number; y: number };
 
 /** Soles to crown, world px. */
 export const HERO_HEIGHT = 340;
+/**
+ * Where the head plate's neck anchor sits, from the neck joint (rest units, facing right,
+ * y up): down into the collar, so the head's own neck runs into the shirt instead of
+ * standing on the painting's neck.
+ */
+export const HEAD_SEAT = { x: 0, y: -9 };
 
 export type JointName =
   | "root"

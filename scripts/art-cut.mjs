@@ -261,6 +261,8 @@ function skinMask(data, W, H, radius) {
 
 /** Layers from front to back: a painted pixel inside several polygons belongs to the first. */
 export const LAYER_ORDER = ["armNear", "torso", "legNear", "legFar", "armFar"];
+/** The owner of a painted pixel no layer draws and no layer may claim. */
+const DROPPED = -2;
 /** The order they are drawn in, back to front. */
 export const LAYER_Z = ["armFar", "legFar", "legNear", "torso", "armNear"];
 const OUTLINE = [16, 16, 16];
@@ -602,7 +604,7 @@ function claimStragglers(owner, data, W, H, reach) {
     for (const i of front) {
       const x = i % W;
       for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W]) {
-        if (j < 0 || j >= W * H || owner[j] >= 0 || data[j * 4 + 3] === 0 || dist[j]) continue;
+        if (j < 0 || j >= W * H || owner[j] !== -1 || data[j * 4 + 3] === 0 || dist[j]) continue;
         owner[j] = owner[i];
         dist[j] = d;
         next.push(j);
@@ -676,6 +678,14 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
     if (spec.material) materialMask(m, skin, W, H, spec.material);
     for (let i = 0; i < W * H; i++) if (owner[i] < 0 && m[i] && data[i * 4 + 3] > 0) owner[i] = idx;
   });
+  // The painted neck above the collar is the head's to show: those pixels belong to no layer.
+  // A drop is a polygon, or { polygon, skin: true } to take only skin there (down to a collar's ink).
+  for (const entry of cuts.overrides?.[costume]?.drop ?? cuts.drop ?? []) {
+    const { polygon, skin: skinOnly } = Array.isArray(entry) ? { polygon: entry } : entry;
+    const m = polygonMask(polygon, W, H, origin);
+    for (let i = 0; i < W * H; i++)
+      if (m[i] && (!skinOnly || isSkin(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]))) owner[i] = DROPPED;
+  }
   claimStragglers(owner, data, W, H, 10);
   // A layer drawn in front keeps its own ink: near-black pixels just outside its edge, over a
   // layer behind it, are its outline painted across that layer (the belly's line over the far

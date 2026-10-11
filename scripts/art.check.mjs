@@ -278,6 +278,19 @@ test("the Affliction shirt's word is reversed along its banner for facing right,
   assert.equal(CUTS.layers.torso.variants?.mirror, undefined, "only the Affliction shirt has a word to reverse");
 });
 
+test("the shirt keeps no neck above its collar, so the head's own neck runs into it", async () => {
+  const { W, layers } = await layersOf();
+  const at = (x, y) => layers.torso.rgba.subarray((y * W + x) * 4, (y * W + x) * 4 + 4);
+  // The painted neck's flap above the collar's front: the orange triangle under his jaw.
+  for (const [x, y] of [[300, 300], [320, 290], [340, 282], [360, 275], [284, 277], [298, 320], [322, 312], [342, 297]])
+    assert.equal(at(x, y)[3], 0, `no neck skin left at ${x},${y}: ${[...at(x, y)]}`);
+  // The collar's ink line stays with the shirt.
+  for (const [x, y] of [[326, 313], [362, 287], [380, 276]]) {
+    const p = at(x, y);
+    assert.ok(p[3] > 0 && p[0] + p[1] + p[2] < 3 * 70, `the collar's ink at ${x},${y}: ${[...p]}`);
+  }
+});
+
 test("a layer's mesh covers every pixel it paints", async () => {
   const { W, H, layers } = await layersOf();
   for (const name of LAYER_Z) {
