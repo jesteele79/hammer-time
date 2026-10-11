@@ -1,6 +1,6 @@
 import { Sprite, Texture, type Ticker } from "pixi.js";
 import { loadRegistry, type Expression, type Registry } from "../art/registry";
-import { LAND_T, RUN, STEP } from "../sim/constants";
+import { HEAD_SCALE, LAND_T, RUN, STEP } from "../sim/constants";
 import { KEY_BINDINGS, emptyInput, inputFromKeys, type Action } from "../sim/input";
 import { floorAt } from "../sim/physics";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
@@ -40,8 +40,6 @@ const LOBBY_LIGHTS: Light[] = [800, 3400, 6000, 8600, 11200].map((x) => ({
   intensity: 0.55,
   flicker: 0.04,
 }));
-/** Head height as a fraction of HERO_HEIGHT; the owner picks between 0.22, 0.26 and 0.30 from the boards. */
-export const HEAD_SCALE = 0.26;
 /** World px one walk or run cycle covers, so the feet don't skate. */
 const STRIDE = 280;
 const BLEND_T = 0.1;

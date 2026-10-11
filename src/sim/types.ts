@@ -1,3 +1,5 @@
+import type { Move } from "./moves";
+
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -38,6 +40,19 @@ export type HeroState = {
   stateT: number;
   /** Seconds the current clip has played. */
   animT: number;
+  /** The move under way, or none. */
+  move: Move | null;
+  /** 0 to 100: sweat, steam and a slower run from 80. */
+  heat: number;
+  /** Snot charges, 0 to 3, refilled over time. */
+  sinus: number;
+  /** Super smash charge, 0 to 10. */
+  charge: number;
+  /** Pepper-loaded: hot snot. */
+  hot: boolean;
+  fireCd: number;
+  /** Set once he boils over, cleared when he cools below 70. */
+  boiled: boolean;
 };
 
 export type Snapshot = { time: number; hero: HeroState };

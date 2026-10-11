@@ -50,3 +50,157 @@ test("slow motion never compounds: a second burst keeps the deeper scale and the
   assert.equal(c.scale, 0.25);
   assert.ok(near(c.slowmo, 0.25));
 });
+
+
+import { createWorld } from "../src/sim/world.ts";
+import { STEP, RUN, WALK } from "../src/sim/constants.ts";
+import { MOVE_SECONDS, HEAT, SUPER_HOP, SUPER_PLUNGE, SUPER_CUT, CHARGE_MAX } from "../src/sim/moves.ts";
+
+const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
+const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
+const flat = () => ({ floor: [{ x0: -2000, x1: 20000, y0: 0, y1: 0 }], platforms: [], solids: [], passes: [], bounds: { x: -2000, y: -3000, w: 22000, h: 4000 } });
+const settle = (w) => { for (let i = 0; i < 6; i++) w.step(input()); };
+const steps = (w, seconds, held = {}) => { const out = []; for (let i = 0; i < Math.round(seconds / STEP); i++) { w.step(input(held)); out.push(...w.events); } return out; };
+const press = (w, key, held = {}) => { w.step(input({ ...held, [key]: true }, { [key]: true })); return w.events; };
+
+test("each key starts its move, which runs its length and ends", () => {
+  for (const [key, kind, opts] of [["hammer", "swing", {}], ["fire", "snot", {}], ["super", "super", { charge: CHARGE_MAX }], ["towel", "wipe", { heat: 50 }]]) {
+    const w = createWorld(flat(), { x: 100, y: 0 }, opts);
+    settle(w);
+    press(w, key);
+    assert.equal(w.hero.move?.kind, kind, key);
+    steps(w, MOVE_SECONDS[kind] - 2 * STEP);
+    assert.equal(w.hero.move?.kind, kind, `${kind} still running`);
+    steps(w, 0.15);
+    assert.equal(w.hero.move, null, `${kind} ended`);
+  }
+});
+
+test("pressing every move key at once starts one move, by the shipped priority", () => {
+  const all = { towel: true, fire: true, super: true, hammer: true };
+  const w = createWorld(flat(), { x: 100, y: 0 }, { heat: 40, charge: CHARGE_MAX });
+  settle(w);
+  w.step(input(all, all));
+  assert.equal(w.hero.move.kind, "wipe");
+  const cool = createWorld(flat(), { x: 100, y: 0 }, { heat: 0, charge: CHARGE_MAX });
+  settle(cool);
+  cool.step(input(all, all));
+  assert.equal(cool.hero.move.kind, "snot");
+  assert.equal(cool.hero.charge, CHARGE_MAX, "the super did not also start");
+});
+
+test("mashing the key never restarts a running move", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 });
+  settle(w);
+  press(w, "hammer");
+  for (let i = 0; i < 20; i++) press(w, "hammer");
+  assert.ok(Math.abs(w.hero.move.t - 21 * STEP) < 1e-9, `t ${w.hero.move.t}`);
+});
+
+test("moves in the air, crouched and sliding follow the shipped rules", () => {
+  const air = createWorld(flat(), { x: 100, y: 0 }, { heat: 50 });
+  settle(air);
+  air.step(input({ jump: true }, { jump: true }));
+  air.step(input());
+  press(air, "towel");
+  assert.equal(air.hero.move, null, "no towel in the air");
+  press(air, "hammer");
+  assert.equal(air.hero.move?.kind, "swing", "the swing works in the air");
+  const low = createWorld(flat(), { x: 100, y: 0 }, { heat: 50, charge: CHARGE_MAX });
+  settle(low);
+  low.step(input({ down: true }));
+  for (const key of ["hammer", "fire", "super", "towel"]) {
+    low.step(input({ down: true, [key]: true }, { [key]: true }));
+    assert.equal(low.hero.move, null, `no ${key} while crouched`);
+  }
+  const slide = createWorld(flat(), { x: 100, y: 0 });
+  settle(slide);
+  steps(slide, 0.4, { right: true, run: true });
+  slide.step(input({ right: true, run: true, down: true }));
+  assert.equal(slide.hero.state, "slide");
+  slide.step(input({ right: true, run: true, down: true, hammer: true }, { hammer: true }));
+  assert.equal(slide.hero.move, null, "no swing while sliding");
+});
+
+test("the towel needs heat, holds him still and drains heat fast", () => {
+  const cold = createWorld(flat(), { x: 100, y: 0 }, { heat: 0 });
+  settle(cold);
+  press(cold, "towel");
+  assert.equal(cold.hero.move, null, "nothing to wipe at zero heat");
+  const w = createWorld(flat(), { x: 100, y: 0 }, { heat: 90 });
+  settle(w);
+  steps(w, 0.3, { right: true });
+  press(w, "towel", { right: true });
+  steps(w, 0.4, { right: true, jump: true });
+  assert.ok(Math.abs(w.hero.vx) < 1, `held still: ${w.hero.vx}`);
+  assert.ok(w.hero.onGround, "no jump while wiping");
+  assert.ok(w.hero.heat < 90 - HEAT.wipe * 0.3, `heat drains: ${w.hero.heat}`);
+});
+
+test("heat rises running and jumping, falls at rest, and boils once", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 });
+  settle(w);
+  steps(w, 1, { right: true, run: true });
+  const run = w.hero.heat;
+  assert.ok(run > 3 && run < HEAT.run * 1.01, `running ${run}`);
+  w.step(input({ jump: true }, { jump: true }));
+  assert.ok(Math.abs(w.hero.heat - run - HEAT.jump) < 0.2, "a jump adds 12");
+  const hot = createWorld(flat(), { x: 100, y: 0 }, { heat: 99 });
+  settle(hot);
+  const evs = steps(hot, 1, { right: true, run: true });
+  assert.equal(evs.filter((e) => e.type === "boiling").length, 1);
+  const rest = createWorld(flat(), { x: 100, y: 0 }, { heat: 50 });
+  settle(rest);
+  steps(rest, 1);
+  assert.ok(Math.abs(rest.hero.heat - (50 - HEAT.rest * (1 + 6 * STEP))) < 0.05, `resting ${rest.hero.heat}`);
+});
+
+test("hot and tired: at 80 heat the run tops out lower", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 }, { heat: 95 });
+  settle(w);
+  steps(w, 1, { right: true, run: true });
+  assert.ok(w.hero.vx < RUN * 0.75 && w.hero.vx > WALK * 0.6, `tired run ${w.hero.vx}`);
+});
+
+test("snot spends a sinus charge, waits half a second, and the sinus refills", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 });
+  settle(w);
+  press(w, "fire");
+  assert.ok(Math.abs(w.hero.sinus - 2) < 0.05, `spent one: ${w.hero.sinus}`);
+  steps(w, MOVE_SECONDS.snot);
+  press(w, "fire");
+  assert.equal(w.hero.move, null, "the half-second cooldown outlasts the move");
+  steps(w, 0.06);
+  press(w, "fire");
+  assert.equal(w.hero.move?.kind, "snot", "the cooldown has passed");
+  steps(w, MOVE_SECONDS.snot + 0.1);
+  w.hero.sinus = 0.9;
+  press(w, "fire");
+  assert.equal(w.hero.move, null, "no snot without a whole charge");
+  steps(w, 0.2);
+  press(w, "fire");
+  assert.equal(w.hero.move?.kind, "snot", "refilled at one charge per 1.5 s");
+});
+
+test("the super spends a full charge, hops, plunges after the load and bursts on landing", { todo: "Task 4 adds the burst" }, () => {
+  const empty = createWorld(flat(), { x: 100, y: 0 }, { charge: CHARGE_MAX - 1 });
+  settle(empty);
+  press(empty, "super");
+  assert.equal(empty.hero.move, null, "needs a full charge");
+  const w = createWorld(flat(), { x: 100, y: 0 }, { charge: CHARGE_MAX });
+  settle(w);
+  const evs = press(w, "super");
+  assert.ok(evs.some((e) => e.type === "superStart"));
+  assert.equal(w.hero.charge, 0);
+  assert.ok(w.hero.vy < -SUPER_HOP + 100, `hop ${w.hero.vy}`);
+  let plunged = false;
+  let burstAt = -1;
+  for (let i = 0; i < 120 && burstAt < 0; i++) {
+    w.step(input());
+    if (w.hero.move && w.hero.move.t / MOVE_SECONDS.super >= SUPER_CUT[0] && !w.hero.onGround) plunged ||= w.hero.vy >= SUPER_PLUNGE;
+    if (w.events.some((e) => e.type === "burst")) burstAt = i;
+  }
+  assert.ok(plunged, "plunges after the load");
+  assert.ok(burstAt >= 0 && w.hero.onGround, "bursts on landing");
+});
+
