@@ -1,5 +1,7 @@
 import { Container, Graphics, RenderTexture } from "pixi.js";
 import type { Costume, Expression, Registry } from "../art/registry";
+import type { MoveKind } from "../sim/moves";
+import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
 import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift } from "../sim/rig/ground";
@@ -9,7 +11,7 @@ import type { Particles } from "./particles";
 import type { Scene } from "./scene";
 import { label } from "./text";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby"; resolution?: number };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -25,8 +27,26 @@ const EXPRESSIONS: Expression[] = ["neutral", "angry", "hurt", "smug", "bored", 
 const HEAD_SCALES = [0.22, 0.26, 0.3];
 const COSTUMES: Costume[] = ["affliction", "scrubs", "suit", "banquet"];
 const CTX: ClipCtx = { t: 0, speed: 640, vy: 0, facing: 1 };
+const MOVES: MoveKind[] = ["swing", "super", "snot", "wipe"];
+// Eight frames keep the board under the GPU's 8192 px texture limit at twice its size.
+const MOVE_FRAMES = 8;
 
-type Cell = { col: number; row: number; clip: ClipName; u: number; costume: Costume; expression: Expression; headScale: number };
+/** A board cell: a locomotion clip at u, or a move laid over the idle hold at its drawn u. */
+type Cell = {
+  col: number;
+  row: number;
+  clip: ClipName;
+  u: number;
+  costume: Costume;
+  expression: Expression;
+  headScale: number;
+  move?: MoveKind;
+};
+
+function cellPose(cell: Cell) {
+  if (!cell.move) return CLIPS[cell.clip](cell.u, CTX);
+  return overlay(CLIPS.idle(0, CTX), ACTIONS[cell.move](cell.u), ACTION_MASK[cell.move], 1);
+}
 
 /** Contact sheets drawn off screen for the owner's sign-off, returned as PNG data URLs. */
 export function createBoards(
@@ -66,8 +86,8 @@ export function createBoards(
     await Promise.all(characters.map((c) => c.ready));
     for (const [i, ch] of characters.entries()) {
       const cell = cells[i];
-      const solved = solve(CLIPS[cell.clip](cell.u, CTX), 1, cell.headScale, registry.hammer.heads.neutral!);
-      const dy = groundShift(solved, groundModeFor(cell.clip, true));
+      const solved = solve(cellPose(cell), 1, cell.headScale, registry.hammer.heads.neutral!);
+      const dy = groundShift(solved, cell.move ? "planted" : groundModeFor(cell.clip, true));
       ch.container.position.set(150 + cell.col * CELL_W + CELL_W * 0.4, 50 + cell.row * CELL_H + CELL_H - 32 + dy);
       ch.apply(solved, cell.expression, -dy);
     }
@@ -139,6 +159,16 @@ export function createBoards(
             cells.push({ col, row: 1, clip: "run", u: 0.25, costume, expression: "neutral", headScale: 0.26 });
           });
           return sheet(COSTUMES.length, 2, cells, ["idle", "run"], COSTUMES);
+        }
+        case "moves": {
+          // Each move as the game draws it: the strike's cut skips the frames over his head.
+          const cells: Cell[] = [];
+          MOVES.forEach((move, row) => {
+            for (let col = 0; col < MOVE_FRAMES; col++)
+              cells.push({ col, row, clip: "idle", u: displayU(move, col / MOVE_FRAMES), costume: "affliction", expression: "neutral", headScale: 0.26, move });
+          });
+          const heads = Array.from({ length: MOVE_FRAMES }, (_, i) => `u = ${(i / MOVE_FRAMES).toFixed(2)}`);
+          return sheet(MOVE_FRAMES, MOVES.length, cells, MOVES, heads);
         }
         case "lobby":
           return lobby();

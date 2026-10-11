@@ -14,9 +14,9 @@ const bump = (u: number, c: number, w = 0.07) => Math.exp(-(((u - c) / w) ** 2))
  * handle so the mallet stands up at 70 degrees with its head ahead of his face.
  * The arm rides with the chest, so the hold leans when he leans.
  */
-const HOLD = { shoulderNear: -3.31, elbowNear: 54.37, wristNear: 1.39 };
+export const HOLD = { shoulderNear: -3.31, elbowNear: 54.37, wristNear: 1.39 };
 /** The free arm swung back from the painting's forward reach to hang at his side, hidden behind him. */
-const FREE = -34;
+export const FREE = -34;
 
 /** Turns each ankle back by part of its leg's swing so a planted shoe stays nearly flat. */
 function feet(rot: Partial<Record<JointName, number>>, keep = 0.75) {

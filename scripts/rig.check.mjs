@@ -124,3 +124,98 @@ test("the fist holds the mallet out in front, head up, in every clip but the sli
         assert.ok(j.malletHead.y < j.grip.y - 80 * s.scale, `${name} u=${u}: the head stands above the fist`);
       }
 });
+
+
+import { ACTIONS, ACTION_MASK, displayU, overlay, wipeHand, armTo } from "../src/sim/rig/actions.ts";
+import { MOVE_SECONDS, SWING_CUT, SUPER_CUT } from "../src/sim/moves.ts";
+
+const KINDS = ["swing", "super", "snot", "wipe"];
+
+test("two-bone IK puts the wrist on a reachable target with the hand at the asked angle", () => {
+  for (const [arm, target, hand, bend] of [["near", { x: 40, y: 200 }, 10, -1], ["near", { x: -50, y: 320 }, 150, 1], ["far", { x: -20, y: 380 }, 80, 1]]) {
+    const r = armTo(arm, target, hand, bend);
+    const p = { ...REST_POSE, rot: { ...REST_POSE.rot } };
+    const [s, e, w] = arm === "near" ? ["shoulderNear", "elbowNear", "wristNear"] : ["shoulderFar", "elbowFar", "wristFar"];
+    p.rot[s] = r.shoulder; p.rot[e] = r.elbow; p.rot[w] = r.wrist;
+    const solved = solve(p, 1, 0.26);
+    const wrist = solved.joints[arm === "near" ? "wristNear" : "wristFar"];
+    const want = { x: target.x * solved.scale, y: -target.y * solved.scale };
+    assert.ok(Math.hypot(wrist.x - want.x, wrist.y - want.y) < 0.5, `${arm} wrist off by ${Math.hypot(wrist.x - want.x, wrist.y - want.y)}`);
+  }
+});
+
+test("every drawn frame of every move keeps the face clear, both ways, at every head scale", () => {
+  for (const kind of KINDS)
+    for (let i = 0; i <= 400; i++)
+      for (const facing of [1, -1])
+        for (const headScale of [0.22, 0.26, 0.3]) {
+          const u = displayU(kind, i / 400);
+          const r = faceClear(solve(ACTIONS[kind](u), facing, headScale));
+          assert.ok(r.ok, `${kind} u=${u} facing ${facing} head ${headScale}: ${r.offender}`);
+        }
+});
+
+test("blending each move in over 0.06 s and out over 0.12 s from every clip keeps the face clear", () => {
+  for (const kind of KINDS)
+    for (const [name, clip] of Object.entries(CLIPS))
+      for (let i = 0; i <= 12; i++) {
+        const w = i / 12;
+        const base = clip(0.5, { ...ctx, speed: 500 });
+        for (const u of [displayU(kind, (0.06 / MOVE_SECONDS[kind]) * w), displayU(kind, 1)]) {
+          const p = overlay(base, ACTIONS[kind](u), ACTION_MASK[kind], w);
+          const r = faceClear(solve(p, 1, 0.26));
+          assert.ok(r.ok, `${name} + ${kind} at weight ${w.toFixed(2)}: ${r.offender}`);
+        }
+      }
+});
+
+test("the cut hides the strike over the head: no drawn frame falls inside it", () => {
+  for (const [kind, cut] of [["swing", SWING_CUT], ["super", SUPER_CUT]])
+    for (let i = 0; i <= 400; i++) {
+      const u = displayU(kind, i / 400);
+      assert.ok(!(u > cut[0] && u < cut[1]), `${kind} draws u=${u}`);
+    }
+});
+
+test("the swing loads behind him, strikes in front, follows through low and returns to the hold", () => {
+  const head = (u, facing = 1) => solve(ACTIONS.swing(u), facing, 0.26).joints.malletHead;
+  for (const facing of [1, -1]) {
+    assert.ok(head(0.3, facing).x * facing < -60, `loaded behind (facing ${facing})`);
+    assert.ok(head(0.36, facing).x * facing > 120, `strikes in front (facing ${facing})`);
+    assert.ok(head(0.5, facing).y > -150, "follows through low");
+  }
+  const ready = solve(CLIPS.idle(0, ctx), 1, 0.26).joints.malletHead;
+  const end = head(1);
+  assert.ok(Math.hypot(end.x - ready.x, end.y - ready.y) < 2, "ends in the hold");
+});
+
+test("the super's slam puts the mallet head on the floor in front", () => {
+  const s = solve(ACTIONS.super(0.6), 1, 0.26);
+  const dy = groundShift(s, "planted");
+  assert.ok(Math.abs(s.joints.malletHead.y + dy) < 30, `the head meets the floor: ${s.joints.malletHead.y + dy}`);
+  assert.ok(s.joints.malletHead.x > 60, "in front");
+});
+
+test("the towel hand works behind the head and never reaches the face", () => {
+  for (let i = 0; i <= 200; i++) {
+    const u = i / 200;
+    const s = solve(ACTIONS.wipe(u), 1, 0.26);
+    const hand = s.joints.handFar;
+    if (u > 0.15 && u < 0.6) assert.ok(hand.y < s.joints.neck.y, `u=${u}: the hand is up at the head`);
+    assert.ok(hand.x < s.faceBox.x - 10 || hand.y < s.faceBox.y - 20 || hand.y > s.faceBox.y + s.faceBox.h + 10, `u=${u}: hand clear of the face`);
+  }
+  assert.ok(wipeHand(0.3).y > 330, "the strokes are on the scalp");
+});
+
+test("the fist never turns on the handle during any move", () => {
+  const DEG = 180 / Math.PI;
+  for (const kind of KINDS)
+    for (let i = 0; i <= 40; i++) {
+      const s = solve(ACTIONS[kind](i / 40), 1, 0.26);
+      const j = s.joints;
+      const ang = (a, b) => Math.atan2(-(b.y - a.y) / s.squash.y, (b.x - a.x) / s.squash.x) * DEG;
+      const turn = ((ang(j.grip, j.malletHead) - ang(j.wristNear, j.knuckleNear) + 540) % 360) - 180;
+      assert.ok(Math.abs(turn - 68) < 1e-6, `${kind} ${i / 40}: ${turn}`);
+    }
+});
+

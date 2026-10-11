@@ -31,10 +31,11 @@ try {
   save("hammer-clips.png", await render("clips"));
   save("hammer-heads.png", await render("heads"));
   save("hammer-costumes.png", await render("costumes"));
+  save("hammer-moves.png", await render("moves"));
   const frames = (await render("lobby")).split("\n");
   frames.forEach((f, i) => save(`lobby-look-${i + 1}.png`, f));
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
-  console.log(`PASS: ${3 + frames.length} boards rendered.`);
+  console.log(`PASS: ${4 + frames.length} boards rendered.`);
 } catch (err) {
   console.error("Look boards failure", errors);
   await page?.screenshot({ path: resolve(out, "boards-failure.png") });
