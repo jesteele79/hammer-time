@@ -7,14 +7,15 @@ export const GRAVITY_DOWN = 4600;
 export const APEX_FLOAT = 0.5;
 /** …while |vy| is under this. */
 export const APEX_BAND = 160;
-/** 1520 in the spec's table; 1600 clears the spec's 1.15 heights once the 120 Hz step is accounted for. */
-export const JUMP_V0 = 1600;
+/** 1520 in the spec's table; 1620 clears the spec's 1.15 heights once the 120 Hz step and the apex float are accounted for. */
+export const JUMP_V0 = 1620;
 export const JUMP_CUT = 620;
 /** Terminal fall speed: 21.7 px a step, so no fall passes through a solid or a pass. */
 export const MAX_FALL = 2600;
 
 export const WALK = 400;
-export const RUN = 640;
+/** 640 in the spec's table; 780 crosses the 1920 px design screen in 2.6 s from a standing start, acceleration included (§9's target). */
+export const RUN = 780;
 export const ACCEL_GROUND = 4400;
 export const ACCEL_AIR = 2600;
 export const FRICTION = 5600;

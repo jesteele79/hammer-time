@@ -33,7 +33,7 @@ const run = (w, seconds, held = {}, pressedOnce = {}) => {
   }
 };
 
-test("a jump clears about 1.15 Hammer heights and a cut jump about half", () => {
+test("a jump clears 1.15 Hammer heights and a cut jump about half", () => {
   const w = createWorld(flat(), { x: 100, y: 0 });
   run(w, 0.05);
   let apex = 0;
@@ -42,7 +42,7 @@ test("a jump clears about 1.15 Hammer heights and a cut jump about half", () => 
     w.step(input({ jump: true }));
     apex = Math.min(apex, w.hero.y);
   }
-  assert.ok(-apex > 1.05 * HERO_HEIGHT && -apex < 1.25 * HERO_HEIGHT, `apex ${-apex}`);
+  assert.ok(-apex >= 1.15 * HERO_HEIGHT && -apex < 1.25 * HERO_HEIGHT, `apex ${-apex}`);
   const c = createWorld(flat(), { x: 100, y: 0 });
   run(c, 0.05);
   c.step(input({ jump: true }, { jump: true }));
@@ -163,4 +163,40 @@ test("stepping is deterministic for the same inputs", () => {
     b.step(seq(i));
   }
   assert.deepEqual(a.snapshot(), b.snapshot());
+});
+
+test("a run from a standing start crosses a screen (1920 px at zoom 1) within 2.6 s", () => {
+  const w = createWorld(flat(), { x: 0, y: 0 });
+  run(w, 0.05);
+  let t = 0;
+  while (w.hero.x < 1920 && t < 5) {
+    w.step(input({ right: true, run: true }));
+    t += STEP;
+  }
+  assert.ok(t <= 2.6, `crossed in ${t.toFixed(3)} s`);
+  assert.ok(t >= 2.3, `still a run, not a dash: ${t.toFixed(3)} s`);
+});
+
+test("a landing never holds him: full speed carries through, and a swing or a jump goes the step after", () => {
+  for (const then of ["keep", "hammer", "jump"]) {
+    const w = createWorld(flat(), { x: 100, y: 0 });
+    run(w, 0.6, { right: true, run: true });
+    w.step(input({ right: true, run: true, jump: true }, { jump: true }));
+    let landed = null;
+    // Jump held to the top, so it is a full jump and not a cut hop.
+    for (let i = 0; i < 240 && !landed; i++) {
+      w.step(input({ right: true, run: true, jump: true }));
+      landed = w.events.find((e) => e.type === "land");
+    }
+    assert.ok(landed && landed.speed > 1400, `a real landing: ${landed?.speed}`);
+    assert.ok(w.hero.vx > RUN - 1, `full speed through it: ${w.hero.vx}`);
+    if (then === "hammer") {
+      w.step(input({ right: true, run: true, hammer: true }, { hammer: true }));
+      assert.equal(w.hero.move?.kind, "swing", "the swing starts at once");
+    }
+    if (then === "jump") {
+      w.step(input({ right: true, run: true, jump: true }, { jump: true }));
+      assert.ok(w.hero.vy < -1000, "he jumps again at once");
+    }
+  }
 });

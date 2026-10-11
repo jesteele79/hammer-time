@@ -491,8 +491,8 @@ from a run; landings feel weighty but never sticky.
 | Thing | Value |
 |---|---|
 | Gravity | 3300 px/s² rising, 4600 falling; apex float: 0.5 gravity when abs(vy) < 160 |
-| Jump | v0 1520; releasing the button caps vy at −620 |
-| Walk / run | 400 / 640 px/s; ground accel 4400, air 2600, friction 5600; run needs the run button or 0.4 s of held direction on a gamepad stick past 0.9 |
+| Jump | v0 1620 (first 1520, raised in R0 and R1b's feel pass so a jump clears 1.16 heights at the 120 Hz step); releasing the button caps vy at −620 |
+| Walk / run | 400 / 780 px/s (run 640 until R1b's feel pass: a screen in 2.55 s); ground accel 4400, air 2600, friction 5600; run needs the run button or 0.4 s of held direction on a gamepad stick past 0.9 |
 | Coyote / buffer | 0.10 s / 0.12 s |
 | Slide | 800 px/s decaying to 480, under passes; crouch walk 240 |
 | Hero collider | 110 by 300 standing, 110 by 200 crouched |
