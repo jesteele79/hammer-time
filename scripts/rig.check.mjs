@@ -128,6 +128,8 @@ test("the fist holds the mallet out in front, head up, in every clip but the sli
 
 import { ACTIONS, ACTION_MASK, displayU, overlay, wipeHand, armTo } from "../src/sim/rig/actions.ts";
 import { MOVE_SECONDS, SWING_CUT, SUPER_CUT } from "../src/sim/moves.ts";
+import { FREE, HOLD } from "../src/sim/rig/clips.ts";
+import { pose } from "../src/sim/rig/pose.ts";
 
 const KINDS = ["swing", "super", "snot", "wipe"];
 
@@ -219,3 +221,35 @@ test("the fist never turns on the handle during any move", () => {
     }
 });
 
+
+test("the towel arm moves smoothly through the whole wipe: no step jumps the far hand", () => {
+  // A jump is a step whose travel leaps past its neighbour's; a fast swing speeds up gradually.
+  const du = 1 / 120 / MOVE_SECONDS.wipe;
+  let prev = null,
+    last = 0,
+    fastest = 0,
+    spike = 0,
+    at = 0;
+  for (let k = 0; k * du <= 1 + 1e-9; k++) {
+    const u = Math.min(1, k * du);
+    const h = solve(ACTIONS.wipe(u), 1, 0.26).joints.handFar;
+    if (prev) {
+      const d = Math.hypot(h.x - prev.x, h.y - prev.y);
+      fastest = Math.max(fastest, d);
+      if (Math.abs(d - last) > spike) [spike, at] = [Math.abs(d - last), u];
+      last = d;
+    }
+    prev = h;
+  }
+  assert.ok(spike < 10, `the far hand's step changes by ${spike.toFixed(0)} px at u ${at.toFixed(3)}`);
+  assert.ok(fastest < 40, `the far hand covers ${fastest.toFixed(0)} px in one step`);
+});
+
+test("the wipe starts and ends with the far arm hanging as it does at rest", () => {
+  const hang = solve(pose({ rot: { ...HOLD, shoulderFar: FREE } }), 1, 0.26).joints.handFar;
+  for (const u of [0, 1]) {
+    const h = solve(ACTIONS.wipe(u), 1, 0.26).joints.handFar;
+    const d = Math.hypot(h.x - hang.x, h.y - hang.y);
+    assert.ok(d < 3, `at u ${u} the far hand is ${d.toFixed(1)} px from where it hangs`);
+  }
+});

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { feelOf } from "../src/sim/feel.ts";
-import { applyFeel, createClock, tickClock } from "../src/sim/clock.ts";
+import { applyFeel, createClock, runFrame, tickClock } from "../src/sim/clock.ts";
 
 const near = (a, b, eps = 1e-9) => Math.abs(a - b) < eps;
 
@@ -326,3 +326,21 @@ test("cold snot stops at the first cart; at most three fly at once; puddles cap 
   assert.equal(many.puddles.length, 0, "dried");
 });
 
+
+test("a hit freezes the world on the step it lands: nothing more steps until the hit-stop ends", () => {
+  const STEP_S = 1 / 120;
+  const clock = createClock();
+  const frame = { acc: 0 };
+  let steps = 0;
+  // A 60 fps frame holds two steps; the hit lands on the first.
+  runFrame(clock, frame, 2 * STEP_S, () => {
+    steps++;
+    if (steps === 1) applyFeel(clock, { hitstop: 0.06, trauma: 0.35 });
+  });
+  assert.equal(steps, 1, "the step that lands the hit is the frame's last");
+  // Three more frames are 50 ms, inside the 60 ms stop.
+  for (let f = 0; f < 3; f++) runFrame(clock, frame, 1 / 60, () => steps++);
+  assert.equal(steps, 1, "no step runs while the hit-stop holds");
+  for (let f = 0; f < 3; f++) runFrame(clock, frame, 1 / 60, () => steps++);
+  assert.ok(steps > 1, "the world runs on once the stop ends");
+});

@@ -3,7 +3,7 @@ import { SUPER_CUT, SWING_CUT, WIPE_FLICK, WIPE_SCRUB } from "../moves";
 import { FREE, HOLD } from "./clips";
 import { armTo } from "./ik";
 import { blend, linear, out, pose, smooth, track, type Key, type Pose } from "./pose";
-import type { JointName, Point } from "./skeleton";
+import { JOINTS, type JointName, type Point } from "./skeleton";
 
 export { armTo };
 
@@ -86,8 +86,27 @@ const SNOT = {
   shoulderNear: [[0, HOLD.shoulderNear], [0.3, HOLD.shoulderNear - 16], [0.42, HOLD.shoulderNear - 19], [0.5, HOLD.shoulderNear - 8, out], [0.62, HOLD.shoulderNear - 6], [1, HOLD.shoulderNear]] as K,
 };
 
-/** The far wrist's path for the towel, in the chest's frame (rest units): pocket, scalp strokes, flick, pocket. */
-const POCKET: Point = { x: 4, y: 136 };
+/** The far wrist's path for the towel, in the chest's frame (rest units): from the hang, scalp strokes, flick, back to the hang. */
+const DEG = Math.PI / 180;
+const angleOf = (a: Point, b: Point) => Math.atan2(b.y - a.y, b.x - a.x) / DEG;
+/**
+ * Where the far wrist hangs at rest (the free arm swung back by FREE) and the way its hand
+ * points: the wipe starts and ends there, so the blend in and out has nothing to jump.
+ */
+const HANG: Point = (() => {
+  const S = JOINTS.shoulderFar.rest;
+  const W = JOINTS.wristFar.rest;
+  const a = FREE * DEG;
+  return {
+    x: S.x + (W.x - S.x) * Math.cos(a) - (W.y - S.y) * Math.sin(a),
+    y: S.y + (W.x - S.x) * Math.sin(a) + (W.y - S.y) * Math.cos(a),
+  };
+})();
+const HANG_DEG = angleOf(JOINTS.wristFar.rest, JOINTS.handFar.rest) + FREE;
+/** The hand holding the towel up to the scalp, and flung back at the flick. */
+const HAND_UP = 95;
+const HAND_FLUNG = 150;
+const FLICK_TURN = 0.08;
 const SCALP = { x: -18, y: 358, rx: 22, ry: 34 };
 const scalp = (deg: number): Point => ({
   x: SCALP.x + Math.cos((deg * Math.PI) / 180) * SCALP.rx,
@@ -98,18 +117,33 @@ const bez = (a: Point, c: Point, b: Point, t: number): Point => ({
   y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y,
 });
 export function wipeHand(u: number): Point {
-  if (u < WIPE_SCRUB[0]) return bez(POCKET, { x: -70, y: 260 }, scalp(110), out(u / WIPE_SCRUB[0]));
+  // Up from where the hand hangs, easing in and out, so the arm rises instead of appearing.
+  if (u < WIPE_SCRUB[0]) return bez(HANG, { x: -70, y: 260 }, scalp(110), smooth(u / WIPE_SCRUB[0]));
   if (u < WIPE_FLICK[0]) {
     const t = (u - WIPE_SCRUB[0]) / (WIPE_SCRUB[1] - WIPE_SCRUB[0]);
     return scalp(150 - 40 * Math.cos(t * Math.PI * 5));
   }
   const flung = { x: -95, y: 290 };
   if (u < WIPE_FLICK[1]) {
-    const t = out((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0]));
-    const from = scalp(110);
+    // From where the last stroke ends, at the back of the scalp.
+    const t = smooth((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0]));
+    const from = scalp(190);
     return { x: from.x + (flung.x - from.x) * t, y: from.y + (flung.y - from.y) * t };
   }
-  return bez(flung, { x: -80, y: 180 }, POCKET, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));
+  return bez(flung, { x: -80, y: 180 }, HANG, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));
+}
+
+/**
+ * The way the far hand points through the wipe, in the chest's frame (degrees, facing right):
+ * it turns up with the arm as the arm swings up behind him (clockwise), tips back over 0.08 of
+ * the clip at the flick, and turns back down with the arm on the way to the pocket.
+ */
+export function wipeHandDeg(u: number): number {
+  if (u < WIPE_SCRUB[0]) return HANG_DEG + (HAND_UP - 360 - HANG_DEG) * smooth(u / WIPE_SCRUB[0]);
+  if (u < WIPE_FLICK[0]) return HAND_UP;
+  if (u < WIPE_FLICK[0] + FLICK_TURN) return HAND_UP + (HAND_FLUNG - HAND_UP) * smooth((u - WIPE_FLICK[0]) / FLICK_TURN);
+  if (u < WIPE_FLICK[1]) return HAND_FLUNG;
+  return HAND_FLUNG + (HANG_DEG + 360 - HAND_FLUNG) * smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16));
 }
 const WIPE_LEAN = [[0, 0], [0.12, -3], [0.62, -3], [0.7, 3, out], [1, 0]] as K;
 
@@ -151,8 +185,8 @@ export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
     }),
   wipe: (u) => {
     const lean = at(WIPE_LEAN, u);
-    const towelUp = u > 0.04 && u < 0.95;
-    const far = towelUp ? armTo("far", wipeHand(u), u < WIPE_FLICK[0] ? 95 : 150, 1) : { shoulder: FREE, elbow: 0, wrist: 0 };
+    // The far arm follows the towel's path the whole clip, from the hang and back to it.
+    const far = armTo("far", wipeHand(u), wipeHandDeg(u), 1);
     return pose({
       rot: { ...HOLD, shoulderFar: far.shoulder, elbowFar: far.elbow, wristFar: far.wrist },
       lean,

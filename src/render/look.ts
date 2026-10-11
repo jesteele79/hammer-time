@@ -1,6 +1,6 @@
 import { Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { loadRegistry, type Expression, type Registry } from "../art/registry";
-import { applyFeel, createClock, tickClock } from "../sim/clock";
+import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, RUN, STEP } from "../sim/constants";
 import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
@@ -136,7 +136,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   window.addEventListener("blur", onBlur);
 
   let prevHeld: Record<Action, boolean> = emptyInput().held;
-  let acc = 0;
+  const frame = { acc: 0 };
   let prev = world.snapshot();
   let cur = prev;
   let clip: ClipName = "idle";
@@ -303,27 +303,20 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
 
   const tick = (t: Ticker) => {
     const dt = Math.min(t.deltaMS / 1000, 0.1);
-    // Hit-stop and slow motion: the sim and everything it drives run on these seconds.
-    const simDt = tickClock(clock, dt);
-    time += simDt;
-    acc += simDt;
-    let steps = 0;
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
-    while (acc >= STEP && steps < 5) {
+    // Hit-stop and slow motion: the sim and everything it drives run on the clock's seconds,
+    // and a hit freezes the world on the step it lands.
+    const { simDt, steps } = runFrame(clock, frame, dt, () => {
       const input = inputFromKeys(keys, prevHeld);
       prevHeld = input.held;
       prev = cur;
       world.step(input);
       cur = world.snapshot();
-      acc -= STEP;
-      steps++;
       for (const e of world.events) feel(e);
-      // A hit freezes the world on the step it lands.
-      if (clock.hitstop > 0) break;
-    }
+    });
+    time += simDt;
     if (steps > 0) tapped.clear();
-    if (steps === 5) acc = 0;
-    const alpha = Math.min(1, acc / STEP);
+    const alpha = Math.min(1, frame.acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
     const y = prev.hero.y + (h.y - prev.hero.y) * alpha;
