@@ -1,6 +1,6 @@
 import { BitmapFont, BitmapText } from "pixi.js";
 
-export type FontKind = "display" | "ui";
+export type FontKind = "display" | "ui" | "comic";
 let installed: Promise<void> | null = null;
 
 /** Rasterizes both families once at 64 px; text scales from there (spec §5.7). */
@@ -21,6 +21,17 @@ export function installFonts(): Promise<void> {
     BitmapFont.install({
       name: "ui",
       style: { fontFamily: "Inter", fontWeight: "600", fontSize: 48, fill: "#ffffff" },
+    });
+    // The comic words' type: the display face with its ink outline baked in; a tint colors the fill only.
+    BitmapFont.install({
+      name: "comic",
+      style: {
+        fontFamily: "Barlow Condensed",
+        fontWeight: "800",
+        fontSize: 64,
+        fill: "#ffffff",
+        stroke: { color: "#101010", width: 10, join: "round" },
+      },
     });
   })();
   return installed;

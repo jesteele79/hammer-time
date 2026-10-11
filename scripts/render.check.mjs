@@ -6,6 +6,10 @@ import { skinLayer, bodyScale } from "../src/render/skin.ts";
 import { CLIPS } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
 import { REST_POSE } from "../src/sim/rig/skeleton.ts";
+import { placeWord, wordBox } from "../src/render/words.ts";
+import { TOWEL, hangTowel, towelChain } from "../src/render/towel.ts";
+import { ACTIONS } from "../src/sim/rig/actions.ts";
+import { sweptHeadHits } from "../src/sim/hits.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
   assert.equal(shouldStepDown({ workMs: 2, intervalMs: 16.7, refreshMs: 16.7 }), false);
@@ -64,5 +68,52 @@ test("the painted joints and the game's skeleton agree: every bone's end lands o
           const d = Math.hypot(out[b * 2] - j.x, out[b * 2 + 1] - j.y);
           assert.ok(d < 0.5, `${name} u=${u} facing ${facing}: ${c} is ${d.toFixed(2)} px off its joint`);
         });
+      }
+});
+
+test("comic words slide off the face wherever the hit lands, and stay in view", () => {
+  const face = { x: 500, y: 300, w: 90, h: 110 };
+  const view = { x: 0, y: 0, w: 1280, h: 800 };
+  for (let x = 380; x <= 720; x += 20)
+    for (let y = 200; y <= 520; y += 20)
+      for (const big of [false, true]) {
+        const r = placeWord(wordBox(x, y, big ? 260 : 120, big), face, view);
+        const hit = r.x < face.x + face.w && r.x + r.w > face.x && r.y < face.y + face.h && r.y + r.h > face.y;
+        assert.ok(!hit, `word at ${x},${y} covers the face`);
+        assert.ok(r.x >= view.x && r.y >= view.y && r.x + r.w <= view.x + view.w && r.y + r.h <= view.y + view.h);
+      }
+});
+
+test("the towel hangs from the hand and never swings in front of the head's back", () => {
+  // The hand itself stays behind the line (the rig keeps it clear of the face); the towel follows it.
+  let pts = [];
+  for (let i = 0; i < 120; i++) {
+    const anchor = { x: 380 + Math.sin(i / 6) * 40, y: 300 + Math.cos(i / 5) * 40 };
+    pts = towelChain(anchor, pts, 8, 18, 420);
+    assert.deepEqual(pts[0], anchor);
+    for (const p of pts) assert.ok(p.x <= 420 + 1e-9, `towel point at ${p.x} crosses 420`);
+  }
+  // A towel left hanging in front of the line is pulled behind it on the next frame.
+  const front = Array.from({ length: 8 }, (_, i) => ({ x: 520, y: 300 + 18 * i }));
+  for (const p of towelChain({ x: 400, y: 300 }, front, 8, 18, 420).slice(1))
+    assert.ok(p.x <= 420 + 1e-9, `towel point at ${p.x} stays in front of 420`);
+});
+
+test("the towel in his far hand never covers his face through the whole wipe, either way he faces", () => {
+  for (const facing of [-1, 1])
+    for (const scale of [0.22, 0.26, 0.3])
+      for (const frames of [55, 400]) {
+        let chain = [];
+        for (let k = 0; k <= frames; k++) {
+          const u = 0.04 + (0.91 * k) / frames;
+          const solved = solve(ACTIONS.wipe(u), facing, scale);
+          chain = hangTowel(solved, chain);
+          const world = chain.map((p) => ({ x: p.x * facing, y: p.y }));
+          for (let i = 1; i < world.length; i++)
+            assert.ok(
+              !sweptHeadHits(world[i - 1], world[i], TOWEL.width / 2, solved.faceBox),
+              `facing ${facing}, head ${scale}, u ${u.toFixed(3)}: towel segment ${i} covers the face`,
+            );
+        }
       }
 });

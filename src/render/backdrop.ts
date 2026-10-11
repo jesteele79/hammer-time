@@ -13,6 +13,8 @@ const FLOOR_TOP = 26;
 /** The floor's top runs this far back toward the wall, so the far foot (a step back in the painting) stands on it. */
 const FLOOR_BACK = 34;
 const OUTLINE = 4;
+/** The floor, counters and passes sort behind everything that moves: Hammer, the carts and the snot. */
+export const SCENERY_Z = -1e6;
 const MID_OUTLINE = 3;
 
 function gradientTexture(stops: [number, string][], vertical = true): Texture {
@@ -50,7 +52,7 @@ export async function loadBackdrop(scene: Scene, venue: string, stage: Stage, re
 
   drawMid(scene);
   const floor = new Graphics();
-  floor.zIndex = -1;
+  floor.zIndex = SCENERY_Z;
   drawFloors(floor, stage);
   drawPlatforms(floor, stage.platforms);
   scene.layers.play.addChild(floor);
@@ -123,7 +125,7 @@ function drawPasses(scene: Scene, stage: Stage) {
   const wood = tones(PALETTE.wallWood);
   for (const p of stage.passes) {
     const g = new Graphics();
-    g.zIndex = -1;
+    g.zIndex = SCENERY_Z;
     g.rect(p.x, p.y, p.w, p.h).fill(wood.base);
     g.rect(p.x + 24, p.y + 24, p.w - 48, p.h - 48).fill(wood.highlight);
     g.rect(p.x + 24, p.y + p.h - 70, p.w - 48, 46).fill(wood.shadow);
@@ -135,7 +137,7 @@ function drawPasses(scene: Scene, stage: Stage) {
     sign.anchor.set(0.5);
     sign.position.set(p.x + p.w / 2, p.y + p.h - 98);
     scene.layers.play.addChild(g, sign);
-    sign.zIndex = -1;
+    sign.zIndex = SCENERY_Z;
   }
 }
 

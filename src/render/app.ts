@@ -30,6 +30,19 @@ export type NextProbe = {
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
   art?: { heads: number; bodies: number };
+  /** The move layer, set by the look scene: `events` counts every event type seen since boot. */
+  moves?: {
+    move: string | null;
+    u: number;
+    heat: number;
+    sinus: number;
+    charge: number;
+    events: Record<string, number>;
+    carts: number[];
+    snot: number;
+    puddles: number;
+    heroX: number;
+  };
 };
 declare global {
   interface Window {

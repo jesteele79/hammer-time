@@ -12,14 +12,18 @@ import { HERO_W } from "../sim/constants";
 import type { Placement, Solved } from "../sim/rig/fk";
 import { multiplyTint } from "./lighting";
 import { LAYER_Z, skinLayer, type LayerName, type RigFile, type RigLayer } from "./skin";
+import { TOWEL, Towel, towelTexture } from "./towel";
 
 export type Character = {
   container: Container;
   shadow: Graphics;
   /** Resolves once the rig and every plate are loaded; `apply` draws nothing of the body before then. */
   ready: Promise<void>;
-  /** `ambient` tints the body and the mallet; the head plate is never tinted. */
-  apply(solved: Solved, expression: Expression, heightAboveFloor: number, ambient?: number): void;
+  /**
+   * `ambient` tints the body, the mallet and the towel; the head plate is never tinted.
+   * `towel` hangs the towel from the far hand (the wipe); it is drawn behind the head.
+   */
+  apply(solved: Solved, expression: Expression, heightAboveFloor: number, ambient?: number, towel?: boolean): void;
   /** The product of every tint from the head sprite up to the stage: 0xffffff when nothing colors it. */
   headTintChain(): number;
 };
@@ -29,6 +33,10 @@ const SHADOW_RX = HERO_W * 0.55;
 const FAR_SHADE = 0xe2dad2;
 const FAR_LAYERS = new Set<LayerName>(["armFar", "legFar"]);
 const MIPMAPS = { autoGenerateMipmaps: true };
+/** In front of the far arm that holds it, behind the legs, the torso, the near arm, the mallet and the head. */
+const TOWEL_Z = 0.5;
+/** One turned towel texture per plate, shared by every character (the boards draw dozens). */
+const towelTextures = new Map<string, Texture>();
 
 let warned = false;
 function fallback(message: string) {
@@ -70,6 +78,8 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
   }
   const head = new Sprite();
   container.addChild(head);
+  const towelPlate = registry.hammer.props.towel;
+  let towel: Towel | null = null;
 
   let rig: RigFile | null = null;
   const skinned: Skinned[] = [];
@@ -88,7 +98,19 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
       ...LAYER_Z.flatMap((name) => Object.values(layers[name]?.variants ?? {}).map(load)),
       ...plates.map((p) => load(p.file)),
       mallet ? load(mallet.file) : null,
+      towelPlate ? load(towelPlate.file) : null,
     ]);
+    const plate = towelPlate && textures.get(towelPlate.file);
+    if (towelPlate && plate) {
+      let turned = towelTextures.get(towelPlate.file);
+      if (!turned) {
+        turned = towelTexture(plate, TOWEL.width, (canvas) => Texture.from(canvas));
+        towelTextures.set(towelPlate.file, turned);
+      }
+      towel = new Towel(turned);
+      towel.holder.zIndex = TOWEL_Z;
+      container.addChild(towel.holder);
+    }
     LAYER_Z.forEach((name, z) => {
       const layer = layers[name];
       if (!layer?.file || !layer.indices) return;
@@ -132,7 +154,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     container,
     shadow,
     ready,
-    apply(solved, expression, heightAboveFloor, ambient = 0xffffff) {
+    apply(solved, expression, heightAboveFloor, ambient = 0xffffff, holdTowel = false) {
       if (rig) {
         for (const s of skinned) {
           skinLayer(s.positions, s.layer, rig, solved);
@@ -146,6 +168,10 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
         const len = Math.hypot(mallet.tip.x - mallet.pivot.x, mallet.tip.y - mallet.pivot.y);
         placeProp(malletSprite, { pivot: mallet.pivot, tip: mallet.tip }, pl, solved.facing, MALLET_PLATE_FACING, pl.length / len);
         malletSprite.tint = ambient;
+      }
+      if (towel) {
+        towel.update(holdTowel ? solved : null);
+        towel.tint = ambient;
       }
       const wanted = (opts.noart && expression !== "neutral" ? undefined : heads[expression]) ?? neutral;
       if (wanted !== headPlate || head.texture === Texture.EMPTY) {

@@ -33,6 +33,12 @@ const DEAD_ZONE_Y = 110;
 const SHAKE_PX = 18;
 const SHAKE_ROT = (0.6 * Math.PI) / 180;
 const TRAUMA_DECAY = 2.5;
+const PUNCH_IN = 0.06;
+const PUNCH_OUT = 0.15;
+/** Under reduced motion a kick this big nudges the view instead of shaking it. */
+const NUDGE_TRAUMA = 0.3;
+const NUDGE_PX = 4;
+const NUDGE_T = 0.1;
 
 export type Camera = {
   x: number;
@@ -64,6 +70,12 @@ export type Scene = {
   /** Positions every layer for the camera; called by update and resize. */
   fit(): void;
   toScreen(p: Point): Point;
+  /** A zoom kick: in over 0.06 s, held, out over the last 0.15 s of `seconds`. Skipped under reduced motion. */
+  punch(amount: number, seconds: number): void;
+  /** The visible world, for keeping words on screen. */
+  view(): Rect;
+  /** The player asked the system for less motion. */
+  reducedMotion: boolean;
   destroy(): void;
 };
 
@@ -94,6 +106,10 @@ export function createScene(render: RenderApp): Scene {
     focusY: 0,
     shake: { x: 0, y: 0, rot: 0 },
   };
+  const punch = { amount: 1, t: 0, seconds: 0 };
+  let punchK = 1;
+  let lastTrauma = 0;
+  let nudge = 0;
   let seed = 1;
   // A cheap deterministic noise for the shake.
   const noise = () => {
@@ -108,6 +124,7 @@ export function createScene(render: RenderApp): Scene {
     ambient: 0xffffff,
     width: app.screen.width,
     height: app.screen.height,
+    reducedMotion: typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches,
     resize() {
       scene.width = app.screen.width;
       scene.height = app.screen.height;
@@ -127,11 +144,27 @@ export function createScene(render: RenderApp): Scene {
         else if (chest > c.focusY + DEAD_ZONE_Y) c.focusY = chest - DEAD_ZONE_Y;
         c.y += (c.focusY - c.y) * ease(c.falling ? SPRING_Y_FALLING : SPRING_Y, dt);
       }
-      c.trauma = Math.max(0, c.trauma - TRAUMA_DECAY * dt);
-      const shake = c.trauma * c.trauma;
-      c.shake.x = noise() * 2 * SHAKE_PX * shake;
-      c.shake.y = noise() * 2 * SHAKE_PX * shake;
-      c.shake.rot = noise() * 2 * SHAKE_ROT * shake;
+      if (scene.reducedMotion) {
+        if (c.trauma > lastTrauma + 1e-6 && c.trauma >= NUDGE_TRAUMA) nudge = NUDGE_T;
+        c.trauma = Math.max(0, c.trauma - TRAUMA_DECAY * dt);
+        nudge = Math.max(0, nudge - dt);
+        c.shake.x = nudge > 0 ? NUDGE_PX / scene.scale : 0;
+        c.shake.y = 0;
+        c.shake.rot = 0;
+      } else {
+        c.trauma = Math.max(0, c.trauma - TRAUMA_DECAY * dt);
+        const shake = c.trauma * c.trauma;
+        c.shake.x = noise() * 2 * SHAKE_PX * shake;
+        c.shake.y = noise() * 2 * SHAKE_PX * shake;
+        c.shake.rot = noise() * 2 * SHAKE_ROT * shake;
+      }
+      lastTrauma = c.trauma;
+      if (punch.t < punch.seconds) {
+        punch.t = Math.min(punch.seconds, punch.t + dt);
+        const into = Math.min(1, punch.t / PUNCH_IN);
+        const outOf = Math.min(1, (punch.seconds - punch.t) / PUNCH_OUT);
+        punchK = 1 + (punch.amount - 1) * Math.min(into, outOf);
+      } else punchK = 1;
       if (c.bounds) {
         const halfW = scene.width / (2 * scene.scale);
         const halfH = scene.height / (2 * scene.scale);
@@ -144,7 +177,7 @@ export function createScene(render: RenderApp): Scene {
     fit() {
       const { width, height } = scene;
       const portrait = width < height ? PORTRAIT_ZOOM : 1;
-      scene.scale = (HERO_SCREEN_FRACTION * height * camera.zoom * portrait) / HERO_HEIGHT;
+      scene.scale = (HERO_SCREEN_FRACTION * height * camera.zoom * punchK * portrait) / HERO_HEIGHT;
       for (const name of LAYER_ORDER) {
         const layer = layers[name];
         const f = PARALLAX[name];
@@ -159,6 +192,19 @@ export function createScene(render: RenderApp): Scene {
         layer.position.set(width / 2, height / 2);
         layer.rotation = camera.shake.rot;
       }
+    },
+    punch(amount, seconds) {
+      if (scene.reducedMotion) return;
+      const running = punchK > 1;
+      punch.amount = running ? Math.max(punch.amount, amount) : amount;
+      punch.seconds = seconds;
+      // A kick while one runs picks up from the zoom already on screen instead of dropping back.
+      punch.t = running && punch.amount > 1 ? PUNCH_IN * Math.min(1, (punchK - 1) / (punch.amount - 1)) : 0;
+    },
+    view() {
+      const halfW = scene.width / (2 * scene.scale);
+      const halfH = scene.height / (2 * scene.scale);
+      return { x: camera.x - halfW, y: camera.y - halfH, w: halfW * 2, h: halfH * 2 };
     },
     toScreen(p) {
       return {

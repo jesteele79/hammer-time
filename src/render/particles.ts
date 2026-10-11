@@ -1,4 +1,5 @@
 import { Container, Graphics } from "pixi.js";
+import type { Rect } from "../sim/types";
 
 export type Recipe = {
   speed: [number, number];
@@ -34,6 +35,14 @@ export const RECIPES = {
     colors: ["#bfe6ff", "#5aa6e8"],
     additive: false,
   },
+  impact: { speed: [260, 620], angle: [0, 360], gravity: 900, drag: 2, life: [0.25, 0.45], size: [9, 3], colors: ["#fff4c8", "#e9a23b"], additive: true },
+  debris: { speed: [300, 760], angle: [200, 340], gravity: 2200, drag: 0.6, life: [0.5, 0.9], size: [8, 5], colors: ["#d4783c", "#e7d2b4"], additive: false },
+  snot: { speed: [20, 90], angle: [0, 360], gravity: 300, drag: 3, life: [0.2, 0.35], size: [7, 2], colors: ["#c8dc8c", "#8fae4f"], additive: false },
+  splat: { speed: [160, 420], angle: [190, 350], gravity: 1800, drag: 1, life: [0.3, 0.55], size: [9, 4], colors: ["#c8dc8c", "#7d9a3c"], additive: false },
+  spray: { speed: [420, 900], angle: [150, 250], gravity: 1600, drag: 0.5, life: [0.35, 0.6], size: [5, 3], colors: ["#d8f0ff", "#6db4f0"], additive: false },
+  steam: { speed: [40, 110], angle: [250, 290], gravity: -220, drag: 1.4, life: [0.6, 1.1], size: [10, 24], colors: ["#f2f2f2", "#9aa3ad"], additive: false },
+  glint: { speed: [0, 30], angle: [0, 360], gravity: 0, drag: 2, life: [0.25, 0.4], size: [14, 2], colors: ["#ffffff", "#fff2a8"], additive: true },
+  ring: { speed: [700, 900], angle: [180, 360], gravity: 0, drag: 2.4, life: [0.35, 0.45], size: [12, 26], colors: ["#fff3d0", "#e9b866"], additive: true },
 } satisfies Record<string, Recipe>;
 export type RecipeName = keyof typeof RECIPES;
 
@@ -48,13 +57,19 @@ type Particle = {
   seed: number;
 };
 
+const radius = (p: Particle) => p.recipe.size[0] + (p.recipe.size[1] - p.recipe.size[0]) * (p.age / p.life);
+const touches = (x: number, y: number, r: number, b: Rect) =>
+  x + r > b.x && x - r < b.x + b.w && y + r > b.y && y - r < b.y + b.h;
 const hex = (c: string) => parseInt(c.slice(1), 16);
 const mix = (a: number, b: number, t: number) => {
   const ch = (s: number) => ((a >> s) & 255) + (((b >> s) & 255) - ((a >> s) & 255)) * t;
   return (Math.round(ch(16)) << 16) | (Math.round(ch(8)) << 8) | Math.round(ch(0));
 };
 
-/** A pooled system drawn as one Graphics per blend mode, rebuilt each frame. */
+/**
+ * A pooled system drawn as one Graphics per blend mode, rebuilt each frame.
+ * Under reduced motion the glow recipes draw plain: no additive glow (spec §5.6).
+ */
 export class Particles {
   private readonly pool: Particle[] = [];
   private readonly plain = new Graphics();
@@ -64,6 +79,7 @@ export class Particles {
   constructor(
     layer: Container,
     readonly cap = 600,
+    readonly reduced = false,
   ) {
     this.glow.blendMode = "add";
     layer.addChild(this.plain, this.glow);
@@ -74,12 +90,14 @@ export class Particles {
     return this.seed / 2147483647;
   }
 
-  emit(name: RecipeName, x: number, y: number, n: number) {
+  /** `mirror` flips the recipe's spread left for right, for a burst thrown behind him when he faces left. */
+  emit(name: RecipeName, x: number, y: number, n: number, mirror = false) {
     const recipe: Recipe = RECIPES[name];
     for (let i = 0; i < n; i++) {
       if (this.pool.length >= this.cap) this.pool.shift();
       const speed = recipe.speed[0] + (recipe.speed[1] - recipe.speed[0]) * this.rand();
-      const a = ((recipe.angle[0] + (recipe.angle[1] - recipe.angle[0]) * this.rand()) * Math.PI) / 180;
+      const deg = recipe.angle[0] + (recipe.angle[1] - recipe.angle[0]) * this.rand();
+      const a = ((mirror ? 180 - deg : deg) * Math.PI) / 180;
       this.pool.push({
         x,
         y,
@@ -97,7 +115,8 @@ export class Particles {
     return this.pool.length;
   }
 
-  update(dt: number) {
+  /** `keepOut` is his face: a particle that would touch it is gone, so nothing is ever drawn over it. */
+  update(dt: number, keepOut?: Rect) {
     for (let i = this.pool.length - 1; i >= 0; i--) {
       const p = this.pool[i];
       p.age += dt;
@@ -111,15 +130,15 @@ export class Particles {
       p.vy *= k;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
+      if (keepOut && touches(p.x, p.y, radius(p), keepOut)) this.pool.splice(i, 1);
     }
     this.plain.clear();
     this.glow.clear();
     for (const p of this.pool) {
       const t = p.age / p.life;
-      const r = p.recipe.size[0] + (p.recipe.size[1] - p.recipe.size[0]) * t;
       const color = mix(hex(p.recipe.colors[0]), hex(p.recipe.colors[1]), t);
-      const g = p.recipe.additive ? this.glow : this.plain;
-      g.circle(p.x, p.y, r).fill({ color, alpha: 0.85 * (1 - t * t) });
+      const g = p.recipe.additive && !this.reduced ? this.glow : this.plain;
+      g.circle(p.x, p.y, radius(p)).fill({ color, alpha: 0.85 * (1 - t * t) });
     }
   }
 }

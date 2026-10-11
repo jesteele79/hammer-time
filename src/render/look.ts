@@ -1,24 +1,34 @@
-import { Sprite, Texture, type Ticker } from "pixi.js";
+import { Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { loadRegistry, type Expression, type Registry } from "../art/registry";
+import { applyFeel, createClock, tickClock } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, RUN, STEP } from "../sim/constants";
+import type { GameEvent } from "../sim/events";
+import { feelOf } from "../sim/feel";
+import { sweptHeadHits } from "../sim/hits";
 import { KEY_BINDINGS, emptyInput, inputFromKeys, type Action } from "../sim/input";
+import { CHARGE_MAX, moveU, type Move, type MoveKind } from "../sim/moves";
 import { floorAt } from "../sim/physics";
+import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
-import { solve } from "../sim/rig/fk";
-import { groundModeFor, groundShift } from "../sim/rig/ground";
+import { solve, type Solved } from "../sim/rig/fk";
+import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
-import type { HeroState, Stage } from "../sim/types";
+import { createCart } from "../sim/targets";
+import type { HeroState, Point, Rect, Stage } from "../sim/types";
 import { createWorld } from "../sim/world";
 import type { RenderApp } from "./app";
 import { loadBackdrop } from "./backdrop";
 import { createBoards } from "./boards";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
+import { Meters } from "./meters";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
+import { Props } from "./props";
 import { createScene } from "./scene";
 import { installFonts, label } from "./text";
+import { Words } from "./words";
 
 /** The lobby's first stretch: the floor, two counters, a balcony and a service pass. */
 export const LOBBY_STAGE: Stage = {
@@ -44,14 +54,36 @@ const LOBBY_LIGHTS: Light[] = [800, 3400, 6000, 8600, 11200].map((x) => ({
 const STRIDE = 280;
 const BLEND_T = 0.1;
 const DUST_EVERY = 0.12;
+/** A move's clip blends in over this and back out over the next (spec §6.3). */
+const ACTION_IN = 0.06;
+const ACTION_OUT = 0.12;
+const SMUG_T = 0.6;
+/** The look test's practice convenience: the smash refills this long after a burst. */
+const REFILL_T = 2;
+const STEAM_EVERY = 0.08;
+const SWEAT_EVERY = 0.25;
+const STEAM_HEAT = 80;
+const SWEAT_HEAT = 45;
+/** The towel is out of the pocket between these fractions of the wipe. */
+const TOWEL_U = [0.04, 0.95] as const;
+/** The mallet's smear: the strike's display fractions it shows in, its trail, and its clearance from the face. */
+const SMEAR = { from: 0.36, to: 0.5, points: 6, trail: 0.06, width: 26, clear: 40 } as const;
 
 export type Look = { stop(): void };
 
-/** The look test: Hammer in the lobby under the keyboard, no HUD, one label. */
+/** Where things are this frame, in world px, for the effects. */
+type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point };
+
+/** The look test: Hammer in the lobby under the keyboard with the practice carts and the meters. */
 export async function startLook(render: RenderApp, opts: { noart?: boolean; board?: boolean } = {}): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
-  const world = createWorld(LOBBY_STAGE, { x: 400, y: 0 });
+  const world = createWorld(
+    LOBBY_STAGE,
+    { x: 400, y: 0 },
+    { charge: CHARGE_MAX, targets: [createCart(1, 1100), createCart(2, 3000)] },
+  );
+  const clock = createClock();
   scene.camera.bounds = LOBBY_STAGE.bounds;
   scene.camera.x = 400;
   scene.camera.focusY = scene.camera.y = -HERO_HEIGHT * 0.55;
@@ -62,7 +94,13 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   await loadBackdrop(scene, "lobby", LOBBY_STAGE, registry);
   const lighting = createLighting(scene, render.quality, LOBBY_LIGHTS);
   render.onQuality = (q) => lighting.setQuality(q);
-  const particles = new Particles(scene.layers.fx, 600);
+  const reduced = scene.reducedMotion;
+  const particles = new Particles(scene.layers.fx, reduced ? 400 : 600, reduced);
+  const words = new Words(scene.layers.fx);
+  const smear = new Graphics();
+  if (!reduced) smear.blendMode = "add";
+  scene.layers.fx.addChild(smear);
+  const props = new Props(scene.layers.play, particles, scene.ambient);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   await character.ready;
@@ -74,6 +112,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   title.position.set(24, 14);
   title.alpha = 0.8;
   scene.layers.post.addChild(vignette, title);
+  const meters = new Meters(scene.layers.post);
 
   const down = new Set<string>();
   // A tap shorter than a frame still counts for the frame's steps.
@@ -105,6 +144,16 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   let lastState = cur.hero.state;
   let dustT = 0;
   let time = 0;
+  let action: Pose | null = null;
+  let actionKind: MoveKind | null = null;
+  let actionW = 0;
+  let moveT = -1;
+  let smugT = 0;
+  let refillT = 0;
+  let steamT = 0;
+  let sweatT = 0;
+  const counts: Record<string, number> = {};
+  const pending: GameEvent[] = [];
 
   const animate = (h: HeroState, dt: number): Pose => {
     const want = h.state as ClipName;
@@ -137,16 +186,123 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     return pose;
   };
 
+  /** The move's clip over the locomotion: in over 0.06 s, its last frame held while it blends out over 0.12 s. */
+  const play = (m: Move | null, dt: number) => {
+    if (m) {
+      if (m.kind !== actionKind || m.t < moveT || moveT < 0) {
+        actionKind = m.kind;
+        actionW = 0;
+      }
+      moveT = m.t;
+      actionW = Math.min(1, actionW + dt / ACTION_IN);
+      action = ACTIONS[m.kind](displayU(m.kind, moveU(m)));
+    } else {
+      moveT = -1;
+      actionW = Math.max(0, actionW - dt / ACTION_OUT);
+      if (actionW === 0) {
+        action = null;
+        actionKind = null;
+      }
+    }
+  };
+
+  /** The super stands on the floor only once it lands; the towel always does; the rest leave it to the clip. */
+  const groundMode = (h: HeroState): Ground => {
+    if (actionKind === "super") return h.onGround ? "planted" : "none";
+    if (actionKind === "wipe") return "planted";
+    return groundModeFor(clip, h.onGround);
+  };
+
   const supportY = (x: number, y: number) => {
     let best = floorAt(LOBBY_STAGE, x, y - 1) ?? y;
     for (const p of LOBBY_STAGE.platforms) if (x >= p.x0 && x <= p.x1 && p.y >= y - 1 && p.y < best) best = p.y;
     return best;
   };
 
+  /** Time and the camera answer each event at once; its look waits for this frame's pose. */
+  const feel = (e: GameEvent) => {
+    counts[e.type] = (counts[e.type] ?? 0) + 1;
+    const f = feelOf(e);
+    if (f) {
+      applyFeel(clock, f);
+      scene.camera.trauma = Math.min(1, scene.camera.trauma + f.trauma);
+      if (f.zoom) scene.punch(f.zoom.amount, f.zoom.seconds);
+    }
+    pending.push(e);
+  };
+
+  const show = (e: GameEvent, at: Frame) => {
+    const { face, view, facing } = at;
+    switch (e.type) {
+      case "hit":
+        if (e.by === "mallet") {
+          particles.emit("impact", e.x, e.y, 18);
+          particles.emit("debris", e.x, e.y, 10);
+          words.say("BONK!", e.x, e.y - 70, false, face, view);
+          smugT = SMUG_T;
+        } else if (e.by === "snot") words.say("SPLAT!", e.x, e.y - 50, false, face, view);
+        break;
+      case "burst":
+        particles.emit("ring", e.x, e.y, 24);
+        particles.emit("debris", e.x, e.y, 30);
+        particles.emit("dust", e.x, e.y, 20);
+        words.say("HAMMER TIME!", e.x, e.y - 300, true, face, view);
+        refillT = REFILL_T;
+        break;
+      case "fire":
+        particles.emit("snot", e.x, e.y, 8);
+        words.say(e.hot ? "HOT HONK!" : "HONK!", e.x + facing * 60, e.y - 60, false, face, view);
+        break;
+      case "splat":
+        particles.emit("splat", e.x, e.y, 14);
+        break;
+      // The spray flies off the towel behind his head: the recipe throws left, so mirror it facing left.
+      case "stroke":
+        particles.emit("spray", at.hand.x, at.hand.y, 6, facing === -1);
+        break;
+      case "flick":
+        particles.emit("spray", at.hand.x, at.hand.y, 20, facing === -1);
+        break;
+      case "shine":
+        particles.emit("glint", at.crown.x, at.crown.y, 6);
+        break;
+      case "boiling":
+        words.say("BOILING!", at.crown.x, at.crown.y - 90, true, face, view);
+        break;
+      default:
+        break;
+    }
+  };
+
+  /** The swing's smear: a few samples of the mallet head's path just behind it, never near his face. */
+  const drawSmear = (m: Move | null, base: Pose, x: number, y: number, facing: 1 | -1, face: Rect) => {
+    smear.clear();
+    if (m?.kind !== "swing" || actionKind !== "swing") return;
+    const u = displayU("swing", moveU(m));
+    if (u < SMEAR.from || u > SMEAR.to) return;
+    const near: Rect = { x: face.x - SMEAR.clear, y: face.y - SMEAR.clear, w: face.w + 2 * SMEAR.clear, h: face.h + 2 * SMEAR.clear };
+    const pts: Point[] = [];
+    for (let k = SMEAR.points - 1; k >= 0; k--) {
+      const uk = Math.max(SMEAR.from, u - (SMEAR.trail * k) / (SMEAR.points - 1));
+      const j = solve(overlay(base, ACTIONS.swing(uk), "upper", actionW), facing, HEAD_SCALE, headPlate).joints.malletHead;
+      pts.push({ x: x + j.x, y: y + j.y });
+    }
+    for (let i = 1; i < pts.length; i++) {
+      if (sweptHeadHits(pts[i - 1], pts[i], SMEAR.width / 2, near)) continue;
+      const k = i / (pts.length - 1);
+      smear
+        .moveTo(pts[i - 1].x, pts[i - 1].y)
+        .lineTo(pts[i].x, pts[i].y)
+        .stroke({ width: SMEAR.width * k, color: 0xfff4c8, alpha: 0.35 * k, cap: "round" });
+    }
+  };
+
   const tick = (t: Ticker) => {
     const dt = Math.min(t.deltaMS / 1000, 0.1);
-    time += dt;
-    acc += dt;
+    // Hit-stop and slow motion: the sim and everything it drives run on these seconds.
+    const simDt = tickClock(clock, dt);
+    time += simDt;
+    acc += simDt;
     let steps = 0;
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
     while (acc >= STEP && steps < 5) {
@@ -157,35 +313,82 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       cur = world.snapshot();
       acc -= STEP;
       steps++;
+      for (const e of world.events) feel(e);
+      // A hit freezes the world on the step it lands.
+      if (clock.hitstop > 0) break;
     }
     if (steps > 0) tapped.clear();
     if (steps === 5) acc = 0;
-    const alpha = acc / STEP;
+    const alpha = Math.min(1, acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
     const y = prev.hero.y + (h.y - prev.hero.y) * alpha;
 
-    const pose = animate(h, dt);
+    const base = animate(h, simDt);
+    const m = h.move;
+    play(m, simDt);
+    const pose = action && actionKind ? overlay(base, action, ACTION_MASK[actionKind], actionW) : base;
     // Solved facing left, the plates' own facing; the character mirrors itself for the right.
-    const solved = solve(pose, h.facing, HEAD_SCALE, headPlate);
+    const solved: Solved = solve(pose, h.facing, HEAD_SCALE, headPlate);
     const floorY = supportY(x, y);
-    const expression: Expression = h.state === "idle" && h.stateT > 4 ? "bored" : "neutral";
-    const drawY = y + groundShift(solved, groundModeFor(clip, h.onGround));
+    smugT = Math.max(0, smugT - simDt);
+    const expression: Expression =
+      m?.kind === "super"
+        ? "angry"
+        : smugT > 0
+          ? "smug"
+          : !m && h.state === "idle" && h.stateT > 4
+            ? "bored"
+            : "neutral";
+    const drawY = y + groundShift(solved, groundMode(h));
+    const towel = m?.kind === "wipe" && moveU(m) > TOWEL_U[0] && moveU(m) < TOWEL_U[1];
     character.container.position.set(x, drawY);
     character.container.zIndex = y;
-    character.apply(solved, expression, floorY - drawY, scene.ambient);
+    character.apply(solved, expression, floorY - drawY, scene.ambient, towel);
+    // The carts, the snot and the puddles sort just behind him: none of them ever covers his face.
+    props.container.zIndex = y - 0.5;
+    props.sync(cur, simDt);
+
+    const fb = solved.faceBox;
+    const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
+    const at: Frame = {
+      face,
+      view: scene.view(),
+      facing: h.facing,
+      hand: { x: x + solved.joints.handFar.x, y: drawY + solved.joints.handFar.y },
+      crown: { x: x + solved.crown.x, y: drawY + solved.crown.y },
+    };
+    for (const e of pending) show(e, at);
+    pending.length = 0;
 
     if (h.state !== lastState) {
       if (h.state === "land") particles.emit("dust", x, floorY, 10);
       lastState = h.state;
     }
     if (h.state === "run" && h.onGround) {
-      dustT += dt;
+      dustT += simDt;
       if (dustT >= DUST_EVERY) {
         dustT = 0;
         particles.emit("dust", x - h.facing * 30, floorY, 2);
       }
     }
+    // Heat shows as steam off the top and sweat flicked from behind the face (spec §9).
+    steamT = h.heat >= STEAM_HEAT ? steamT + simDt : 0;
+    if (steamT >= STEAM_EVERY) {
+      steamT = 0;
+      particles.emit("steam", at.crown.x, at.crown.y, 1);
+    }
+    sweatT = h.heat > SWEAT_HEAT && m?.kind !== "wipe" ? sweatT + simDt : 0;
+    if (sweatT >= SWEAT_EVERY) {
+      sweatT = 0;
+      const back = h.facing === 1 ? face.x - 8 : face.x + face.w + 8;
+      particles.emit("sweat", back, face.y + face.h * 0.25, 1);
+    }
+    if (refillT > 0) {
+      refillT -= simDt;
+      if (refillT <= 0) world.hero.charge = CHARGE_MAX;
+    }
+    drawSmear(m, base, x, drawY, h.facing, face);
 
     const cam = scene.camera;
     cam.target = { x, y };
@@ -194,7 +397,9 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     cam.falling = h.vy > 900;
     scene.update(dt);
     lighting.update(dt);
-    particles.update(dt);
+    words.update(simDt, face, scene.view());
+    particles.update(simDt, face);
+    meters.set(h.heat, h.sinus, h.charge);
     vignette.width = scene.width;
     vignette.height = scene.height;
 
@@ -206,6 +411,18 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,
         bodies: Object.keys(registry.hammer.bodies).length,
+      };
+      window.__next.moves = {
+        move: m?.kind ?? null,
+        u: m ? moveU(m) : 0,
+        heat: h.heat,
+        sinus: h.sinus,
+        charge: h.charge,
+        events: { ...counts },
+        carts: cur.targets.map((c) => c.x),
+        snot: cur.snot.length,
+        puddles: cur.puddles.length,
+        heroX: h.x,
       };
     }
   };
