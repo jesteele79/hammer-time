@@ -28,6 +28,7 @@ import { Particles } from "./particles";
 import { Props } from "./props";
 import { createScene } from "./scene";
 import { createSound } from "./sound";
+import { TOWEL_OUT } from "./towel";
 import { installFonts, label } from "./text";
 import { Words } from "./words";
 
@@ -65,8 +66,6 @@ const STEAM_EVERY = 0.08;
 const SWEAT_EVERY = 0.25;
 const STEAM_HEAT = 80;
 const SWEAT_HEAT = 45;
-/** The towel is out of the pocket between these fractions of the wipe. */
-const TOWEL_U = [0.04, 0.95] as const;
 /** The mallet's smear: the strike's display fractions it shows in, its trail, and its clearance from the face. */
 const SMEAR = { from: 0.36, to: 0.5, points: 6, trail: 0.06, width: 26, clear: 40 } as const;
 
@@ -346,7 +345,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
             ? "bored"
             : "neutral";
     const drawY = y + groundShift(solved, groundMode(h));
-    const towel = m?.kind === "wipe" && moveU(m) > TOWEL_U[0] && moveU(m) < TOWEL_U[1];
+    const towel = m?.kind === "wipe" && moveU(m) > TOWEL_OUT[0] && moveU(m) < TOWEL_OUT[1];
     character.container.position.set(x, drawY);
     character.container.zIndex = y;
     character.apply(solved, expression, floorY - drawY, scene.ambient, towel);

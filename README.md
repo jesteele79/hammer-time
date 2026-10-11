@@ -252,10 +252,45 @@ art fallback path; `&board=1` exposes the look-board renderer.
   against the display's own rate, never back up; force one with
   `localStorage.setItem("hammer-time-quality", "medium")`.
 
+### Moves in the rebuild
+
+Hammer's moves keep the shipped keys and rules (`src/sim/moves.ts`) on the
+new body. When several move keys land at once one move starts, in the order
+towel, snot, smash, swing; nothing starts while he crouches or slides, and a
+running move is never restarted.
+
+- **H or X, the swing:** a windmill of the mallet that lands in front of him
+  (0.42 s). The strike over his head is skipped on screen and still counted
+  for contact, so a cart is hit anywhere along the arc in front, once per
+  swing. A bonk freezes the action for 0.06 s, shakes the camera, flashes the
+  cart white and adds one smash charge.
+- **Q, the smash:** with a full charge (ten bonks) he hops, plunges and slams
+  the mallet into the floor as he lands; every cart within reach flies. The
+  slam freezes for 0.08 s, runs at quarter speed for 0.25 s and punches the
+  camera in.
+- **F, C or K, the snot rocket:** three charges, one back every 1.5 s, half a
+  second between shots and three in flight at most. It leaves just ahead of
+  his nose, knocks a cart and splats, or lands as a puddle that dries in
+  7 s. Hot snot (pepper, later) is faster and bigger and goes through a cart.
+- **T, the towel:** with any heat, on the ground, he stands still and
+  scrubs the back of his head, flicks the sweat off and shines; heat drains
+  fast. The towel always passes behind his head.
+- **Heat:** running heats him, resting cools him, and jumps, swings and snot
+  add to it. From 45 he sweats, from 80 he steams and runs slower, and near
+  100 he boils over.
+
+The look scene puts two practice luggage carts in the lobby and shows HEAT,
+SNOT and SMASH under the title. It is a practice room: the smash starts full
+and refills two seconds after each slam, which the game itself will not do.
+Comic words (BONK!, HONK!, SPLAT!, HAMMER TIME!) are placed off his face every
+frame, and particles that reach his face are dropped. Sound is the shipped
+game's effects through its `AudioBus`, silent until the first key.
+
 ```powershell
 npm run test:next
 $env:BROWSER_SMOKE_CHANNEL='chrome'
 node scripts/next-browser.check.mjs http://127.0.0.1:8080/
+node scripts/moves-browser.check.mjs http://127.0.0.1:8080/
 node scripts/look-boards.mjs http://127.0.0.1:8080/
 ```
 
@@ -266,13 +301,23 @@ weights), the rig checks (rest height, walk and run cycles with a level head,
 blending, face clearance for every sampled frame of every clip and every
 blend, mirroring, the skeleton matching the painted joints, grounding), the
 render checks (the quality governor, the skinned body matching the painting
-at rest and every bone landing on its solved joint) and the sim checks (jump height and cut,
-run speed and stop, coyote time and the jump buffer, landing on a platform at
-speed, crouch and slide under a pass, determinism). The browser check boots
-the scene, runs, jumps and idles under the keyboard, confirms Hammer's screen
-height at two aspect ratios, forces WebGL and the no-art fallback. The boards
-land under `artifacts/`: `hammer-clips.png`, `hammer-heads.png`,
-`hammer-costumes.png` and `lobby-look-1..3.png`.
+at rest and every bone landing on its solved joint, comic words kept off the
+face and in view, the towel kept behind the head through the whole wipe), the
+sim checks (jump height and cut, run speed and stop, coyote time and the jump
+buffer, landing on a platform at speed, crouch and slide under a pass,
+determinism) and the move checks in `moves.check.mjs` (the feel table and the
+hit-stop clock, move timing and priority, mashing, moves in the air,
+crouched or sliding, heat and the towel, snot charges and puddles, the swept
+mallet and once-per-swing hits, the smash's burst, facing left). The rig
+checks also sweep every drawn frame of every move against the face. The
+browser check boots the scene, runs, jumps and idles under the keyboard,
+confirms Hammer's screen height at two aspect ratios, forces WebGL and the
+no-art fallback; the moves browser check swings, bonks a cart, fires and
+splats snot, towels off and smashes in the lobby, and checks the sounds. The
+boards land under `artifacts/`: `hammer-clips.png` (the clips, then the four
+moves), `hammer-moves.png` (each move in ten frames, half again as large),
+`hammer-heads.png`, `hammer-costumes.png` and `lobby-look-1..3.png`; the moves
+check also saves `moves-swing`, `-bonk`, `-snot`, `-wipe` and `-smash.png`.
 
 ## Validation
 

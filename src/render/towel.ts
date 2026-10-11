@@ -5,6 +5,8 @@ import type { Point } from "../sim/types";
 /** A hand towel's hang, world px: points, their spacing, its width across, and the gap it keeps from the face. */
 export type TowelFit = { n: number; len: number; width: number; gap: number };
 export const TOWEL: TowelFit = { n: 8, len: 16, width: 52, gap: 4 };
+/** The towel is out of the pocket between these fractions of the wipe. */
+export const TOWEL_OUT = [0.04, 0.95] as const;
 
 /**
  * The towel as a hanging chain: the first point is the hand, the rest follow at `len` apart
