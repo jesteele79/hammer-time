@@ -1,4 +1,5 @@
 import { STEP } from "./constants";
+import { damage } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
@@ -19,6 +20,10 @@ export type World = {
   time: number;
   /** What happened in the last step. */
   events: GameEvent[];
+  /** Hits waiting for the next step: where each came from. */
+  hits: number[];
+  /** A hit from something at `fromX`, applied at the start of the next step. */
+  hit(fromX: number): void;
   step(input: Input): void;
   snapshot(): Snapshot;
 };
@@ -33,9 +38,14 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     puddles: [],
     time: 0,
     events: [],
+    hits: [],
+    hit(fromX) {
+      world.hits.push(fromX);
+    },
     step(input) {
       const events: GameEvent[] = [];
       const h = world.hero;
+      for (const from of world.hits.splice(0)) damage(h, world.stage, from, events);
       startMove(h, input, world.snot.length, events);
       steerMove(h);
       stepHero(h, world.stage, input, STEP, events);

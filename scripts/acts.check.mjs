@@ -138,3 +138,96 @@ test("nothing idles in the air, crouched or mid-move", () => {
   const evs = steps(low, 3, { down: true });
   assert.equal(at(evs, "watch").length, 0, "no watch while crouched");
 });
+
+import { HURT, KNOCKDOWN, PATIENCE_MAX } from "../src/sim/damage.ts";
+import { GRACE } from "../src/sim/moves.ts";
+
+const hitFrom = (w, dx) => {
+  w.hit(w.hero.x + dx);
+  w.step(input());
+  return w.events;
+};
+
+test("a hit costs a pip, turns him to face it, throws him 540 back and 500 up, shows the hurt face and drops hot snot", () => {
+  for (const side of [1, -1]) {
+    const w = createWorld(flat(), { x: 500, y: 0 }, { hot: true });
+    w.hero.facing = -side;
+    settle(w);
+    const evs = hitFrom(w, side * 150);
+    const e = evs.find((x) => x.type === "hurt");
+    assert.ok(e && e.dir === -side, `thrown away from it (side ${side})`);
+    assert.equal(w.hero.facing, side, "turned to face it");
+    assert.equal(w.hero.patience, PATIENCE_MAX - 1);
+    assert.equal(w.hero.move?.kind, "hurt");
+    assert.ok(Math.abs(w.hero.vx + side * HURT.back) < 1 && w.hero.vy < -HURT.up + 60, `${w.hero.vx}, ${w.hero.vy}`);
+    assert.ok(w.hero.hurtT > HURT.face - 0.02 && !w.hero.hot);
+  }
+});
+
+test("in grace (1.45 s) a second hit does nothing; after it, the next costs another pip", () => {
+  const w = createWorld(flat(), { x: 500, y: 0 });
+  settle(w);
+  hitFrom(w, 150);
+  steps(w, 0.5);
+  assert.equal(hitFrom(w, 150).filter((e) => e.type === "hurt").length, 0, "ignored in grace");
+  steps(w, GRACE);
+  hitFrom(w, 150);
+  assert.equal(w.hero.patience, 1);
+});
+
+test("the last pip knocks him flat: he flies, holds the landing frame until he lands, lies, and gets up", () => {
+  const w = createWorld(flat(), { x: 500, y: 0 }, { patience: 1 });
+  settle(w);
+  const evs = hitFrom(w, 150);
+  assert.ok(evs.some((e) => e.type === "tumble"));
+  assert.equal(w.hero.move?.kind, "tumble");
+  assert.ok(w.hero.vy < -KNOCKDOWN.up + 60, "thrown higher");
+  let landedAt = null,
+    upAt = null;
+  for (let i = 0; i < 600 && upAt === null; i++) {
+    w.step(input({ right: true, hammer: true }, { hammer: true }));
+    if (landedAt === null && w.hero.onGround) landedAt = i;
+    if (w.events.some((e) => e.type === "getUp")) upAt = i;
+    if (upAt === null) assert.equal(w.hero.move?.kind, "tumble", "nothing else starts while he is down");
+  }
+  assert.ok(landedAt !== null && upAt !== null && upAt > landedAt, "lands, then gets up");
+  assert.equal(w.hero.move, null);
+  assert.ok(w.hero.invuln > 1, "a moment's grace as he gets up");
+});
+
+test("knocked off a counter into a long drop, the tumble waits for the floor; hits while he is down do nothing", () => {
+  const tall = { ...flat(), platforms: [{ x0: -400, x1: 600, y: -900 }], bounds: { x: -2000, y: -4000, w: 22000, h: 5000 } };
+  const w = createWorld(tall, { x: 560, y: -900 }, { patience: 1 });
+  settle(w);
+  hitFrom(w, -150);
+  let held = 0;
+  while (!w.hero.onGround && held < 400) {
+    w.step(input());
+    held++;
+    if (w.hero.move.t / MOVE_SECONDS.tumble > 0.3 + 0.02) assert.fail("the clip ran past the landing frame in the air");
+    assert.equal(hitFrom(w, 100).filter((e) => e.type === "hurt" || e.type === "tumble").length, 0, "no hit while down");
+  }
+  assert.ok(w.hero.onGround && w.hero.y === 0, "landed on the floor below");
+});
+
+test("a hit mid-move ends that move: no burst after a hit in the smash, no stroke after one in the towel", () => {
+  const s = createWorld(flat(), { x: 500, y: 0 }, { charge: CHARGE_MAX });
+  settle(s);
+  press(s, "super");
+  steps(s, 0.2);
+  hitFrom(s, 150);
+  assert.equal(s.hero.move?.kind, "hurt");
+  assert.equal(steps(s, 1).filter((e) => e.type === "burst").length, 0, "no burst");
+  const t = createWorld(flat(), { x: 500, y: 0 }, { heat: 60 });
+  settle(t);
+  press(t, "towel");
+  steps(t, 0.3);
+  hitFrom(t, 150);
+  assert.equal(steps(t, 1).filter((e) => e.type === "stroke" || e.type === "flick" || e.type === "shine").length, 0, "no more strokes");
+  const i = createWorld(flat(), { x: 500, y: 0 });
+  settle(i);
+  steps(i, 2.7);
+  assert.equal(i.hero.move?.kind, "watch");
+  hitFrom(i, 150);
+  assert.equal(i.hero.move?.kind, "hurt", "the watch check gives way to the hit");
+});

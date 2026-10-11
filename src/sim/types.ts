@@ -60,6 +60,12 @@ export type HeroState = {
   idleT: number;
   /** From the watch check until he does anything. */
   bored: boolean;
+  /** Patience pips, 0 to 3: a hit costs one; at the last he is knocked flat. */
+  patience: number;
+  /** Seconds of the hurt face. */
+  hurtT: number;
+  /** Seconds of grace after a hit. */
+  invuln: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

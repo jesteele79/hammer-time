@@ -22,6 +22,10 @@ export const MOVE_SECONDS: Record<MoveKind, number> = {
 export const TUMBLE_LAND = 0.3;
 /** Seconds into the foot tap when the tapping stops and he harrumphs. */
 export const TAP_HARRUMPH = 2.5;
+/** Seconds of grace after a hit, and again as he gets up (the shipped 1.45 s). */
+export const GRACE = 1.45;
+/** Longest the tumble waits in the air for the floor before it plays on. */
+export const TUMBLE_HOLD = 1.5;
 /** Where a swing can land, as a fraction of the move. */
 export const SWING_ACTIVE = [0.33, 0.72] as const;
 /** The strike over the head, sampled for contact but never drawn. */
@@ -102,7 +106,9 @@ export function steerMove(h: HeroState): void {
 export function advanceMove(h: HeroState, dt: number, events: GameEvent[]): void {
   const m = h.move;
   if (!m) return;
-  m.t += dt;
+  // Down off a ledge, the tumble holds its landing frame until he lands.
+  if (m.kind === "tumble" && !h.onGround && moveU(m) >= TUMBLE_LAND && m.held < TUMBLE_HOLD) m.held += dt;
+  else m.t += dt;
   const u = moveU(m);
   if (m.kind === "super" && !m.burst && u >= SUPER_CUT[0] && (h.onGround || u >= 0.92)) m.burst = true;
   if (m.kind === "wipe") {
@@ -123,7 +129,13 @@ export function advanceMove(h: HeroState, dt: number, events: GameEvent[]): void
       else if (stroke === 7) events.push({ type: "shine" });
     }
   }
-  if (m.t >= MOVE_SECONDS[m.kind]) h.move = null;
+  if (m.t >= MOVE_SECONDS[m.kind]) {
+    h.move = null;
+    if (m.kind === "tumble") {
+      h.invuln = Math.max(h.invuln, GRACE);
+      events.push({ type: "getUp" });
+    }
+  }
 }
 
 /** The lecture's reach: a box in front of him, world px. */
@@ -188,4 +200,6 @@ export function stepHeat(h: HeroState, input: Input, dt: number, events: GameEve
   h.sinus = Math.min(SINUS_MAX, h.sinus + dt / SINUS_REFILL);
   h.fireCd = Math.max(0, h.fireCd - dt);
   h.lectureCd = Math.max(0, h.lectureCd - dt);
+  h.hurtT = Math.max(0, h.hurtT - dt);
+  h.invuln = Math.max(0, h.invuln - dt);
 }

@@ -22,13 +22,14 @@ import {
   SLIDE_START,
   WALK,
 } from "./constants";
+import { PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
 import type { Input } from "./input";
 import { HEAT, LOCKING, SINUS_MAX, TIRED } from "./moves";
 import { canStand, moveBody } from "./physics";
 import type { HeroMotion, HeroState, Point, Stage } from "./types";
 
-export type HeroOptions = { heat?: number; charge?: number; hot?: boolean };
+export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patience?: number };
 
 export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
   return {
@@ -57,6 +58,9 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     lectureCd: 0,
     idleT: 0,
     bored: false,
+    patience: opts.patience ?? PATIENCE_MAX,
+    hurtT: 0,
+    invuln: 0,
   };
 }
 
