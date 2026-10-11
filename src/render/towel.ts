@@ -36,16 +36,29 @@ export function towelAtFace(solved: Solved): boolean {
   return w.y < n.y && (w.x - n.x) * solved.facing > 0;
 }
 
-/** How far along the hand, from the wrist, the towel is held: in the palm, not at the fingertips. */
-const GRIP = 0.3;
+/**
+ * How far his left hand has turned palm-in, toward his face: 1 as painted (the palm out), -1
+ * turned over. It turns as the hand comes to point up at his face, from 17 to 72 degrees
+ * above level, so the wrist rolls over the last of the swing up and back on the flick.
+ */
+export function palmTurn(solved: Solved): number {
+  const w = solved.joints.wristFar;
+  const h = solved.joints.handFar;
+  const up = (w.y - h.y) / (Math.hypot(h.x - w.x, h.y - w.y) || 1);
+  const t = Math.min(1, Math.max(0, (up - 0.3) / 0.65));
+  return 1 - 2 * t * t * (3 - 2 * t);
+}
 
-/** This frame's towel in the facing-right frame (x times facing), hung from the palm of his left hand. */
+/** How far along the hand, from the wrist, the towel is held: gathered in the heel of the palm. */
+const GRIP = 0.35;
+
+/** This frame's towel in the facing-right frame (x times facing), hung from the heel of his left palm. */
 export function hangTowel(solved: Solved, prev: Point[], fit: TowelFit = TOWEL): Point[] {
   const f = solved.facing;
   const w = solved.joints.wristFar;
   const k = solved.joints.handFar;
-  const palm = { x: (w.x + (k.x - w.x) * GRIP) * f, y: w.y + (k.y - w.y) * GRIP };
-  return towelChain(palm, prev, fit.n, fit.len);
+  const held = { x: (w.x + (k.x - w.x) * GRIP) * f, y: w.y + (k.y - w.y) * GRIP };
+  return towelChain(held, prev, fit.n, fit.len);
 }
 
 /** Texture px per world px: the rope is drawn from a sharper texture shrunk back down. */

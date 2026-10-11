@@ -2,12 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { shouldStepDown, WORK_BUDGET_MS } from "../src/render/quality.ts";
-import { skinLayer, bodyScale, layerFile } from "../src/render/skin.ts";
+import { skinLayer, bodyScale, layerFile, turnAbout } from "../src/render/skin.ts";
 import { CLIPS } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
 import { REST_POSE } from "../src/sim/rig/skeleton.ts";
 import { placeWord, wordBox } from "../src/render/words.ts";
-import { hangTowel, towelAtFace, towelChain } from "../src/render/towel.ts";
+import { hangTowel, palmTurn, towelAtFace, towelChain } from "../src/render/towel.ts";
 import { ACTIONS } from "../src/sim/rig/actions.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
@@ -150,5 +150,35 @@ test("the towel hand goes over his head only up at his face, and switches where 
       was = now;
     }
     assert.ok(over > 150, `facing ${facing}: the hand is over his face through the wipe (${over} of 401 frames)`);
+  }
+});
+
+test("turning a hand about its length mirrors it across, keeps it along, and flattens it halfway", () => {
+  // A wrist at (10, 10), the hand pointing straight up; one vertex 4 to the right of the line, one on it.
+  const src = new Float32Array([14, 0, 10, -5]);
+  const out = new Float32Array(4);
+  const at = (k) => {
+    turnAbout(out, src, [0, 1], { x: 10, y: 10 }, { x: 10, y: -10 }, k);
+    return [...out].map((v) => +v.toFixed(6));
+  };
+  assert.deepEqual(at(1), [14, 0, 10, -5], "untouched at 1");
+  assert.deepEqual(at(-1), [6, 0, 10, -5], "mirrored across the line at -1");
+  assert.deepEqual(at(0), [10, 0, 10, -5], "on the line at 0");
+});
+
+test("his left hand turns palm-in as it comes up to his face, smoothly, and back as it leaves", () => {
+  for (const facing of [-1, 1]) {
+    let prev = null,
+      worst = 0;
+    for (let k = 0; k <= 400; k++) {
+      const u = k / 400;
+      const turn = palmTurn(solve(ACTIONS.wipe(u), facing, 0.26));
+      assert.ok(turn >= -1 && turn <= 1);
+      if (u > 0.16 && u < 0.62) assert.equal(turn, -1, `facing ${facing}, u ${u.toFixed(3)}: palm toward his face while wiping`);
+      if (prev !== null) worst = Math.max(worst, Math.abs(turn - prev));
+      prev = turn;
+    }
+    for (const u of [0, 1]) assert.equal(palmTurn(solve(ACTIONS.wipe(u), facing, 0.26)), 1, `facing ${facing}: as painted at the hang`);
+    assert.ok(worst < 0.5, `facing ${facing}: the hand turns over several frames, at most ${worst.toFixed(2)} a frame`);
   }
 });

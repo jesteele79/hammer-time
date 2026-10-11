@@ -43,6 +43,34 @@ export function layerFile(name: LayerName, layer: RigLayer, facing: 1 | -1): str
   return layer.file;
 }
 
+/**
+ * Turns part of a skinned layer about a line, the way a wrist turns a hand over: each listed
+ * vertex keeps how far along the line from `a` toward `b` it is and has how far across it is
+ * scaled by `k` (1 as painted, 0 edge-on, -1 turned over). Every vertex is copied from `src`
+ * to `out` first.
+ */
+export function turnAbout(
+  out: Float32Array,
+  src: ArrayLike<number>,
+  verts: ArrayLike<number>,
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  k: number,
+): void {
+  for (let i = 0; i < src.length; i++) out[i] = src[i];
+  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const ux = (b.x - a.x) / len,
+    uy = (b.y - a.y) / len;
+  for (let n = 0; n < verts.length; n++) {
+    const v = verts[n];
+    const dx = src[v * 2] - a.x,
+      dy = src[v * 2 + 1] - a.y;
+    const along = dx * ux + dy * uy;
+    out[v * 2] = a.x + along * ux + k * (dx - along * ux);
+    out[v * 2 + 1] = a.y + along * uy + k * (dy - along * uy);
+  }
+}
+
 /** World px per crop pixel for this solve. */
 export const bodyScale = (solved: Solved, rig: RigFile) => solved.scale * (NECK_REST_Y / rig.span);
 

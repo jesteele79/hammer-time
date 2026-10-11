@@ -11,8 +11,8 @@ import {
 import { HERO_W } from "../sim/constants";
 import type { Placement, Solved } from "../sim/rig/fk";
 import { multiplyTint } from "./lighting";
-import { LAYER_Z, layerFile, skinLayer, type LayerName, type RigFile, type RigLayer } from "./skin";
-import { TOWEL, Towel, towelAtFace, towelTexture } from "./towel";
+import { LAYER_Z, layerFile, skinLayer, turnAbout, type LayerName, type RigFile, type RigLayer } from "./skin";
+import { TOWEL, Towel, palmTurn, towelAtFace, towelTexture } from "./towel";
 
 export type Character = {
   container: Container;
@@ -36,26 +36,40 @@ const FAR_LAYERS = new Set<LayerName>(["armFar", "legFar"]);
 const MIPMAPS = { autoGenerateMipmaps: true };
 /** In front of the far arm that holds it, behind the legs, the torso, the near arm, the mallet and the head. */
 const TOWEL_Z = 0.5;
-/** Wiping his face: the towel over the head plate, and the far hand over the towel. */
-const TOWEL_OVER_Z = 7.4;
-const HAND_OVER_Z = 7.5;
+/** Wiping his face: the hand over the head plate, and the towel gathered in it over its wrist. */
+const HAND_OVER_Z = 7.4;
+const TOWEL_OVER_Z = 7.5;
 /** One turned towel texture per plate, shared by every character (the boards draw dozens). */
 const towelTextures = new Map<string, Texture>();
 
-/** The far arm's triangles that move mostly with the hand bone: the hand drawn over his head. */
-function handTriangles(layer: RigLayer, rig: RigFile): Uint32Array {
+/** How much a triangle must move with the hand bone to belong to the hand piece. */
+const HAND_FROM = 0.1;
+
+/**
+ * The far arm's triangles split at the wrist: those that move mostly with the hand bone are the
+ * hand, drawn as its own piece so it can turn over and go over his head; the rest are the arm.
+ */
+function splitHand(layer: RigLayer, rig: RigFile): { arm: Uint32Array; hand: Uint32Array; verts: Uint32Array } {
   const bone = rig.bones.findIndex(([p, c]) => p === "wristFar" && c === "handFar");
-  if (bone < 0 || !layer.indices) return new Uint32Array(0);
+  const idx = layer.indices ?? [];
+  if (bone < 0) return { arm: new Uint32Array(idx), hand: new Uint32Array(0), verts: new Uint32Array(0) };
   const weightOf = (v: number) => {
     let w = 0;
     for (let k = 0; k < 4; k++) if (layer.bones[v * 4 + k] === bone) w += layer.weights[v * 4 + k];
     return w;
   };
-  const out: number[] = [];
-  const idx = layer.indices;
-  for (let t = 0; t < idx.length; t += 3)
-    if ((weightOf(idx[t]) + weightOf(idx[t + 1]) + weightOf(idx[t + 2])) / 3 > 0.5) out.push(idx[t], idx[t + 1], idx[t + 2]);
-  return new Uint32Array(out);
+  const arm: number[] = [];
+  const hand: number[] = [];
+  const verts = new Set<number>();
+  for (let t = 0; t < idx.length; t += 3) {
+    const tri = [idx[t], idx[t + 1], idx[t + 2]];
+    // The hand reaches a little down the wrist, so where it meets the arm is under the towel.
+    if ((weightOf(tri[0]) + weightOf(tri[1]) + weightOf(tri[2])) / 3 > HAND_FROM) {
+      hand.push(...tri);
+      tri.forEach((v) => verts.add(v));
+    } else arm.push(...tri);
+  }
+  return { arm: new Uint32Array(arm), hand: new Uint32Array(hand), verts: new Uint32Array([...verts]) };
 }
 
 let warned = false;
@@ -71,8 +85,8 @@ type Skinned = {
   mesh: Mesh;
   geometry: MeshGeometry;
   positions: Float32Array;
-  /** The far hand alone, drawn over the head while it rubs it; it shares the layer's skinned positions. */
-  hand?: { mesh: Mesh; geometry: MeshGeometry };
+  /** The far hand as its own piece: turned palm-in and drawn over his head while it wipes his face. */
+  hand?: { mesh: Mesh; geometry: MeshGeometry; positions: Float32Array; verts: Uint32Array; z: number };
 };
 
 /**
@@ -149,23 +163,23 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
         uvs[v * 2 + 1] = (layer.positions[v * 2 + 1] - layer.y!) / layer.height!;
       }
       const positions = new Float32Array(n * 2);
-      const geometry = new MeshGeometry({ positions, uvs, indices: new Uint32Array(layer.indices) });
+      const split = name === "armFar" ? splitHand(layer, rig!) : null;
+      const indices = split?.hand.length ? split.arm : new Uint32Array(layer.indices);
+      const geometry = new MeshGeometry({ positions, uvs, indices });
       const texture = textures.get(layerFile(name, layer, -1) ?? "") ?? Texture.EMPTY;
       const mesh = new Mesh({ geometry, texture });
       mesh.zIndex = z;
       mesh.visible = false;
       container.addChild(mesh);
       const entry: Skinned = { name, layer, mesh, geometry, positions };
-      if (name === "armFar") {
-        const handIndices = handTriangles(layer, rig!);
-        if (handIndices.length) {
-          const handGeometry = new MeshGeometry({ positions, uvs, indices: handIndices });
-          const handMesh = new Mesh({ geometry: handGeometry, texture });
-          handMesh.zIndex = HAND_OVER_Z;
-          handMesh.visible = false;
-          container.addChild(handMesh);
-          entry.hand = { mesh: handMesh, geometry: handGeometry };
-        }
+      if (split?.hand.length) {
+        const handPositions = new Float32Array(n * 2);
+        const handGeometry = new MeshGeometry({ positions: handPositions, uvs, indices: split.hand });
+        const handMesh = new Mesh({ geometry: handGeometry, texture });
+        handMesh.zIndex = z;
+        handMesh.visible = false;
+        container.addChild(handMesh);
+        entry.hand = { mesh: handMesh, geometry: handGeometry, positions: handPositions, verts: split.verts, z };
       }
       skinned.push(entry);
     });
@@ -204,11 +218,13 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
           s.mesh.tint = FAR_LAYERS.has(s.name) ? multiplyTint(ambient, FAR_SHADE) : ambient;
           s.mesh.visible = true;
           if (s.hand) {
-            s.hand.mesh.visible = over;
-            if (over) {
-              s.hand.geometry.getBuffer("aPosition").update();
-              s.hand.mesh.tint = s.mesh.tint;
-            }
+            // Wiping his face the palm turns in toward it, and the hand goes over his head.
+            const turn = holdTowel ? palmTurn(solved) : 1;
+            turnAbout(s.hand.positions, s.positions, s.hand.verts, solved.joints.wristFar, solved.joints.handFar, turn);
+            s.hand.geometry.getBuffer("aPosition").update();
+            s.hand.mesh.zIndex = over ? HAND_OVER_Z : s.hand.z;
+            s.hand.mesh.tint = s.mesh.tint;
+            s.hand.mesh.visible = true;
           }
         }
       }
