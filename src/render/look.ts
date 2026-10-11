@@ -8,14 +8,15 @@ import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
 import { KEY_BINDINGS, emptyInput, inputFromKeys, type Action } from "../sim/input";
-import { CHARGE_MAX, moveU, type Move, type MoveKind } from "../sim/moves";
+import { CHARGE_MAX, moveU, type Move } from "../sim/moves";
 import { floorAt } from "../sim/physics";
-import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
+import { ACTIONS, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
 import { plantFeet, type FloorProbe } from "../sim/rig/feet";
 import { solve, type Solved } from "../sim/rig/fk";
 import { groundForAction, type Ground } from "../sim/rig/ground";
 import { addBody, addLean, createLayers, stepLayers } from "../sim/rig/layers";
+import { createPlayback, playAction } from "../sim/rig/playback";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
 import { createCart } from "../sim/targets";
@@ -68,9 +69,6 @@ const LOBBY_LIGHTS: Light[] = [800, 3400, 6000, 8600, 11200].map((x) => ({
 const STRIDE = 280;
 const BLEND_T = 0.1;
 const DUST_EVERY = 0.12;
-/** A move's clip blends in over this and back out over the next (spec §6.3). */
-const ACTION_IN = 0.06;
-const ACTION_OUT = 0.12;
 const SMUG_T = 0.6;
 /** How far ahead of the towel hand the sweat spray starts. */
 const SPRAY_AHEAD = 24;
@@ -178,10 +176,7 @@ export async function startLook(
   let lastState = cur.hero.state;
   let dustT = 0;
   let time = 0;
-  let action: Pose | null = null;
-  let actionKind: MoveKind | null = null;
-  let actionW = 0;
-  let moveT = -1;
+  const playback = createPlayback();
   let smugT = 0;
   let refillT = 0;
   let steamT = 0;
@@ -218,30 +213,8 @@ export async function startLook(
     return pose;
   };
 
-  /** The move's clip over the locomotion: in over 0.06 s, its last frame held while it blends out over 0.12 s. */
-  const play = (move: Move | null, dt: number) => {
-    // Under reduced motion the foot doesn't tap (the shipped rule).
-    const m = move?.kind === "tap" && reduced ? null : move;
-    if (m) {
-      if (m.kind !== actionKind || m.t < moveT || moveT < 0) {
-        actionKind = m.kind;
-        actionW = 0;
-      }
-      moveT = m.t;
-      actionW = Math.min(1, actionW + dt / ACTION_IN);
-      action = ACTIONS[m.kind](displayU(m.kind, moveU(m)));
-    } else {
-      moveT = -1;
-      actionW = Math.max(0, actionW - dt / ACTION_OUT);
-      if (actionW === 0) {
-        action = null;
-        actionKind = null;
-      }
-    }
-  };
-
   const groundMode = (h: HeroState): Ground =>
-    groundForAction(actionKind, clip, h.onGround, h.move?.kind === actionKind && h.move ? moveU(h.move) : 1);
+    groundForAction(playback.kind, clip, h.onGround, h.move?.kind === playback.kind && h.move ? moveU(h.move) : 1);
 
   const supportY = (x: number, y: number) => {
     let best = floorAt(LOBBY_STAGE, x, y - 1) ?? y;
@@ -346,14 +319,14 @@ export async function startLook(
   /** The swing's smear: a few samples of the mallet head's path just behind it, never near his face. */
   const drawSmear = (m: Move | null, base: Pose, x: number, y: number, facing: 1 | -1, face: Rect) => {
     smear.clear();
-    if (m?.kind !== "swing" || actionKind !== "swing") return;
+    if (m?.kind !== "swing" || playback.kind !== "swing") return;
     const u = displayU("swing", moveU(m));
     if (u < SMEAR.from || u > SMEAR.to) return;
     const near: Rect = { x: face.x - SMEAR.clear, y: face.y - SMEAR.clear, w: face.w + 2 * SMEAR.clear, h: face.h + 2 * SMEAR.clear };
     const pts: Point[] = [];
     for (let k = SMEAR.points - 1; k >= 0; k--) {
       const uk = Math.max(SMEAR.from, u - (SMEAR.trail * k) / (SMEAR.points - 1));
-      const j = solve(overlay(base, ACTIONS.swing(uk), "upper", actionW), facing, HEAD_SCALE, headPlate).joints.malletHead;
+      const j = solve(overlay(base, ACTIONS.swing(uk), "upper", playback.w), facing, HEAD_SCALE, headPlate).joints.malletHead;
       pts.push({ x: x + j.x, y: y + j.y });
     }
     for (let i = 1; i < pts.length; i++) {
@@ -390,8 +363,8 @@ export async function startLook(
 
     const base = addLean(animate(h, simDt), layers);
     const m = h.move;
-    play(m, simDt);
-    const acted = action && actionKind ? overlay(base, action, ACTION_MASK[actionKind], actionW) : base;
+    // The move over the locomotion clip; under reduced motion the foot doesn't tap (the shipped rule).
+    const acted = playAction(playback, base, m?.kind === "tap" && reduced ? null : m, simDt);
     // The feet stand on the floor under each of them, slopes included.
     const planted = plantFeet(addBody(acted, layers), h.facing, HEAD_SCALE, headPlate, groundMode(h), floorProbe(x, y));
     // Solved facing left, the plates' own facing; the character mirrors itself for the right.
@@ -410,7 +383,7 @@ export async function startLook(
               : "neutral";
     const drawY = y + planted.dy;
     const towel = m?.kind === "wipe" && moveU(m) > TOWEL_OUT[0] && moveU(m) < TOWEL_OUT[1];
-    const watchUp = m?.kind === "watch" && actionKind === "watch" && moveU(m) > WATCH_SHOWN[0] && moveU(m) < WATCH_SHOWN[1];
+    const watchUp = m?.kind === "watch" && playback.kind === "watch" && moveU(m) > WATCH_SHOWN[0] && moveU(m) < WATCH_SHOWN[1];
     character.container.position.set(x, drawY);
     character.container.zIndex = y;
     character.apply(solved, expression, floorY - drawY, scene.ambient, towel, watchUp);

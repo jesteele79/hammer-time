@@ -109,7 +109,8 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   }
 
   // The cut comes before the jump starts, so a tap always gets its first full step of rise.
-  if (!held.jump && h.state === "jump" && h.vy < -JUMP_CUT) h.vy = -JUMP_CUT;
+  // Only his own jump: a knockdown's throw is not his to cut short.
+  if (!held.jump && !locked && h.state === "jump" && h.vy < -JUMP_CUT) h.vy = -JUMP_CUT;
   const canJump = h.onGround || (h.coyote > 0 && h.state !== "jump");
   if (h.buffer > 0 && canJump && (!h.crouch || canStand(h, stage, HERO_H))) {
     h.crouch = false;

@@ -287,8 +287,8 @@ running move is never restarted.
   the way in it lands on everyone in a reach in front of him (R2's staff and
   students), and it cools him 15. One lecture per 1.4 s.
 - **Standing still:** at 2.5 s he lets the mallet hang and checks the gold
-  watch on his left wrist, from 5 s his near foot taps, and at 8 s he
-  harrumphs ("Any day now."), then round again. He looks bored from the watch
+  watch on his left wrist, from 5 s his near foot taps, and at 7.5 s he
+  harrumphs ("Any day now."), then round again from 8 s. He looks bored from the watch
   check on. Any key or move ends it on the spot.
 - **Getting hit:** three patience pips. A hit costs one, turns him to face it,
   throws him 540 back and 500 up, shows the hurt face for 0.6 s, plays the

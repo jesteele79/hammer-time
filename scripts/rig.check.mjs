@@ -576,3 +576,37 @@ test("touching down never snaps him: each act grounds the same way in the air as
     }
   }
 });
+
+import { createPlayback, playAction } from "../src/sim/rig/playback.ts";
+
+test("a hit mid-move takes over from where his limbs were: nothing pops, and the hit-stop freezes the blend", () => {
+  for (const [kind, at] of [
+    ["wipe", 0.4],
+    ["watch", 0.5],
+    ["lecture", 0.5],
+  ]) {
+    const p = createPlayback();
+    const base = CLIPS.idle(0, ctx);
+    const move = { kind, t: 0, fired: false, burst: false, lastU: -1, stroke: -1, victims: [], held: 0 };
+    let drawn = null;
+    for (let t = 0; t <= at * MOVE_SECONDS[kind]; t += 1 / 60) {
+      move.t = t;
+      drawn = playAction(p, base, move, 1 / 60);
+    }
+    const before = solve(drawn, 1, 0.26).joints;
+    const hurt = { kind: "hurt", t: 0, fired: false, burst: false, lastU: -1, stroke: -1, victims: [], held: 0 };
+    const frozen = playAction(p, base, hurt, 0);
+    const still = solve(frozen, 1, 0.26).joints;
+    for (const part of ["handFar", "malletHead"])
+      assert.ok(Math.hypot(still[part].x - before[part].x, still[part].y - before[part].y) < 1e-6, `${kind}: the frozen frame keeps the ${part} where it was`);
+    hurt.t = 1 / 60;
+    const next = solve(playAction(p, base, hurt, 1 / 60), 1, 0.26).joints;
+    // Where the hurt alone would put him: the blend in covers a 60th of a second of its 0.06 s, not all of it.
+    const goal = solve(overlay(base, ACTIONS.hurt(1 / 60 / MOVE_SECONDS.hurt), "whole", 1), 1, 0.26).joints;
+    for (const part of ["handFar", "malletHead"]) {
+      const d = Math.hypot(next[part].x - before[part].x, next[part].y - before[part].y);
+      const all = Math.hypot(goal[part].x - before[part].x, goal[part].y - before[part].y);
+      assert.ok(d <= 0.35 * all + 1, `${kind}: the ${part} moves ${d.toFixed(0)} of ${all.toFixed(0)} px in the first frame of the hurt`);
+    }
+  }
+});

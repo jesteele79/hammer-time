@@ -74,11 +74,11 @@ test("one lecture per 1.4 s, never in the air or crouched, and snot outranks it 
   assert.equal(b.hero.charge, CHARGE_MAX, "the smash did not also start");
 });
 
-import { IDLE } from "../src/sim/moves.ts";
+import { IDLE, TAP_HARRUMPH } from "../src/sim/moves.ts";
 
 const at = (evs, type) => evs.filter((e) => e.type === type);
 
-test("standing still he checks his watch at 2.5 s, taps his foot from 5 s, harrumphs at 8 s, and goes round again", () => {
+test("standing still he checks his watch at 2.5 s, taps his foot from 5 s, harrumphs as the tap ends, and goes round again", () => {
   const w = createWorld(flat(), { x: 100, y: 0 });
   settle(w);
   const seen = [];
@@ -88,7 +88,8 @@ test("standing still he checks his watch at 2.5 s, taps his foot from 5 s, harru
   }
   assert.deepEqual(seen.map(([k]) => k), ["watch", "tap", "harrumph", "watch", "tap", "harrumph"]);
   for (const [k, t] of seen.slice(0, 3)) {
-    const want = { watch: IDLE.watchAt, tap: IDLE.tapAt, harrumph: IDLE.harrumphAt }[k];
+    // The harrumph sounds as his chest and chin come up, not after he has settled.
+    const want = { watch: IDLE.watchAt, tap: IDLE.tapAt, harrumph: IDLE.tapAt + TAP_HARRUMPH }[k];
     assert.ok(Math.abs(t - want) < 0.06, `${k} at ${t}`);
   }
 });
@@ -230,4 +231,19 @@ test("a hit mid-move ends that move: no burst after a hit in the smash, no strok
   assert.equal(i.hero.move?.kind, "watch");
   hitFrom(i, 150);
   assert.equal(i.hero.move?.kind, "hurt", "the watch check gives way to the hit");
+});
+
+test("the knockdown throws him its full height whether or not jump is held", () => {
+  for (const held of [{}, { jump: true }]) {
+    const w = createWorld(flat(), { x: 500, y: 0 }, { patience: 1 });
+    settle(w);
+    hitFrom(w, 150);
+    let apex = 0;
+    while (!w.hero.onGround) {
+      w.step(input(held));
+      apex = Math.min(apex, w.hero.y);
+    }
+    // 900 px/s up against 3300 px/s² rising: about 123 px.
+    assert.ok(-apex > 110, `thrown ${(-apex).toFixed(0)} px high (jump held: ${!!held.jump})`);
+  }
 });

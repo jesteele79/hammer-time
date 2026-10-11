@@ -56,7 +56,7 @@ export const LECTURE = { cooldown: 1.4, deliver: 0.2, cool: 15, ahead: 762, behi
 /** Moves that hold him still: no steering and no jump until they end. */
 export const LOCKING: ReadonlySet<MoveKind> = new Set<MoveKind>(["wipe", "lecture", "hurt", "tumble"]);
 
-/** The shipped idle beats: the watch check at 2.5 s, the foot tap from 5 s, the harrumph at 8 s, then round again. */
+/** The shipped idle beats: the watch check at 2.5 s, the foot tap from 5 s, round again at 8 s; the harrumph sounds as the tap ends in it. */
 export const IDLE = { watchAt: 2.5, tapAt: 5, harrumphAt: 8 } as const;
 const IDLE_ACTS: ReadonlySet<MoveKind> = new Set<MoveKind>(["watch", "tap"]);
 export const isIdleAct = (m: Move | null): boolean => m !== null && IDLE_ACTS.has(m.kind);
@@ -180,10 +180,8 @@ export function stepIdle(h: HeroState, input: Input, dt: number, events: GameEve
     h.move = newMove("tap");
     events.push({ type: "tap" });
   }
-  if (h.idleT >= IDLE.harrumphAt) {
-    h.idleT = 0;
-    events.push({ type: "harrumph" });
-  }
+  if (crossed(IDLE.tapAt + TAP_HARRUMPH)) events.push({ type: "harrumph" });
+  if (h.idleT >= IDLE.harrumphAt) h.idleT = 0;
 }
 
 /** Heat, the sinus and the cooldowns, every step. */
