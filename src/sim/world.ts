@@ -1,15 +1,18 @@
 import { STEP } from "./constants";
 import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
+import { superBurst, swingContact } from "./hits";
 import type { Input } from "./input";
 import { advanceMove, startMove, steerMove, stepHeat } from "./moves";
-import type { HeroState, Point, Snapshot, Stage } from "./types";
+import { stepTargets } from "./targets";
+import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
 
-export type WorldOptions = HeroOptions;
+export type WorldOptions = HeroOptions & { targets?: Target[] };
 
 export type World = {
   stage: Stage;
   hero: HeroState;
+  targets: Target[];
   time: number;
   /** What happened in the last step. */
   events: GameEvent[];
@@ -22,6 +25,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
   const world: World = {
     stage,
     hero: createHero(spawn, opts),
+    targets: opts.targets ?? [],
     time: 0,
     events: [],
     step(input) {
@@ -31,13 +35,20 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       steerMove(h);
       stepHero(h, world.stage, input, STEP, events);
       advanceMove(h, STEP, events);
+      swingContact(h, world.targets, events);
+      superBurst(h, world.targets, events);
+      stepTargets(world.targets, world.stage, STEP);
       stepHeat(h, input, STEP, events);
       world.events = events;
       world.time += STEP;
     },
     snapshot() {
       const h = world.hero;
-      return { time: world.time, hero: { ...h, move: h.move && { ...h.move, victims: [...h.move.victims] } } };
+      return {
+        time: world.time,
+        hero: { ...h, move: h.move && { ...h.move, victims: [...h.move.victims] } },
+        targets: world.targets.map((t) => ({ ...t })),
+      };
     },
   };
   return world;

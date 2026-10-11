@@ -55,4 +55,19 @@ export type HeroState = {
   boiled: boolean;
 };
 
-export type Snapshot = { time: number; hero: HeroState };
+/** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */
+export type Target = {
+  id: number;
+  kind: "cart";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  vx: number;
+  vy: number;
+  onGround: boolean;
+  flash: number;
+  spin: number;
+};
+
+export type Snapshot = { time: number; hero: HeroState; targets: Target[] };

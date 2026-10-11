@@ -182,7 +182,7 @@ test("snot spends a sinus charge, waits half a second, and the sinus refills", (
   assert.equal(w.hero.move?.kind, "snot", "refilled at one charge per 1.5 s");
 });
 
-test("the super spends a full charge, hops, plunges after the load and bursts on landing", { todo: "Task 4 adds the burst" }, () => {
+test("the super spends a full charge, hops, plunges after the load and bursts on landing", () => {
   const empty = createWorld(flat(), { x: 100, y: 0 }, { charge: CHARGE_MAX - 1 });
   settle(empty);
   press(empty, "super");
@@ -202,5 +202,68 @@ test("the super spends a full charge, hops, plunges after the load and bursts on
   }
   assert.ok(plunged, "plunges after the load");
   assert.ok(burstAt >= 0 && w.hero.onGround, "bursts on landing");
+});
+
+
+
+import { createCart } from "../src/sim/targets.ts";
+import { malletAt, sweptHeadHits, BURST_R } from "../src/sim/hits.ts";
+
+test("a swing at a cart in front hits it once, knocks it away and stops the world", () => {
+  for (const facing of [1, -1]) {
+    const cart = createCart(1, 100 + facing * 230);
+    const w = createWorld(flat(), { x: 100, y: 0 }, { targets: [cart] });
+    w.hero.facing = facing;
+    settle(w);
+    press(w, "hammer");
+    const evs = steps(w, MOVE_SECONDS.swing);
+    const hits = evs.filter((e) => e.type === "hit" && e.by === "mallet");
+    assert.equal(hits.length, 1, `one hit (facing ${facing})`);
+    assert.ok(cart.vx * facing > 500 || (cart.x - (100 + facing * 230)) * facing > 40, `knocked away: vx ${cart.vx}`);
+    assert.ok(cart.flash > 0 || evs.some((e) => e.type === "hit"), "flashes");
+  }
+});
+
+test("a swing never hits a cart behind him", () => {
+  const cart = createCart(1, 100 - 260);
+  const w = createWorld(flat(), { x: 100, y: 0 }, { targets: [cart] });
+  settle(w);
+  press(w, "hammer");
+  const evs = steps(w, MOVE_SECONDS.swing);
+  assert.equal(evs.filter((e) => e.type === "hit").length, 0);
+});
+
+test("the swept head catches a target the strike jumps past between two samples", () => {
+  assert.ok(sweptHeadHits({ x: -100, y: 0 }, { x: 100, y: 0 }, 10, { x: -5, y: -5, w: 10, h: 10 }));
+  assert.ok(!sweptHeadHits({ x: -100, y: 40 }, { x: 100, y: 40 }, 10, { x: -5, y: -5, w: 10, h: 10 }));
+  const a = malletAt({ x: 0, y: 0, facing: 1, move: { kind: "swing", t: 0.34 * MOVE_SECONDS.swing } }, 0.34);
+  const b = malletAt({ x: 0, y: 0, facing: 1, move: { kind: "swing", t: 0.36 * MOVE_SECONDS.swing } }, 0.36);
+  assert.ok(Math.hypot(b.x - a.x, b.y - a.y) > 50, "the strike moves the head far within one step");
+});
+
+test("the super's burst knocks every cart within its radius and none beyond", () => {
+  const nearCart = createCart(1, 100 + BURST_R * 0.6);
+  const farCart = createCart(2, 100 + BURST_R * 2);
+  const w = createWorld(flat(), { x: 100, y: 0 }, { charge: 10, targets: [nearCart, farCart] });
+  settle(w);
+  press(w, "super");
+  const evs = steps(w, MOVE_SECONDS.super);
+  assert.equal(evs.filter((e) => e.type === "burst").length, 1);
+  // By the end of the move the near cart has flown and landed: judge it by the hits and how far it went.
+  assert.deepEqual(evs.filter((e) => e.type === "hit" && e.by === "burst").map((e) => e.target), [1], "only the near cart is hit");
+  assert.ok(nearCart.x > 100 + BURST_R * 0.6 + 150, `the near cart flew: ${nearCart.x}`);
+  assert.equal(farCart.x, 100 + BURST_R * 2, "the far cart stays");
+});
+
+test("a knocked cart rolls to a stop on the floor", () => {
+  const cart = createCart(1, 0);
+  const w = createWorld(flat(), { x: -2000, y: 0 }, { targets: [cart] });
+  cart.vx = 1100;
+  cart.vy = -600;
+  cart.onGround = false;
+  steps(w, 4);
+  assert.equal(cart.vx, 0);
+  assert.ok(cart.onGround && cart.y === 0);
+  assert.ok(cart.x > 300, `rolled ${cart.x}`);
 });
 
