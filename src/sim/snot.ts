@@ -8,7 +8,8 @@ import { solve } from "./rig/fk";
 import { knock } from "./targets";
 import type { HeroState, Stage, Target } from "./types";
 
-export type Snot = { x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
+/** `id` is unique in the world, so the renderer can match a blob across two steps. */
+export type Snot = { id: number; x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
 export type Puddle = { x: number; y: number; w: number; life: number; max: number };
 
 /** The shipped embers (280/330 px/s, −40/−30 up, 1.15 s, puddles 15/22 wide for 7/9 s) at the new scale. */
@@ -31,7 +32,7 @@ export const SNOT = {
 } as const;
 
 /** At the snap, once: a blob just ahead of the nose. */
-export function fireSnot(h: HeroState, snot: Snot[], events: GameEvent[]): void {
+export function fireSnot(h: HeroState, w: { snot: Snot[]; nextSnot: number }, events: GameEvent[]): void {
   const m = h.move;
   if (m?.kind !== "snot" || m.fired || moveU(m) < SNOT_FIRE_U) return;
   m.fired = true;
@@ -39,7 +40,8 @@ export function fireSnot(h: HeroState, snot: Snot[], events: GameEvent[]): void 
   const r = h.hot ? SNOT.hotR : SNOT.r;
   const x = h.x + s.nose.x + h.facing * (SNOT.ahead + r);
   const y = h.y + s.nose.y;
-  snot.push({
+  w.snot.push({
+    id: ++w.nextSnot,
     x,
     y,
     vx: h.facing * (h.hot ? SNOT.hotSpeed : SNOT.speed),

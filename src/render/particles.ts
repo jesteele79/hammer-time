@@ -25,9 +25,10 @@ export const RECIPES = {
     colors: ["#cdbfa7", "#8f8370"],
     additive: false,
   },
+  // Up and back, for a man facing right: away from his face.
   sweat: {
     speed: [160, 320],
-    angle: [220, 320],
+    angle: [200, 250],
     gravity: 1400,
     drag: 0.4,
     life: [0.4, 0.7],
@@ -66,6 +67,24 @@ const mix = (a: number, b: number, t: number) => {
   return (Math.round(ch(16)) << 16) | (Math.round(ch(8)) << 8) | Math.round(ch(0));
 };
 
+/** A particle's launch: speed and direction drawn from the recipe; `mirror` throws it the other way. */
+export function launch(recipe: Recipe, a: number, b: number, mirror: boolean): { vx: number; vy: number } {
+  const speed = recipe.speed[0] + (recipe.speed[1] - recipe.speed[0]) * a;
+  const deg = recipe.angle[0] + (recipe.angle[1] - recipe.angle[0]) * b;
+  const r = ((mirror ? 180 - deg : deg) * Math.PI) / 180;
+  return { vx: Math.cos(r) * speed, vy: Math.sin(r) * speed };
+}
+
+/** One step of a particle's flight: gravity, drag, motion. */
+export function drift(p: { x: number; y: number; vx: number; vy: number }, recipe: Recipe, dt: number): void {
+  p.vy += recipe.gravity * dt;
+  const k = Math.max(0, 1 - recipe.drag * dt);
+  p.vx *= k;
+  p.vy *= k;
+  p.x += p.vx * dt;
+  p.y += p.vy * dt;
+}
+
 /**
  * A pooled system drawn as one Graphics per blend mode, rebuilt each frame.
  * Under reduced motion the glow recipes draw plain: no additive glow (spec §5.6).
@@ -95,14 +114,11 @@ export class Particles {
     const recipe: Recipe = RECIPES[name];
     for (let i = 0; i < n; i++) {
       if (this.pool.length >= this.cap) this.pool.shift();
-      const speed = recipe.speed[0] + (recipe.speed[1] - recipe.speed[0]) * this.rand();
-      const deg = recipe.angle[0] + (recipe.angle[1] - recipe.angle[0]) * this.rand();
-      const a = ((mirror ? 180 - deg : deg) * Math.PI) / 180;
+      const v = launch(recipe, this.rand(), this.rand(), mirror);
       this.pool.push({
         x,
         y,
-        vx: Math.cos(a) * speed,
-        vy: Math.sin(a) * speed,
+        ...v,
         age: 0,
         life: recipe.life[0] + (recipe.life[1] - recipe.life[0]) * this.rand(),
         recipe,
@@ -124,12 +140,7 @@ export class Particles {
         this.pool.splice(i, 1);
         continue;
       }
-      p.vy += p.recipe.gravity * dt;
-      const k = Math.max(0, 1 - p.recipe.drag * dt);
-      p.vx *= k;
-      p.vy *= k;
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
+      drift(p, p.recipe, dt);
       if (keepOut && touches(p.x, p.y, radius(p), keepOut)) this.pool.splice(i, 1);
     }
     this.plain.clear();

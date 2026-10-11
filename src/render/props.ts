@@ -1,6 +1,7 @@
 import { Container, Graphics } from "pixi.js";
 import type { Puddle, Snot } from "../sim/snot";
 import type { Snapshot, Target } from "../sim/types";
+import { between } from "./interp";
 import { PALETTE, tones } from "./palette";
 import type { Particles } from "./particles";
 
@@ -119,7 +120,9 @@ export class Props {
     layer.addChild(this.container);
   }
 
-  sync(s: Snapshot, dt: number): void {
+  /** Draws the props `alpha` of the way from the last step to this one, as Hammer is drawn. */
+  sync(prev: Snapshot, cur: Snapshot, alpha: number, dt: number): void {
+    const s = between(prev, cur, alpha);
     for (const t of s.targets) this.cart(t, dt);
     this.trailT += dt;
     const trail = this.trailT >= TRAIL_EVERY;

@@ -347,7 +347,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     character.apply(solved, expression, floorY - drawY, scene.ambient, towel);
     // The carts, the snot and the puddles sort just behind him: none of them ever covers his face.
     props.container.zIndex = y - 0.5;
-    props.sync(cur, simDt);
+    props.sync(prev, cur, alpha, simDt);
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -382,7 +382,8 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     if (sweatT >= SWEAT_EVERY) {
       sweatT = 0;
       const back = h.facing === 1 ? face.x - 8 : face.x + face.w + 8;
-      particles.emit("sweat", back, face.y + face.h * 0.25, 1);
+      // Thrown up and back, away from his face; mirrored when he faces left.
+      particles.emit("sweat", back, face.y + face.h * 0.25, 1, h.facing === -1);
     }
     if (refillT > 0) {
       refillT -= simDt;

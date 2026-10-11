@@ -16,6 +16,8 @@ export type World = {
   hero: HeroState;
   targets: Target[];
   snot: Snot[];
+  /** The last snot id handed out. */
+  nextSnot: number;
   puddles: Puddle[];
   time: number;
   /** What happened in the last step. */
@@ -35,6 +37,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     hero: createHero(spawn, opts),
     targets: opts.targets ?? [],
     snot: [],
+    nextSnot: 0,
     puddles: [],
     time: 0,
     events: [],
@@ -52,7 +55,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       advanceMove(h, STEP, events);
       swingContact(h, world.targets, events);
       superBurst(h, world.targets, events);
-      fireSnot(h, world.snot, events);
+      fireSnot(h, world, events);
       deliverLecture(h, events);
       stepSnot(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP);

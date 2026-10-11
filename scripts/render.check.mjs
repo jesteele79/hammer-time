@@ -225,3 +225,46 @@ test("a thought never covers his face or its puffs, wherever he stands and which
         }
   }
 });
+
+import { between } from "../src/render/interp.ts";
+import { RECIPES, drift, launch } from "../src/render/particles.ts";
+
+test("props draw between the last two steps, as Hammer does, matched by id", () => {
+  const snap = (cartX, blobs) => ({ time: 0, hero: null, targets: [{ id: 1, x: cartX, y: -40 }], snot: blobs, puddles: [] });
+  const prev = snap(1000, [
+    { id: 4, x: 0, y: 0 },
+    { id: 5, x: 50, y: 0 },
+  ]);
+  const cur = snap(1010, [
+    { id: 5, x: 60, y: -2 },
+    { id: 6, x: 300, y: 10 },
+  ]);
+  const mid = between(prev, cur, 0.5);
+  assert.equal(mid.targets[0].x, 1005);
+  assert.deepEqual(
+    mid.snot.map((b) => [b.id, b.x, b.y]),
+    [
+      [5, 55, -1],
+      [6, 300, 10],
+    ],
+    "a new blob starts where it is born; a gone one is gone",
+  );
+});
+
+test("sweat flies back off his head, away from his face, facing either way", () => {
+  const face = { x: 0, y: 0, w: 34, h: 52 };
+  let seed = 11;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (const facing of [1, -1]) {
+    const back = facing === 1 ? face.x - 8 : face.x + face.w + 8;
+    for (let n = 0; n < 200; n++) {
+      const p = { x: back, y: face.y + face.h * 0.25, ...launch(RECIPES.sweat, rand(), rand(), facing === -1) };
+      for (let t = 0; t < 0.4; t += 1 / 120) {
+        drift(p, RECIPES.sweat, 1 / 120);
+        const r = RECIPES.sweat.size[0];
+        const touches = p.x + r > face.x && p.x - r < face.x + face.w && p.y + r > face.y && p.y - r < face.y + face.h;
+        assert.ok(!touches, `facing ${facing}: a drop crosses the face`);
+      }
+    }
+  }
+});
