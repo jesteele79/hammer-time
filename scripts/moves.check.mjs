@@ -267,3 +267,62 @@ test("a knocked cart rolls to a stop on the floor", () => {
   assert.ok(cart.x > 300, `rolled ${cart.x}`);
 });
 
+
+
+import { SNOT } from "../src/sim/snot.ts";
+import { solve } from "../src/sim/rig/fk.ts";
+import { ACTIONS } from "../src/sim/rig/actions.ts";
+import { SNOT_FIRE_U } from "../src/sim/moves.ts";
+import { HEAD_SCALE } from "../src/sim/constants.ts";
+
+test("snot leaves ahead of the nose at the snap, flies forward, falls and puddles", () => {
+  for (const facing of [1, -1]) {
+    const w = createWorld(flat(), { x: 100, y: 0 });
+    w.hero.facing = facing;
+    settle(w);
+    press(w, "fire");
+    let fired = null;
+    for (let i = 0; i < 120 && !fired; i++) { w.step(input()); fired = w.events.find((e) => e.type === "fire"); }
+    assert.ok(fired, "fired");
+    assert.ok(Math.abs(w.hero.move.t / MOVE_SECONDS.snot - SNOT_FIRE_U) < 0.05, "at the snap");
+    const s = solve(ACTIONS.snot(SNOT_FIRE_U), facing, HEAD_SCALE);
+    const face = { x: w.hero.x + s.faceBox.x, y: w.hero.y + s.faceBox.y, w: s.faceBox.w, h: s.faceBox.h };
+    const blob = w.snot[0];
+    assert.ok(facing > 0 ? blob.x - SNOT.r > face.x + face.w : blob.x + SNOT.r < face.x, "born clear of the face");
+    assert.ok(blob.vx * facing > 1000, "flies forward");
+    const evs = steps(w, 1.2);
+    const splat = evs.find((e) => e.type === "splat");
+    assert.ok(splat?.floor, "lands on the floor");
+    assert.equal(w.puddles.length, 1);
+    assert.ok(Math.abs(w.puddles[0].w - SNOT.puddle) < 1e-9);
+  }
+});
+
+test("hot snot is faster, bigger, and goes through one cart", () => {
+  // The carts stand taller than his nose, so the blob meets them on its way down.
+  const a = createCart(1, 500), b = createCart(2, 800);
+  const w = createWorld(flat(), { x: 100, y: 0 }, { hot: true, targets: [a, b] });
+  settle(w);
+  press(w, "fire");
+  const evs = steps(w, 1.3);
+  const hits = evs.filter((e) => e.type === "hit" && e.by === "snot").map((e) => e.target);
+  assert.deepEqual(hits, [1, 2], "through the first cart into the second");
+});
+
+test("cold snot stops at the first cart; at most three fly at once; puddles cap at six and dry", () => {
+  const a = createCart(1, 500), b = createCart(2, 800);
+  const w = createWorld(flat(), { x: 100, y: 0 }, { targets: [a, b] });
+  settle(w);
+  press(w, "fire");
+  const evs = steps(w, 1.3);
+  assert.deepEqual(evs.filter((e) => e.type === "hit" && e.by === "snot").map((e) => e.target), [1]);
+  const many = createWorld(flat(), { x: 100, y: 0 });
+  settle(many);
+  for (let i = 0; i < 9; i++) { many.hero.sinus = 3; many.hero.fireCd = 0; many.hero.move = null; press(many, "fire"); steps(many, MOVE_SECONDS.snot); }
+  assert.ok(many.snot.length <= 3, `alive ${many.snot.length}`);
+  steps(many, 2);
+  assert.ok(many.puddles.length <= 6, `puddles ${many.puddles.length}`);
+  steps(many, SNOT.puddleLife + 1);
+  assert.equal(many.puddles.length, 0, "dried");
+});
+

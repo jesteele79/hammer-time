@@ -263,3 +263,12 @@ test("the near hand's fist folds the fingers away and inks the new edge", async 
     }
   assert.ok(ink > 150, `the fist's front edge is outlined: ${ink} ink pixels`);
 });
+
+
+test("a profile head registers its nose tip at the face box's front edge", async () => {
+  const { png } = await keyOut(readFileSync("art/incoming/hammer/head-profile.png"));
+  const reg = await registerHead(png, "profile");
+  assert.equal(reg.nose.x, reg.face.x, "the nose is the leftmost point");
+  assert.ok(reg.nose.y > reg.face.y && reg.nose.y < reg.face.y + reg.face.h * 0.7, `nose height ${reg.nose.y}`);
+});
+

@@ -12,6 +12,8 @@ export type HeadPlate = {
   crown: Point;
   /** Brow to chin, nose to cheek: nothing is ever drawn over it. */
   face: Rect;
+  /** The nose tip: snot leaves from just ahead of it. */
+  nose: Point;
 };
 /** A painted body: its skinned layers and bones live in the rig file; `span` is its sole-to-neck height in crop pixels. */
 export type Body = { rig: string; span: number };
@@ -42,6 +44,7 @@ export const HEAD_PLATE_DEFAULT: HeadPlate = {
   neck: { x: 509, y: 1276 },
   crown: { x: 522, y: 8 },
   face: { x: 8, y: 386, w: 440, h: 668 },
+  nose: { x: 8, y: 666 },
 };
 
 export async function loadRegistry(): Promise<Registry> {

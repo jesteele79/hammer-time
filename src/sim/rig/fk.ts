@@ -42,6 +42,8 @@ export type Solved = {
   /** Nothing is ever drawn over it. */
   faceBox: Rect;
   crown: Point;
+  /** The nose tip, world px from the feet point. */
+  nose: Point;
   /** World px per rest unit. */
   scale: number;
   facing: 1 | -1;
@@ -137,6 +139,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     links,
     faceBox,
     crown: place(plate.crown.x, plate.crown.y),
+    nose: place(plate.nose.x, plate.nose.y),
     scale,
     facing,
     squash: { x: sx, y: sy },

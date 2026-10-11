@@ -100,13 +100,17 @@ export async function registerHead(png, kind) {
   const { w, h } = mask;
   let top = -1,
     bottom = -1,
-    leftMost = w;
+    leftMost = w,
+    noseY = 0;
   for (let y = 0; y < h; y++) {
     const s = rowSpan(mask, y);
     if (!s) continue;
     if (top < 0) top = y;
     bottom = y;
-    if (s[0] < leftMost) leftMost = s[0];
+    if (s[0] < leftMost) {
+      leftMost = s[0];
+      noseY = y;
+    }
   }
   const neckSpan = rowSpan(mask, bottom),
     topSpan = rowSpan(mask, top);
@@ -120,6 +124,8 @@ export async function registerHead(png, kind) {
     neck: { x: Math.round((neckSpan[0] + neckSpan[1]) / 2), y: bottom },
     crown: { x: Math.round((topSpan[0] + topSpan[1]) / 2), y: top },
     face,
+    // A profile's leftmost point is the tip of the nose: snot leaves from just ahead of it.
+    nose: { x: leftMost, y: noseY },
   };
 }
 
@@ -149,6 +155,7 @@ export function registerAligned(reference, align, { width, height }) {
     height,
     neck: map(reference.neck),
     crown: map(reference.crown),
+    nose: map(reference.nose),
     face: {
       x: corner.x,
       y: corner.y,

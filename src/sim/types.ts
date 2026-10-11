@@ -1,4 +1,5 @@
 import type { Move } from "./moves";
+import type { Puddle, Snot } from "./snot";
 
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -70,4 +71,4 @@ export type Target = {
   spin: number;
 };
 
-export type Snapshot = { time: number; hero: HeroState; targets: Target[] };
+export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[] };

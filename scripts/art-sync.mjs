@@ -108,7 +108,7 @@ async function heads(registry) {
     const outFile = `hammer/head-${name}.png`;
     writeFileSync(join(OUT, outFile), keyed.png);
     registry.hammer.heads[name] = { file: outFile, ...reg };
-    console.log(`head ${name}: ${reg.width}x${reg.height}, neck ${reg.neck.x},${reg.neck.y}`);
+    console.log(`head ${name}: ${reg.width}x${reg.height}, neck ${reg.neck.x},${reg.neck.y}, nose ${reg.nose.x},${reg.nose.y}`);
   }
   const tq = join(HAMMER_IN, "head-three-quarter.png");
   if (existsSync(tq)) {

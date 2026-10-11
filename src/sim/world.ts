@@ -4,6 +4,7 @@ import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
 import type { Input } from "./input";
 import { advanceMove, startMove, steerMove, stepHeat } from "./moves";
+import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
 import { stepTargets } from "./targets";
 import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
 
@@ -13,6 +14,8 @@ export type World = {
   stage: Stage;
   hero: HeroState;
   targets: Target[];
+  snot: Snot[];
+  puddles: Puddle[];
   time: number;
   /** What happened in the last step. */
   events: GameEvent[];
@@ -26,17 +29,21 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     stage,
     hero: createHero(spawn, opts),
     targets: opts.targets ?? [],
+    snot: [],
+    puddles: [],
     time: 0,
     events: [],
     step(input) {
       const events: GameEvent[] = [];
       const h = world.hero;
-      startMove(h, input, 0, events);
+      startMove(h, input, world.snot.length, events);
       steerMove(h);
       stepHero(h, world.stage, input, STEP, events);
       advanceMove(h, STEP, events);
       swingContact(h, world.targets, events);
       superBurst(h, world.targets, events);
+      fireSnot(h, world.snot, events);
+      stepSnot(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP);
       stepHeat(h, input, STEP, events);
       world.events = events;
@@ -48,6 +55,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         time: world.time,
         hero: { ...h, move: h.move && { ...h.move, victims: [...h.move.victims] } },
         targets: world.targets.map((t) => ({ ...t })),
+        snot: world.snot.map((b) => ({ ...b, hit: [...b.hit] })),
+        puddles: world.puddles.map((p) => ({ ...p })),
       };
     },
   };
