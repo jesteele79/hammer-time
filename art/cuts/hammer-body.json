@@ -672,7 +672,13 @@
           ]
         }
       ],
-      "source": "cloth"
+      "source": "cloth",
+      "ink": {
+        "px": 6,
+        "over": [
+          "armFar"
+        ]
+      }
     },
     "legNear": {
       "polygon": [
@@ -985,42 +991,115 @@
         ]
       ],
       "fill": [
-        [
-          [
-            363,
-            374
+        {
+          "polygon": [
+            [
+              489,
+              413
+            ],
+            [
+              358,
+              321
+            ],
+            [
+              179,
+              575
+            ],
+            [
+              309,
+              667
+            ]
           ],
-          [
-            437,
-            426
+          "carry": {
+            "from": [
+              "shoulderNear",
+              "elbowNear"
+            ],
+            "to": [
+              "shoulderFar",
+              "elbowFar"
+            ],
+            "over": [
+              "armNear",
+              "sleeve"
+            ],
+            "width": 52,
+            "scale": 0.75,
+            "shift": 27
+          }
+        },
+        {
+          "polygon": [
+            [
+              305,
+              644
+            ],
+            [
+              210,
+              565
+            ],
+            [
+              134,
+              656
+            ],
+            [
+              229,
+              736
+            ]
           ],
-          [
-            290,
-            640
-          ],
-          [
-            240,
-            702
-          ],
-          [
-            198,
-            700
-          ],
-          [
-            198,
-            548
-          ],
-          [
-            250,
-            540
-          ]
-        ]
+          "carry": {
+            "from": [
+              "elbowNear",
+              "wristNear"
+            ],
+            "to": [
+              "elbowFar",
+              "wristFar"
+            ],
+            "over": [
+              "armNear"
+            ],
+            "width": 52,
+            "scale": 0.75,
+            "shift": 27
+          }
+        }
       ],
       "source": "skin",
       "extrude": true
     }
   },
   "overrides": {
+    "affliction": {
+      "layers": {
+        "torso": {
+          "variants": {
+            "mirror": {
+              "reverse": {
+                "quad": [
+                  [
+                    234,
+                    387
+                  ],
+                  [
+                    314,
+                    394
+                  ],
+                  [
+                    314,
+                    457
+                  ],
+                  [
+                    213,
+                    432
+                  ]
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
     "suit": {
       "layers": {
         "armNear": {

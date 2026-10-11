@@ -11,7 +11,7 @@ import {
 import { HERO_W } from "../sim/constants";
 import type { Placement, Solved } from "../sim/rig/fk";
 import { multiplyTint } from "./lighting";
-import { LAYER_Z, skinLayer, type LayerName, type RigFile, type RigLayer } from "./skin";
+import { LAYER_Z, layerFile, skinLayer, type LayerName, type RigFile, type RigLayer } from "./skin";
 import { TOWEL, Towel, towelTexture } from "./towel";
 
 export type Character = {
@@ -122,9 +122,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
       }
       const positions = new Float32Array(n * 2);
       const geometry = new MeshGeometry({ positions, uvs, indices: new Uint32Array(layer.indices) });
-      // The near hand always holds the mallet, so it is drawn as the fist when there is one.
-      const file = (name === "armNear" && layer.variants?.fist) || layer.file;
-      const mesh = new Mesh({ geometry, texture: textures.get(file) ?? Texture.EMPTY });
+      const mesh = new Mesh({ geometry, texture: textures.get(layerFile(name, layer, -1) ?? "") ?? Texture.EMPTY });
       mesh.zIndex = z;
       mesh.visible = false;
       container.addChild(mesh);
@@ -159,6 +157,8 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
         for (const s of skinned) {
           skinLayer(s.positions, s.layer, rig, solved);
           s.geometry.getBuffer("aPosition").update();
+          const texture = textures.get(layerFile(s.name, s.layer, solved.facing) ?? "");
+          if (texture && s.mesh.texture !== texture) s.mesh.texture = texture;
           s.mesh.tint = FAR_LAYERS.has(s.name) ? multiplyTint(ambient, FAR_SHADE) : ambient;
           s.mesh.visible = true;
         }

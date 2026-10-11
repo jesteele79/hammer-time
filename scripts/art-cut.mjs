@@ -421,13 +421,134 @@ function extrudeFill(rgba, W, H, known, target, chain) {
   return rest;
 }
 
+/**
+ * Paints a limb's hidden stretch from another limb's painting: each target pixel
+ * is placed in its own bone's frame (how far along, how far across) and takes the
+ * painted pixel at the same place in the source bone's frame, if that pixel lies
+ * in the source's polygons. Where the source has no paint the target stays
+ * empty, so the carried stretch keeps the source limb's shape, sleeve and all.
+ * `scale` and `shift` fit it across the bone (the target is `scale` times as wide
+ * and its middle `shift` px off its bone), and `width` keeps only the source within
+ * that distance of its bone. Returns the pixels it painted.
+ */
+function carryOver(rgba, data, W, H, target, source, from, to, { width = Infinity, scale = 1, shift = 0 } = {}) {
+  const frame = ([a, b]) => {
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      L = Math.hypot(dx, dy);
+    return { a, dx, dy, L, ux: dx / L, uy: dy / L, nx: -dy / L, ny: dx / L };
+  };
+  const f = frame(to),
+    g = frame(from);
+  const carried = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (!target[i]) continue;
+      const t = ((x - f.a[0]) * f.ux + (y - f.a[1]) * f.uy) / f.L;
+      const s = ((x - f.a[0]) * f.nx + (y - f.a[1]) * f.ny - shift) / scale;
+      if (Math.abs(s) > width) continue;
+      const qx = Math.round(g.a[0] + g.dx * t + g.nx * s),
+        qy = Math.round(g.a[1] + g.dy * t + g.ny * s);
+      if (qx < 0 || qy < 0 || qx >= W || qy >= H) continue;
+      const q = qy * W + qx;
+      if (!source[q] || data[q * 4 + 3] < 160) continue;
+      data.copy(rgba, i * 4, q * 4, q * 4 + 3);
+      rgba[i * 4 + 3] = 255;
+      carried[i] = 1;
+    }
+  return carried;
+}
+
+/**
+ * A shirt's printed word, reversed along its banner, for drawing the body mirrored: the
+ * painting's lettering would read backward, this reads the right way round. `quad` is the
+ * banner around the word (top-left, top-right, bottom-right, bottom-left). The letters
+ * (near-white) and their soft edge are lifted out and the banner painted in under them;
+ * then each pixel takes the letter from the mirrored place along the banner (s becomes
+ * 1 - s at the same height across it), stretched to the banner's height there. Outside
+ * the quad, and outside the body, nothing changes.
+ */
+export function reverseLettering(rgba, W, H, { quad }) {
+  const [TL, TR, BR, BL] = quad;
+  const at = (s, v) => [
+    (1 - v) * ((1 - s) * TL[0] + s * TR[0]) + v * ((1 - s) * BL[0] + s * BR[0]),
+    (1 - v) * ((1 - s) * TL[1] + s * TR[1]) + v * ((1 - s) * BL[1] + s * BR[1]),
+  ];
+  // The bilinear map inverted by Newton's method: a few steps settle it inside a gentle quad.
+  const place = (x, y) => {
+    let s = 0.5,
+      v = 0.5;
+    for (let k = 0; k < 12; k++) {
+      const [px, py] = at(s, v);
+      const sx = (1 - v) * (TR[0] - TL[0]) + v * (BR[0] - BL[0]),
+        sy = (1 - v) * (TR[1] - TL[1]) + v * (BR[1] - BL[1]);
+      const vx = (1 - s) * (BL[0] - TL[0]) + s * (BR[0] - TR[0]),
+        vy = (1 - s) * (BL[1] - TL[1]) + s * (BR[1] - TR[1]);
+      const det = sx * vy - vx * sy;
+      const ex = x - px,
+        ey = y - py;
+      s += (ex * vy - vx * ey) / det;
+      v += (sx * ey - ex * sy) / det;
+    }
+    return [s, v];
+  };
+  const xs = quad.map((q) => q[0]),
+    ys = quad.map((q) => q[1]);
+  const x0 = Math.max(0, Math.floor(Math.min(...xs))),
+    x1 = Math.min(W - 1, Math.ceil(Math.max(...xs)));
+  const y0 = Math.max(0, Math.floor(Math.min(...ys))),
+    y1 = Math.min(H - 1, Math.ceil(Math.max(...ys)));
+  const inside = new Uint8Array(W * H),
+    letter = new Uint8Array(W * H);
+  const sv = new Float64Array(W * H * 2);
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      const i = y * W + x;
+      if (rgba[i * 4 + 3] < 160) continue;
+      const [s, v] = place(x, y);
+      if (s < 0 || s > 1 || v < 0 || v > 1) continue;
+      inside[i] = 1;
+      sv[i * 2] = s;
+      sv[i * 2 + 1] = v;
+      const lo = Math.min(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]);
+      const hi = Math.max(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]);
+      if (lo > 140 && hi - lo < 60) letter[i] = 1;
+    }
+  // The letters with their soft edge: two pixels round every letter pixel.
+  const lifted = new Uint8Array(W * H);
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      if (!letter[y * W + x]) continue;
+      for (let dy = -2; dy <= 2; dy++)
+        for (let dx = -2; dx <= 2; dx++) {
+          const j = (y + dy) * W + (x + dx);
+          if (inside[j]) lifted[j] = 1;
+        }
+    }
+  const out = Buffer.from(rgba);
+  const known = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) known[i] = inside[i] && !lifted[i] ? 1 : 0;
+  pushPullFill(out, W, H, known, lifted);
+  for (let y = y0; y <= y1; y++)
+    for (let x = x0; x <= x1; x++) {
+      const i = y * W + x;
+      if (!inside[i]) continue;
+      const [qx, qy] = at(1 - sv[i * 2], sv[i * 2 + 1]).map(Math.round);
+      if (qx < 0 || qy < 0 || qx >= W || qy >= H) continue;
+      const q = qy * W + qx;
+      if (lifted[q]) rgba.copy(out, i * 4, q * 4, q * 4 + 4);
+    }
+  return out;
+}
+
 /** Painted-in pixels within `px` of the layer's outside take the ink outline, so a rebuilt edge reads as an edge. */
-function outlineFill(rgba, W, H, visible, fill, px) {
+function outlineFill(rgba, W, H, visible, fill, px, only = fill) {
   const out = (x, y) => x < 0 || y < 0 || x >= W || y >= H || (!visible[y * W + x] && !fill[y * W + x]);
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
-      if (!fill[i]) continue;
+      if (!only[i]) continue;
       let edge = false;
       for (let dy = -px; dy <= px && !edge; dy++)
         for (let dx = -px; dx <= px && !edge; dx++) if (dx * dx + dy * dy <= px * px && out(x + dx, y + dy)) edge = true;
@@ -556,6 +677,20 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
     for (let i = 0; i < W * H; i++) if (owner[i] < 0 && m[i] && data[i * 4 + 3] > 0) owner[i] = idx;
   });
   claimStragglers(owner, data, W, H, 10);
+  // A layer drawn in front keeps its own ink: near-black pixels just outside its edge, over a
+  // layer behind it, are its outline painted across that layer (the belly's line over the far
+  // forearm), so they stay with it instead of riding off on the limb.
+  LAYER_ORDER.forEach((name, idx) => {
+    const spec = layerSpec(cuts, costume, name);
+    if (!spec.ink) return;
+    const over = new Set(spec.ink.over.map((n) => LAYER_ORDER.indexOf(n)));
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (!over.has(owner[i]) || data[i * 4 + 3] < 160 || luma(data, i) >= 50) continue;
+        if (!pointInPolygon([x, y], spec.polygon) && distanceToPolygon([x, y], spec.polygon) <= spec.ink.px) owner[i] = idx;
+      }
+  });
   const layers = {};
   LAYER_ORDER.forEach((name, idx) => {
     const spec = layerSpec(cuts, costume, name);
@@ -573,14 +708,32 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
       if (spec.source === "skin" ? tone : spec.source === "cloth" ? !tone : luma(data, i) >= 36) known[i] = 1;
     }
     // A fill is a polygon, or { polygon, from } to paint it only from the layer's pixels inside
-    // `from` (the shirt from the shirt, the shorts from the shorts, so the hem stays a hem).
+    // `from` (the shirt from the shirt, the shorts from the shorts, so the hem stays a hem), or
+    // { polygon, carry } to paint it from another limb's painting along matching bones.
     const chain = spec.extrude ? cuts.rig.skin[name].chain.map((j) => cuts.rig.joints[j]) : null;
+    const carried = new Uint8Array(W * H);
     for (const entry of spec.fill ?? []) {
-      const { polygon, from, dark } = Array.isArray(entry) ? { polygon: entry } : entry;
+      const { polygon, from, dark, carry } = Array.isArray(entry) ? { polygon: entry } : entry;
       const m = polygonMask(polygon, W, H, origin);
       const part = new Uint8Array(W * H);
-      for (let i = 0; i < W * H; i++) if (m[i] && !visible[i] && above.has(owner[i])) part[i] = fill[i] = 1;
+      for (let i = 0; i < W * H; i++) if (m[i] && !visible[i] && !carried[i] && above.has(owner[i])) part[i] = 1;
       if (!part.some(Boolean)) continue;
+      if (carry) {
+        const source = new Uint8Array(W * H);
+        for (const region of carry.over) {
+          const poly = region === "sleeve" ? cuts.rig.skin.torso.sleeve.polygon : layerSpec(cuts, costume, region).polygon;
+          const sm = polygonMask(poly, W, H, origin);
+          for (let i = 0; i < W * H; i++) if (sm[i]) source[i] = 1;
+        }
+        const bone = (pair) => pair.map((jn) => cuts.rig.joints[jn]);
+        const got = carryOver(rgba, data, W, H, part, source, bone(carry.from), bone(carry.to), carry);
+        for (let i = 0; i < W * H; i++)
+          if (got[i]) {
+            carried[i] = fill[i] = known[i] = 1;
+          }
+        continue;
+      }
+      for (let i = 0; i < W * H; i++) if (part[i]) fill[i] = 1;
       let sources = known;
       if (from || dark) {
         const f = from ? polygonMask(from, W, H, origin) : null;
@@ -591,8 +744,11 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
       pushPullFill(rgba, W, H, sources, rest);
     }
     if (fill.some(Boolean) && !chain) outlineFill(rgba, W, H, visible, fill, OUTLINE_PX);
+    // A carried stretch takes the ink where it meets the outside, like any rebuilt edge.
+    if (carried.some(Boolean)) outlineFill(rgba, W, H, visible, fill, OUTLINE_PX, carried);
     const variants = {};
-    for (const [vname, v] of Object.entries(spec.variants ?? {})) variants[vname] = curlVariant(rgba, W, H, v);
+    for (const [vname, v] of Object.entries(spec.variants ?? {}))
+      variants[vname] = v.reverse ? reverseLettering(rgba, W, H, v.reverse) : curlVariant(rgba, W, H, v);
     layers[name] = { rgba, visible, fill, variants };
   });
   return { W, H, layers, owner };

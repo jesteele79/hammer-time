@@ -117,6 +117,12 @@ const CUTS = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
 let affliction;
 const layersOf = async () =>
   (affliction ??= await separateLayers(await keyOut(readFileSync("art/incoming/hammer/body-affliction.png")), CUTS));
+/** The layers with the keyed painting they were cut from. */
+const layersWithPainting = async () => {
+  const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
+  const { data } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return { ...(await layersOf()), data };
+};
 
 test("push-pull paints a hole in a gradient from its edges", () => {
   const W = 64,
@@ -180,6 +186,96 @@ test("the torso runs on behind the near arm, the far arm behind the torso, and n
   assert.ok(arm[0] > arm[2] + 40, `in skin tones: ${[...arm]}`);
   assert.equal(at("armNear", 330, 470)[3], 0, "the near arm keeps none of the sleeve");
   assert.equal(at("armNear", 160, 880)[3], 255, "the near arm keeps its hand");
+});
+
+test("the far arm's hidden upper arm is the near arm's sleeve and skin carried over, not a stretched plank", async () => {
+  const { W, layers, data } = await layersWithPainting();
+  const j = CUTS.rig.joints;
+  const frame = (a, b) => {
+    const dx = b[0] - a[0],
+      dy = b[1] - a[1],
+      L = Math.hypot(dx, dy);
+    return { a, dx, dy, nx: -dy / L, ny: dx / L };
+  };
+  const along = (f, t, s = 0) => [Math.round(f.a[0] + f.dx * t + f.nx * s), Math.round(f.a[1] + f.dy * t + f.ny * s)];
+  const far = frame(j.shoulderFar, j.elbowFar);
+  const near = frame(j.shoulderNear, j.elbowNear);
+  const arm = (x, y) => layers.armFar.rgba.subarray((y * W + x) * 4, (y * W + x) * 4 + 4);
+  const painted = (x, y) => data.subarray((y * W + x) * 4, (y * W + x) * 4 + 4);
+  const luma = (p) => 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2];
+  const isSkin = (p) => p[0] > p[2] + 40;
+  // Near the shoulder the T-shirt's sleeve comes along with the arm.
+  const sleeve = arm(...along(far, 0.35));
+  assert.equal(sleeve[3], 255, "the far upper arm is painted near the shoulder");
+  assert.ok(!isSkin(sleeve), `the sleeve is cloth, not skin: ${[...sleeve]}`);
+  // Below the hem it is painted skin, shaded along the arm the way the near arm is;
+  // a cross-section stretched along the bone would hardly change from end to end.
+  const ts = Array.from({ length: 12 }, (_, k) => 0.68 + k * 0.02);
+  const spread = (ps) => {
+    const ls = ps.map(luma);
+    const m = ls.reduce((a, b) => a + b, 0) / ls.length;
+    return Math.sqrt(ls.reduce((a, b) => a + (b - m) ** 2, 0) / ls.length);
+  };
+  const farSkin = ts.map((t) => arm(...along(far, t)));
+  const nearSkin = ts.map((t) => painted(...along(near, t)));
+  for (const p of farSkin) assert.ok(p[3] === 255 && isSkin(p), `skin below the hem: ${[...p]}`);
+  assert.ok(spread(nearSkin) > 2, `the near arm is shaded along its length: ${spread(nearSkin).toFixed(1)}`);
+  assert.ok(
+    spread(farSkin) > spread(nearSkin) / 2,
+    `the far arm is shaded like it: ${spread(farSkin).toFixed(1)} against ${spread(nearSkin).toFixed(1)}`,
+  );
+  // The belly's ink line, painted over the forearm where it goes behind the shirt, stays with the
+  // shirt: a raised arm carries no stripe of it. The line runs in the 5 px nearest the shirt's
+  // edge (x 195 to 197 here); further out are the forearm's own top and bottom outlines.
+  let ink = 0;
+  for (let y = 552; y <= 700; y++)
+    for (let x = 191; x <= 195; x++) {
+      const i = y * W + x;
+      if (layers.armFar.visible[i] && luma(layers.armFar.rgba.subarray(i * 4, i * 4 + 4)) < 50) ink++;
+    }
+  assert.equal(ink, 0, "no ink of the belly's outline is left on the far forearm");
+});
+
+test("the Affliction shirt's word is reversed along its banner for facing right, and nothing else changes", async () => {
+  const { W, H, layers } = await layersOf();
+  const mirror = layers.torso.variants.mirror;
+  assert.ok(mirror, "the torso has a mirror variant");
+  const [TL, TR, BR, BL] = CUTS.overrides.affliction.layers.torso.variants.mirror.reverse.quad;
+  // How far along the banner a pixel is, from its left side to its right side on that row.
+  const side = (a, b, y) => a[0] + ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1]);
+  const along = (x, y) => (x - side(TL, BL, y)) / (side(TR, BR, y) - side(TL, BL, y));
+  const inBox = (x, y) => y >= Math.min(TL[1], TR[1]) && y <= Math.max(BL[1], BR[1]) && along(x, y) >= 0 && along(x, y) <= 1;
+  const base = layers.torso.rgba;
+  const white = (buf, i) => Math.min(buf[i * 4], buf[i * 4 + 1], buf[i * 4 + 2]) > 140 && buf[i * 4 + 3] > 0;
+  let outside = 0;
+  // Where the lettering starts and ends along the banner (its 5th and 95th percentiles),
+  // which stretching a letter to the banner's height at its new place does not move.
+  const letters = (buf) => {
+    const at = [];
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++) if (inBox(x, y) && white(buf, y * W + x)) at.push(along(x, y));
+    at.sort((a, b) => a - b);
+    return { n: at.length, from: at[Math.floor(at.length * 0.05)], to: at[Math.floor(at.length * 0.95)] };
+  };
+  for (let i = 0; i < W * H; i++) {
+    const x = i % W,
+      y = (i - x) / W;
+    if (inBox(x, y)) continue;
+    if (base[i * 4] !== mirror[i * 4] || base[i * 4 + 1] !== mirror[i * 4 + 1] || base[i * 4 + 2] !== mirror[i * 4 + 2] || base[i * 4 + 3] !== mirror[i * 4 + 3])
+      outside++;
+  }
+  assert.equal(outside, 0, "outside the banner the mirror is the shirt, pixel for pixel");
+  const before = letters(base),
+    after = letters(mirror);
+  assert.ok(before.n > 300, `the painting has its lettering: ${before.n} white pixels`);
+  // The word runs the other way along the banner, so mirrored it reads the right way round.
+  const span = (l) => `${l.from.toFixed(2)} to ${l.to.toFixed(2)}`;
+  assert.ok(
+    Math.abs(after.from - (1 - before.to)) < 0.06 && Math.abs(after.to - (1 - before.from)) < 0.06,
+    `the lettering runs ${span(before)} along the banner, then ${span(after)}`,
+  );
+  assert.ok(after.n > before.n * 0.7 && after.n < before.n * 1.4, `as much lettering: ${before.n} then ${after.n}`);
+  assert.equal(CUTS.layers.torso.variants?.mirror, undefined, "only the Affliction shirt has a word to reverse");
 });
 
 test("a layer's mesh covers every pixel it paints", async () => {

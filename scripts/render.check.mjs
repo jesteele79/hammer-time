@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { shouldStepDown, WORK_BUDGET_MS } from "../src/render/quality.ts";
-import { skinLayer, bodyScale } from "../src/render/skin.ts";
+import { skinLayer, bodyScale, layerFile } from "../src/render/skin.ts";
 import { CLIPS } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
 import { REST_POSE } from "../src/sim/rig/skeleton.ts";
@@ -116,4 +116,15 @@ test("the towel in his far hand never covers his face through the whole wipe, ei
             );
         }
       }
+});
+
+test("the shirt is drawn from its mirror when he faces right, the painting's way when he faces left", () => {
+  const mesh = { positions: [], bones: [], weights: [] };
+  const torso = { ...mesh, file: "t.png", variants: { mirror: "t-mirror.png" } };
+  assert.equal(layerFile("torso", torso, 1), "t-mirror.png");
+  assert.equal(layerFile("torso", torso, -1), "t.png");
+  const arm = { ...mesh, file: "a.png", variants: { fist: "a-fist.png" } };
+  assert.equal(layerFile("armNear", arm, 1), "a-fist.png", "the near hand holds the mallet either way");
+  assert.equal(layerFile("armNear", arm, -1), "a-fist.png");
+  assert.equal(layerFile("legNear", { ...mesh, file: "l.png" }, 1), "l.png");
 });

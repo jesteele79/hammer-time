@@ -32,6 +32,17 @@ export type RigFile = {
   layers?: Partial<Record<LayerName, RigLayer>>;
 };
 
+/**
+ * The texture a layer draws with: the near hand always as the fist that holds the mallet,
+ * and a lettered shirt's mirror when the body is drawn facing right, against the painting,
+ * so the word still reads the right way round.
+ */
+export function layerFile(name: LayerName, layer: RigLayer, facing: 1 | -1): string | undefined {
+  if (name === "armNear" && layer.variants?.fist) return layer.variants.fist;
+  if (facing === 1 && layer.variants?.mirror) return layer.variants.mirror;
+  return layer.file;
+}
+
 /** World px per crop pixel for this solve. */
 export const bodyScale = (solved: Solved, rig: RigFile) => solved.scale * (NECK_REST_Y / rig.span);
 
