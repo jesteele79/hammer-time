@@ -3,8 +3,10 @@ import { FAR_FLOOR } from "./skeleton";
 
 /** "planted" stands the lowest sole on the floor; "push" only lifts a sole out of it; "body" rests whatever is lowest, back or head included; "none" leaves the pose. */
 export type Ground = "planted" | "push" | "body" | "none";
-/** Half his torso's depth about the spine, rest units: what he lies on when he is flat on his back. */
+/** Half his torso's depth behind the spine, rest units: what he lies on when he is flat on his back. */
 export const BACK = 36;
+/** How far his seat hangs below his hip joints, rest units: what he sits on. */
+export const SEAT = 22;
 
 /**
  * How far to move the drawn body down (world px, y down) so its lowest sole
@@ -18,8 +20,14 @@ export function groundShift(solved: Solved, mode: Ground): number {
   const j = solved.joints;
   const lowest = Math.max(j.toeNear.y, j.heelNear.y, j.toeFar.y + lift, j.heelFar.y + lift);
   if (mode === "body") {
-    const spine = Math.max(j.pelvis.y, j.chest.y, j.neck.y) + BACK * solved.scale;
-    return -Math.max(lowest, spine, solved.headBox.y + solved.headBox.h);
+    // His back is on the side of the spine away from where he faces; lying down, it is underneath.
+    const sx = j.neck.x - j.pelvis.x;
+    const sy = j.neck.y - j.pelvis.y;
+    const len = Math.hypot(sx, sy) || 1;
+    const backY = (solved.facing === 1 ? -sx : sx) / len;
+    const spine = Math.max(j.pelvis.y, j.chest.y, j.neck.y) + Math.max(0, backY) * BACK * solved.scale;
+    const seat = Math.max(j.hipNear.y, j.hipFar.y) + SEAT * solved.scale;
+    return -Math.max(lowest, spine, seat, solved.headBox.y + solved.headBox.h);
   }
   return mode === "push" ? Math.min(0, -lowest) : -lowest;
 }

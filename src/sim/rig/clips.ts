@@ -19,7 +19,7 @@ export const HOLD = { shoulderNear: -3.31, elbowNear: 54.37, wristNear: 1.39 };
 export const FREE = -34;
 
 /** Turns each ankle back by part of its leg's swing so a planted shoe stays nearly flat. */
-function feet(rot: Partial<Record<JointName, number>>, keep = 0.75) {
+export function flatFeet(rot: Partial<Record<JointName, number>>, keep = 0.75) {
   rot.ankleNear = (rot.ankleNear ?? 0) - keep * ((rot.hipNear ?? 0) + (rot.kneeNear ?? 0));
   rot.ankleFar = (rot.ankleFar ?? 0) - keep * ((rot.hipFar ?? 0) + (rot.kneeFar ?? 0));
   return rot;
@@ -42,7 +42,7 @@ const walk: Clip = (u) => {
   const s = Math.sin(phi);
   const c = Math.cos(phi);
   return pose({
-    rot: feet({
+    rot: flatFeet({
       ...HOLD,
       hipNear: 20 * s,
       kneeNear: -34 * Math.max(0, c),
@@ -61,7 +61,7 @@ const run: Clip = (u) => {
   const c = Math.cos(phi);
   const flight = bump(u, 0.2) + bump(u, 0.7);
   return pose({
-    rot: feet(
+    rot: flatFeet(
       {
         ...HOLD,
         hipNear: 32 * s,
@@ -112,14 +112,14 @@ const fall: Clip = () =>
 const land: Clip = (u) => {
   const k = 1 - out(u);
   return pose({
-    rot: feet({ ...HOLD, shoulderFar: FREE, hipNear: 18 * k, kneeNear: -30 * k, hipFar: 18 * k, kneeFar: -30 * k }, 1),
+    rot: flatFeet({ ...HOLD, shoulderFar: FREE, hipNear: 18 * k, kneeNear: -30 * k, hipFar: 18 * k, kneeFar: -30 * k }, 1),
   });
 };
 
 // A deep squat with the shoes flat; grounding brings the soles to the floor.
 const crouch: Clip = () =>
   pose({
-    rot: feet({ ...HOLD, hipNear: 70, kneeNear: -112, hipFar: 66, kneeFar: -108, chest: -6, shoulderFar: FREE + 18, elbowFar: 14 }, 1),
+    rot: flatFeet({ ...HOLD, hipNear: 70, kneeNear: -112, hipFar: 66, kneeFar: -108, chest: -6, shoulderFar: FREE + 18, elbowFar: 14 }, 1),
     lean: 16,
     root: { x: 0, y: -60 },
     headTilt: 4,

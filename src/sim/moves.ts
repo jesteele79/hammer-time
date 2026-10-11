@@ -3,11 +3,25 @@ import type { GameEvent } from "./events";
 import type { Input } from "./input";
 import type { HeroState } from "./types";
 
-export type MoveKind = "swing" | "super" | "snot" | "wipe";
+export type MoveKind = "swing" | "super" | "snot" | "wipe" | "lecture" | "watch" | "tap" | "hurt" | "tumble";
 export type Move = { kind: MoveKind; t: number; fired: boolean; burst: boolean; lastU: number; stroke: number; victims: number[] };
 
-// The shipped game's timings (src/game/combat.ts, src/game/rig.ts).
-export const MOVE_SECONDS: Record<MoveKind, number> = { swing: 0.42, super: 0.66, snot: 0.45, wipe: 0.95 };
+// The shipped game's timings (src/game/combat.ts, src/game/rig.ts); the watch and tap are its idle beats.
+export const MOVE_SECONDS: Record<MoveKind, number> = {
+  swing: 0.42,
+  super: 0.66,
+  snot: 0.45,
+  wipe: 0.95,
+  lecture: 0.8,
+  watch: 2.1,
+  tap: 3,
+  hurt: 0.45,
+  tumble: 1.6,
+};
+/** The tumble's frame where he lands flat: the sim holds it while he is still in the air. */
+export const TUMBLE_LAND = 0.3;
+/** Seconds into the foot tap when the tapping stops and he harrumphs. */
+export const TAP_HARRUMPH = 2.5;
 /** Where a swing can land, as a fraction of the move. */
 export const SWING_ACTIVE = [0.33, 0.72] as const;
 /** The strike over the head, sampled for contact but never drawn. */

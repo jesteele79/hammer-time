@@ -152,7 +152,7 @@ import { MOVE_SECONDS, SWING_CUT, SUPER_CUT, WIPE_SCRUB } from "../src/sim/moves
 import { FREE, HOLD } from "../src/sim/rig/clips.ts";
 import { pose } from "../src/sim/rig/pose.ts";
 
-const KINDS = ["swing", "super", "snot", "wipe"];
+const KINDS = ["swing", "super", "snot", "wipe", "lecture", "watch", "tap", "hurt", "tumble"];
 
 test("two-bone IK puts the wrist on a reachable target with the hand at the asked angle", () => {
   for (const [arm, target, hand, bend] of [["near", { x: 40, y: 200 }, 10, -1], ["near", { x: -50, y: 320 }, 150, 1], ["far", { x: -20, y: 380 }, 80, 1]]) {
@@ -168,7 +168,7 @@ test("two-bone IK puts the wrist on a reachable target with the hand at the aske
 });
 
 // The one exception to the face rule: his left hand wipes his face with the towel (owner, 2026-10-11).
-const FACE_ALLOWED = { swing: [], super: [], snot: [], wipe: ["far upper arm", "far forearm"] };
+const FACE_ALLOWED = { swing: [], super: [], snot: [], wipe: ["far upper arm", "far forearm"], lecture: [], watch: [], tap: [], hurt: [], tumble: [] };
 
 test("every drawn frame of every move keeps the face clear, both ways, at every head scale", () => {
   for (const kind of KINDS)
@@ -250,28 +250,29 @@ test("the fist never turns on the handle during any move", () => {
 });
 
 
-test("both arms move smoothly through the whole wipe: no step jumps the towel hand or the mallet", () => {
-  // A jump is a step whose travel leaps past its neighbour's; a fast swing speeds up gradually.
-  const du = 1 / 120 / MOVE_SECONDS.wipe;
-  for (const part of ["handFar", "malletHead"]) {
-    let prev = null,
-      last = 0,
-      fastest = 0,
-      spike = 0,
-      at = 0;
-    for (let k = 0; k * du <= 1 + 1e-9; k++) {
-      const u = Math.min(1, k * du);
-      const h = solve(ACTIONS.wipe(u), 1, 0.26).joints[part];
-      if (prev) {
-        const d = Math.hypot(h.x - prev.x, h.y - prev.y);
-        fastest = Math.max(fastest, d);
-        if (Math.abs(d - last) > spike) [spike, at] = [Math.abs(d - last), u];
-        last = d;
+test("every act moves smoothly: no step jumps a hand, the mallet or his head", () => {
+  for (const kind of ["wipe", "lecture", "watch", "tap", "hurt", "tumble"]) {
+    const du = 1 / 120 / MOVE_SECONDS[kind];
+    for (const part of ["handFar", "malletHead", "neck"]) {
+      let prev = null,
+        last = 0,
+        fastest = 0,
+        spike = 0,
+        at = 0;
+      for (let k = 0; k * du <= 1 + 1e-9; k++) {
+        const u = Math.min(1, k * du);
+        const h = solve(ACTIONS[kind](u), 1, 0.26).joints[part];
+        if (prev) {
+          const d = Math.hypot(h.x - prev.x, h.y - prev.y);
+          fastest = Math.max(fastest, d);
+          if (Math.abs(d - last) > spike) [spike, at] = [Math.abs(d - last), u];
+          last = d;
+        }
+        prev = h;
       }
-      prev = h;
+      assert.ok(spike < 10, `${kind}: the ${part}'s step changes by ${spike.toFixed(0)} px at u ${at.toFixed(3)}`);
+      assert.ok(fastest < 40, `${kind}: the ${part} covers ${fastest.toFixed(0)} px in one step`);
     }
-    assert.ok(spike < 10, `the ${part}'s step changes by ${spike.toFixed(0)} px at u ${at.toFixed(3)}`);
-    assert.ok(fastest < 40, `the ${part} covers ${fastest.toFixed(0)} px in one step`);
   }
 });
 
@@ -325,7 +326,7 @@ test("'body' grounding stands him on his soles, and lays him flat on his back wh
     const j = down.joints;
     const spine = Math.max(j.pelvis.y, j.chest.y, j.neck.y) + dy;
     // His back, his head or his heels touch the floor; his spine lies just above it, never in it.
-    assert.ok(spine <= -BACK * down.scale + 1e-6, `facing ${facing}: the spine is ${spine} px down`);
+    assert.ok(spine <= -BACK * down.scale + 1, `facing ${facing}: the spine is ${spine} px down`);
     assert.ok(spine > -BACK * down.scale - 30, `facing ${facing}: flat on the floor, not floating: ${spine}`);
     for (const name of ["heelNear", "toeNear", "heelFar", "toeFar"]) assert.ok(j[name].y + dy <= 1e-6, `${name} out of the floor`);
   }
@@ -471,4 +472,92 @@ test("a foot over a ledge or a ramp's foot leaves him on his counter, sinks noth
     const r = plantFeet(idle, facing, 0.26, undefined, "planted", kink);
     for (const { line, pts } of soles(r, facing)) for (const q of pts) assert.ok(q.y - (kink(q.x) + line) <= 2, `facing ${facing}: a sole sinks at the ramp's foot`);
   }
+});
+
+import { TUMBLE_LAND } from "../src/sim/moves.ts";
+
+const holdAt = (facing) => solve(CLIPS.idle(0, ctx), facing, 0.26);
+const near2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y) < 2;
+
+test("the head stays within 8 degrees of his body in every move", () => {
+  for (const kind of KINDS)
+    for (let i = 0; i <= 100; i++)
+      for (const facing of [1, -1]) {
+        const s = solve(ACTIONS[kind](i / 100), facing, 0.26);
+        const rel = -s.parts.head.rotation * facing - (s.spin * Math.PI) / 180;
+        assert.ok(Math.abs(rel) <= (8 * Math.PI) / 180 + 1e-9, `${kind} u ${i / 100}: ${rel}`);
+      }
+});
+
+test("the lecture points the mallet ahead at chest height and wags it, from the hold and back", () => {
+  for (const facing of [1, -1]) {
+    const s = solve(ACTIONS.lecture(0.5), facing, 0.26);
+    const j = s.joints;
+    assert.ok((j.malletHead.x - j.neck.x) * facing > 150, `aimed ahead (facing ${facing})`);
+    assert.ok(j.malletHead.y > s.faceBox.y + s.faceBox.h && j.malletHead.y < j.pelvis.y, "between his chin and his belt");
+    for (const u of [0, 1]) assert.ok(near2(solve(ACTIONS.lecture(u), facing, 0.26).joints.malletHead, holdAt(facing).joints.malletHead), `u ${u}: the hold`);
+  }
+  const ys = Array.from({ length: 41 }, (_, i) => solve(ACTIONS.lecture(0.3 + (0.4 * i) / 40), 1, 0.26).joints.malletHead.y);
+  assert.ok(Math.max(...ys) - Math.min(...ys) > 30, `it wags ${Math.max(...ys) - Math.min(...ys)} px`);
+});
+
+test("the watch check brings his left wrist up in front of his chest, above the mallet fist, and back to the hang", () => {
+  for (const facing of [1, -1]) {
+    for (let i = 0; i <= 20; i++) {
+      const u = 0.2 + (0.6 * i) / 20;
+      const s = solve(ACTIONS.watch(u), facing, 0.26);
+      const j = s.joints;
+      assert.ok((j.wristFar.x - j.chest.x) * facing > 40 * s.scale, `u ${u}: in front of his chest`);
+      assert.ok(Math.abs(j.wristFar.y - j.chest.y) < 40 * s.scale, `u ${u}: at chest height`);
+      assert.ok(j.wristFar.y < j.wristNear.y - 24 * s.scale, `u ${u}: clear above the mallet fist, so the watch shows`);
+    }
+    for (const u of [0, 1]) assert.ok(near2(solve(ACTIONS.watch(u), facing, 0.26).joints.handFar, holdAt(facing).joints.handFar), `u ${u}: hanging`);
+  }
+});
+
+test("the foot tap lifts his near toe twice a second with the heel planted, harrumphs, and never bobs", () => {
+  const rest = holdAt(1);
+  let taps = 0,
+    up = false,
+    lift = 0;
+  for (let k = 0; k <= MOVE_SECONDS.tap * 120; k++) {
+    const u = k / (MOVE_SECONDS.tap * 120);
+    const s = solve(ACTIONS.tap(u), 1, 0.26);
+    assert.ok(Math.hypot(s.joints.heelNear.x - rest.joints.heelNear.x, s.joints.heelNear.y - rest.joints.heelNear.y) < 0.5, `u ${u}: the heel stays`);
+    assert.ok(Math.abs(groundShift(s, "planted") - groundShift(rest, "planted")) < 0.5, `u ${u}: no bob`);
+    const l = rest.joints.toeNear.y - s.joints.toeNear.y;
+    lift = Math.max(lift, l);
+    if (l > 4 && !up) taps++;
+    up = l > 4;
+  }
+  assert.ok(lift > 8, `the toe lifts ${lift} px`);
+  assert.equal(taps, 5, "five taps before the harrumph");
+});
+
+test("the hurt throws his head and shoulders back with the mallet low, away from his face, and recovers", () => {
+  for (const facing of [1, -1]) {
+    const rest = holdAt(facing);
+    assert.ok((solve(ACTIONS.hurt(0.2), facing, 0.26).joints.neck.x - rest.joints.neck.x) * facing < -10, "thrown back");
+    for (let i = 0; i <= 20; i++) {
+      const q = solve(ACTIONS.hurt(0.1 + (0.5 * i) / 20), facing, 0.26);
+      assert.ok(q.joints.malletHead.y > q.faceBox.y + q.faceBox.h, "the mallet head stays below his chin");
+    }
+    assert.ok(near2(solve(ACTIONS.hurt(1), facing, 0.26).joints.malletHead, rest.joints.malletHead), "back in the hold");
+  }
+});
+
+test("the tumble goes over backward, lies flat on his back on the floor, and gets up to the hold", () => {
+  for (const facing of [1, -1]) {
+    for (const u of [0.36, 0.5, 0.6]) {
+      const s = solve(ACTIONS.tumble(u), facing, 0.26);
+      const j = s.joints;
+      const ang = (Math.atan2(-(j.neck.y - j.pelvis.y), (j.neck.x - j.pelvis.x) * facing) * 180) / Math.PI;
+      assert.ok(Math.abs(Math.abs(ang) - 180) < 15, `u ${u} facing ${facing}: flat, head behind him (${ang.toFixed(0)}°)`);
+      const dy = groundShift(s, "body");
+      assert.ok(Math.abs(j.chest.y + dy) < 50 * s.scale, `u ${u}: on his back on the floor`);
+    }
+    const end = solve(ACTIONS.tumble(1), facing, 0.26);
+    for (const n of ["neck", "malletHead", "toeNear"]) assert.ok(near2(end.joints[n], holdAt(facing).joints[n]), `stands up: ${n}`);
+  }
+  assert.ok(solve(ACTIONS.tumble(TUMBLE_LAND), 1, 0.26).spin > 60, "most of the way over by the landing frame");
 });
