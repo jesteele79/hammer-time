@@ -13,6 +13,8 @@ export function pose(
     lean?: number;
     squash?: { x: number; y: number };
     headTilt?: number;
+    spin?: number;
+    torso?: number;
   } = {},
 ): Pose {
   const rot = {} as Record<JointName, number>;
@@ -23,6 +25,8 @@ export function pose(
     lean: clean(p.lean ?? 0),
     squash: { x: clean(p.squash?.x ?? 1), y: clean(p.squash?.y ?? 1) },
     headTilt: clean(p.headTilt ?? 0),
+    spin: clean(p.spin ?? 0),
+    torso: clean(p.torso ?? 1),
   };
 }
 
@@ -46,6 +50,8 @@ export function blend(a: Pose, b: Pose, t: number): Pose {
     lean: lerp(a.lean, b.lean, k),
     squash: { x: lerp(a.squash.x, b.squash.x, k), y: lerp(a.squash.y, b.squash.y, k) },
     headTilt: lerp(a.headTilt, b.headTilt, k),
+    spin: lerp(a.spin, b.spin, k),
+    torso: lerp(a.torso, b.torso, k),
   };
 }
 

@@ -51,6 +51,10 @@ export type Solved = {
   scale: number;
   facing: 1 | -1;
   squash: { x: number; y: number };
+  /** The whole-body turn, degrees (the pose's). */
+  spin: number;
+  /** The torso's front-to-back scale (the pose's). */
+  torso: number;
 };
 
 const DEG = Math.PI / 180;
@@ -80,9 +84,10 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
 
   const pos = {} as Record<JointName, Point>;
   const frame = {} as Record<JointName, number>;
-  const links = { root: 0 } as Record<JointName, number>;
+  const spin = pose.spin * DEG;
+  const links = { root: spin } as Record<JointName, number>;
   pos.root = { x: pose.root.x, y: pose.root.y };
-  frame.root = 0;
+  frame.root = spin;
   for (const name of JOINT_NAMES) {
     const j = JOINTS[name];
     if (!j.parent) continue;
@@ -94,8 +99,14 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     links[name] = link;
     frame[name] = link + rot(name);
   }
-  // The head counter-rotates so it never tilts more than 8 degrees from level.
-  frame.head = clamp(frame.neck - pose.headTilt * DEG, -HEAD_LEVEL_DEG * DEG, HEAD_LEVEL_DEG * DEG);
+  // The spin turned everything about the feet point; slide it back so the pelvis holds still.
+  if (spin !== 0) {
+    const px = pose.root.x + JOINTS.pelvis.rest.x - pos.pelvis.x;
+    const py = pose.root.y + JOINTS.pelvis.rest.y - pos.pelvis.y;
+    for (const name of JOINT_NAMES) pos[name] = { x: pos[name].x + px, y: pos[name].y + py };
+  }
+  // The head counter-rotates so it never tilts more than 8 degrees from his body's own level.
+  frame.head = spin + clamp(frame.neck - spin - pose.headTilt * DEG, -HEAD_LEVEL_DEG * DEG, HEAD_LEVEL_DEG * DEG);
 
   const sx = pose.squash.x;
   const sy = pose.squash.y;
@@ -156,5 +167,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     scale,
     facing,
     squash: { x: sx, y: sy },
+    spin: pose.spin,
+    torso: pose.torso,
   };
 }

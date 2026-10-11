@@ -127,6 +127,10 @@ export type Pose = {
   lean: number;
   squash: { x: number; y: number };
   headTilt: number;
+  /** The whole body turned about the pelvis, degrees, counter-clockwise facing right: flat on his back is +90. */
+  spin: number;
+  /** The torso's front-to-back scale: breathing and the belly's follow-through. 1 as painted. */
+  torso: number;
 };
 
 export const REST_POSE: Pose = {
@@ -135,4 +139,6 @@ export const REST_POSE: Pose = {
   lean: 0,
   squash: { x: 1, y: 1 },
   headTilt: 0,
+  spin: 0,
+  torso: 1,
 };

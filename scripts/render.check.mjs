@@ -9,6 +9,7 @@ import { REST_POSE } from "../src/sim/rig/skeleton.ts";
 import { placeWord, wordBox } from "../src/render/words.ts";
 import { hangTowel, palmTurn, towelAtFace, towelChain } from "../src/render/towel.ts";
 import { ACTIONS } from "../src/sim/rig/actions.ts";
+import { pose } from "../src/sim/rig/pose.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
   assert.equal(shouldStepDown({ workMs: 2, intervalMs: 16.7, refreshMs: 16.7 }), false);
@@ -181,4 +182,22 @@ test("his left hand turns palm-in as it comes up to his face, smoothly, and back
     for (const u of [0, 1]) assert.equal(palmTurn(solve(ACTIONS.wipe(u), facing, 0.26)), 1, `facing ${facing}: as painted at the hang`);
     assert.ok(worst < 0.5, `facing ${facing}: the hand turns over several frames, at most ${worst.toFixed(2)} a frame`);
   }
+});
+
+test("the torso scale widens the shirt front to back about the spine and moves nothing else", () => {
+  const base = solve(REST_POSE, -1, 0.26);
+  const wide = solve(pose({ torso: 1.04 }), -1, 0.26);
+  const a = skin(base);
+  const b = skin(wide);
+  cuts.rig.bones.forEach(([p, c], v) => {
+    const dx = b[v * 2] - a[v * 2];
+    const dy = b[v * 2 + 1] - a[v * 2 + 1];
+    if (c !== "chest" && c !== "neck") {
+      assert.ok(Math.hypot(dx, dy) < 1e-6, `${p}->${c} unmoved`);
+      return;
+    }
+    const o = base.joints[p];
+    assert.ok(Math.abs(b[v * 2] - o.x - 1.04 * (a[v * 2] - o.x)) < 1e-6, `${p}->${c} widened`);
+    assert.ok(Math.abs(dy) < 1e-6, `${p}->${c} no taller`);
+  });
 });

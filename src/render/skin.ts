@@ -94,12 +94,14 @@ export function skinLayer(out: Float32Array, layer: RigLayer, rig: RigFile, solv
       sin = Math.sin(a);
     const [bx, by] = rig.joints[p];
     const j = solved.joints[p];
-    // world = origin + R(a) · K · (−f·(x − bx), y − by)
+    // The torso's bones carry the breath and the belly: their pixels scale front to back about the spine.
+    const t = c === "chest" || c === "neck" ? solved.torso : 1;
+    // world = origin + R(a) · K · (−f·t·(x − bx), y − by)
     m[b * 6] = j.x / sx;
     m[b * 6 + 1] = j.y / sy;
-    m[b * 6 + 2] = -f * K * cos;
+    m[b * 6 + 2] = -f * K * cos * t;
     m[b * 6 + 3] = -K * sin;
-    m[b * 6 + 4] = -f * K * sin;
+    m[b * 6 + 4] = -f * K * sin * t;
     m[b * 6 + 5] = K * cos;
     m[b * 6] -= m[b * 6 + 2] * bx + m[b * 6 + 3] * by;
     m[b * 6 + 1] -= m[b * 6 + 4] * bx + m[b * 6 + 5] * by;

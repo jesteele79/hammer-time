@@ -297,3 +297,36 @@ test("through the scrub his left hand comes up and wipes his face", () => {
       assert.ok(inside, `facing ${facing}, u ${u.toFixed(2)}: the palm is on his face`);
     }
 });
+
+import { BACK } from "../src/sim/rig/ground.ts";
+
+test("a spin turns the whole body about the pelvis and the head with it, level to his body within 8 degrees", () => {
+  for (const facing of [1, -1]) {
+    const upright = solve(pose({ rot: { ...HOLD, shoulderFar: FREE } }), facing, 0.26);
+    const over = solve(pose({ rot: { ...HOLD, shoulderFar: FREE }, spin: 90 }), facing, 0.26);
+    const p0 = upright.joints.pelvis,
+      p1 = over.joints.pelvis;
+    assert.ok(Math.hypot(p1.x - p0.x, p1.y - p0.y) < 1e-6, "the pelvis stays put");
+    const d0 = { x: upright.joints.neck.x - p0.x, y: upright.joints.neck.y - p0.y };
+    const d1 = { x: over.joints.neck.x - p1.x, y: over.joints.neck.y - p1.y };
+    // A quarter turn backward: on screen, up becomes behind him.
+    assert.ok(Math.abs(d1.x - d0.y * facing) < 1e-6 && Math.abs(d1.y + d0.x * facing) < 1e-6, `facing ${facing}: ${JSON.stringify(d1)}`);
+    const rel = -over.parts.head.rotation * facing - (over.spin * Math.PI) / 180;
+    assert.ok(Math.abs(rel) <= (8 * Math.PI) / 180 + 1e-9, `the head turns with him: ${rel}`);
+  }
+});
+
+test("'body' grounding stands him on his soles, and lays him flat on his back when he is down", () => {
+  const stand = solve(REST_POSE, 1, 0.26);
+  assert.ok(Math.abs(groundShift(stand, "body") - groundShift(stand, "planted")) < 1e-9);
+  for (const facing of [1, -1]) {
+    const down = solve(pose({ spin: 90 }), facing, 0.26);
+    const dy = groundShift(down, "body");
+    const j = down.joints;
+    const spine = Math.max(j.pelvis.y, j.chest.y, j.neck.y) + dy;
+    // His back, his head or his heels touch the floor; his spine lies just above it, never in it.
+    assert.ok(spine <= -BACK * down.scale + 1e-6, `facing ${facing}: the spine is ${spine} px down`);
+    assert.ok(spine > -BACK * down.scale - 30, `facing ${facing}: flat on the floor, not floating: ${spine}`);
+    for (const name of ["heelNear", "toeNear", "heelFar", "toeFar"]) assert.ok(j[name].y + dy <= 1e-6, `${name} out of the floor`);
+  }
+});
