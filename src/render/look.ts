@@ -5,6 +5,7 @@ import { KEY_BINDINGS, emptyInput, inputFromKeys, type Action } from "../sim/inp
 import { floorAt } from "../sim/physics";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
 import { solve } from "../sim/rig/fk";
+import { groundModeFor, groundShift } from "../sim/rig/ground";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
 import type { HeroState, Stage } from "../sim/types";
@@ -168,12 +169,13 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
 
     const pose = animate(h, dt);
     // Solved facing left, the plates' own facing; the character mirrors itself for the right.
-    const solved = solve(pose, -1, HEAD_SCALE, headPlate);
+    const solved = solve(pose, h.facing, HEAD_SCALE, headPlate);
     const floorY = supportY(x, y);
     const expression: Expression = h.state === "idle" && h.stateT > 4 ? "bored" : "neutral";
-    character.container.position.set(x, y);
+    const drawY = y + groundShift(solved, groundModeFor(clip, h.onGround));
+    character.container.position.set(x, drawY);
     character.container.zIndex = y;
-    character.apply(solved, expression, h.facing, floorY - y, scene.ambient);
+    character.apply(solved, expression, floorY - drawY, scene.ambient);
 
     if (h.state !== lastState) {
       if (h.state === "land") particles.emit("dust", x, floorY, 10);
@@ -216,9 +218,10 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       world.hero.x = x;
       world.hero.vx = 0;
       cur = prev = world.snapshot();
-      const solved = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), -1, HEAD_SCALE, headPlate);
-      character.container.position.set(x, 0);
-      character.apply(solved, "neutral", 1, 0, scene.ambient);
+      const solved = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), 1, HEAD_SCALE, headPlate);
+      const dy = groundShift(solved, "planted");
+      character.container.position.set(x, dy);
+      character.apply(solved, "neutral", -dy, scene.ambient);
     };
     window.__nextBoard = createBoards(render, scene, registry, particles, placeHero);
   }

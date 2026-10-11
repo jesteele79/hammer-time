@@ -2,13 +2,14 @@ import { Container, Graphics, RenderTexture } from "pixi.js";
 import type { Costume, Expression, Registry } from "../art/registry";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
 import { solve } from "../sim/rig/fk";
+import { groundModeFor, groundShift } from "../sim/rig/ground";
 import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
 import type { Particles } from "./particles";
 import type { Scene } from "./scene";
 import { label } from "./text";
 
-export type BoardSpec = { kind: "clips" } | { kind: "heads" } | { kind: "costumes" } | { kind: "lobby" };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -36,6 +37,8 @@ export function createBoards(
 ): Boards {
   const { app } = render;
 
+  // Twice the board's size by default: what a high-density screen shows, and sharp when zoomed.
+  let resolution = 2;
   const sheet = async (cols: number, rows: number, cells: Cell[], rowLabels: string[], colLabels: string[]) => {
     const board = new Container();
     const width = cols * CELL_W + 150;
@@ -56,23 +59,22 @@ export function createBoards(
     });
     const characters = cells.map((cell) => {
       const ch = createCharacter(registry, cell.costume);
-      const plate = registry.hammer.heads.neutral!;
-      const solved = solve(CLIPS[cell.clip](cell.u, CTX), -1, cell.headScale, plate);
-      ch.container.position.set(150 + cell.col * CELL_W + CELL_W / 2, 50 + cell.row * CELL_H + CELL_H - 32);
-      ch.apply(solved, cell.expression, 1, 0);
       board.addChild(ch.container);
       return ch;
     });
     await Promise.all(characters.map((c) => c.ready));
     for (const [i, ch] of characters.entries()) {
       const cell = cells[i];
-      ch.apply(solve(CLIPS[cell.clip](cell.u, CTX), -1, cell.headScale, registry.hammer.heads.neutral!), cell.expression, 1, 0);
+      const solved = solve(CLIPS[cell.clip](cell.u, CTX), 1, cell.headScale, registry.hammer.heads.neutral!);
+      const dy = groundShift(solved, groundModeFor(cell.clip, true));
+      ch.container.position.set(150 + cell.col * CELL_W + CELL_W / 2, 50 + cell.row * CELL_H + CELL_H - 32 + dy);
+      ch.apply(solved, cell.expression, -dy);
     }
     return snapshot(board, width, height);
   };
 
   const snapshot = async (container: Container, width: number, height: number) => {
-    const target = RenderTexture.create({ width, height, resolution: 1 });
+    const target = RenderTexture.create({ width, height, resolution });
     app.renderer.render({ container, target });
     const url = await app.renderer.extract.base64({ target, format: "png" });
     target.destroy(true);
@@ -94,7 +96,7 @@ export function createBoards(
       scene.camera.x = x + 200;
       scene.camera.y = -187;
       scene.fit();
-      const target = RenderTexture.create({ width: 1920, height: 1080, resolution: 1 });
+      const target = RenderTexture.create({ width: 1920, height: 1080, resolution });
       app.renderer.render({ container: app.stage, target });
       frames.push(await app.renderer.extract.base64({ target, format: "png" }));
       target.destroy(true);
@@ -110,6 +112,7 @@ export function createBoards(
 
   return {
     async render(spec) {
+      resolution = spec.resolution ?? 2;
       switch (spec.kind) {
         case "clips": {
           const cells: Cell[] = [];

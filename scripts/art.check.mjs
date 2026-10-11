@@ -3,7 +3,18 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { keyOut, registerHead, registerAligned, alignTo, gateExpression, sliceBody, buildStrip } from "./art-cut.mjs";
+import {
+  keyOut,
+  registerHead,
+  registerAligned,
+  alignTo,
+  gateExpression,
+  pushPullFill,
+  separateLayers,
+  buildMesh,
+  skinWeights,
+  LAYER_Z,
+} from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
 async function plate(dx = 0, dy = 0, scale = 1, { fill = "#b5642a", stub = 60, height = 400 } = {}) {
@@ -102,51 +113,134 @@ test("every owner file still matches art/manifest.json", () => {
   }
 });
 
-test("an arm lays out as one strip, joints left to right along an opaque center row", async () => {
-  const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
-  const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
-  const parts = await sliceBody(keyed, cuts);
-  const strip = await buildStrip([parts.upperArmNear, parts.forearmNear]);
-  assert.ok(strip.width > strip.height, `wider than tall: ${strip.width}x${strip.height}`);
-  assert.equal(strip.joints.length, 3);
-  assert.ok(strip.joints[0] < strip.joints[1] && strip.joints[1] < strip.joints[2], `joints advance: ${strip.joints}`);
-  const { data, info } = await sharp(strip.png).raw().toBuffer({ resolveWithObject: true });
-  const alphaAt = (x, y) => data[(Math.round(y) * info.width + Math.round(x)) * 4 + 3];
-  const [s, e, w] = strip.joints;
-  for (const x of [(s + e) / 2, e, (e + w) / 2]) assert.ok(alphaAt(x, strip.centerY) > 127, `paint on the bone at x=${x}`);
+const CUTS = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
+let affliction;
+const layersOf = async () =>
+  (affliction ??= await separateLayers(await keyOut(readFileSync("art/incoming/hammer/body-affliction.png")), CUTS));
+
+test("push-pull paints a hole in a gradient from its edges", () => {
+  const W = 64,
+    H = 32;
+  const rgba = Buffer.alloc(W * H * 4);
+  const known = new Uint8Array(W * H),
+    target = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      const hole = x >= 20 && x < 44 && y >= 8 && y < 24;
+      if (hole) target[i] = 1;
+      else {
+        known[i] = 1;
+        rgba.set([x * 4, 100, 200 - x * 2, 255], i * 4);
+      }
+    }
+  pushPullFill(rgba, W, H, known, target);
+  for (let i = 0; i < W * H; i++) {
+    if (!target[i]) continue;
+    assert.equal(rgba[i * 4 + 3], 255, "every hole pixel is painted");
+    assert.ok(rgba[i * 4] >= 76 && rgba[i * 4] <= 176, `red ${rgba[i * 4]} stays within the edges' range`);
+  }
+  const mid = (16 * W + 32) * 4;
+  assert.ok(Math.abs(rgba[mid] - 128) < 24, `the middle follows the gradient: ${rgba[mid]}`);
 });
 
-test("a body slices into eleven opaque parts with pivots inside or just above them", async () => {
-  const cuts = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
+test("the layers split the painted body and put it back together exactly at rest", async () => {
   const keyed = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
-  const parts = await sliceBody(keyed, cuts);
-  const names = [
-    "torso",
-    "hips",
-    "sleeveNear",
-    "upperArmNear",
-    "forearmNear",
-    "upperArmFar",
-    "forearmFar",
-    "thighNear",
-    "shinNear",
-    "thighFar",
-    "shinFar",
-  ];
-  assert.deepEqual(Object.keys(parts).sort(), names.sort());
-  for (const name of names) {
-    const p = parts[name];
-    const { data, info } = await sharp(p.png).raw().toBuffer({ resolveWithObject: true });
-    let opaque = 0;
-    for (let i = 3; i < data.length; i += 4) if (data[i] > 127) opaque++;
-    assert.ok(opaque > 0.08 * info.width * info.height, `${name} has substance`);
-    // The far limbs render from the near strips; their own plates are kept for reach poses.
-    if (name.endsWith("Far")) continue;
-    assert.ok(
-      // A thigh hangs from a hip under the shorts and an arm from a shoulder under a sleeve:
-      // the pivot may sit up to 120 px above the part's own pixels.
-      p.pivot.x >= 0 && p.pivot.x <= p.width && p.pivot.y >= -120 && p.pivot.y <= p.height,
-      `${name} pivot inside or just above`,
-    );
+  const { data } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { W, H, layers, owner } = await layersOf();
+  let wrong = 0,
+    extra = 0,
+    owned = 0;
+  for (let i = 0; i < W * H; i++) {
+    let top = null;
+    for (const name of LAYER_Z) if (layers[name].rgba[i * 4 + 3] > 0) top = name;
+    if (owner[i] < 0) {
+      if (top) extra++;
+      continue;
+    }
+    owned++;
+    const px = layers[top].rgba.subarray(i * 4, i * 4 + 4);
+    if (px[0] !== data[i * 4] || px[1] !== data[i * 4 + 1] || px[2] !== data[i * 4 + 2] || px[3] !== data[i * 4 + 3])
+      wrong++;
+  }
+  assert.ok(owned > 300000, `the layers take the body: ${owned} pixels`);
+  assert.equal(wrong, 0, "the frontmost layer shows the painted pixel");
+  assert.equal(extra, 0, "nothing is drawn where the painting is empty");
+});
+
+test("the torso runs on behind the near arm, the far arm behind the torso, and neither past its outline", async () => {
+  const { W, layers } = await layersOf();
+  const at = (name, x, y) => layers[name].rgba.subarray((y * W + x) * 4, (y * W + x) * 4 + 4);
+  const shirt = at("torso", 240, 700);
+  assert.equal(shirt[3], 255, "the shirt is painted in behind the forearm");
+  assert.ok(shirt[0] + shirt[1] + shirt[2] < 3 * 90, `and it is dark like the shirt: ${[...shirt]}`);
+  assert.equal(at("torso", 150, 880)[3], 0, "nothing of the torso in front of the belly, behind the hand");
+  const arm = at("armFar", 300, 540);
+  assert.equal(arm[3], 255, "the far arm continues behind the torso");
+  assert.ok(arm[0] > arm[2] + 40, `in skin tones: ${[...arm]}`);
+  assert.equal(at("armNear", 330, 470)[3], 0, "the near arm keeps none of the sleeve");
+  assert.equal(at("armNear", 160, 880)[3], 255, "the near arm keeps its hand");
+});
+
+test("a layer's mesh covers every pixel it paints", async () => {
+  const { W, H, layers } = await layersOf();
+  for (const name of LAYER_Z) {
+    const alpha = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) alpha[i] = layers[name].rgba[i * 4 + 3] > 0 ? 1 : 0;
+    const mesh = buildMesh(alpha, W, H, 14);
+    const covered = new Set();
+    for (let t = 0; t < mesh.indices.length; t += 6) {
+      const x = mesh.positions[mesh.indices[t] * 2],
+        y = mesh.positions[mesh.indices[t] * 2 + 1];
+      covered.add(`${Math.round((x - mesh.x0) / mesh.cell)},${Math.round((y - mesh.y0) / mesh.cell)}`);
+    }
+    let missed = 0;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++)
+        if (alpha[y * W + x] && !covered.has(`${Math.floor((x - mesh.x0) / mesh.cell)},${Math.floor((y - mesh.y0) / mesh.cell)}`))
+          missed++;
+    assert.equal(missed, 0, `${name}: every painted pixel lies in a cell of the mesh`);
+  }
+});
+
+test("skin weights sum to one, follow the limb, and blend at the elbow", async () => {
+  const rig = CUTS.rig;
+  const boneId = (p, c) => rig.bones.findIndex(([a, b]) => a === p && b === c);
+  const positions = [rig.joints.handNear[0], rig.joints.handNear[1], ...rig.joints.elbowNear, 300, 560, 180, 840];
+  const { bones, weights } = skinWeights(positions, rig, "armNear");
+  for (let v = 0; v < positions.length / 2; v++) {
+    const sum = [0, 1, 2, 3].reduce((s, k) => s + weights[v * 4 + k], 0);
+    assert.ok(Math.abs(sum - 1) < 1e-6, `vertex ${v} weights sum to ${sum}`);
+  }
+  const weightOf = (v, bone) => [0, 1, 2, 3].reduce((s, k) => s + (bones[v * 4 + k] === bone ? weights[v * 4 + k] : 0), 0);
+  assert.equal(weightOf(0, boneId("wristNear", "handNear")), 1, "the fingertips follow the hand");
+  const upper = weightOf(1, boneId("shoulderNear", "elbowNear")),
+    fore = weightOf(1, boneId("elbowNear", "wristNear"));
+  assert.ok(upper > 0.3 && fore > 0.3, `the elbow blends upper arm ${upper} and forearm ${fore}`);
+  assert.equal(weightOf(2, boneId("shoulderNear", "elbowNear")), 1, "the biceps follows the upper arm");
+  assert.ok(weightOf(3, boneId("wristNear", "handNear")) > 0.9, "the palm follows the hand");
+  const torso = skinWeights([300, 880, 400, 330], rig, "torso");
+  assert.equal(torso.bones[0], boneId("pelvis", "hipNear"), "the waistband follows the hips");
+  assert.equal(torso.weights[0], 1);
+  assert.equal(torso.bones[4], boneId("chest", "neck"), "the collar follows the chest");
+});
+
+test("no costume loses a painted pixel below the collar", async () => {
+  for (const costume of ["affliction", "scrubs", "suit", "banquet"]) {
+    const keyed = await keyOut(readFileSync(`art/incoming/hammer/body-${costume}.png`));
+    const { data } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const { W, H, owner } = await separateLayers(keyed, CUTS, costume);
+    let lost = 0;
+    const where = new Map();
+    for (let y = 340; y < H; y++)
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        if (data[i * 4 + 3] < 128 || owner[i] >= 0) continue;
+        lost++;
+        const k = `${Math.floor(x / 50) * 50},${Math.floor(y / 50) * 50}`;
+        where.set(k, (where.get(k) ?? 0) + 1);
+      }
+    const worst = [...where].sort((a, b) => b[1] - a[1]).slice(0, 4);
+    assert.ok(lost < 40, `${costume}: ${lost} painted pixels belong to no layer, most near ${JSON.stringify(worst)}`);
   }
 });

@@ -10,6 +10,8 @@ const FAR_FLOOR_LINE = 700;
 const FAR_SCALE = 1.4;
 const FLOOR_DEPTH = 120;
 const FLOOR_TOP = 26;
+/** The floor's top runs this far back toward the wall, so the far foot (a step back in the painting) stands on it. */
+const FLOOR_BACK = 34;
 const OUTLINE = 4;
 const MID_OUTLINE = 3;
 
@@ -61,13 +63,15 @@ function drawFloors(g: Graphics, stage: Stage) {
     g.poly([f.x0, f.y0 + FLOOR_TOP, f.x1, f.y1 + FLOOR_TOP, f.x1, f.y1 + FLOOR_DEPTH, f.x0, f.y0 + FLOOR_DEPTH]).fill(
       marble.base,
     );
-    g.poly([f.x0, f.y0, f.x1, f.y1, f.x1, f.y1 + FLOOR_TOP, f.x0, f.y0 + FLOOR_TOP]).fill(PALETTE.marbleTop);
+    g.poly([f.x0, f.y0 - FLOOR_BACK, f.x1, f.y1 - FLOOR_BACK, f.x1, f.y1 + FLOOR_TOP, f.x0, f.y0 + FLOOR_TOP]).fill(
+      PALETTE.marbleTop,
+    );
     // Hard-edged shadow under the lip, as if lit from the upper left.
     g.poly([f.x0, f.y0 + FLOOR_TOP, f.x1, f.y1 + FLOOR_TOP, f.x1, f.y1 + FLOOR_TOP + 10, f.x0, f.y0 + FLOOR_TOP + 10]).fill(
       marble.shadow,
     );
-    g.poly([f.x0, f.y0 + 6, f.x1, f.y1 + 6, f.x1, f.y1 + 11, f.x0, f.y0 + 11]).fill({ color: "#ffffff", alpha: 0.4 });
-    g.poly([f.x0, f.y0, f.x1, f.y1, f.x1, f.y1 + FLOOR_DEPTH, f.x0, f.y0 + FLOOR_DEPTH]).stroke({
+    g.poly([f.x0, f.y0 + 16, f.x1, f.y1 + 16, f.x1, f.y1 + 20, f.x0, f.y0 + 20]).fill({ color: "#ffffff", alpha: 0.4 });
+    g.poly([f.x0, f.y0 - FLOOR_BACK, f.x1, f.y1 - FLOOR_BACK, f.x1, f.y1 + FLOOR_DEPTH, f.x0, f.y0 + FLOOR_DEPTH]).stroke({
       width: OUTLINE,
       color: PALETTE.outline,
       join: "round",

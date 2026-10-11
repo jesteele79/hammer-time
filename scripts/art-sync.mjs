@@ -1,6 +1,7 @@
 // Turns the owner's plates under art/incoming into registered game art under
 // public/art, and records every owner file's hash in art/manifest.json.
 // Usage: node scripts/art-sync.mjs [--overlay] [--strict] [--accept <owner file>]
+//   --overlay writes each body's layers side by side to artifacts/body-layers-<costume>.png
 //   --strict  refuse a misaligned expression plate instead of skipping it (art:sync, tests)
 //   --accept  re-record one owner file the owner regenerated on purpose
 import { createHash } from "node:crypto";
@@ -14,8 +15,10 @@ import {
   alignTo,
   gateExpression,
   ALIGN_MIN,
-  sliceBody,
-  buildStrip,
+  separateLayers,
+  buildMesh,
+  skinWeights,
+  LAYER_Z,
 } from "./art-cut.mjs";
 import { ink } from "./ink.mjs";
 
@@ -24,8 +27,10 @@ const HAMMER_IN = "art/incoming/hammer";
 const MANIFEST = "art/manifest.json";
 const EXPRESSIONS = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const COSTUMES = ["affliction", "scrubs", "suit", "banquet"];
-// The chains a rope bends as one piece; the far limbs reuse the near strips.
-const STRIPS = { armNear: ["upperArmNear", "forearmNear"], legNear: ["thighNear", "shinNear"], torso: ["torso"] };
+// Mesh cells in crop pixels, and the size the layer textures are stored at (the game draws the
+// body at about a quarter of the crop's size, twice that on a high-density screen).
+const MESH_CELL = 14;
+const TEXTURE_SCALE = 0.5;
 const args = process.argv.slice(2);
 const overlay = args.includes("--overlay");
 const strict = args.includes("--strict");
@@ -129,71 +134,89 @@ async function props(registry) {
   }
 }
 
+/** Each body as skinned layers: textures, meshes in the crop's pixels and bone weights in one rig file. */
 async function bodies(registry) {
   const cutsFile = "art/cuts/hammer-body.json";
   if (!existsSync(cutsFile)) {
-    console.warn("no art/cuts/hammer-body.json; bodies are not sliced");
+    console.warn("no art/cuts/hammer-body.json; bodies are not rigged");
     return;
   }
   const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
+  const { rig } = cuts;
+  const span = rig.sole - rig.joints.neck[1];
   for (const costume of COSTUMES) {
     const file = join(HAMMER_IN, `body-${costume}.png`);
     if (!existsSync(file)) continue;
     const keyed = await keyOut(readFileSync(file));
-    const parts = await sliceBody(keyed, cuts, costume);
-    registry.hammer.bodies[costume] = { parts: {}, strips: {}, span: cuts.sole - cuts.collar };
-    for (const [name, part] of Object.entries(parts)) {
+    const { W, H, layers } = await separateLayers(keyed, cuts, costume);
+    const out = { version: 2, span, root: [rig.rootX, rig.sole], joints: rig.joints, bones: rig.bones, layers: {} };
+    const sheet = [];
+    for (const name of LAYER_Z) {
+      const { rgba } = layers[name];
+      const alpha = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3] > 0 ? 1 : 0;
+      const mesh = buildMesh(alpha, W, H, MESH_CELL);
+      const skin = { ...rig.skin, [name]: { ...rig.skin[name], ...(cuts.overrides?.[costume]?.skin?.[name] ?? {}) } };
+      const { bones, weights } = skinWeights(mesh.positions, { ...rig, skin }, name);
+      // The texture covers the mesh's cells exactly, padded with clear pixels past the crop.
+      const left = Math.max(0, mesh.x0),
+        top = Math.max(0, mesh.y0);
+      const right = Math.min(W, mesh.x0 + mesh.width),
+        bottom = Math.min(H, mesh.y0 + mesh.height);
+      const full = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } })
+        .extract({ left, top, width: right - left, height: bottom - top })
+        .extend({
+          left: left - mesh.x0,
+          top: top - mesh.y0,
+          right: mesh.x0 + mesh.width - right,
+          bottom: mesh.y0 + mesh.height - bottom,
+          background: { r: 0, g: 0, b: 0, alpha: 0 },
+        })
+        .png()
+        .toBuffer();
+      if (overlay) sheet.push(full);
       const outFile = `hammer/${costume}-${name}.png`;
-      writeFileSync(join(OUT, outFile), part.png);
-      registry.hammer.bodies[costume].parts[name] = {
+      await sharp(full)
+        .resize({ width: Math.round(mesh.width * TEXTURE_SCALE), kernel: "lanczos3" })
+        .png()
+        .toFile(join(OUT, outFile));
+      out.layers[name] = {
         file: outFile,
-        width: part.width,
-        height: part.height,
-        pivot: part.pivot,
-        tip: part.tip,
+        x: mesh.x0,
+        y: mesh.y0,
+        width: mesh.width,
+        height: mesh.height,
+        positions: mesh.positions,
+        indices: mesh.indices,
+        bones: [...bones],
+        weights: [...weights].map((w) => Math.round(w * 1000) / 1000),
       };
     }
-    for (const [name, chain] of Object.entries(STRIPS)) {
-      if (!chain.every((p) => parts[p])) continue;
-      const strip = await buildStrip(chain.map((p) => parts[p]));
-      const outFile = `hammer/${costume}-strip-${name}.png`;
-      writeFileSync(join(OUT, outFile), strip.png);
-      registry.hammer.bodies[costume].strips[name] = {
-        file: outFile,
-        width: strip.width,
-        height: strip.height,
-        centerY: strip.centerY,
-        joints: strip.joints,
-      };
-    }
-    console.log(`body ${costume}: ${Object.keys(parts).length} parts (crop offset ${keyed.offset.x},${keyed.offset.y}, ${keyed.width}x${keyed.height})`);
-    if (overlay && costume === "affliction") await drawOverlay(keyed, cuts);
+    const rigFile = `hammer/${costume}-rig.json`;
+    writeFileSync(join(OUT, rigFile), JSON.stringify(out));
+    registry.hammer.bodies[costume] = { rig: rigFile, span };
+    const verts = Object.values(out.layers).reduce((n, l) => n + l.positions.length / 2, 0);
+    console.log(`body ${costume}: ${LAYER_Z.length} layers, ${verts} vertices (crop ${keyed.width}x${keyed.height})`);
+    if (overlay) await drawLayers(costume, sheet);
   }
 }
 
-/** The polygons and pivots drawn over the keyed body, for checking the cuts by eye. */
-async function drawOverlay(keyed, cuts) {
-  const off = cuts.space === "crop" ? { x: 0, y: 0 } : keyed.offset;
-  const colors = ["#ff3b3b", "#3bb0ff", "#ffd23b", "#3bff7a", "#ff7ad9", "#ffa03b", "#8a3bff", "#3bfff0", "#c0ff3b", "#ff3b9b"];
-  const shapes = Object.entries(cuts.parts)
-    .map(([name, p], i) => {
-      const pts = p.polygon.map(([x, y]) => `${x - off.x},${y - off.y}`).join(" ");
-      const [px, py] = [p.pivot[0] - off.x, p.pivot[1] - off.y];
-      const [tx, ty] = [p.tip[0] - off.x, p.tip[1] - off.y];
-      const c = colors[i % colors.length];
-      return `<polygon points="${pts}" fill="${c}" fill-opacity="0.18" stroke="${c}" stroke-width="3"/>
-        <circle cx="${px}" cy="${py}" r="9" fill="${c}"/><circle cx="${tx}" cy="${ty}" r="6" fill="#fff" stroke="${c}" stroke-width="3"/>
-        <text x="${px + 12}" y="${py - 8}" font-size="26" font-family="sans-serif" fill="${c}" stroke="#000" stroke-width="1">${name}</text>`;
-    })
-    .join("\n");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${keyed.width}" height="${keyed.height}">${shapes}</svg>`;
+/** The layers side by side on a dark ground, painted-in parts and all, for checking the cuts by eye. */
+async function drawLayers(costume, sheet) {
+  const metas = await Promise.all(sheet.map((png) => sharp(png).metadata()));
+  const height = Math.max(...metas.map((m) => m.height));
+  let x = 0;
+  const comps = sheet.map((input, i) => {
+    const c = { input, left: x, top: 0 };
+    x += metas[i].width + 12;
+    return c;
+  });
   mkdirSync("artifacts", { recursive: true });
-  await sharp(keyed.png)
-    .flatten({ background: "#223" })
-    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+  await sharp({ create: { width: x, height, channels: 4, background: "#2a2f3a" } })
+    .composite(comps)
     .png()
-    .toFile("artifacts/body-cuts.png");
-  console.log("wrote artifacts/body-cuts.png");
+    .toFile(`artifacts/body-layers-${costume}.png`);
+  console.log(`wrote artifacts/body-layers-${costume}.png`);
 }
 
 /** Far planes: the owner's painted backdrop when present, else the inked venue photo. */

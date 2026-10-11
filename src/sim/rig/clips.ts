@@ -8,8 +8,12 @@ export type Clip = (u: number, ctx: ClipCtx) => Pose;
 const TAU = Math.PI * 2;
 const bump = (u: number, c: number, w = 0.07) => Math.exp(-(((u - c) / w) ** 2));
 
-/** Where the handle points while carried: up and back over the near shoulder, world degrees. */
-export const CARRY_DEG = 140;
+/**
+ * Where the handle points while carried, world degrees: the near hand stays low
+ * where the painting has it, and the handle runs up across the chest so the
+ * mallet's head rides behind the shoulder.
+ */
+export const CARRY_DEG = 130;
 
 /** The near hand keeps the handle at a fixed world angle whatever the arm does. */
 function carry(rot: Partial<Record<JointName, number>>, lean: number, worldDeg = CARRY_DEG) {
@@ -24,21 +28,26 @@ function carry(rot: Partial<Record<JointName, number>>, lean: number, worldDeg =
   return rot;
 }
 
-// The hand rests the handle on the shoulder; the chest rises and the body sways with the breath.
+/** Turns each ankle back by part of its leg's swing so a planted shoe stays nearly flat. */
+function feet(rot: Partial<Record<JointName, number>>, keep = 0.75) {
+  rot.ankleNear = (rot.ankleNear ?? 0) - keep * ((rot.hipNear ?? 0) + (rot.kneeNear ?? 0));
+  rot.ankleFar = (rot.ankleFar ?? 0) - keep * ((rot.hipFar ?? 0) + (rot.kneeFar ?? 0));
+  return rot;
+}
+
+// Every clip turns joints away from the painted stance (arms hanging forward,
+// elbows soft, the far leg a step ahead). Idle is the painting, breathing.
 const idle: Clip = (u) => {
   const breath = Math.sin(TAU * u);
   return pose({
-    rot: carry(
-      { shoulderNear: -4 - 1.5 * breath, elbowNear: 100, shoulderFar: 3 + 1.5 * breath, elbowFar: 8, chest: 1.2 * breath },
-      0,
-    ),
+    rot: carry({ shoulderNear: -1.5 * breath, shoulderFar: 1.5 * breath, chest: 1.2 * breath }, 0.8 * breath),
     lean: 0.8 * breath,
     headTilt: 0.6 * breath,
     squash: { x: 1, y: 1 + 0.008 * breath },
   });
 };
 
-// The mallet arm barely swings: the handle rests on the shoulder. The free arm counters the legs.
+// The mallet arm barely swings; the free arm counters the near leg. Grounding sets the height.
 const walk: Clip = (u) => {
   const phi = TAU * u;
   const s = Math.sin(phi);
@@ -46,20 +55,18 @@ const walk: Clip = (u) => {
   const lean = 3;
   return pose({
     rot: carry(
-      {
-        hipNear: 22 * s,
-        kneeNear: -38 * Math.max(0, c),
-        hipFar: -22 * s,
-        kneeFar: -38 * Math.max(0, -c),
-        shoulderNear: -4 - 5 * s,
-        elbowNear: 98,
-        shoulderFar: 4 + 14 * s,
-        elbowFar: 6 + 8 * Math.max(0, s),
-      },
+      feet({
+        hipNear: 20 * s,
+        kneeNear: -34 * Math.max(0, c),
+        hipFar: -20 * s,
+        kneeFar: -34 * Math.max(0, -c),
+        shoulderNear: -3 * s,
+        shoulderFar: -8 + 13 * s,
+        elbowFar: 4 + 10 * Math.max(0, s),
+      }),
       lean,
     ),
     lean,
-    root: { x: 0, y: -3 + 3 * Math.cos(2 * phi) },
   });
 };
 
@@ -71,39 +78,40 @@ const run: Clip = (u) => {
   const flight = bump(u, 0.2) + bump(u, 0.7);
   return pose({
     rot: carry(
-      {
-        hipNear: 34 * s,
-        kneeNear: -62 * Math.max(0, c),
-        hipFar: -34 * s,
-        kneeFar: -62 * Math.max(0, -c),
-        shoulderNear: -4 - 6 * s,
-        elbowNear: 102,
-        shoulderFar: 4 + 26 * s,
-        elbowFar: 40 + 20 * Math.max(0, s),
-      },
+      feet(
+        {
+          hipNear: 32 * s,
+          kneeNear: -8 - 56 * Math.max(0, c),
+          hipFar: -32 * s,
+          kneeFar: -8 - 56 * Math.max(0, -c),
+          shoulderNear: -6 * s,
+          elbowNear: 6,
+          shoulderFar: -14 + 18 * s,
+          elbowFar: 14 + 18 * Math.max(0, s),
+        },
+        0.6,
+      ),
       lean,
     ),
     lean,
-    root: { x: 0, y: -5 + 5 * Math.cos(2 * phi) + 14 * flight },
+    root: { x: 0, y: 14 * flight },
   });
 };
 
 const jump: Clip = (u) => {
   const k = 1 - smooth(u);
   return pose({
-    rot: carry(
-      {
-        shoulderNear: -30,
-        elbowNear: 80,
-        shoulderFar: -35,
-        elbowFar: 20,
-        hipNear: 25,
-        kneeNear: -30,
-        hipFar: 15,
-        kneeFar: -35,
-      },
-      0,
-    ),
+    rot: carry({
+      shoulderNear: -8,
+      shoulderFar: -28,
+      elbowFar: 18,
+      hipNear: 22,
+      kneeNear: -32,
+      hipFar: 12,
+      kneeFar: -38,
+      ankleNear: 14,
+      ankleFar: 14,
+    }, 0),
     squash: { x: 1 - 0.05 * k, y: 1 + 0.06 * k },
   });
 };
@@ -113,14 +121,15 @@ const fall: Clip = () => {
   return pose({
     rot: carry(
       {
-        shoulderNear: -5,
-        elbowNear: 75,
-        shoulderFar: 25,
-        elbowFar: 15,
-        hipNear: 12,
-        kneeNear: -20,
-        hipFar: -12,
-        kneeFar: -10,
+        shoulderNear: -4,
+        shoulderFar: 6,
+        elbowFar: 16,
+        hipNear: 10,
+        kneeNear: -16,
+        hipFar: -8,
+        kneeFar: -12,
+        ankleNear: 10,
+        ankleFar: 8,
       },
       lean,
     ),
@@ -131,59 +140,42 @@ const fall: Clip = () => {
 const land: Clip = (u) => {
   const k = 1 - out(u);
   return pose({
-    rot: carry(
-      {
-        shoulderNear: -4,
-        elbowNear: 100,
-        shoulderFar: 4,
-        elbowFar: 6,
-        hipNear: 20 * k,
-        kneeNear: -25 * k,
-        hipFar: 20 * k,
-        kneeFar: -25 * k,
-      },
-      0,
-    ),
+    rot: carry(feet({ hipNear: 18 * k, kneeNear: -30 * k, hipFar: 18 * k, kneeFar: -30 * k }, 1), 0),
     squash: { x: 1 + 0.08 * k, y: 1 - 0.08 * k },
   });
 };
 
-// Hips 75 and knees −120 put the ankles back on the floor with the root 69 down.
-const crouch: Clip = () =>
-  pose({
+// A deep squat with the shoes flat; grounding brings the soles to the floor.
+const crouch: Clip = () => {
+  const lean = 16;
+  return pose({
     rot: carry(
-      {
-        hipNear: 75,
-        kneeNear: -120,
-        hipFar: 70,
-        kneeFar: -115,
-        chest: -20,
-        shoulderNear: -10,
-        elbowNear: 100,
-        shoulderFar: 10,
-        elbowFar: 30,
-      },
-      0,
+      feet({ hipNear: 70, kneeNear: -112, hipFar: 66, kneeFar: -108, chest: -6, shoulderNear: 4, shoulderFar: 4, elbowFar: 14 }, 1),
+      lean,
     ),
-    root: { x: 0, y: -69 },
+    lean,
+    root: { x: 0, y: -60 },
     headTilt: 4,
   });
+};
 
-// Feet first, torso reclined, the near heel riding the floor; the mallet trails behind, so a
-// blend from the shoulder carry swings it round the back and never over the face.
+// Feet first, torso reclined; the mallet trails behind, so a blend from the carry
+// swings it round the back and never over the face.
 const slide: Clip = () => {
   const lean = -40;
   return pose({
     rot: carry(
       {
-        hipNear: 80,
-        kneeNear: -5,
-        hipFar: 85,
+        hipNear: 78,
+        kneeNear: -6,
+        hipFar: 82,
         kneeFar: -10,
-        shoulderNear: -20,
-        elbowNear: 10,
-        shoulderFar: -50,
-        elbowFar: -10,
+        ankleNear: -18,
+        ankleFar: -18,
+        shoulderNear: -15,
+        elbowNear: 8,
+        shoulderFar: -45,
+        elbowFar: -6,
       },
       lean,
       200,

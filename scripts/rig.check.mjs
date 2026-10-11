@@ -1,16 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { HERO_HEIGHT, REST_POSE } from "../src/sim/rig/skeleton.ts";
+import { readFileSync } from "node:fs";
+import { FAR_FLOOR, HERO_HEIGHT, JOINTS, REST_POSE } from "../src/sim/rig/skeleton.ts";
+import { groundShift } from "../src/sim/rig/ground.ts";
 import { CLIPS, blend } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
 import { faceClear } from "../src/sim/rig/face.ts";
 
 const ctx = { t: 0, speed: 0, vy: 0, facing: 1 };
 
-test("the rest pose stands 340 px tall with the feet on the floor and the head on the neck", () => {
+test("the rest pose stands 340 px tall with the near sole on the floor and the head on the neck", () => {
   const s = solve(REST_POSE, 1, 0.26);
-  const feetY = Math.max(s.joints.ankleNear.y, s.joints.ankleFar.y);
-  assert.ok(Math.abs(feetY) < 1, `feet at y=0: ${feetY}`);
+  const soleY = Math.max(s.joints.toeNear.y, s.joints.heelNear.y);
+  assert.ok(Math.abs(soleY) < 1, `near sole at y=0: ${soleY}`);
   assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 6, `crown at -340: ${s.crown.y}`);
   assert.ok(Math.abs(s.parts.head.x - s.joints.neck.x) < 12 && s.parts.head.y <= s.joints.neck.y);
 });
@@ -72,4 +74,35 @@ test("facing left mirrors the solved rig exactly", () => {
     l = solve(p, -1, 0.26);
   assert.ok(Math.abs(r.joints.wristNear.x + l.joints.wristNear.x) < 1e-6);
   assert.ok(Math.abs(r.joints.wristNear.y - l.joints.wristNear.y) < 1e-6);
+});
+
+test("the skeleton's rest pose is the painted body, joint for joint", () => {
+  const { rig } = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));
+  const u = 296 / (rig.sole - rig.joints.neck[1]);
+  for (const [name, [x, y]] of Object.entries(rig.joints)) {
+    const rest = JOINTS[name].rest;
+    assert.ok(Math.abs(rest.x - (rig.rootX - x) * u) < 0.05, `${name} x: ${rest.x}`);
+    assert.ok(Math.abs(rest.y - (rig.sole - y) * u) < 0.05, `${name} y: ${rest.y}`);
+  }
+});
+
+test("grounding stands the lowest sole on its floor line: the near one at 0, the far one higher by perspective", () => {
+  for (const [name, u] of [["idle", 0], ["crouch", 1], ["land", 0], ["slide", 0.5]]) {
+    const s = solve(CLIPS[name](u, ctx), 1, 0.26);
+    const dy = groundShift(s, "planted");
+    const lift = FAR_FLOOR * s.scale * s.squash.y;
+    const lowest = Math.max(s.joints.toeNear.y, s.joints.heelNear.y, s.joints.toeFar.y + lift, s.joints.heelFar.y + lift);
+    assert.ok(Math.abs(lowest + dy) < 1e-6, `${name}: lowest sole after grounding ${lowest + dy}`);
+  }
+  // Mid-stride with the near foot swung up, the far foot carries him on its own line.
+  let farPlanted = false;
+  for (let i = 0; i < 40; i++) {
+    const s = solve(CLIPS.walk(i / 40, { ...ctx, speed: 400 }), 1, 0.26);
+    const dy = groundShift(s, "planted");
+    const near = Math.max(s.joints.toeNear.y, s.joints.heelNear.y) + dy;
+    if (near < -6) farPlanted = true;
+  }
+  assert.ok(farPlanted, "some walk frames lift the near foot clear while the far foot stands");
+  const flight = solve(CLIPS.run(0.2, { ...ctx, speed: 640 }), 1, 0.26);
+  assert.ok(groundShift(flight, "push") <= 0, "a run's flight is never pulled down to the floor");
 });

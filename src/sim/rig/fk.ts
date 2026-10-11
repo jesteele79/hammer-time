@@ -1,4 +1,4 @@
-import { HEAD_PLATE_DEFAULT, HEAD_PLATE_FACING, type HeadPlate, type PartName } from "../../art/registry";
+import { HEAD_PLATE_DEFAULT, HEAD_PLATE_FACING, type HeadPlate } from "../../art/registry";
 import {
   HANDLE_REST_DEG,
   HERO_HEIGHT,
@@ -15,8 +15,8 @@ export type Rect = { x: number; y: number; w: number; h: number };
 /**
  * Where a sprite goes, in world px with y down and the feet point at the
  * origin. `rotation` is in Pixi's convention (clockwise positive), relative to
- * the part's rest direction: hanging straight down for body parts, the handle
- * pointing straight up for the mallet, level for the head. `scaleX` carries the
+ * the part's rest direction: the handle pointing straight up for the mallet,
+ * level for the head (the body is skinned from `links`). `scaleX` carries the
  * facing sign (positive facing right) and the squash; `length` is the world px
  * the part spans from its pivot (the plate height for the head). The renderer
  * sets sprite scale to `scale * length / plateLength`.
@@ -32,56 +32,30 @@ export type Placement = {
 };
 
 export type Solved = {
-  parts: Record<PartName | "head" | "mallet", Placement>;
+  parts: Record<"head" | "mallet", Placement>;
   joints: Record<JointName, Point>;
+  /**
+   * The turn each joint's offset from its parent took from rest, radians
+   * counter-clockwise facing right: what a bone ending at that joint turned by.
+   */
+  links: Record<JointName, number>;
   /** Nothing is ever drawn over it. */
   faceBox: Rect;
   crown: Point;
   /** World px per rest unit. */
   scale: number;
   facing: 1 | -1;
+  squash: { x: number; y: number };
 };
 
 const DEG = Math.PI / 180;
 const HEAD_LEVEL_DEG = 8;
 
-// Far arm, far leg, torso, hips, near leg, near arm, mallet, head.
-const PARTS: [PartName | "head" | "mallet", joint: JointName, frame: JointName, z: number][] = [
-  ["upperArmFar", "shoulderFar", "shoulderFar", 0],
-  ["forearmFar", "elbowFar", "elbowFar", 0],
-  ["sleeveFar", "shoulderFar", "chest", 0.5],
-  ["thighFar", "hipFar", "hipFar", 1],
-  ["shinFar", "kneeFar", "kneeFar", 1],
-  ["torso", "neck", "chest", 2],
-  ["hips", "pelvis", "pelvis", 3],
-  ["thighNear", "hipNear", "hipNear", 4],
-  ["shinNear", "kneeNear", "kneeNear", 4],
-  ["upperArmNear", "shoulderNear", "shoulderNear", 5],
-  ["forearmNear", "elbowNear", "elbowNear", 5],
-  // The sleeve hangs from the shoulder with the chest, over the bare arm.
-  ["sleeveNear", "shoulderNear", "chest", 5.5],
+// The props drawn on top of the skinned body.
+const PARTS: ["head" | "mallet", joint: JointName, frame: JointName, z: number][] = [
   ["mallet", "grip", "grip", 6],
   ["head", "neck", "head", 7],
 ];
-// The shorts hem below the pelvis, rest units; no joint marks it.
-const HIPS_HEM = 24;
-// How far each part reaches from its pivot, rest units.
-const SPAN: Record<PartName | "head" | "mallet", number> = {
-  upperArmFar: JOINTS.elbowFar.length!,
-  forearmFar: JOINTS.wristFar.length! + JOINTS.handFar.length!,
-  thighFar: JOINTS.kneeFar.length!,
-  shinFar: JOINTS.ankleFar.length!,
-  torso: NECK_REST_Y - JOINTS.pelvis.rest.y,
-  hips: HIPS_HEM,
-  thighNear: JOINTS.kneeNear.length!,
-  shinNear: JOINTS.ankleNear.length!,
-  upperArmNear: JOINTS.elbowNear.length!,
-  forearmNear: JOINTS.wristNear.length! + JOINTS.handNear.length!,
-  sleeveNear: 46,
-  sleeveFar: 46,
-  mallet: JOINTS.malletHead.length!,
-  head: 0,
-};
 
 const rotate = (p: Point, a: number): Point => ({
   x: p.x * Math.cos(a) - p.y * Math.sin(a),
@@ -98,6 +72,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
 
   const pos = {} as Record<JointName, Point>;
   const frame = {} as Record<JointName, number>;
+  const links = { root: 0 } as Record<JointName, number>;
   pos.root = { x: pose.root.x, y: pose.root.y };
   frame.root = 0;
   for (const name of JOINT_NAMES) {
@@ -108,6 +83,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     const off = { x: j.rest.x - JOINTS[j.parent].rest.x, y: j.rest.y - JOINTS[j.parent].rest.y };
     const d = rotate(off, link);
     pos[name] = { x: pos[j.parent].x + d.x, y: pos[j.parent].y + d.y };
+    links[name] = link;
     frame[name] = link + rot(name);
   }
   // The head counter-rotates so it never tilts more than 8 degrees from level.
@@ -120,7 +96,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
   // A counter-clockwise turn facing right reads clockwise on a y-down screen only when mirrored.
   const screenRot = (a: number) => -a * facing;
 
-  const parts = {} as Record<PartName | "head" | "mallet", Placement>;
+  const parts = {} as Record<"head" | "mallet", Placement>;
   for (const [part, joint, frameJoint, z] of PARTS) {
     const extra = part === "mallet" ? (HANDLE_REST_DEG - 90) * DEG : 0;
     parts[part] = {
@@ -130,7 +106,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
       scaleX: facing * sx,
       scaleY: sy,
       z,
-      length: part === "head" ? headPx : SPAN[part] * scale,
+      length: part === "head" ? headPx : JOINTS.malletHead.length! * scale,
     };
   }
 
@@ -154,5 +130,14 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     h: Math.max(...ys) - Math.min(...ys),
   };
 
-  return { parts, joints, faceBox, crown: place(plate.crown.x, plate.crown.y), scale, facing };
+  return {
+    parts,
+    joints,
+    links,
+    faceBox,
+    crown: place(plate.crown.x, plate.crown.y),
+    scale,
+    facing,
+    squash: { x: sx, y: sy },
+  };
 }

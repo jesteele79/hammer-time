@@ -1,527 +1,1190 @@
 {
-  "note": "Polygons in pixels of the keyed crop of art/incoming/hammer/body-*.png (all four share the framing). Check with: node scripts/art-sync.mjs --overlay -> artifacts/body-cuts.png. material: skin keeps only skin-like pixels, cloth only the rest. collar/sole: the torso's collar line and the near shoe's sole in crop pixels; the renderer scales the body so collar-to-sole spans the skeleton's neck height. caps: [x, y, r, material?] discs unioned into a part at a joint so limbs end in a ball. sleeveNear stays with the shirt and is drawn over the bare arm; a 'fill' cap paints skin under it. cover: a part drawn over others that never counts as a hole in them. fillShade darkens a part's fill caps (skin in the shade of a sleeve).",
+  "note": "Coordinates are pixels of the keyed crop of art/incoming/hammer/body-<costume>.png; all four bodies share the pose and the framing. rig.joints is the painted skeleton (src/sim/rig/skeleton.ts holds the same joints in rest units). Each layer takes the painted pixels inside its polygon that no layer in front of it has taken (front to back: armNear, torso, legNear, legFar, armFar), keeping only skin when material is skin; fill polygons bound where the layer runs on behind the layers drawn over it, which is painted in from its own pixels (only its skin or only its cloth when source says so); an extruded limb instead carries its painted cross-section along its bones. overrides.<costume> replaces layer and skin settings for one body (the suit has long sleeves, so its arms take the sleeves and its torso keeps none; the banquet towel hangs forward of the shirt). Check with: node scripts/art-grid.mjs <costume> [x y w h scale].",
   "space": "crop",
-  "parts": {
-    "torso": {
-      "material": "cloth",
-      "polygon": [
-        [
-          250,
-          280
-        ],
-        [
-          450,
-          280
-        ],
-        [
-          540,
-          320
-        ],
-        [
-          548,
-          870
-        ],
-        [
-          200,
-          872
-        ],
-        [
-          178,
-          740
-        ],
-        [
-          185,
-          560
-        ],
-        [
-          238,
-          330
-        ]
+  "rig": {
+    "sole": 1408,
+    "rootX": 390,
+    "joints": {
+      "pelvis": [
+        395,
+        840
       ],
-      "pivot": [
+      "chest": [
+        380,
+        520
+      ],
+      "neck": [
+        360,
+        288
+      ],
+      "shoulderNear": [
+        420,
+        372
+      ],
+      "elbowNear": [
+        372,
+        612
+      ],
+      "wristNear": [
+        228,
+        778
+      ],
+      "handNear": [
+        152,
+        900
+      ],
+      "grip": [
+        198,
+        835
+      ],
+      "shoulderFar": [
         400,
-        290
+        400
       ],
-      "tip": [
-        400,
-        870
+      "elbowFar": [
+        244,
+        621
       ],
-      "fillFrom": [
-        500,
-        720
-      ]
-    },
-    "hips": {
-      "material": "cloth",
-      "polygon": [
-        [
-          248,
-          822
-        ],
-        [
-          548,
-          822
-        ],
-        [
-          548,
-          905
-        ],
-        [
-          250,
-          905
-        ]
+      "wristFar": [
+        105,
+        787
       ],
-      "pivot": [
-        390,
-        826
+      "handFar": [
+        42,
+        858
       ],
-      "tip": [
-        390,
+      "hipNear": [
+        445,
         905
       ],
-      "fillFrom": [
-        480,
-        860
-      ]
-    },
-    "upperArmNear": {
-      "polygon": [
-        [
-          340,
-          296
-        ],
-        [
-          492,
-          300
-        ],
-        [
-          492,
-          556
-        ],
-        [
-          470,
-          592
-        ],
-        [
-          435,
-          652
-        ],
-        [
-          300,
-          632
-        ],
-        [
-          300,
-          560
-        ],
-        [
-          330,
-          380
-        ]
-      ],
-      "pivot": [
-        400,
-        390
-      ],
-      "tip": [
-        370,
-        640
-      ],
-      "caps": [
-        [
-          370,
-          640,
-          44
-        ],
-        [
-          399,
-          400,
-          46,
-          "fill"
-        ],
-        [
-          392,
-          459,
-          46,
-          "fill"
-        ],
-        [
-          384,
-          519,
-          46,
-          "fill"
-        ]
-      ],
-      "fillFrom": [
-        330,
-        600
-      ],
-      "material": "skin",
-      "fillShade": 0.82
-    },
-    "forearmNear": {
-      "material": "skin",
-      "polygon": [
-        [
-          300,
-          632
-        ],
-        [
-          435,
-          652
-        ],
-        [
-          300,
-          790
-        ],
-        [
-          245,
-          905
-        ],
-        [
-          130,
-          895
-        ],
-        [
-          128,
-          780
-        ],
-        [
-          200,
-          730
-        ]
-      ],
-      "pivot": [
-        370,
-        640
-      ],
-      "tip": [
-        240,
-        765
-      ],
-      "caps": [
-        [
-          370,
-          640,
-          52,
-          "skin"
-        ]
-      ]
-    },
-    "upperArmFar": {
-      "material": "skin",
-      "polygon": [
-        [
-          370,
-          380
-        ],
-        [
-          440,
-          385
-        ],
-        [
-          265,
-          690
-        ],
-        [
-          196,
-          672
-        ]
-      ],
-      "pivot": [
-        405,
-        392
-      ],
-      "tip": [
-        232,
-        690
-      ],
-      "fillFrom": [
-        60,
-        820
-      ]
-    },
-    "forearmFar": {
-      "material": "skin",
-      "polygon": [
-        [
-          196,
-          668
-        ],
-        [
-          262,
-          680
-        ],
-        [
-          250,
-          712
-        ],
-        [
-          150,
-          800
-        ],
-        [
-          105,
-          880
-        ],
-        [
-          0,
-          878
-        ],
-        [
-          0,
-          765
-        ],
-        [
-          118,
-          708
-        ]
-      ],
-      "pivot": [
-        232,
-        690
-      ],
-      "tip": [
-        70,
-        830
-      ],
-      "fillFrom": [
-        60,
-        820
-      ]
-    },
-    "thighFar": {
-      "material": "cloth",
-      "polygon": [
-        [
-          250,
-          890
-        ],
-        [
-          395,
-          890
-        ],
-        [
-          400,
-          1066
-        ],
-        [
-          258,
-          1066
-        ]
-      ],
-      "pivot": [
-        328,
-        850
-      ],
-      "tip": [
-        330,
-        1066
-      ],
-      "fillFrom": [
-        300,
-        1000
-      ]
-    },
-    "shinFar": {
-      "polygon": [
-        [
-          262,
-          1066
-        ],
-        [
-          400,
-          1066
-        ],
-        [
-          402,
-          1180
-        ],
-        [
-          395,
-          1300
-        ],
-        [
-          125,
-          1300
-        ],
-        [
-          125,
-          1180
-        ],
-        [
-          262,
-          1180
-        ]
-      ],
-      "pivot": [
-        332,
+      "kneeNear": [
+        445,
         1068
       ],
-      "tip": [
-        310,
-        1295
+      "ankleNear": [
+        456,
+        1290
       ],
-      "fillFrom": [
-        300,
-        1120
+      "toeNear": [
+        270,
+        1408
+      ],
+      "hipFar": [
+        322,
+        905
+      ],
+      "kneeFar": [
+        337,
+        1064
+      ],
+      "ankleFar": [
+        331,
+        1228
+      ],
+      "toeFar": [
+        150,
+        1312
+      ],
+      "heelNear": [
+        525,
+        1404
+      ],
+      "heelFar": [
+        388,
+        1314
       ]
     },
-    "thighNear": {
-      "material": "cloth",
-      "polygon": [
-        [
-          385,
-          890
-        ],
-        [
-          550,
-          890
-        ],
-        [
-          552,
-          1066
-        ],
-        [
-          392,
-          1066
-        ]
+    "bones": [
+      [
+        "pelvis",
+        "hipNear"
       ],
-      "pivot": [
-        468,
-        850
+      [
+        "pelvis",
+        "chest"
       ],
-      "tip": [
-        470,
-        1066
+      [
+        "chest",
+        "neck"
       ],
-      "fillFrom": [
-        480,
-        1000
+      [
+        "shoulderNear",
+        "elbowNear"
       ],
-      "caps": [
-        [
-          470,
-          1067,
-          54
-        ]
+      [
+        "elbowNear",
+        "wristNear"
+      ],
+      [
+        "wristNear",
+        "handNear"
+      ],
+      [
+        "shoulderFar",
+        "elbowFar"
+      ],
+      [
+        "elbowFar",
+        "wristFar"
+      ],
+      [
+        "wristFar",
+        "handFar"
+      ],
+      [
+        "hipNear",
+        "kneeNear"
+      ],
+      [
+        "kneeNear",
+        "ankleNear"
+      ],
+      [
+        "ankleNear",
+        "toeNear"
+      ],
+      [
+        "hipFar",
+        "kneeFar"
+      ],
+      [
+        "kneeFar",
+        "ankleFar"
+      ],
+      [
+        "ankleFar",
+        "toeFar"
       ]
-    },
-    "shinNear": {
-      "polygon": [
-        [
-          392,
-          1066
+    ],
+    "skin": {
+      "torso": {
+        "chain": [
+          "pelvis",
+          "chest",
+          "neck"
         ],
-        [
-          552,
-          1066
+        "parent": [
+          "pelvis",
+          "hipNear"
         ],
-        [
-          552,
-          1280
+        "start": [
+          -30,
+          30
         ],
-        [
-          552,
-          1420
+        "blend": [
+          60
         ],
-        [
-          235,
-          1420
-        ],
-        [
-          235,
-          1300
-        ],
-        [
-          392,
-          1290
-        ]
-      ],
-      "pivot": [
-        470,
-        1068
-      ],
-      "tip": [
-        420,
-        1410
-      ],
-      "caps": [
-        [
-          470,
-          1067,
-          54,
-          "skin"
-        ]
-      ]
-    },
-    "sleeveNear": {
-      "material": "cloth",
-      "polygon": [
-        [
-          302,
-          296
-        ],
-        [
-          492,
-          300
-        ],
-        [
-          492,
-          556
-        ],
-        [
-          425,
-          552
-        ],
-        [
-          320,
-          578
-        ],
-        [
-          300,
-          560
-        ]
-      ],
-      "pivot": [
-        400,
-        390
-      ],
-      "tip": [
-        380,
-        566
-      ],
-      "cover": true
-    }
-  },
-  "overrides": {
-    "suit": {
-      "forearmNear": {
-        "material": "any"
+        "sleeve": {
+          "bone": [
+            "shoulderNear",
+            "elbowNear"
+          ],
+          "ramp": [
+            30,
+            150
+          ],
+          "feather": 24,
+          "polygon": [
+            [
+              330,
+              330
+            ],
+            [
+              400,
+              282
+            ],
+            [
+              472,
+              300
+            ],
+            [
+              484,
+              380
+            ],
+            [
+              460,
+              536
+            ],
+            [
+              318,
+              544
+            ],
+            [
+              312,
+              470
+            ]
+          ]
+        }
       },
-      "forearmFar": {
-        "material": "any",
-        "fillFrom": [
-          420,
-          470
+      "armNear": {
+        "chain": [
+          "shoulderNear",
+          "elbowNear",
+          "wristNear",
+          "handNear"
+        ],
+        "parent": [
+          "chest",
+          "neck"
+        ],
+        "start": [
+          0,
+          60
+        ],
+        "blend": [
+          34,
+          14
         ]
       },
-      "upperArmFar": {
-        "material": "any",
-        "fillFrom": [
-          420,
-          470
+      "armFar": {
+        "chain": [
+          "shoulderFar",
+          "elbowFar",
+          "wristFar",
+          "handFar"
+        ],
+        "parent": [
+          "chest",
+          "neck"
+        ],
+        "start": [
+          0,
+          60
+        ],
+        "blend": [
+          30,
+          12
         ]
       },
-      "upperArmNear": {
-        "material": "any",
-        "fillFrom": [
-          420,
-          470
+      "legNear": {
+        "chain": [
+          "hipNear",
+          "kneeNear",
+          "ankleNear",
+          "toeNear"
+        ],
+        "parent": [
+          "pelvis",
+          "hipNear"
+        ],
+        "start": [
+          0,
+          70
+        ],
+        "blend": [
+          36,
+          16
+        ]
+      },
+      "legFar": {
+        "chain": [
+          "hipFar",
+          "kneeFar",
+          "ankleFar",
+          "toeFar"
+        ],
+        "parent": [
+          "pelvis",
+          "hipNear"
+        ],
+        "start": [
+          0,
+          70
+        ],
+        "blend": [
+          32,
+          14
         ]
       }
     }
   },
-  "collar": 290,
-  "sole": 1415
+  "layers": {
+    "armNear": {
+      "material": "skin",
+      "polygon": [
+        [
+          318,
+          516
+        ],
+        [
+          298,
+          556
+        ],
+        [
+          276,
+          598
+        ],
+        [
+          253,
+          642
+        ],
+        [
+          230,
+          683
+        ],
+        [
+          205,
+          718
+        ],
+        [
+          184,
+          748
+        ],
+        [
+          162,
+          766
+        ],
+        [
+          146,
+          788
+        ],
+        [
+          132,
+          815
+        ],
+        [
+          116,
+          842
+        ],
+        [
+          118,
+          892
+        ],
+        [
+          137,
+          912
+        ],
+        [
+          162,
+          916
+        ],
+        [
+          190,
+          912
+        ],
+        [
+          214,
+          898
+        ],
+        [
+          240,
+          872
+        ],
+        [
+          262,
+          848
+        ],
+        [
+          272,
+          822
+        ],
+        [
+          282,
+          798
+        ],
+        [
+          300,
+          778
+        ],
+        [
+          324,
+          756
+        ],
+        [
+          350,
+          730
+        ],
+        [
+          374,
+          706
+        ],
+        [
+          398,
+          680
+        ],
+        [
+          420,
+          652
+        ],
+        [
+          434,
+          622
+        ],
+        [
+          442,
+          592
+        ],
+        [
+          452,
+          560
+        ],
+        [
+          458,
+          534
+        ],
+        [
+          460,
+          516
+        ]
+      ],
+      "source": "skin"
+    },
+    "torso": {
+      "polygon": [
+        [
+          250,
+          280
+        ],
+        [
+          452,
+          268
+        ],
+        [
+          545,
+          318
+        ],
+        [
+          560,
+          905
+        ],
+        [
+          200,
+          905
+        ],
+        [
+          201,
+          832
+        ],
+        [
+          197,
+          752
+        ],
+        [
+          195,
+          560
+        ],
+        [
+          200,
+          470
+        ],
+        [
+          212,
+          410
+        ],
+        [
+          236,
+          358
+        ],
+        [
+          272,
+          320
+        ]
+      ],
+      "fill": [
+        [
+          [
+            197,
+            500
+          ],
+          [
+            470,
+            500
+          ],
+          [
+            470,
+            905
+          ],
+          [
+            255,
+            905
+          ],
+          [
+            255,
+            838
+          ],
+          [
+            201,
+            832
+          ],
+          [
+            197,
+            752
+          ]
+        ]
+      ],
+      "source": "cloth"
+    },
+    "legNear": {
+      "polygon": [
+        [
+          372,
+          880
+        ],
+        [
+          560,
+          880
+        ],
+        [
+          560,
+          1421
+        ],
+        [
+          236,
+          1421
+        ],
+        [
+          236,
+          1350
+        ],
+        [
+          240,
+          1343
+        ],
+        [
+          268,
+          1326
+        ],
+        [
+          318,
+          1311
+        ],
+        [
+          354,
+          1296
+        ],
+        [
+          378,
+          1281
+        ],
+        [
+          398,
+          1261
+        ],
+        [
+          404,
+          1240
+        ],
+        [
+          392,
+          1200
+        ],
+        [
+          386,
+          1120
+        ],
+        [
+          382,
+          1060
+        ],
+        [
+          372,
+          1000
+        ]
+      ],
+      "fill": [
+        [
+          [
+            372,
+            830
+          ],
+          [
+            560,
+            830
+          ],
+          [
+            560,
+            906
+          ],
+          [
+            372,
+            906
+          ]
+        ]
+      ]
+    },
+    "legFar": {
+      "polygon": [
+        [
+          200,
+          880
+        ],
+        [
+          380,
+          880
+        ],
+        [
+          380,
+          1000
+        ],
+        [
+          386,
+          1060
+        ],
+        [
+          390,
+          1120
+        ],
+        [
+          384,
+          1185
+        ],
+        [
+          392,
+          1210
+        ],
+        [
+          396,
+          1240
+        ],
+        [
+          396,
+          1300
+        ],
+        [
+          386,
+          1330
+        ],
+        [
+          100,
+          1330
+        ],
+        [
+          96,
+          1250
+        ],
+        [
+          150,
+          1200
+        ],
+        [
+          200,
+          1150
+        ]
+      ],
+      "fill": [
+        [
+          [
+            200,
+            830
+          ],
+          [
+            392,
+            830
+          ],
+          [
+            392,
+            906
+          ],
+          [
+            200,
+            906
+          ]
+        ],
+        [
+          [
+            372,
+            880
+          ],
+          [
+            400,
+            880
+          ],
+          [
+            400,
+            1050
+          ],
+          [
+            372,
+            1050
+          ]
+        ],
+        [
+          [
+            236,
+            1240
+          ],
+          [
+            400,
+            1240
+          ],
+          [
+            400,
+            1316
+          ],
+          [
+            236,
+            1316
+          ]
+        ]
+      ]
+    },
+    "armFar": {
+      "material": "skin",
+      "polygon": [
+        [
+          200,
+          548
+        ],
+        [
+          166,
+          588
+        ],
+        [
+          143,
+          616
+        ],
+        [
+          120,
+          652
+        ],
+        [
+          96,
+          688
+        ],
+        [
+          76,
+          708
+        ],
+        [
+          50,
+          730
+        ],
+        [
+          30,
+          756
+        ],
+        [
+          14,
+          786
+        ],
+        [
+          3,
+          820
+        ],
+        [
+          3,
+          850
+        ],
+        [
+          22,
+          872
+        ],
+        [
+          48,
+          877
+        ],
+        [
+          70,
+          874
+        ],
+        [
+          88,
+          864
+        ],
+        [
+          116,
+          808
+        ],
+        [
+          130,
+          786
+        ],
+        [
+          136,
+          762
+        ],
+        [
+          143,
+          744
+        ],
+        [
+          160,
+          730
+        ],
+        [
+          198,
+          698
+        ]
+      ],
+      "fill": [
+        [
+          [
+            363,
+            374
+          ],
+          [
+            437,
+            426
+          ],
+          [
+            290,
+            640
+          ],
+          [
+            240,
+            702
+          ],
+          [
+            198,
+            700
+          ],
+          [
+            198,
+            548
+          ],
+          [
+            250,
+            540
+          ]
+        ]
+      ],
+      "source": "skin",
+      "extrude": true
+    }
+  },
+  "overrides": {
+    "suit": {
+      "layers": {
+        "armNear": {
+          "material": null,
+          "source": null,
+          "polygon": [
+            [
+              355,
+              400
+            ],
+            [
+              380,
+              345
+            ],
+            [
+              410,
+              330
+            ],
+            [
+              470,
+              332
+            ],
+            [
+              505,
+              360
+            ],
+            [
+              515,
+              420
+            ],
+            [
+              510,
+              500
+            ],
+            [
+              492,
+              570
+            ],
+            [
+              470,
+              612
+            ],
+            [
+              430,
+              645
+            ],
+            [
+              400,
+              672
+            ],
+            [
+              372,
+              700
+            ],
+            [
+              350,
+              722
+            ],
+            [
+              320,
+              748
+            ],
+            [
+              298,
+              772
+            ],
+            [
+              280,
+              792
+            ],
+            [
+              272,
+              822
+            ],
+            [
+              262,
+              848
+            ],
+            [
+              240,
+              872
+            ],
+            [
+              214,
+              898
+            ],
+            [
+              190,
+              912
+            ],
+            [
+              162,
+              916
+            ],
+            [
+              137,
+              912
+            ],
+            [
+              118,
+              892
+            ],
+            [
+              116,
+              842
+            ],
+            [
+              132,
+              815
+            ],
+            [
+              146,
+              788
+            ],
+            [
+              162,
+              766
+            ],
+            [
+              184,
+              748
+            ],
+            [
+              205,
+              740
+            ],
+            [
+              218,
+              720
+            ],
+            [
+              240,
+              670
+            ],
+            [
+              290,
+              610
+            ],
+            [
+              330,
+              552
+            ],
+            [
+              340,
+              540
+            ],
+            [
+              345,
+              450
+            ]
+          ]
+        },
+        "armFar": {
+          "material": null,
+          "source": null,
+          "polygon": [
+            [
+              200,
+              548
+            ],
+            [
+              166,
+              588
+            ],
+            [
+              143,
+              616
+            ],
+            [
+              120,
+              652
+            ],
+            [
+              96,
+              688
+            ],
+            [
+              76,
+              708
+            ],
+            [
+              50,
+              730
+            ],
+            [
+              30,
+              756
+            ],
+            [
+              14,
+              786
+            ],
+            [
+              3,
+              820
+            ],
+            [
+              3,
+              850
+            ],
+            [
+              22,
+              872
+            ],
+            [
+              48,
+              877
+            ],
+            [
+              70,
+              874
+            ],
+            [
+              88,
+              864
+            ],
+            [
+              116,
+              808
+            ],
+            [
+              130,
+              786
+            ],
+            [
+              140,
+              762
+            ],
+            [
+              168,
+              748
+            ],
+            [
+              200,
+              730
+            ]
+          ]
+        },
+        "torso": {
+          "fill": [
+            [
+              [
+                197,
+                330
+              ],
+              [
+                515,
+                330
+              ],
+              [
+                515,
+                905
+              ],
+              [
+                255,
+                905
+              ],
+              [
+                255,
+                838
+              ],
+              [
+                201,
+                832
+              ],
+              [
+                197,
+                752
+              ]
+            ]
+          ]
+        }
+      },
+      "skin": {
+        "torso": {
+          "sleeve": null
+        }
+      }
+    },
+    "banquet": {
+      "layers": {
+        "torso": {
+          "polygon": [
+            [
+              250,
+              280
+            ],
+            [
+              452,
+              268
+            ],
+            [
+              545,
+              318
+            ],
+            [
+              560,
+              905
+            ],
+            [
+              200,
+              905
+            ],
+            [
+              201,
+              832
+            ],
+            [
+              197,
+              752
+            ],
+            [
+              196,
+              545
+            ],
+            [
+              172,
+              520
+            ],
+            [
+              158,
+              470
+            ],
+            [
+              162,
+              440
+            ],
+            [
+              208,
+              372
+            ],
+            [
+              245,
+              330
+            ],
+            [
+              272,
+              300
+            ]
+          ]
+        }
+      }
+    }
+  }
 }

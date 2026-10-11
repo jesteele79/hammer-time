@@ -3,20 +3,6 @@ export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Expression = "neutral" | "angry" | "hurt" | "smug" | "bored" | "chomp";
 export type Costume = "affliction" | "scrubs" | "suit" | "banquet";
-export type PartName =
-  | "torso"
-  | "hips"
-  | "upperArmNear"
-  | "forearmNear"
-  | "upperArmFar"
-  | "forearmFar"
-  | "thighNear"
-  | "shinNear"
-  | "thighFar"
-  | "shinFar"
-  | "sleeveNear"
-  | "sleeveFar";
-
 export type HeadPlate = {
   file: string;
   width: number;
@@ -27,21 +13,8 @@ export type HeadPlate = {
   /** Brow to chin, nose to cheek: nothing is ever drawn over it. */
   face: Rect;
 };
-/** A sliced body part; `pivot` is the joint it hangs from and `tip` the joint it reaches, in part pixels. */
-export type BodyPart = { file: string; width: number; height: number; pivot: Point; tip: Point };
-export type StripName = "armNear" | "legNear" | "torso";
-/**
- * A limb chain laid out as one horizontal strip, bones along +x on the row
- * `centerY`; `joints` are the chain's joint x positions, first to last. A rope
- * mesh bends it as a single piece.
- */
-export type Strip = { file: string; width: number; height: number; centerY: number; joints: number[] };
-/** `span` is the collar-to-sole height of the body plate, in its pixels. */
-export type Body = {
-  parts: Partial<Record<PartName, BodyPart>>;
-  strips: Partial<Record<StripName, Strip>>;
-  span: number;
-};
+/** A painted body: its skinned layers and bones live in the rig file; `span` is its sole-to-neck height in crop pixels. */
+export type Body = { rig: string; span: number };
 export type Prop = { file: string; width: number; height: number; pivot?: Point; tip?: Point };
 export type Registry = {
   version: number;
@@ -59,8 +32,7 @@ export const ART_BASE = "/art/";
 export const HEAD_FACE_PROFILE = { x: 0, y: 0.36, w: 0.48, h: 0.46 };
 /** The owner's profile plates are drawn facing left (spec §6.1); the game flips them to face right. */
 export const HEAD_PLATE_FACING: 1 | -1 = -1;
-/** The painted bodies face left too; the mallet plate's handle leans back for a right-facing carry. */
-export const BODY_PLATE_FACING: 1 | -1 = -1;
+/** The mallet plate's handle leans back for a right-facing carry. */
 export const MALLET_PLATE_FACING: 1 | -1 = 1;
 /** The neutral plate as registered on 2026-10-10, for the solver when no registry is loaded. */
 export const HEAD_PLATE_DEFAULT: HeadPlate = {

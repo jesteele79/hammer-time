@@ -263,33 +263,39 @@ most 4 textures each; particles are one batched container.
 
 ### 6.2 The body rig
 
-A paper-doll skeleton in world units at HERO_HEIGHT = 340 (soles to crown):
+The body is the owner's painting, bent like skin over a skeleton (revised
+2026-10-10 after the cut-out paper doll read as messy and inorganic). The
+skeleton's rest pose is the painted pose, joint for joint: the joints are
+measured on the keyed body plate (`art/cuts/hammer-body.json`, `rig.joints`)
+and `src/sim/rig/skeleton.ts` holds the same points in rest units, 296 from the
+near sole to the neck (a test keeps the two in step). Both arms hang forward
+with soft elbows; the far leg stands a step ahead and, by the painting's
+perspective, 25 units higher, on a floor line of its own. Every clip rotation
+is a turn away from that pose, so standing still shows the painting exactly.
 
-| Joint     | Parent   | Rest position (x, y from the soles, facing right) |
-|-----------|----------|----------------------------------------------------|
-| root      | none     | 0, 0 (between the feet; moves with the body)       |
-| pelvis    | root     | 0, 150                                             |
-| chest     | pelvis   | 0, 245 (spine bend here)                           |
-| neck      | chest    | 6, 296                                             |
-| head      | neck     | plate attaches at its neck anchor                  |
-| shoulderN | chest    | 10, 284 (near side)                                |
-| elbowN    | shoulderN| upper arm length 62                                |
-| wristN    | elbowN   | forearm length 58, hand 26 beyond                  |
-| shoulderF | chest    | -14, 282 (far side, drawn behind)                  |
-| elbowF, wristF | as near |                                                 |
-| hipN      | pelvis   | 10, 150, thigh 78                                  |
-| kneeN     | hipN     | shin 70, foot 46 long, heel 10 behind the ankle    |
-| hipF, kneeF | as near | drawn behind                                     |
-| mallet    | wristN   | handle 150 from the grip, head 70 by 60 at the end |
+The painting splits into five layers, drawn back to front: far arm, far leg,
+near leg, torso (shirt, sleeves, waistband, any towel), near arm. Each takes
+the painted pixels inside its polygon that no layer in front of it took (front
+to back: near arm, torso, near leg, far leg, far arm; arms keep only skin
+unless the sleeve is long). Where a layer runs on behind one drawn over it (the
+shirt behind the near arm, the far shoe's heel behind the near shoe, the far
+upper arm behind the torso), it is painted in from its own pixels: a push-pull
+fill for cloth, the limb's own cross-section carried along the bone for an
+arm. Drawn at rest, the layers rebuild the painting pixel for pixel.
 
-Draw order (facing right): far arm, far leg, torso, shorts, near leg, near
-arm, mallet, head. Each part is a vector shape (`src/render/parts/*.ts`,
-rendered to a texture at 2x once) with a round cap at each joint so limbs
-overlap cleanly. Costumes swap the torso, sleeve and legwear parts and may add
-accessories (badge clip, bib, jacket). The owner's painted body
-(`art/incoming/hammer/body-<costume>.png`) replaces the vector parts when
-present: the cut-and-register tool (§14.2) slices it at the joint lines of the
-A-pose and stores the parts in the same slots.
+Each layer is a grid mesh (14 px cells) over its pixels with up to four bone
+weights per vertex: a limb follows its chain of joints with smooth blends a
+few dozen pixels wide at the elbow, knee and wrist and a hand-over from the
+pelvis or chest at its root; the torso follows the spine, and its short
+sleeves hand their weight to the upper arm down the sleeve so the hem and
+the bare arm stay together. The renderer moves every vertex with its bones
+each frame (`src/render/skin.ts`). The head plate and the mallet stay sprites
+on top. Grounding stands the lowest sole on its floor line while planted.
+
+Costumes are four paintings in the same pose with per-costume overrides (the
+suit's arms take their long sleeves; the banquet towel hangs forward of the
+shirt). The mallet rides in the near hand where the painting holds it, its
+handle up across the chest and its head behind the shoulder.
 
 Proportions and silhouette: stocky, a slight belly, the shirt hem below the
 waist, the shorts to the knee, white-and-navy running shoes. The near forearm

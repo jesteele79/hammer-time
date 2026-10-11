@@ -30,6 +30,8 @@ export type JointName =
   | "kneeFar"
   | "ankleFar"
   | "toeFar"
+  | "heelNear"
+  | "heelFar"
   | "grip"
   | "malletHead";
 
@@ -43,35 +45,39 @@ const handleEnd = (grip: Point): Point => ({
   y: grip.y + HANDLE * Math.sin((HANDLE_REST_DEG * Math.PI) / 180),
 });
 
-// Parents before children: the solver walks this order. Heights follow the owner's
-// painted body (art/cuts/hammer-body.json at 296 units per collar-to-sole span):
-// shoulder 270, elbow 204, wrist 157, fingertips 115, pelvis 155, hip 149, knee 92, sole 0.
+// Parents before children: the solver walks this order. The rest pose is the owner's
+// painted body, joint for joint (art/cuts/hammer-body.json, 296 units from sole to neck):
+// both arms hang forward with soft elbows, and the far leg stands a step ahead and, by
+// perspective, 25 units up. Every rotation in a clip is a turn away from this pose.
 const TABLE: Record<JointName, { parent: JointName | null; rest: Point }> = {
   root: { parent: null, rest: { x: 0, y: 0 } },
-  pelvis: { parent: "root", rest: { x: 0, y: 155 } },
-  chest: { parent: "pelvis", rest: { x: 0, y: 245 } },
-  neck: { parent: "chest", rest: { x: 6, y: 296 } },
-  head: { parent: "neck", rest: { x: 6, y: 296 } },
-  shoulderNear: { parent: "chest", rest: { x: 10, y: 270 } },
-  elbowNear: { parent: "shoulderNear", rest: { x: 10, y: 204 } },
-  wristNear: { parent: "elbowNear", rest: { x: 10, y: 157 } },
-  handNear: { parent: "wristNear", rest: { x: 10, y: 115 } },
-  shoulderFar: { parent: "chest", rest: { x: -14, y: 268 } },
-  elbowFar: { parent: "shoulderFar", rest: { x: -14, y: 202 } },
-  wristFar: { parent: "elbowFar", rest: { x: -14, y: 155 } },
-  handFar: { parent: "wristFar", rest: { x: -14, y: 113 } },
-  hipNear: { parent: "pelvis", rest: { x: 10, y: 149 } },
-  kneeNear: { parent: "hipNear", rest: { x: 12, y: 92 } },
-  // The ankle is the sole's center, 13 units ahead of the knee as the painted shoe sits.
-  ankleNear: { parent: "kneeNear", rest: { x: 25, y: 0 } },
-  toeNear: { parent: "ankleNear", rest: { x: 61, y: 0 } },
-  hipFar: { parent: "pelvis", rest: { x: -10, y: 149 } },
-  kneeFar: { parent: "hipFar", rest: { x: -8, y: 92 } },
-  ankleFar: { parent: "kneeFar", rest: { x: 5, y: 0 } },
-  toeFar: { parent: "ankleFar", rest: { x: 41, y: 0 } },
-  grip: { parent: "wristNear", rest: { x: 10, y: 143 } },
-  malletHead: { parent: "grip", rest: handleEnd({ x: 10, y: 143 }) },
+  pelvis: { parent: "root", rest: { x: -1.32, y: 150.11 } },
+  chest: { parent: "pelvis", rest: { x: 2.64, y: 234.69 } },
+  neck: { parent: "chest", rest: { x: 7.93, y: 296 } },
+  head: { parent: "neck", rest: { x: 7.93, y: 296 } },
+  shoulderNear: { parent: "chest", rest: { x: -7.93, y: 273.8 } },
+  elbowNear: { parent: "shoulderNear", rest: { x: 4.76, y: 210.37 } },
+  wristNear: { parent: "elbowNear", rest: { x: 42.81, y: 166.5 } },
+  handNear: { parent: "wristNear", rest: { x: 62.9, y: 134.26 } },
+  shoulderFar: { parent: "chest", rest: { x: -2.64, y: 266.4 } },
+  elbowFar: { parent: "shoulderFar", rest: { x: 38.59, y: 207.99 } },
+  wristFar: { parent: "elbowFar", rest: { x: 75.32, y: 164.12 } },
+  handFar: { parent: "wristFar", rest: { x: 91.97, y: 145.36 } },
+  hipNear: { parent: "pelvis", rest: { x: -14.54, y: 132.94 } },
+  kneeNear: { parent: "hipNear", rest: { x: -14.54, y: 89.86 } },
+  ankleNear: { parent: "kneeNear", rest: { x: -17.44, y: 31.19 } },
+  toeNear: { parent: "ankleNear", rest: { x: 31.71, y: 0 } },
+  hipFar: { parent: "pelvis", rest: { x: 17.97, y: 132.94 } },
+  kneeFar: { parent: "hipFar", rest: { x: 14.01, y: 90.91 } },
+  ankleFar: { parent: "kneeFar", rest: { x: 15.59, y: 47.57 } },
+  toeFar: { parent: "ankleFar", rest: { x: 63.43, y: 25.37 } },
+  heelNear: { parent: "ankleNear", rest: { x: -35.68, y: 1.06 } },
+  heelFar: { parent: "ankleFar", rest: { x: 0.53, y: 24.84 } },
+  grip: { parent: "wristNear", rest: { x: 50.74, y: 151.44 } },
+  malletHead: { parent: "grip", rest: handleEnd({ x: 50.74, y: 151.44 }) },
 };
+/** How far above the floor the far sole stands at rest: the painting's perspective. */
+export const FAR_FLOOR = 25.37;
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 
