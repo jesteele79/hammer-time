@@ -56,6 +56,10 @@ export type HeroState = {
   boiled: boolean;
   /** Seconds until he can lecture again. */
   lectureCd: number;
+  /** Seconds standing idle: the watch check, the foot tap and the harrumph. */
+  idleT: number;
+  /** From the watch check until he does anything. */
+  bored: boolean;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

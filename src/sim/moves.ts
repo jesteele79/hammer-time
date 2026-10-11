@@ -52,12 +52,18 @@ export const LECTURE = { cooldown: 1.4, deliver: 0.2, cool: 15, ahead: 762, behi
 /** Moves that hold him still: no steering and no jump until they end. */
 export const LOCKING: ReadonlySet<MoveKind> = new Set<MoveKind>(["wipe", "lecture", "hurt", "tumble"]);
 
+/** The shipped idle beats: the watch check at 2.5 s, the foot tap from 5 s, the harrumph at 8 s, then round again. */
+export const IDLE = { watchAt: 2.5, tapAt: 5, harrumphAt: 8 } as const;
+const IDLE_ACTS: ReadonlySet<MoveKind> = new Set<MoveKind>(["watch", "tap"]);
+export const isIdleAct = (m: Move | null): boolean => m !== null && IDLE_ACTS.has(m.kind);
+
 export const newMove = (kind: MoveKind): Move => ({ kind, t: 0, fired: false, burst: false, lastU: -1, stroke: -1, victims: [], held: 0 });
 export const moveU = (m: Move) => Math.min(1, m.t / MOVE_SECONDS[m.kind]);
 
 /** Starts at most one move, by the shipped priority: towel, snot, lecture, super, swing. Nothing starts crouched or sliding. */
 export function startMove(h: HeroState, input: Input, alive: number, events: GameEvent[]): void {
-  if (h.move || h.crouch) return;
+  // An idle act gives way to anything he presses.
+  if ((h.move && !isIdleAct(h.move)) || h.crouch) return;
   const p = input.pressed;
   if (p.towel && h.heat > 0 && h.onGround) {
     h.move = newMove("wipe");
@@ -134,6 +140,38 @@ export function deliverLecture(h: HeroState, events: GameEvent[]): void {
   m.fired = true;
   h.heat = Math.max(0, h.heat - LECTURE.cool);
   events.push({ type: "lecture", reach: lectureReach(h) });
+}
+
+/** Standing around. Any key, any motion or any other move ends an idle act and starts the count again. */
+export function stepIdle(h: HeroState, input: Input, dt: number, events: GameEvent[]): void {
+  const busy =
+    Object.values(input.held).some(Boolean) ||
+    !h.onGround ||
+    Math.abs(h.vx) > 1 ||
+    h.crouch ||
+    (h.move !== null && !isIdleAct(h.move));
+  if (busy) {
+    h.idleT = 0;
+    h.bored = false;
+    if (isIdleAct(h.move)) h.move = null;
+    return;
+  }
+  const was = h.idleT;
+  h.idleT += dt;
+  const crossed = (t: number) => was < t && h.idleT >= t;
+  if (crossed(IDLE.watchAt)) {
+    h.move = newMove("watch");
+    h.bored = true;
+    events.push({ type: "watch" });
+  }
+  if (crossed(IDLE.tapAt)) {
+    h.move = newMove("tap");
+    events.push({ type: "tap" });
+  }
+  if (h.idleT >= IDLE.harrumphAt) {
+    h.idleT = 0;
+    events.push({ type: "harrumph" });
+  }
 }
 
 /** Heat, the sinus and the cooldowns, every step. */

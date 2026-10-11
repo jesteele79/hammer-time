@@ -55,6 +55,8 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     fireCd: 0,
     boiled: false,
     lectureCd: 0,
+    idleT: 0,
+    bored: false,
   };
 }
 

@@ -3,7 +3,7 @@ import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
 import type { Input } from "./input";
-import { advanceMove, deliverLecture, startMove, steerMove, stepHeat } from "./moves";
+import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
 import { stepTargets } from "./targets";
 import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
@@ -47,6 +47,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       stepSnot(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP);
       stepHeat(h, input, STEP, events);
+      stepIdle(h, input, STEP, events);
       world.events = events;
       world.time += STEP;
     },

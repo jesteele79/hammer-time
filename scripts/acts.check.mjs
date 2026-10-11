@@ -73,3 +73,68 @@ test("one lecture per 1.4 s, never in the air or crouched, and snot outranks it 
   assert.equal(b.hero.move.kind, "lecture");
   assert.equal(b.hero.charge, CHARGE_MAX, "the smash did not also start");
 });
+
+import { IDLE } from "../src/sim/moves.ts";
+
+const at = (evs, type) => evs.filter((e) => e.type === type);
+
+test("standing still he checks his watch at 2.5 s, taps his foot from 5 s, harrumphs at 8 s, and goes round again", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 });
+  settle(w);
+  const seen = [];
+  for (let i = 0; i < Math.round(17 / STEP); i++) {
+    w.step(input());
+    for (const e of w.events) if (["watch", "tap", "harrumph"].includes(e.type)) seen.push([e.type, +(i * STEP).toFixed(2)]);
+  }
+  assert.deepEqual(seen.map(([k]) => k), ["watch", "tap", "harrumph", "watch", "tap", "harrumph"]);
+  for (const [k, t] of seen.slice(0, 3)) {
+    const want = { watch: IDLE.watchAt, tap: IDLE.tapAt, harrumph: IDLE.harrumphAt }[k];
+    assert.ok(Math.abs(t - want) < 0.06, `${k} at ${t}`);
+  }
+});
+
+test("bored from the watch check until he does anything", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 });
+  settle(w);
+  steps(w, 2.4);
+  assert.equal(w.hero.bored, false);
+  steps(w, 0.2);
+  assert.equal(w.hero.bored, true);
+  assert.equal(w.hero.move?.kind, "watch");
+  steps(w, 6);
+  assert.equal(w.hero.bored, true, "still bored after the harrumph");
+  w.step(input({ right: true }));
+  assert.equal(w.hero.bored, false);
+});
+
+test("a key pressed in the watch check or the tap starts its move that step; a held direction walks", () => {
+  for (const [wait, act] of [
+    [2.7, "watch"],
+    [5.3, "tap"],
+  ]) {
+    const w = createWorld(flat(), { x: 100, y: 0 });
+    settle(w);
+    steps(w, wait);
+    assert.equal(w.hero.move?.kind, act);
+    press(w, "hammer");
+    assert.equal(w.hero.move?.kind, "swing", `a swing out of the ${act}`);
+    const v = createWorld(flat(), { x: 100, y: 0 });
+    settle(v);
+    steps(v, wait);
+    v.step(input({ right: true }));
+    assert.equal(v.hero.move, null, `walking ends the ${act}`);
+    steps(v, 0.3, { right: true });
+    assert.ok(v.hero.vx > 300, "and he walks");
+  }
+});
+
+test("nothing idles in the air, crouched or mid-move", () => {
+  // A fall from 8000 px lasts about 3.4 s at the terminal speed.
+  const air = createWorld({ ...flat(), bounds: { x: -2000, y: -9000, w: 22000, h: 10000 } }, { x: 100, y: -8000 });
+  steps(air, 3);
+  assert.ok(!air.hero.onGround && air.hero.idleT === 0, "still falling, not idling");
+  const low = createWorld(flat(), { x: 100, y: 0 });
+  settle(low);
+  const evs = steps(low, 3, { down: true });
+  assert.equal(at(evs, "watch").length, 0, "no watch while crouched");
+});
