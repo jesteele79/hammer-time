@@ -330,3 +330,68 @@ test("'body' grounding stands him on his soles, and lays him flat on his back wh
     for (const name of ["heelNear", "toeNear", "heelFar", "toeFar"]) assert.ok(j[name].y + dy <= 1e-6, `${name} out of the floor`);
   }
 });
+
+import { LAYERS, addBody, addLean, breathNow, createLayers, squashNow, stepLayers } from "../src/sim/rig/layers.ts";
+
+const STEP_S = 1 / 120;
+const runLayers = (s, seconds, vx, facing = 1) => {
+  for (let i = 0; i < Math.round(seconds / STEP_S); i++) stepLayers(s, { vx: vx(i * STEP_S), facing }, [], STEP_S);
+};
+
+test("he leans into acceleration up to 9 degrees, back when he brakes, and not at a steady run", () => {
+  const s = createLayers();
+  // Ground acceleration reaches the run in 0.177 s.
+  runLayers(s, 0.17, (t) => Math.min(780, 4400 * t));
+  assert.ok(s.lean > 7.5 && s.lean <= 9 + 1e-9, `speeding up: ${s.lean}`);
+  runLayers(s, 0.6, () => 780);
+  assert.ok(Math.abs(s.lean) < 0.5, `steady: ${s.lean}`);
+  runLayers(s, 0.12, (t) => Math.max(0, 780 - 5600 * t));
+  assert.ok(s.lean < -6 && s.lean >= -9 - 1e-9, `braking: ${s.lean}`);
+  const l = createLayers();
+  runLayers(l, 0.17, (t) => -Math.min(780, 4400 * t), -1);
+  assert.ok(l.lean > 7.5, `facing left, speeding up leans forward too: ${l.lean}`);
+  assert.equal(addLean(pose({ lean: 3 }), s).lean, 3 + s.lean);
+});
+
+test("a landing squashes 0.92 by 1.08 and is back to normal in 0.09 s; a jump stretches 1.06 by 0.95", () => {
+  const s = createLayers();
+  stepLayers(s, { vx: 0, facing: 1 }, [{ type: "land", x: 0, y: 0, speed: 1900 }], 1e-6);
+  const q = squashNow(s);
+  assert.ok(Math.abs(q.x - LAYERS.land.x) < 1e-3 && Math.abs(q.y - LAYERS.land.y) < 1e-3, JSON.stringify(q));
+  assert.deepEqual([LAYERS.land.x, LAYERS.land.y, LAYERS.land.t], [1.08, 0.92, 0.09]);
+  runLayers(s, 0.09, () => 0);
+  assert.deepEqual(squashNow(s), { x: 1, y: 1 });
+  stepLayers(s, { vx: 0, facing: 1 }, [{ type: "jump" }], 1e-6);
+  const j = squashNow(s);
+  assert.ok(Math.abs(j.x - 0.95) < 1e-3 && Math.abs(j.y - 1.06) < 1e-3, JSON.stringify(j));
+  const p = addBody(pose(), s);
+  assert.ok(Math.abs(p.squash.y - j.y) < 1e-9, "the stretch lands on the pose");
+});
+
+test("his chest breathes 1.5 percent either way at 0.4 Hz", () => {
+  const s = createLayers();
+  let lo = 2,
+    hi = 0;
+  for (let i = 0; i < 300; i++) {
+    stepLayers(s, { vx: 0, facing: 1 }, [], 0.01);
+    lo = Math.min(lo, breathNow(s));
+    hi = Math.max(hi, breathNow(s));
+  }
+  assert.ok(Math.abs(hi - 1.015) < 1e-3 && Math.abs(lo - 0.985) < 1e-3, `${lo}..${hi}`);
+  assert.equal(LAYERS.breathHz, 0.4);
+});
+
+test("the belly springs from a hard landing up to 0.04 and settles without overshoot", () => {
+  const s = createLayers();
+  stepLayers(s, { vx: 0, facing: 1 }, [{ type: "land", x: 0, y: 0, speed: 2600 }], STEP_S);
+  let peak = 0,
+    under = 0;
+  for (let i = 0; i < 120; i++) {
+    stepLayers(s, { vx: 0, facing: 1 }, [], STEP_S);
+    peak = Math.max(peak, s.belly);
+    under = Math.min(under, s.belly);
+  }
+  assert.ok(peak > 0.03 && peak <= 0.04 + 1e-9, `peak ${peak}`);
+  assert.ok(under > -1e-3, `no overshoot: ${under}`);
+  assert.ok(Math.abs(s.belly) < 1e-3, `settled: ${s.belly}`);
+});

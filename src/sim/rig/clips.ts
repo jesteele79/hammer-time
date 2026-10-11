@@ -1,5 +1,5 @@
 import type { JointName } from "./skeleton";
-import { pose, out, smooth, type Pose } from "./pose";
+import { pose, out, type Pose } from "./pose";
 
 export type ClipName = "idle" | "walk" | "run" | "jump" | "fall" | "land" | "crouch" | "slide";
 export type ClipCtx = { t: number; speed: number; vy: number; facing: 1 | -1 };
@@ -33,7 +33,6 @@ const idle: Clip = (u) => {
     rot: { ...HOLD, shoulderFar: FREE + 1.5 * breath, chest: 1.2 * breath },
     lean: 0.8 * breath,
     headTilt: 0.6 * breath,
-    squash: { x: 1, y: 1 + 0.008 * breath },
   });
 };
 
@@ -79,9 +78,8 @@ const run: Clip = (u) => {
   });
 };
 
-const jump: Clip = (u) => {
-  const k = 1 - smooth(u);
-  return pose({
+const jump: Clip = () =>
+  pose({
     rot: {
       ...HOLD,
       shoulderFar: FREE - 8,
@@ -93,9 +91,7 @@ const jump: Clip = (u) => {
       ankleNear: 14,
       ankleFar: 14,
     },
-    squash: { x: 1 - 0.05 * k, y: 1 + 0.06 * k },
   });
-};
 
 const fall: Clip = () =>
   pose({
@@ -117,7 +113,6 @@ const land: Clip = (u) => {
   const k = 1 - out(u);
   return pose({
     rot: feet({ ...HOLD, shoulderFar: FREE, hipNear: 18 * k, kneeNear: -30 * k, hipFar: 18 * k, kneeFar: -30 * k }, 1),
-    squash: { x: 1 + 0.08 * k, y: 1 - 0.08 * k },
   });
 };
 
