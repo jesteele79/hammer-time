@@ -51,9 +51,10 @@ export type Solved = {
 const DEG = Math.PI / 180;
 const HEAD_LEVEL_DEG = 8;
 
-// The props drawn on top of the skinned body.
+// The props on the skinned body. The mallet sits between the torso (3) and the near arm (4),
+// so its handle runs behind the hand that holds it; the head plate is drawn last.
 const PARTS: ["head" | "mallet", joint: JointName, frame: JointName, z: number][] = [
-  ["mallet", "grip", "grip", 6],
+  ["mallet", "grip", "grip", 3.5],
   ["head", "neck", "head", 7],
 ];
 

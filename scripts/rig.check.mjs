@@ -106,3 +106,21 @@ test("grounding stands the lowest sole on its floor line: the near one at 0, the
   const flight = solve(CLIPS.run(0.2, { ...ctx, speed: 640 }), 1, 0.26);
   assert.ok(groundShift(flight, "push") <= 0, "a run's flight is never pulled down to the floor");
 });
+
+test("the fist holds the mallet out in front, head up, in every clip but the slide", () => {
+  const DEG = 180 / Math.PI;
+  for (const [name, clip] of Object.entries(CLIPS))
+    for (const u of [0, 0.25, 0.5, 0.75])
+      for (const facing of [1, -1]) {
+        const s = solve(clip(u, { ...ctx, facing, speed: 500 }), facing, 0.26);
+        const j = s.joints;
+        // Screen angles with y up, mirrored so forward is +x either way, squash and stretch
+        // divided out: the fist never turns on the handle.
+        const ang = (a, b) => Math.atan2(-(b.y - a.y) / s.squash.y, ((b.x - a.x) * facing) / s.squash.x) * DEG;
+        const turn = (((ang(j.grip, j.malletHead) - ang(j.wristNear, j.knuckleNear) + 540) % 360) - 180);
+        assert.ok(Math.abs(turn - 68) < 1e-6, `${name} u=${u}: the handle sits ${turn.toFixed(2)} degrees from the hand`);
+        if (name === "slide") continue;
+        assert.ok((j.malletHead.x - j.neck.x) * facing > 60 * s.scale, `${name} u=${u}: the head is out in front`);
+        assert.ok(j.malletHead.y < j.grip.y - 80 * s.scale, `${name} u=${u}: the head stands above the fist`);
+      }
+});

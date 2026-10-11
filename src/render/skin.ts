@@ -16,6 +16,8 @@ export type RigLayer = {
   indices?: ArrayLike<number>;
   bones: ArrayLike<number>;
   weights: ArrayLike<number>;
+  /** Other textures over the same mesh, such as the near hand closed into a fist. */
+  variants?: Record<string, string>;
 };
 
 /** One body's rig as written by art-sync: the painted joints and bones, and its layers. */

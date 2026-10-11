@@ -206,19 +206,19 @@ test("a layer's mesh covers every pixel it paints", async () => {
 test("skin weights sum to one, follow the limb, and blend at the elbow", async () => {
   const rig = CUTS.rig;
   const boneId = (p, c) => rig.bones.findIndex(([a, b]) => a === p && b === c);
-  const positions = [rig.joints.handNear[0], rig.joints.handNear[1], ...rig.joints.elbowNear, 300, 560, 180, 840];
+  const positions = [rig.joints.handNear[0], rig.joints.handNear[1], ...rig.joints.elbowNear, 300, 560, 212, 800];
   const { bones, weights } = skinWeights(positions, rig, "armNear");
   for (let v = 0; v < positions.length / 2; v++) {
     const sum = [0, 1, 2, 3].reduce((s, k) => s + weights[v * 4 + k], 0);
     assert.ok(Math.abs(sum - 1) < 1e-6, `vertex ${v} weights sum to ${sum}`);
   }
   const weightOf = (v, bone) => [0, 1, 2, 3].reduce((s, k) => s + (bones[v * 4 + k] === bone ? weights[v * 4 + k] : 0), 0);
-  assert.equal(weightOf(0, boneId("wristNear", "handNear")), 1, "the fingertips follow the hand");
+  assert.equal(weightOf(0, boneId("knuckleNear", "handNear")), 1, "the fingertips follow the fingers");
   const upper = weightOf(1, boneId("shoulderNear", "elbowNear")),
     fore = weightOf(1, boneId("elbowNear", "wristNear"));
   assert.ok(upper > 0.3 && fore > 0.3, `the elbow blends upper arm ${upper} and forearm ${fore}`);
   assert.equal(weightOf(2, boneId("shoulderNear", "elbowNear")), 1, "the biceps follows the upper arm");
-  assert.ok(weightOf(3, boneId("wristNear", "handNear")) > 0.9, "the palm follows the hand");
+  assert.ok(weightOf(3, boneId("wristNear", "knuckleNear")) > 0.9, "the back of the hand follows the hand");
   const torso = skinWeights([300, 880, 400, 330], rig, "torso");
   assert.equal(torso.bones[0], boneId("pelvis", "hipNear"), "the waistband follows the hips");
   assert.equal(torso.weights[0], 1);
@@ -243,4 +243,23 @@ test("no costume loses a painted pixel below the collar", async () => {
     const worst = [...where].sort((a, b) => b[1] - a[1]).slice(0, 4);
     assert.ok(lost < 40, `${costume}: ${lost} painted pixels belong to no layer, most near ${JSON.stringify(worst)}`);
   }
+});
+
+test("the near hand's fist folds the fingers away and inks the new edge", async () => {
+  const { W, layers } = await layersOf();
+  const open = layers.armNear.rgba,
+    fist = layers.armNear.variants.fist;
+  const a = (buf, x, y) => buf[(y * W + x) * 4 + 3];
+  const rgb = (buf, x, y) => [...buf.subarray((y * W + x) * 4, (y * W + x) * 4 + 3)];
+  for (const [x, y] of [[138, 888], [155, 901], [176, 901], [200, 891], [129, 846]])
+    assert.ok(a(open, x, y) > 0 && a(fist, x, y) === 0, `fingertip or thumb tip at ${x},${y} is folded away`);
+  for (const [x, y] of [[174, 807], [196, 816], [216, 823], [228, 778]])
+    assert.deepEqual(rgb(fist, x, y), rgb(open, x, y), `knuckle or wrist at ${x},${y} keeps its paint`);
+  let ink = 0;
+  for (let x = 150; x < 240; x++)
+    for (let y = 810; y < 860; y++) {
+      const [r, g, b] = rgb(fist, x, y);
+      if (a(fist, x, y) === 255 && r < 30 && g < 30 && b < 30 && a(open, x, y) === 255) ink++;
+    }
+  assert.ok(ink > 150, `the fist's front edge is outlined: ${ink} ink pixels`);
 });

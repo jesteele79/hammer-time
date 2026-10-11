@@ -18,7 +18,8 @@ declare global {
 }
 
 const CELL_H = 420;
-const CELL_W = 340;
+// Wide enough for the mallet held out in front; the figure stands left of center.
+const CELL_W = 420;
 const CLIP_NAMES: ClipName[] = ["idle", "walk", "run", "jump", "fall", "land", "crouch", "slide"];
 const EXPRESSIONS: Expression[] = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const HEAD_SCALES = [0.22, 0.26, 0.3];
@@ -67,7 +68,7 @@ export function createBoards(
       const cell = cells[i];
       const solved = solve(CLIPS[cell.clip](cell.u, CTX), 1, cell.headScale, registry.hammer.heads.neutral!);
       const dy = groundShift(solved, groundModeFor(cell.clip, true));
-      ch.container.position.set(150 + cell.col * CELL_W + CELL_W / 2, 50 + cell.row * CELL_H + CELL_H - 32 + dy);
+      ch.container.position.set(150 + cell.col * CELL_W + CELL_W * 0.4, 50 + cell.row * CELL_H + CELL_H - 32 + dy);
       ch.apply(solved, cell.expression, -dy);
     }
     return snapshot(board, width, height);

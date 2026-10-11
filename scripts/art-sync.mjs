@@ -119,8 +119,10 @@ async function heads(registry) {
   }
 }
 
-// Where a prop is held and where it reaches, in the keyed crop's pixels.
-const PROP_ANCHORS = { mallet: { pivot: { x: 965, y: 1295 }, tip: { x: 300, y: 235 } } };
+// Where a prop is held and where it reaches, in the keyed crop's pixels. The mallet is held
+// on the leather wrap 117 px (14 rest units) above the butt, so the butt shows below the
+// fist, and reaches to the middle of the head, where the handle's line meets its axis.
+const PROP_ANCHORS = { mallet: { pivot: { x: 916, y: 1191 }, tip: { x: 342, y: 209 } } };
 
 async function props(registry) {
   for (const name of ["mallet", "towel", "wristwatch"]) {
@@ -176,10 +178,30 @@ async function bodies(registry) {
         .toBuffer();
       if (overlay) sheet.push(full);
       const outFile = `hammer/${costume}-${name}.png`;
-      await sharp(full)
-        .resize({ width: Math.round(mesh.width * TEXTURE_SCALE), kernel: "lanczos3" })
-        .png()
-        .toFile(join(OUT, outFile));
+      const store = (png, file) =>
+        sharp(png)
+          .resize({ width: Math.round(mesh.width * TEXTURE_SCALE), kernel: "lanczos3" })
+          .png()
+          .toFile(join(OUT, file));
+      await store(full, outFile);
+      // Variants share the layer's mesh, so they cover the same rectangle.
+      const variants = {};
+      for (const [vname, vrgba] of Object.entries(layers[name].variants ?? {})) {
+        const vfull = await sharp(vrgba, { raw: { width: W, height: H, channels: 4 } })
+          .extract({ left, top, width: right - left, height: bottom - top })
+          .extend({
+            left: left - mesh.x0,
+            top: top - mesh.y0,
+            right: mesh.x0 + mesh.width - right,
+            bottom: mesh.y0 + mesh.height - bottom,
+            background: { r: 0, g: 0, b: 0, alpha: 0 },
+          })
+          .png()
+          .toBuffer();
+        variants[vname] = `hammer/${costume}-${name}-${vname}.png`;
+        await store(vfull, variants[vname]);
+        if (overlay) sheet.push(vfull);
+      }
       out.layers[name] = {
         file: outFile,
         x: mesh.x0,
@@ -190,6 +212,7 @@ async function bodies(registry) {
         indices: mesh.indices,
         bones: [...bones],
         weights: [...weights].map((w) => Math.round(w * 1000) / 1000),
+        ...(Object.keys(variants).length ? { variants } : {}),
       };
     }
     const rigFile = `hammer/${costume}-rig.json`;

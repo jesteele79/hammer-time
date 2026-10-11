@@ -294,8 +294,14 @@ on top. Grounding stands the lowest sole on its floor line while planted.
 
 Costumes are four paintings in the same pose with per-costume overrides (the
 suit's arms take their long sleeves; the banquet towel hangs forward of the
-shirt). The mallet rides in the near hand where the painting holds it, its
-handle up across the chest and its head behind the shoulder.
+shirt). The near hand is drawn closed into a fist (a texture variant of the
+near-arm layer: the fingers folded away a third of the way down, the new edge
+inked and shaded) and holds the mallet out in front, ready to swing: the elbow
+at his side, the forearm level, the handle through the fist at 68 degrees to
+the hand (the way a power grip crosses the palm), the butt showing below the
+fist and the head up ahead of his face. The fist never turns on the handle;
+the hold rides with the chest, and the slide points the mallet ahead over his
+legs.
 
 Proportions and silhouette: stocky, a slight belly, the shirt hem below the
 waist, the shorts to the knee, white-and-navy running shoes. The near forearm

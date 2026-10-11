@@ -1,5 +1,5 @@
 {
-  "note": "Coordinates are pixels of the keyed crop of art/incoming/hammer/body-<costume>.png; all four bodies share the pose and the framing. rig.joints is the painted skeleton (src/sim/rig/skeleton.ts holds the same joints in rest units). Each layer takes the painted pixels inside its polygon that no layer in front of it has taken (front to back: armNear, torso, legNear, legFar, armFar), keeping only skin when material is skin; fill polygons bound where the layer runs on behind the layers drawn over it, which is painted in from its own pixels (only its skin or only its cloth when source says so); an extruded limb instead carries its painted cross-section along its bones. overrides.<costume> replaces layer and skin settings for one body (the suit has long sleeves, so its arms take the sleeves and its torso keeps none; the banquet towel hangs forward of the shirt). Check with: node scripts/art-grid.mjs <costume> [x y w h scale].",
+  "note": "Coordinates are pixels of the keyed crop of art/incoming/hammer/body-<costume>.png; all four bodies share the pose and the framing. rig.joints is the painted skeleton (src/sim/rig/skeleton.ts holds the same joints in rest units). Each layer takes the painted pixels inside its polygon that no layer in front of it has taken (front to back: armNear, torso, legNear, legFar, armFar), keeping only skin when material is skin; fill polygons bound where the layer runs on behind the layers drawn over it, which is painted in from its own pixels (only its skin or only its cloth when source says so); an extruded limb instead carries its painted cross-section along its bones. overrides.<costume> replaces layer and skin settings for one body (the suit has long sleeves, so its arms take the sleeves and its torso keeps none; the banquet towel hangs forward of the shirt). A layer may carry variants (a fist): paint inside drop is removed and the new edge outlined and shaded. Check with: node scripts/art-grid.mjs <costume> [x y w h scale].",
   "space": "crop",
   "rig": {
     "sole": 1408,
@@ -29,13 +29,17 @@
         228,
         778
       ],
+      "knuckleNear": [
+        195,
+        818
+      ],
       "handNear": [
-        152,
-        900
+        160,
+        898
       ],
       "grip": [
-        198,
-        835
+        191,
+        825
       ],
       "shoulderFar": [
         400,
@@ -117,6 +121,10 @@
       ],
       [
         "wristNear",
+        "knuckleNear"
+      ],
+      [
+        "knuckleNear",
         "handNear"
       ],
       [
@@ -221,6 +229,7 @@
           "shoulderNear",
           "elbowNear",
           "wristNear",
+          "knuckleNear",
           "handNear"
         ],
         "parent": [
@@ -233,7 +242,8 @@
         ],
         "blend": [
           34,
-          14
+          12,
+          10
         ]
       },
       "armFar": {
@@ -427,7 +437,99 @@
           516
         ]
       ],
-      "source": "skin"
+      "source": "skin",
+      "variants": {
+        "fist": {
+          "outline": 3,
+          "shade": 4,
+          "drop": [
+            [
+              90,
+              812
+            ],
+            [
+              128,
+              815
+            ],
+            [
+              136,
+              818
+            ],
+            [
+              142,
+              822
+            ],
+            [
+              150,
+              819
+            ],
+            [
+              158,
+              817
+            ],
+            [
+              166,
+              822
+            ],
+            [
+              175,
+              826
+            ],
+            [
+              181,
+              826
+            ],
+            [
+              189,
+              831
+            ],
+            [
+              198,
+              835
+            ],
+            [
+              203,
+              834
+            ],
+            [
+              209,
+              838
+            ],
+            [
+              218,
+              842
+            ],
+            [
+              222,
+              843
+            ],
+            [
+              226,
+              847
+            ],
+            [
+              234,
+              851
+            ],
+            [
+              246,
+              856
+            ],
+            [
+              272,
+              866
+            ],
+            [
+              272,
+              935
+            ],
+            [
+              90,
+              935
+            ]
+          ]
+        }
+      }
     },
     "torso": {
       "polygon": [
@@ -481,36 +583,94 @@
         ]
       ],
       "fill": [
-        [
-          [
-            197,
-            500
+        {
+          "polygon": [
+            [
+              197,
+              500
+            ],
+            [
+              470,
+              500
+            ],
+            [
+              470,
+              833
+            ],
+            [
+              262,
+              834
+            ],
+            [
+              222,
+              827
+            ],
+            [
+              204,
+              813
+            ],
+            [
+              197,
+              752
+            ]
           ],
-          [
-            470,
-            500
-          ],
-          [
-            470,
-            905
-          ],
-          [
-            255,
-            905
-          ],
-          [
-            255,
-            838
-          ],
-          [
-            201,
-            832
-          ],
-          [
-            197,
-            752
+          "from": [
+            [
+              150,
+              270
+            ],
+            [
+              560,
+              270
+            ],
+            [
+              560,
+              830
+            ],
+            [
+              150,
+              830
+            ]
           ]
-        ]
+        },
+        {
+          "polygon": [
+            [
+              255,
+              833
+            ],
+            [
+              470,
+              833
+            ],
+            [
+              470,
+              905
+            ],
+            [
+              255,
+              905
+            ]
+          ],
+          "from": [
+            [
+              150,
+              836
+            ],
+            [
+              560,
+              836
+            ],
+            [
+              560,
+              905
+            ],
+            [
+              150,
+              905
+            ]
+          ]
+        }
       ],
       "source": "cloth"
     },
@@ -664,7 +824,7 @@
       "fill": [
         [
           [
-            200,
+            252,
             830
           ],
           [
@@ -676,7 +836,7 @@
             906
           ],
           [
-            200,
+            252,
             906
           ]
         ],
@@ -714,6 +874,24 @@
           [
             236,
             1316
+          ]
+        ],
+        [
+          [
+            250,
+            880
+          ],
+          [
+            272,
+            880
+          ],
+          [
+            272,
+            926
+          ],
+          [
+            250,
+            926
           ]
         ]
       ]
@@ -1083,36 +1261,95 @@
         },
         "torso": {
           "fill": [
-            [
-              [
-                197,
-                330
+            {
+              "polygon": [
+                [
+                  197,
+                  330
+                ],
+                [
+                  515,
+                  330
+                ],
+                [
+                  515,
+                  878
+                ],
+                [
+                  262,
+                  879
+                ],
+                [
+                  222,
+                  872
+                ],
+                [
+                  204,
+                  858
+                ],
+                [
+                  197,
+                  752
+                ]
               ],
-              [
-                515,
-                330
+              "from": [
+                [
+                  150,
+                  270
+                ],
+                [
+                  560,
+                  270
+                ],
+                [
+                  560,
+                  875
+                ],
+                [
+                  150,
+                  875
+                ]
               ],
-              [
-                515,
-                905
+              "dark": true
+            },
+            {
+              "polygon": [
+                [
+                  250,
+                  878
+                ],
+                [
+                  515,
+                  878
+                ],
+                [
+                  515,
+                  905
+                ],
+                [
+                  250,
+                  905
+                ]
               ],
-              [
-                255,
-                905
-              ],
-              [
-                255,
-                838
-              ],
-              [
-                201,
-                832
-              ],
-              [
-                197,
-                752
+              "from": [
+                [
+                  150,
+                  882
+                ],
+                [
+                  560,
+                  882
+                ],
+                [
+                  560,
+                  905
+                ],
+                [
+                  150,
+                  905
+                ]
               ]
-            ]
+            }
           ]
         }
       },

@@ -39,7 +39,11 @@ function fallback(message: string) {
 
 type Skinned = { name: LayerName; layer: RigLayer; mesh: Mesh; geometry: MeshGeometry; positions: Float32Array };
 
-/** The painted body as skinned meshes bent by the solved skeleton, with the mallet and head plate on top. */
+/**
+ * The painted body as skinned meshes bent by the solved skeleton, the mallet in
+ * the near fist (drawn between the torso and the near arm, so the fist closes
+ * over the handle) and the head plate on top.
+ */
 export function createCharacter(registry: Registry, costume: Costume, opts: { noart?: boolean } = {}): Character {
   const bodies = registry.hammer.bodies;
   let body = opts.noart && costume !== "affliction" ? undefined : bodies[costume];
@@ -81,6 +85,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     const layers = rig.layers ?? {};
     await Promise.all([
       ...LAYER_Z.map((name) => layers[name]?.file && load(layers[name].file)),
+      ...LAYER_Z.flatMap((name) => Object.values(layers[name]?.variants ?? {}).map(load)),
       ...plates.map((p) => load(p.file)),
       mallet ? load(mallet.file) : null,
     ]);
@@ -95,7 +100,9 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
       }
       const positions = new Float32Array(n * 2);
       const geometry = new MeshGeometry({ positions, uvs, indices: new Uint32Array(layer.indices) });
-      const mesh = new Mesh({ geometry, texture: textures.get(layer.file) ?? Texture.EMPTY });
+      // The near hand always holds the mallet, so it is drawn as the fist when there is one.
+      const file = (name === "armNear" && layer.variants?.fist) || layer.file;
+      const mesh = new Mesh({ geometry, texture: textures.get(file) ?? Texture.EMPTY });
       mesh.zIndex = z;
       mesh.visible = false;
       container.addChild(mesh);

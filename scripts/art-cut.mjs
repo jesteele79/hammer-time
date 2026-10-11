@@ -485,6 +485,49 @@ function claimStragglers(owner, data, W, H, reach) {
 }
 
 /**
+ * A layer's texture with part of it folded out of sight, such as the fingers
+ * curled into a fist round a handle. Paint inside `drop` is removed; the paint
+ * left along the new edge gets the ink outline (`outline` px) and, inside that,
+ * a band of shadow tone (`shade` px) where the surface turns away from the light.
+ */
+export function curlVariant(rgba, W, H, { drop, outline = 3, shade = 4 }) {
+  const out = Buffer.from(rgba);
+  const m = polygonMask(drop, W, H, { x: 0, y: 0 });
+  const dist = new Uint8Array(W * H);
+  let front = [];
+  for (let i = 0; i < W * H; i++)
+    if (m[i] && out[i * 4 + 3] > 0) {
+      out[i * 4 + 3] = 0;
+      front.push(i);
+    }
+  const reach = outline + shade;
+  for (let d = 1; d <= reach && front.length; d++) {
+    const next = [];
+    for (const i of front) {
+      const x = i % W;
+      for (const j of [x > 0 ? i - 1 : -1, x < W - 1 ? i + 1 : -1, i - W, i + W, i - W - 1, i - W + 1, i + W - 1, i + W + 1]) {
+        if (j < 0 || j >= W * H || dist[j] || m[j] || out[j * 4 + 3] === 0) continue;
+        dist[j] = d;
+        next.push(j);
+      }
+    }
+    front = next;
+  }
+  for (let i = 0; i < W * H; i++) {
+    const d = dist[i];
+    if (!d) continue;
+    if (d <= outline) out.set(OUTLINE, i * 4);
+    else {
+      out[i * 4] = Math.round(out[i * 4] * 0.78);
+      out[i * 4 + 1] = Math.round(out[i * 4 + 1] * 0.78);
+      out[i * 4 + 2] = Math.round(out[i * 4 + 2] * 0.86);
+    }
+    out[i * 4 + 3] = 255;
+  }
+  return out;
+}
+
+/**
  * Splits a keyed body into the rig's layers. Each layer keeps the painted
  * pixels inside its polygon that no layer in front of it took (only skin when
  * its material is skin); inside its fill polygons, wherever a layer drawn over
@@ -522,17 +565,28 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
       const tone = isSkin(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
       if (spec.source === "skin" ? tone : spec.source === "cloth" ? !tone : luma(data, i) >= 36) known[i] = 1;
     }
-    for (const poly of spec.fill ?? []) {
-      const m = polygonMask(poly, W, H, origin);
-      for (let i = 0; i < W * H; i++) if (m[i] && !visible[i] && above.has(owner[i])) fill[i] = 1;
+    // A fill is a polygon, or { polygon, from } to paint it only from the layer's pixels inside
+    // `from` (the shirt from the shirt, the shorts from the shorts, so the hem stays a hem).
+    const chain = spec.extrude ? cuts.rig.skin[name].chain.map((j) => cuts.rig.joints[j]) : null;
+    for (const entry of spec.fill ?? []) {
+      const { polygon, from, dark } = Array.isArray(entry) ? { polygon: entry } : entry;
+      const m = polygonMask(polygon, W, H, origin);
+      const part = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) if (m[i] && !visible[i] && above.has(owner[i])) part[i] = fill[i] = 1;
+      if (!part.some(Boolean)) continue;
+      let sources = known;
+      if (from || dark) {
+        const f = from ? polygonMask(from, W, H, origin) : null;
+        // `dark` keeps only the garment's own dark cloth, not a bright shirt showing through it.
+        sources = known.map((k, i) => (k && (!f || f[i]) && (!dark || luma(data, i) < 70) ? 1 : 0));
+      }
+      const rest = chain ? extrudeFill(rgba, W, H, sources, part, chain) : part;
+      pushPullFill(rgba, W, H, sources, rest);
     }
-    if (fill.some(Boolean)) {
-      const chain = spec.extrude ? cuts.rig.skin[name].chain.map((j) => cuts.rig.joints[j]) : null;
-      const rest = chain ? extrudeFill(rgba, W, H, known, fill, chain) : fill;
-      pushPullFill(rgba, W, H, known, rest);
-      if (!chain) outlineFill(rgba, W, H, visible, fill, OUTLINE_PX);
-    }
-    layers[name] = { rgba, visible, fill };
+    if (fill.some(Boolean) && !chain) outlineFill(rgba, W, H, visible, fill, OUTLINE_PX);
+    const variants = {};
+    for (const [vname, v] of Object.entries(spec.variants ?? {})) variants[vname] = curlVariant(rgba, W, H, v);
+    layers[name] = { rgba, visible, fill, variants };
   });
   return { W, H, layers, owner };
 }

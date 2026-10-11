@@ -17,6 +17,7 @@ export type JointName =
   | "shoulderNear"
   | "elbowNear"
   | "wristNear"
+  | "knuckleNear"
   | "handNear"
   | "shoulderFar"
   | "elbowFar"
@@ -37,9 +38,21 @@ export type JointName =
 
 export type Joint = { parent: JointName | null; rest: Point; length?: number };
 
-const HANDLE = 150;
-/** The handle's rest direction from the grip, degrees counter-clockwise from forward: up and back over the shoulder. */
-export const HANDLE_REST_DEG = 120;
+/** Grip to the middle of the mallet's head. */
+const HANDLE = 136;
+const WRIST_NEAR: Point = { x: 42.81, y: 166.5 };
+const KNUCKLE_NEAR: Point = { x: 51.54, y: 155.93 };
+const GRIP: Point = { x: 52.59, y: 154.08 };
+/**
+ * A closed fist holds the handle at a fixed angle to the hand: the handle runs
+ * through the palm from the heel of the hand to the base of the index finger,
+ * 68 degrees counter-clockwise from the hand (wrist to knuckles), so the head
+ * is on the thumb side and leans the way the hand points.
+ */
+export const GRIP_DEG = 68;
+/** The handle's rest direction from the grip, degrees counter-clockwise from forward. */
+export const HANDLE_REST_DEG =
+  (Math.atan2(KNUCKLE_NEAR.y - WRIST_NEAR.y, KNUCKLE_NEAR.x - WRIST_NEAR.x) * 180) / Math.PI + GRIP_DEG;
 const handleEnd = (grip: Point): Point => ({
   x: grip.x + HANDLE * Math.cos((HANDLE_REST_DEG * Math.PI) / 180),
   y: grip.y + HANDLE * Math.sin((HANDLE_REST_DEG * Math.PI) / 180),
@@ -57,8 +70,10 @@ const TABLE: Record<JointName, { parent: JointName | null; rest: Point }> = {
   head: { parent: "neck", rest: { x: 7.93, y: 296 } },
   shoulderNear: { parent: "chest", rest: { x: -7.93, y: 273.8 } },
   elbowNear: { parent: "shoulderNear", rest: { x: 4.76, y: 210.37 } },
-  wristNear: { parent: "elbowNear", rest: { x: 42.81, y: 166.5 } },
-  handNear: { parent: "wristNear", rest: { x: 62.9, y: 134.26 } },
+  wristNear: { parent: "elbowNear", rest: WRIST_NEAR },
+  // The knuckles, where the fingers bend.
+  knuckleNear: { parent: "wristNear", rest: KNUCKLE_NEAR },
+  handNear: { parent: "knuckleNear", rest: { x: 60.79, y: 134.79 } },
   shoulderFar: { parent: "chest", rest: { x: -2.64, y: 266.4 } },
   elbowFar: { parent: "shoulderFar", rest: { x: 38.59, y: 207.99 } },
   wristFar: { parent: "elbowFar", rest: { x: 75.32, y: 164.12 } },
@@ -73,8 +88,9 @@ const TABLE: Record<JointName, { parent: JointName | null; rest: Point }> = {
   toeFar: { parent: "ankleFar", rest: { x: 63.43, y: 25.37 } },
   heelNear: { parent: "ankleNear", rest: { x: -35.68, y: 1.06 } },
   heelFar: { parent: "ankleFar", rest: { x: 0.53, y: 24.84 } },
-  grip: { parent: "wristNear", rest: { x: 50.74, y: 151.44 } },
-  malletHead: { parent: "grip", rest: handleEnd({ x: 50.74, y: 151.44 }) },
+  // In the palm just past the knuckles, where the fist closes round the handle.
+  grip: { parent: "wristNear", rest: GRIP },
+  malletHead: { parent: "grip", rest: handleEnd(GRIP) },
 };
 /** How far above the floor the far sole stands at rest: the painting's perspective. */
 export const FAR_FLOOR = 25.37;
