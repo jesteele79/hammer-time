@@ -251,14 +251,21 @@ most 4 textures each; particles are one batched container.
   from `art/incoming/hammer/head-profile-<name>.png`. Plates are registered
   once (§14.2): the neck anchor (where the head attaches), the face box (eyes
   to chin, for the clearance test) and the crown point (for thoughts). The
-  game uses the plate at head height 0.28 of HERO_HEIGHT (95 px) facing left,
-  flipped for right.
+  game uses the plate at head height 0.26 of HERO_HEIGHT (88 px; the owner's
+  call, 2026-10-10) facing left, flipped for right.
+- The head sits down in the collar: its neck anchor is seated 9 rest units
+  below the neck joint, and the body painting's own neck above the collar is
+  cut away, so the head's neck runs straight into the shirt instead of
+  standing on a second neck (owner, 2026-10-11). The body scales so the crown
+  stays at HERO_HEIGHT.
 - Expression use: `hurt` on accepted damage for 0.6 s, `angry` during the
   lecture and the super smash, `smug` on a steal or a bonk that lands, `bored`
   from the watch check onward, `chomp` during the banquet dive's grab. If a
   plate is missing the neutral plate stays; nothing else changes.
 - The head sprite is the last thing drawn in Hammer's container except during
-  the towel wipe, when the towel passes behind the head (never in front).
+  the towel wipe: the far hand rubs the back and top of his head with the
+  towel draped down the back of it, both drawn over the head so the wipe reads
+  (owner, 2026-10-11). Neither ever covers the face box.
   Thought bubbles, comic words and NPC speech are placed off the face box.
 
 ### 6.2 The body rig

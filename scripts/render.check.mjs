@@ -7,7 +7,7 @@ import { CLIPS } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
 import { REST_POSE } from "../src/sim/rig/skeleton.ts";
 import { placeWord, wordBox } from "../src/render/words.ts";
-import { TOWEL, hangTowel, towelChain } from "../src/render/towel.ts";
+import { TOWEL, hangTowel, towelChain, towelOverHead } from "../src/render/towel.ts";
 import { ACTIONS } from "../src/sim/rig/actions.ts";
 import { sweptHeadHits } from "../src/sim/hits.ts";
 
@@ -127,4 +127,32 @@ test("the shirt is drawn from its mirror when he faces right, the painting's way
   assert.equal(layerFile("armNear", arm, 1), "a-fist.png", "the near hand holds the mallet either way");
   assert.equal(layerFile("armNear", arm, -1), "a-fist.png");
   assert.equal(layerFile("legNear", { ...mesh, file: "l.png" }, 1), "l.png");
+});
+
+test("the towel hand goes over his head only above his neck and behind it, and switches where it covers nothing", () => {
+  for (const facing of [-1, 1]) {
+    let was = false,
+      over = 0;
+    for (let k = 0; k <= 400; k++) {
+      const s = solve(ACTIONS.wipe(k / 400), facing, 0.26);
+      const now = towelOverHead(s);
+      const behind = (p) => (p.x - s.joints.neck.x) * facing <= 2;
+      if (now) {
+        over++;
+        for (const p of [s.joints.wristFar, s.joints.handFar])
+          assert.ok(behind(p) && p.y < s.joints.neck.y, `facing ${facing}, u ${(k / 400).toFixed(3)}: over his head but not above and behind his neck`);
+      }
+      if (now !== was) {
+        // Drawn in front or behind, the hand looks the same here: it overlaps neither his head nor his shirt.
+        const b = s.headBox;
+        for (const p of [s.joints.wristFar, s.joints.handFar])
+          assert.ok(
+            p.x < b.x - 8 || p.x > b.x + b.w + 8 || p.y < b.y - 8 || p.y > b.y + b.h + 8,
+            `facing ${facing}, u ${(k / 400).toFixed(3)}: the hand switches layers on top of his head`,
+          );
+      }
+      was = now;
+    }
+    assert.ok(over > 150, `facing ${facing}: the hand is over his head through the rub (${over} of 401 frames)`);
+  }
 });

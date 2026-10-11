@@ -29,6 +29,18 @@ export function towelChain(anchor: Point, prev: Point[], n: number, len: number,
 }
 
 /**
+ * Whether the towel hand is drawn over his head: while the wrist is above his neck, where
+ * nothing but his head can be behind it. It rises behind his back and flings back down there,
+ * so it changes layers clear of his head and his shirt.
+ */
+export function towelOverHead(solved: Solved): boolean {
+  return solved.joints.wristFar.y < solved.joints.neck.y;
+}
+
+/** How far along the hand, from the wrist, the towel is held: in the palm, not at the fingertips. */
+const GRIP = 0.3;
+
+/**
  * This frame's towel in the facing-right frame (x times facing), hung from the far hand.
  * Wherever it could reach the face's height it stays behind the face's back edge by half
  * its width and the gap, the hand's end included; below the chin it hangs free.
@@ -36,7 +48,9 @@ export function towelChain(anchor: Point, prev: Point[], n: number, len: number,
 export function hangTowel(solved: Solved, prev: Point[], fit: TowelFit = TOWEL): Point[] {
   const f = solved.facing;
   const face = solved.faceBox;
-  const hand = { x: solved.joints.handFar.x * f, y: solved.joints.handFar.y };
+  const w = solved.joints.wristFar;
+  const k = solved.joints.handFar;
+  const hand = { x: (w.x + (k.x - w.x) * GRIP) * f, y: w.y + (k.y - w.y) * GRIP };
   const margin = fit.width / 2 + fit.gap;
   const back = (f === 1 ? face.x : -(face.x + face.w)) - margin;
   const high = hand.y < face.y + face.h + margin;

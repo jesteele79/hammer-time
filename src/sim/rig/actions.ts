@@ -103,45 +103,43 @@ const HANG: Point = (() => {
   };
 })();
 const HANG_DEG = angleOf(JOINTS.wristFar.rest, JOINTS.handFar.rest) + FREE;
-/** The hand holding the towel up to the scalp, and flung back at the flick. */
-const HAND_UP = 95;
+/**
+ * The towel rubs the back and top of his head: the wrist strokes between low behind his head
+ * (the fingers up over the back of it) and high behind his crown (the fingers forward over the
+ * top), five strokes ending high; then it flings back and returns to the hang.
+ */
+const RUB_LOW: Point = { x: -36, y: 340 };
+const RUB_HIGH: Point = { x: -26, y: 372 };
+const HAND_LOW = 60;
+const HAND_HIGH = 40;
 const HAND_FLUNG = 150;
 const FLICK_TURN = 0.08;
-const SCALP = { x: -18, y: 358, rx: 22, ry: 34 };
-const scalp = (deg: number): Point => ({
-  x: SCALP.x + Math.cos((deg * Math.PI) / 180) * SCALP.rx,
-  y: SCALP.y + Math.sin((deg * Math.PI) / 180) * SCALP.ry,
-});
+const FLUNG: Point = { x: -95, y: 290 };
+/** Where a stroke is: 0 low at the back of his head, 1 up behind his crown. */
+const rub = (u: number) => 0.5 - 0.5 * Math.cos(((u - WIPE_SCRUB[0]) / (WIPE_SCRUB[1] - WIPE_SCRUB[0])) * Math.PI * 5);
+const mix = (a: Point, b: Point, t: number): Point => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 const bez = (a: Point, c: Point, b: Point, t: number): Point => ({
   x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x,
   y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y,
 });
 export function wipeHand(u: number): Point {
-  // Up from where the hand hangs, easing in and out, so the arm rises instead of appearing.
-  if (u < WIPE_SCRUB[0]) return bez(HANG, { x: -70, y: 260 }, scalp(110), smooth(u / WIPE_SCRUB[0]));
-  if (u < WIPE_FLICK[0]) {
-    const t = (u - WIPE_SCRUB[0]) / (WIPE_SCRUB[1] - WIPE_SCRUB[0]);
-    return scalp(150 - 40 * Math.cos(t * Math.PI * 5));
-  }
-  const flung = { x: -95, y: 290 };
-  if (u < WIPE_FLICK[1]) {
-    // From where the last stroke ends, at the back of the scalp.
-    const t = smooth((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0]));
-    const from = scalp(190);
-    return { x: from.x + (flung.x - from.x) * t, y: from.y + (flung.y - from.y) * t };
-  }
-  return bez(flung, { x: -80, y: 180 }, HANG, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));
+  // Up from where the hand hangs, behind his back, easing in and out, so the arm rises instead of appearing.
+  if (u < WIPE_SCRUB[0]) return bez(HANG, { x: -115, y: 250 }, RUB_LOW, smooth(u / WIPE_SCRUB[0]));
+  if (u < WIPE_FLICK[0]) return mix(RUB_LOW, RUB_HIGH, rub(u));
+  if (u < WIPE_FLICK[1]) return mix(RUB_HIGH, FLUNG, smooth((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0])));
+  return bez(FLUNG, { x: -80, y: 180 }, HANG, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));
 }
 
 /**
  * The way the far hand points through the wipe, in the chest's frame (degrees, facing right):
- * it turns up with the arm as the arm swings up behind him (clockwise), tips back over 0.08 of
- * the clip at the flick, and turns back down with the arm on the way to the pocket.
+ * it turns up with the arm as it rises, rocks between up the back of his head and forward over
+ * the top with each stroke, tips back over 0.08 of the clip at the flick, and turns back down
+ * with the arm on the way to the hang.
  */
 export function wipeHandDeg(u: number): number {
-  if (u < WIPE_SCRUB[0]) return HANG_DEG + (HAND_UP - 360 - HANG_DEG) * smooth(u / WIPE_SCRUB[0]);
-  if (u < WIPE_FLICK[0]) return HAND_UP;
-  if (u < WIPE_FLICK[0] + FLICK_TURN) return HAND_UP + (HAND_FLUNG - HAND_UP) * smooth((u - WIPE_FLICK[0]) / FLICK_TURN);
+  if (u < WIPE_SCRUB[0]) return HANG_DEG + (HAND_LOW - HANG_DEG) * smooth(u / WIPE_SCRUB[0]);
+  if (u < WIPE_FLICK[0]) return HAND_LOW + (HAND_HIGH - HAND_LOW) * rub(u);
+  if (u < WIPE_FLICK[0] + FLICK_TURN) return HAND_HIGH + (HAND_FLUNG - HAND_HIGH) * smooth((u - WIPE_FLICK[0]) / FLICK_TURN);
   if (u < WIPE_FLICK[1]) return HAND_FLUNG;
   return HAND_FLUNG + (HANG_DEG + 360 - HAND_FLUNG) * smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16));
 }

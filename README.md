@@ -272,9 +272,10 @@ running move is never restarted.
   second between shots and three in flight at most. It leaves just ahead of
   his nose, knocks a cart and splats, or lands as a puddle that dries in
   7 s. Hot snot (pepper, later) is faster and bigger and goes through a cart.
-- **T, the towel:** with any heat, on the ground, he stands still and
-  scrubs the back of his head, flicks the sweat off and shines; heat drains
-  fast. The towel always passes behind his head.
+- **T, the towel:** with any heat, on the ground, he stands still and rubs
+  the back and top of his head with the towel draped down behind it, flicks
+  the sweat off and shines; heat drains fast. The hand and towel are drawn
+  over his head while they rub it, and never over his face.
 - **Heat:** running heats him, resting cools him, and jumps, swings and snot
   add to it. From 45 he sweats, from 80 he steams and runs slower, and near
   100 he boils over.
@@ -302,7 +303,8 @@ blending, face clearance for every sampled frame of every clip and every
 blend, mirroring, the skeleton matching the painted joints, grounding), the
 render checks (the quality governor, the skinned body matching the painting
 at rest and every bone landing on its solved joint, comic words kept off the
-face and in view, the towel kept behind the head through the whole wipe), the
+face and in view, the towel kept off the face through the whole wipe, the
+towel hand drawn over his head only where it covers nothing else), the
 sim checks (jump height and cut, run speed and stop, coyote time and the jump
 buffer, landing on a platform at speed, crouch and slide under a pass,
 determinism) and the move checks in `moves.check.mjs` (the feel table and the

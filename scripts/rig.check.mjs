@@ -148,7 +148,7 @@ test("the fist holds the mallet out in front, head up, in every clip but the sli
 
 
 import { ACTIONS, ACTION_MASK, displayU, overlay, wipeHand, armTo } from "../src/sim/rig/actions.ts";
-import { MOVE_SECONDS, SWING_CUT, SUPER_CUT } from "../src/sim/moves.ts";
+import { MOVE_SECONDS, SWING_CUT, SUPER_CUT, WIPE_SCRUB } from "../src/sim/moves.ts";
 import { FREE, HOLD } from "../src/sim/rig/clips.ts";
 import { pose } from "../src/sim/rig/pose.ts";
 
@@ -273,4 +273,18 @@ test("the wipe starts and ends with the far arm hanging as it does at rest", () 
     const d = Math.hypot(h.x - hang.x, h.y - hang.y);
     assert.ok(d < 3, `at u ${u} the far hand is ${d.toFixed(1)} px from where it hangs`);
   }
+});
+
+test("through the scrub the towel hand rubs the back and top of his head", () => {
+  // At the game's head size; the face sweep above holds the face clear at every size.
+  for (const facing of [-1, 1])
+    for (const scale of [0.26])
+      for (let k = 0; k <= 40; k++) {
+        const u = WIPE_SCRUB[0] + 0.01 + ((WIPE_SCRUB[1] - WIPE_SCRUB[0] - 0.02) * k) / 40;
+        const s = solve(ACTIONS.wipe(u), facing, scale);
+        const h = s.joints.handFar;
+        const b = s.headBox;
+        const out = Math.max(b.x - h.x, 0, h.x - (b.x + b.w)) + Math.max(b.y - h.y, 0, h.y - (b.y + b.h));
+        assert.ok(out <= 6, `facing ${facing}, head ${scale}, u ${u.toFixed(2)}: the fingers are ${out.toFixed(0)} px off his head`);
+      }
 });

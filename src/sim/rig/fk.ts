@@ -42,6 +42,8 @@ export type Solved = {
   links: Record<JointName, number>;
   /** Nothing is ever drawn over it. */
   faceBox: Rect;
+  /** The whole head plate's bounds, world px from the feet point. */
+  headBox: Rect;
   crown: Point;
   /** The nose tip, world px from the feet point. */
   nose: Point;
@@ -133,22 +135,22 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     const r = rotate(local, headRot);
     return { x: seat.x + r.x, y: seat.y + r.y };
   };
-  const f = plate.face;
-  const corners = [place(f.x, f.y), place(f.x + f.w, f.y), place(f.x, f.y + f.h), place(f.x + f.w, f.y + f.h)];
-  const xs = corners.map((c) => c.x);
-  const ys = corners.map((c) => c.y);
-  const faceBox = {
-    x: Math.min(...xs),
-    y: Math.min(...ys),
-    w: Math.max(...xs) - Math.min(...xs),
-    h: Math.max(...ys) - Math.min(...ys),
+  const bounds = (x: number, y: number, w: number, h: number): Rect => {
+    const corners = [place(x, y), place(x + w, y), place(x, y + h), place(x + w, y + h)];
+    const xs = corners.map((c) => c.x);
+    const ys = corners.map((c) => c.y);
+    return { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
   };
+  const f = plate.face;
+  const faceBox = bounds(f.x, f.y, f.w, f.h);
+  const headBox = bounds(0, 0, plate.width, plate.height);
 
   return {
     parts,
     joints,
     links,
     faceBox,
+    headBox,
     crown: place(plate.crown.x, plate.crown.y),
     nose: place(plate.nose.x, plate.nose.y),
     scale,
