@@ -147,7 +147,7 @@ test("the fist holds the mallet out in front, head up, in every clip but the sli
 });
 
 
-import { ACTIONS, ACTION_MASK, displayU, overlay, wipeHand, armTo } from "../src/sim/rig/actions.ts";
+import { ACTIONS, ACTION_MASK, displayU, overlay, armTo } from "../src/sim/rig/actions.ts";
 import { MOVE_SECONDS, SWING_CUT, SUPER_CUT, WIPE_SCRUB } from "../src/sim/moves.ts";
 import { FREE, HOLD } from "../src/sim/rig/clips.ts";
 import { pose } from "../src/sim/rig/pose.ts";
@@ -167,13 +167,16 @@ test("two-bone IK puts the wrist on a reachable target with the hand at the aske
   }
 });
 
+// The one exception to the face rule: his left hand wipes his face with the towel (owner, 2026-10-11).
+const FACE_ALLOWED = { swing: [], super: [], snot: [], wipe: ["far upper arm", "far forearm"] };
+
 test("every drawn frame of every move keeps the face clear, both ways, at every head scale", () => {
   for (const kind of KINDS)
     for (let i = 0; i <= 400; i++)
       for (const facing of [1, -1])
         for (const headScale of [0.22, 0.26, 0.3]) {
           const u = displayU(kind, i / 400);
-          const r = faceClear(solve(ACTIONS[kind](u), facing, headScale));
+          const r = faceClear(solve(ACTIONS[kind](u), facing, headScale), FACE_ALLOWED[kind]);
           assert.ok(r.ok, `${kind} u=${u} facing ${facing} head ${headScale}: ${r.offender}`);
         }
 });
@@ -186,7 +189,7 @@ test("blending each move in over 0.06 s and out over 0.12 s from every clip keep
         const base = clip(0.5, { ...ctx, speed: 500 });
         for (const u of [displayU(kind, (0.06 / MOVE_SECONDS[kind]) * w), displayU(kind, 1)]) {
           const p = overlay(base, ACTIONS[kind](u), ACTION_MASK[kind], w);
-          const r = faceClear(solve(p, 1, 0.26));
+          const r = faceClear(solve(p, 1, 0.26), FACE_ALLOWED[kind]);
           assert.ok(r.ok, `${name} + ${kind} at weight ${w.toFixed(2)}: ${r.offender}`);
         }
       }
@@ -219,15 +222,19 @@ test("the super's slam puts the mallet head on the floor in front", () => {
   assert.ok(s.joints.malletHead.x > 60, "in front");
 });
 
-test("the towel hand works behind the head and never reaches the face", () => {
-  for (let i = 0; i <= 200; i++) {
-    const u = i / 200;
-    const s = solve(ACTIONS.wipe(u), 1, 0.26);
-    const hand = s.joints.handFar;
-    if (u > 0.15 && u < 0.6) assert.ok(hand.y < s.joints.neck.y, `u=${u}: the hand is up at the head`);
-    assert.ok(hand.x < s.faceBox.x - 10 || hand.y < s.faceBox.y - 20 || hand.y > s.faceBox.y + s.faceBox.h + 10, `u=${u}: hand clear of the face`);
+test("for the wipe his right hand drops the mallet low in front of his legs, then lifts it back to the hold", () => {
+  for (const facing of [-1, 1]) {
+    for (let k = 0; k <= 40; k++) {
+      const u = WIPE_SCRUB[0] + ((WIPE_SCRUB[1] - WIPE_SCRUB[0]) * k) / 40;
+      const s = solve(ACTIONS.wipe(u), facing, 0.26);
+      assert.ok(s.joints.malletHead.y > s.joints.kneeNear.y - 40, `facing ${facing}, u ${u.toFixed(2)}: the mallet head hangs about knee height`);
+      assert.ok((s.joints.malletHead.x - s.joints.grip.x) * facing > 0, `facing ${facing}, u ${u.toFixed(2)}: it hangs in front of him`);
+    }
+    for (const u of [0, 1]) {
+      const s = solve(ACTIONS.wipe(u), facing, 0.26);
+      assert.ok(s.joints.malletHead.y < s.faceBox.y + s.faceBox.h, `facing ${facing}, u ${u}: the mallet is up in the hold`);
+    }
   }
-  assert.ok(wipeHand(0.3).y > 330, "the strokes are on the scalp");
 });
 
 test("the fist never turns on the handle during any move", () => {
@@ -243,27 +250,29 @@ test("the fist never turns on the handle during any move", () => {
 });
 
 
-test("the towel arm moves smoothly through the whole wipe: no step jumps the far hand", () => {
+test("both arms move smoothly through the whole wipe: no step jumps the towel hand or the mallet", () => {
   // A jump is a step whose travel leaps past its neighbour's; a fast swing speeds up gradually.
   const du = 1 / 120 / MOVE_SECONDS.wipe;
-  let prev = null,
-    last = 0,
-    fastest = 0,
-    spike = 0,
-    at = 0;
-  for (let k = 0; k * du <= 1 + 1e-9; k++) {
-    const u = Math.min(1, k * du);
-    const h = solve(ACTIONS.wipe(u), 1, 0.26).joints.handFar;
-    if (prev) {
-      const d = Math.hypot(h.x - prev.x, h.y - prev.y);
-      fastest = Math.max(fastest, d);
-      if (Math.abs(d - last) > spike) [spike, at] = [Math.abs(d - last), u];
-      last = d;
+  for (const part of ["handFar", "malletHead"]) {
+    let prev = null,
+      last = 0,
+      fastest = 0,
+      spike = 0,
+      at = 0;
+    for (let k = 0; k * du <= 1 + 1e-9; k++) {
+      const u = Math.min(1, k * du);
+      const h = solve(ACTIONS.wipe(u), 1, 0.26).joints[part];
+      if (prev) {
+        const d = Math.hypot(h.x - prev.x, h.y - prev.y);
+        fastest = Math.max(fastest, d);
+        if (Math.abs(d - last) > spike) [spike, at] = [Math.abs(d - last), u];
+        last = d;
+      }
+      prev = h;
     }
-    prev = h;
+    assert.ok(spike < 10, `the ${part}'s step changes by ${spike.toFixed(0)} px at u ${at.toFixed(3)}`);
+    assert.ok(fastest < 40, `the ${part} covers ${fastest.toFixed(0)} px in one step`);
   }
-  assert.ok(spike < 10, `the far hand's step changes by ${spike.toFixed(0)} px at u ${at.toFixed(3)}`);
-  assert.ok(fastest < 40, `the far hand covers ${fastest.toFixed(0)} px in one step`);
 });
 
 test("the wipe starts and ends with the far arm hanging as it does at rest", () => {
@@ -275,16 +284,16 @@ test("the wipe starts and ends with the far arm hanging as it does at rest", () 
   }
 });
 
-test("through the scrub the towel hand rubs the back and top of his head", () => {
-  // At the game's head size; the face sweep above holds the face clear at every size.
+test("through the scrub his left hand comes up and wipes his face", () => {
   for (const facing of [-1, 1])
-    for (const scale of [0.26])
-      for (let k = 0; k <= 40; k++) {
-        const u = WIPE_SCRUB[0] + 0.01 + ((WIPE_SCRUB[1] - WIPE_SCRUB[0] - 0.02) * k) / 40;
-        const s = solve(ACTIONS.wipe(u), facing, scale);
-        const h = s.joints.handFar;
-        const b = s.headBox;
-        const out = Math.max(b.x - h.x, 0, h.x - (b.x + b.w)) + Math.max(b.y - h.y, 0, h.y - (b.y + b.h));
-        assert.ok(out <= 6, `facing ${facing}, head ${scale}, u ${u.toFixed(2)}: the fingers are ${out.toFixed(0)} px off his head`);
-      }
+    for (let k = 0; k <= 40; k++) {
+      const u = WIPE_SCRUB[0] + 0.01 + ((WIPE_SCRUB[1] - WIPE_SCRUB[0] - 0.02) * k) / 40;
+      const s = solve(ACTIONS.wipe(u), facing, 0.26);
+      const w = s.joints.wristFar,
+        h = s.joints.handFar;
+      const palm = { x: w.x + (h.x - w.x) * 0.5, y: w.y + (h.y - w.y) * 0.5 };
+      const f = s.faceBox;
+      const inside = palm.x > f.x && palm.x < f.x + f.w && palm.y > f.y && palm.y < f.y + f.h;
+      assert.ok(inside, `facing ${facing}, u ${u.toFixed(2)}: the palm is on his face`);
+    }
 });

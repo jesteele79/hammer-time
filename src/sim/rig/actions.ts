@@ -2,7 +2,7 @@ import type { MoveKind } from "../moves";
 import { SUPER_CUT, SWING_CUT, WIPE_FLICK, WIPE_SCRUB } from "../moves";
 import { FREE, HOLD } from "./clips";
 import { armTo } from "./ik";
-import { blend, linear, out, pose, smooth, track, type Key, type Pose } from "./pose";
+import { blend, linear, out, pose, smooth, smoother, track, type Key, type Pose } from "./pose";
 import { JOINTS, type JointName, type Point } from "./skeleton";
 
 export { armTo };
@@ -104,46 +104,59 @@ const HANG: Point = (() => {
 })();
 const HANG_DEG = angleOf(JOINTS.wristFar.rest, JOINTS.handFar.rest) + FREE;
 /**
- * The towel rubs the back and top of his head: the wrist strokes between low behind his head
- * (the fingers up over the back of it) and high behind his crown (the fingers forward over the
- * top), five strokes ending high; then it flings back and returns to the hang.
+ * The towel wipe: his right hand drops the mallet to hang in front of his legs while his left
+ * hand swings up in front of him to his face and wipes it, five strokes between his mouth and
+ * his forehead, flicks the towel forward and down, and goes back to the hang as the mallet
+ * comes back up (owner, 2026-10-11: "the most natural look").
  */
-const RUB_LOW: Point = { x: -36, y: 340 };
-const RUB_HIGH: Point = { x: -26, y: 372 };
-const HAND_LOW = 60;
-const HAND_HIGH = 40;
-const HAND_FLUNG = 150;
+const FACE_LOW: Point = { x: 44, y: 300 };
+const FACE_HIGH: Point = { x: 38, y: 328 };
+const HAND_LOW = 105;
+const HAND_HIGH = 95;
+const HAND_FLICK = 10;
 const FLICK_TURN = 0.08;
-const FLUNG: Point = { x: -95, y: 290 };
-/** Where a stroke is: 0 low at the back of his head, 1 up behind his crown. */
+const FLUNG: Point = { x: 100, y: 260 };
+/** Where a stroke is: 0 low over his mouth, 1 high over his eyes. */
 const rub = (u: number) => 0.5 - 0.5 * Math.cos(((u - WIPE_SCRUB[0]) / (WIPE_SCRUB[1] - WIPE_SCRUB[0])) * Math.PI * 5);
+/** The hand reaches his face a little into the first stroke, so the long swing up has time to ease. */
+const RISE_END = 0.16;
+const scrubAt = (u: number) => mix(FACE_LOW, FACE_HIGH, rub(u));
+const scrubDeg = (u: number) => HAND_LOW + (HAND_HIGH - HAND_LOW) * rub(u);
 const mix = (a: Point, b: Point, t: number): Point => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 const bez = (a: Point, c: Point, b: Point, t: number): Point => ({
   x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x,
   y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y,
 });
 export function wipeHand(u: number): Point {
-  // Up from where the hand hangs, behind his back, easing in and out, so the arm rises instead of appearing.
-  if (u < WIPE_SCRUB[0]) return bez(HANG, { x: -115, y: 250 }, RUB_LOW, smooth(u / WIPE_SCRUB[0]));
-  if (u < WIPE_FLICK[0]) return mix(RUB_LOW, RUB_HIGH, rub(u));
-  if (u < WIPE_FLICK[1]) return mix(RUB_HIGH, FLUNG, smooth((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0])));
-  return bez(FLUNG, { x: -80, y: 180 }, HANG, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));
+  // Up from the hang and out in front of him, easing in and out, so the arm rises instead of appearing.
+  if (u < RISE_END) return bez(HANG, { x: 90, y: 330 }, scrubAt(RISE_END), smoother(u / RISE_END));
+  if (u < WIPE_FLICK[0]) return scrubAt(u);
+  if (u < WIPE_FLICK[1]) return mix(FACE_HIGH, FLUNG, smooth((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0])));
+  return bez(FLUNG, { x: 60, y: 160 }, HANG, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));
 }
 
 /**
  * The way the far hand points through the wipe, in the chest's frame (degrees, facing right):
- * it turns up with the arm as it rises, rocks between up the back of his head and forward over
- * the top with each stroke, tips back over 0.08 of the clip at the flick, and turns back down
- * with the arm on the way to the hang.
+ * it turns up with the arm as it rises, its palm on his face with the fingers up over his eyes,
+ * flips forward over 0.08 of the clip to flick, and turns back down with the arm to the hang.
  */
 export function wipeHandDeg(u: number): number {
-  if (u < WIPE_SCRUB[0]) return HANG_DEG + (HAND_LOW - HANG_DEG) * smooth(u / WIPE_SCRUB[0]);
-  if (u < WIPE_FLICK[0]) return HAND_LOW + (HAND_HIGH - HAND_LOW) * rub(u);
-  if (u < WIPE_FLICK[0] + FLICK_TURN) return HAND_HIGH + (HAND_FLUNG - HAND_HIGH) * smooth((u - WIPE_FLICK[0]) / FLICK_TURN);
-  if (u < WIPE_FLICK[1]) return HAND_FLUNG;
-  return HAND_FLUNG + (HANG_DEG + 360 - HAND_FLUNG) * smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16));
+  if (u < RISE_END) return HANG_DEG + (scrubDeg(RISE_END) - HANG_DEG) * smoother(u / RISE_END);
+  if (u < WIPE_FLICK[0]) return scrubDeg(u);
+  if (u < WIPE_FLICK[0] + FLICK_TURN) return HAND_HIGH + (HAND_FLICK - HAND_HIGH) * smooth((u - WIPE_FLICK[0]) / FLICK_TURN);
+  if (u < WIPE_FLICK[1]) return HAND_FLICK;
+  return HAND_FLICK + (HANG_DEG - HAND_FLICK) * smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16));
 }
-const WIPE_LEAN = [[0, 0], [0.12, -3], [0.62, -3], [0.7, 3, out], [1, 0]] as K;
+
+/** His right arm through the wipe: down from the hold so the mallet hangs in front of his legs, and back. */
+const DROP = { shoulderNear: 8, elbowNear: 0, wristNear: -75 };
+const WIPE_NEAR = {
+  shoulderNear: [[0, HOLD.shoulderNear], [0.12, DROP.shoulderNear], [0.84, DROP.shoulderNear], [1, HOLD.shoulderNear]] as K,
+  elbowNear: [[0, HOLD.elbowNear], [0.12, DROP.elbowNear], [0.84, DROP.elbowNear], [1, HOLD.elbowNear]] as K,
+  wristNear: [[0, HOLD.wristNear], [0.12, DROP.wristNear], [0.84, DROP.wristNear], [1, HOLD.wristNear]] as K,
+};
+// A slight bow into the towel, and a lean back as he flicks it away.
+const WIPE_LEAN = [[0, 0], [0.12, 0], [0.2, 3], [0.62, 3], [0.7, -3, out], [1, 0]] as K;
 
 export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
   swing: (u) =>
@@ -183,10 +196,17 @@ export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
     }),
   wipe: (u) => {
     const lean = at(WIPE_LEAN, u);
-    // The far arm follows the towel's path the whole clip, from the hang and back to it.
-    const far = armTo("far", wipeHand(u), wipeHandDeg(u), 1);
+    // The far arm follows the towel's path the whole clip, from the hang and back, its elbow down.
+    const far = armTo("far", wipeHand(u), wipeHandDeg(u), -1);
     return pose({
-      rot: { ...HOLD, shoulderFar: far.shoulder, elbowFar: far.elbow, wristFar: far.wrist },
+      rot: {
+        shoulderNear: at(WIPE_NEAR.shoulderNear, u),
+        elbowNear: at(WIPE_NEAR.elbowNear, u),
+        wristNear: at(WIPE_NEAR.wristNear, u),
+        shoulderFar: far.shoulder,
+        elbowFar: far.elbow,
+        wristFar: far.wrist,
+      },
       lean,
     });
   },

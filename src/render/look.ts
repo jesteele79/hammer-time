@@ -60,6 +60,8 @@ const DUST_EVERY = 0.12;
 const ACTION_IN = 0.06;
 const ACTION_OUT = 0.12;
 const SMUG_T = 0.6;
+/** How far ahead of the towel hand the sweat spray starts. */
+const SPRAY_AHEAD = 24;
 /** The look test's practice convenience: the smash refills this long after a burst. */
 const REFILL_T = 2;
 const STEAM_EVERY = 0.08;
@@ -260,12 +262,13 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       case "splat":
         particles.emit("splat", e.x, e.y, 14);
         break;
-      // The spray flies off the towel behind his head: the recipe throws left, so mirror it facing left.
+      // The sweat flies forward off the towel at his face, from just in front of it so the face
+      // keep-out doesn't take it: the recipe throws left, so mirror it facing right.
       case "stroke":
-        particles.emit("spray", at.hand.x, at.hand.y, 6, facing === -1);
+        particles.emit("spray", at.hand.x + facing * SPRAY_AHEAD, at.hand.y, 6, facing === 1);
         break;
       case "flick":
-        particles.emit("spray", at.hand.x, at.hand.y, 20, facing === -1);
+        particles.emit("spray", at.hand.x + facing * SPRAY_AHEAD, at.hand.y, 20, facing === 1);
         break;
       case "shine":
         particles.emit("glint", at.crown.x, at.crown.y, 6);

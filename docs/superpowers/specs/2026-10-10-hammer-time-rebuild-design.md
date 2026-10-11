@@ -35,8 +35,10 @@ are drawn, animated and controlled does not.
    and swapped whole for another owner-made plate (an expression). Nothing is
    ever drawn over the face, no pixel of it is recolored, tinted, filtered or
    masked, and no limb, prop, particle, word or bubble may cover the face box.
-   The existing face-clearance test is rebuilt for the new rig and must cover
-   every clip of every pose.
+   One exception, the owner's call (2026-10-11): in the towel wipe his left
+   hand and the towel wipe his face. The existing face-clearance test is
+   rebuilt for the new rig and must cover every clip of every pose, with only
+   that hand allowed over the face, only in the wipe.
 2. **The Affliction shirt is the base outfit.** Costumes (scrubs, suit, banquet
    bib) are drawn body layers swapped per venue; the base is restored outside
    that venue.
@@ -263,9 +265,10 @@ most 4 textures each; particles are one batched container.
   from the watch check onward, `chomp` during the banquet dive's grab. If a
   plate is missing the neutral plate stays; nothing else changes.
 - The head sprite is the last thing drawn in Hammer's container except during
-  the towel wipe: the far hand rubs the back and top of his head with the
-  towel draped down the back of it, both drawn over the head so the wipe reads
-  (owner, 2026-10-11). Neither ever covers the face box.
+  the towel wipe: his right hand drops the mallet to hang in front of his legs
+  while his left hand comes up and wipes his face with the towel, and that hand
+  and the towel are drawn over the head while they are up at his face (owner,
+  2026-10-11: "the most natural look").
   Thought bubbles, comic words and NPC speech are placed off the face box.
 
 ### 6.2 The body rig

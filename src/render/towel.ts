@@ -2,60 +2,50 @@ import { Container, MeshRope, Point as PxPoint, type Texture } from "pixi.js";
 import type { Solved } from "../sim/rig/fk";
 import type { Point } from "../sim/types";
 
-/** A hand towel's hang, world px: points, their spacing, its width across, and the gap it keeps from the face. */
-export type TowelFit = { n: number; len: number; width: number; gap: number };
-export const TOWEL: TowelFit = { n: 8, len: 16, width: 52, gap: 4 };
+/** A hand towel's hang, world px: points, their spacing and its width across. */
+export type TowelFit = { n: number; len: number; width: number };
+export const TOWEL: TowelFit = { n: 8, len: 16, width: 52 };
 /** The towel is out of the pocket between these fractions of the wipe. */
 export const TOWEL_OUT = [0.04, 0.95] as const;
 
 /**
- * The towel as a hanging chain: the first point is the hand, the rest follow at `len` apart
- * under gravity with damping, and no point goes past `back` (the head's back edge in front
- * of which the towel would cover the face): the towel passes behind the head, never in front.
+ * The towel as a hanging chain: the first point is the hand, the rest follow at `len` apart,
+ * each sagging toward where it was plus a little lower, so it swings and settles hanging down.
  */
-export function towelChain(anchor: Point, prev: Point[], n: number, len: number, back: number): Point[] {
+export function towelChain(anchor: Point, prev: Point[], n: number, len: number): Point[] {
   const pts: Point[] = [{ ...anchor }];
   for (let i = 1; i < n; i++) {
     const was = prev[i] ?? { x: anchor.x, y: anchor.y + len * i };
     const up = pts[i - 1];
-    let x = was.x;
-    let y = was.y + len * 0.35;
+    const x = was.x;
+    const y = was.y + len * 0.35;
     const d = Math.hypot(x - up.x, y - up.y) || 1;
-    x = up.x + ((x - up.x) / d) * len;
-    y = up.y + ((y - up.y) / d) * len;
-    pts.push({ x: Math.min(x, back), y });
+    pts.push({ x: up.x + ((x - up.x) / d) * len, y: up.y + ((y - up.y) / d) * len });
   }
   return pts;
 }
 
 /**
- * Whether the towel hand is drawn over his head: while the wrist is above his neck, where
- * nothing but his head can be behind it. It rises behind his back and flings back down there,
- * so it changes layers clear of his head and his shirt.
+ * Whether his left hand, wiping his face, is drawn over his head: while its wrist is up in front
+ * of his neck. It swings up in front of him and flicks out in front, so it changes layers clear
+ * of his head and his shirt.
  */
-export function towelOverHead(solved: Solved): boolean {
-  return solved.joints.wristFar.y < solved.joints.neck.y;
+export function towelAtFace(solved: Solved): boolean {
+  const w = solved.joints.wristFar;
+  const n = solved.joints.neck;
+  return w.y < n.y && (w.x - n.x) * solved.facing > 0;
 }
 
 /** How far along the hand, from the wrist, the towel is held: in the palm, not at the fingertips. */
 const GRIP = 0.3;
 
-/**
- * This frame's towel in the facing-right frame (x times facing), hung from the far hand.
- * Wherever it could reach the face's height it stays behind the face's back edge by half
- * its width and the gap, the hand's end included; below the chin it hangs free.
- */
+/** This frame's towel in the facing-right frame (x times facing), hung from the palm of his left hand. */
 export function hangTowel(solved: Solved, prev: Point[], fit: TowelFit = TOWEL): Point[] {
   const f = solved.facing;
-  const face = solved.faceBox;
   const w = solved.joints.wristFar;
   const k = solved.joints.handFar;
-  const hand = { x: (w.x + (k.x - w.x) * GRIP) * f, y: w.y + (k.y - w.y) * GRIP };
-  const margin = fit.width / 2 + fit.gap;
-  const back = (f === 1 ? face.x : -(face.x + face.w)) - margin;
-  const high = hand.y < face.y + face.h + margin;
-  const anchor = high ? { x: Math.min(hand.x, back), y: hand.y } : hand;
-  return towelChain(anchor, prev, fit.n, fit.len, high ? back : Infinity);
+  const palm = { x: (w.x + (k.x - w.x) * GRIP) * f, y: w.y + (k.y - w.y) * GRIP };
+  return towelChain(palm, prev, fit.n, fit.len);
 }
 
 /** Texture px per world px: the rope is drawn from a sharper texture shrunk back down. */

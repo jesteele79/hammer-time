@@ -53,6 +53,8 @@ export type Ease = (t: number) => number;
 export const linear: Ease = (t) => t;
 export const smooth: Ease = (t) => t * t * (3 - 2 * t);
 export const out: Ease = (t) => 1 - (1 - t) ** 3;
+/** Starts and stops with no jolt: speed and acceleration both ease from zero. */
+export const smoother: Ease = (t) => t * t * t * (t * (6 * t - 15) + 10);
 export type Key = readonly [u: number, value: number, ease?: Ease];
 
 /** Each key's ease shapes the segment that arrives at it. */

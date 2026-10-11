@@ -29,10 +29,14 @@ const distToRect = (p: Point, r: Rect) => {
   return Math.hypot(dx, dy);
 };
 
-/** Probes every limb and the mallet against the face box; names the first thing that crosses it. */
-export function faceClear(solved: Solved): { ok: boolean; offender?: string } {
+/**
+ * Probes every limb and the mallet against the face box; names the first thing that crosses it.
+ * `allow` names parts that may cross it: only his left arm, while it wipes his face with the towel.
+ */
+export function faceClear(solved: Solved, allow: readonly string[] = []): { ok: boolean; offender?: string } {
   const { joints, faceBox, scale } = solved;
   for (const [name, from, to, radius] of SEGMENTS) {
+    if (allow.includes(name)) continue;
     const a = joints[from];
     const b = joints[to];
     for (let i = 0; i < SAMPLES; i++) {

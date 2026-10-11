@@ -7,9 +7,8 @@ import { CLIPS } from "../src/sim/rig/clips.ts";
 import { solve } from "../src/sim/rig/fk.ts";
 import { REST_POSE } from "../src/sim/rig/skeleton.ts";
 import { placeWord, wordBox } from "../src/render/words.ts";
-import { TOWEL, hangTowel, towelChain, towelOverHead } from "../src/render/towel.ts";
+import { hangTowel, towelAtFace, towelChain } from "../src/render/towel.ts";
 import { ACTIONS } from "../src/sim/rig/actions.ts";
-import { sweptHeadHits } from "../src/sim/hits.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
   assert.equal(shouldStepDown({ workMs: 2, intervalMs: 16.7, refreshMs: 16.7 }), false);
@@ -84,38 +83,35 @@ test("comic words slide off the face wherever the hit lands, and stay in view", 
       }
 });
 
-test("the towel hangs from the hand and never swings in front of the head's back", () => {
-  // The hand itself stays behind the line (the rig keeps it clear of the face); the towel follows it.
+test("the towel hangs from the hand, link by link, and sags below it", () => {
   let pts = [];
   for (let i = 0; i < 120; i++) {
-    const anchor = { x: 380 + Math.sin(i / 6) * 40, y: 300 + Math.cos(i / 5) * 40 };
-    pts = towelChain(anchor, pts, 8, 18, 420);
+    const anchor = { x: 400 + Math.sin(i / 6) * 60, y: 300 + Math.cos(i / 5) * 40 };
+    pts = towelChain(anchor, pts, 8, 18);
     assert.deepEqual(pts[0], anchor);
-    for (const p of pts) assert.ok(p.x <= 420 + 1e-9, `towel point at ${p.x} crosses 420`);
+    for (let k = 1; k < pts.length; k++)
+      assert.ok(Math.abs(Math.hypot(pts[k].x - pts[k - 1].x, pts[k].y - pts[k - 1].y) - 18) < 1e-9, "each link is 18 long");
   }
-  // A towel left hanging in front of the line is pulled behind it on the next frame.
-  const front = Array.from({ length: 8 }, (_, i) => ({ x: 520, y: 300 + 18 * i }));
-  for (const p of towelChain({ x: 400, y: 300 }, front, 8, 18, 420).slice(1))
-    assert.ok(p.x <= 420 + 1e-9, `towel point at ${p.x} stays in front of 420`);
+  // Left still, it settles hanging straight down from the hand.
+  for (let i = 0; i < 200; i++) pts = towelChain({ x: 0, y: 0 }, pts, 8, 18);
+  assert.ok(Math.abs(pts[7].x) < 1 && pts[7].y > 18 * 7 - 1, `it hangs straight down: ${pts[7].x.toFixed(1)}, ${pts[7].y.toFixed(1)}`);
 });
 
-test("the towel in his far hand never covers his face through the whole wipe, either way he faces", () => {
-  for (const facing of [-1, 1])
-    for (const scale of [0.22, 0.26, 0.3])
-      for (const frames of [55, 400]) {
-        let chain = [];
-        for (let k = 0; k <= frames; k++) {
-          const u = 0.04 + (0.91 * k) / frames;
-          const solved = solve(ACTIONS.wipe(u), facing, scale);
-          chain = hangTowel(solved, chain);
-          const world = chain.map((p) => ({ x: p.x * facing, y: p.y }));
-          for (let i = 1; i < world.length; i++)
-            assert.ok(
-              !sweptHeadHits(world[i - 1], world[i], TOWEL.width / 2, solved.faceBox),
-              `facing ${facing}, head ${scale}, u ${u.toFixed(3)}: towel segment ${i} covers the face`,
-            );
-        }
-      }
+test("while his left hand wipes his face, the towel in it is at his face too", () => {
+  for (const facing of [-1, 1]) {
+    let chain = [];
+    let at = 0;
+    for (let k = 0; k <= 400; k++) {
+      const u = k / 400;
+      const solved = solve(ACTIONS.wipe(u), facing, 0.26);
+      chain = hangTowel(solved, chain);
+      if (u < 0.15 || u > 0.6) continue;
+      const top = { x: chain[0].x * facing, y: chain[0].y };
+      const f = solved.faceBox;
+      if (top.x > f.x - 10 && top.x < f.x + f.w + 10 && top.y > f.y - 10 && top.y < f.y + f.h + 10) at++;
+    }
+    assert.ok(at > 150, `facing ${facing}: the towel is at his face for ${at} of the scrub's frames`);
+  }
 });
 
 test("the shirt is drawn from its mirror when he faces right, the painting's way when he faces left", () => {
@@ -129,18 +125,18 @@ test("the shirt is drawn from its mirror when he faces right, the painting's way
   assert.equal(layerFile("legNear", { ...mesh, file: "l.png" }, 1), "l.png");
 });
 
-test("the towel hand goes over his head only above his neck and behind it, and switches where it covers nothing", () => {
+test("the towel hand goes over his head only up at his face, and switches where it covers nothing", () => {
   for (const facing of [-1, 1]) {
     let was = false,
       over = 0;
     for (let k = 0; k <= 400; k++) {
       const s = solve(ACTIONS.wipe(k / 400), facing, 0.26);
-      const now = towelOverHead(s);
-      const behind = (p) => (p.x - s.joints.neck.x) * facing <= 2;
+      const now = towelAtFace(s);
+      const ahead = (p) => (p.x - s.joints.neck.x) * facing >= -2;
       if (now) {
         over++;
         for (const p of [s.joints.wristFar, s.joints.handFar])
-          assert.ok(behind(p) && p.y < s.joints.neck.y, `facing ${facing}, u ${(k / 400).toFixed(3)}: over his head but not above and behind his neck`);
+          assert.ok(ahead(p) && p.y < s.joints.neck.y, `facing ${facing}, u ${(k / 400).toFixed(3)}: over his head but not up in front of his neck`);
       }
       if (now !== was) {
         // Drawn in front or behind, the hand looks the same here: it overlaps neither his head nor his shirt.
@@ -153,6 +149,6 @@ test("the towel hand goes over his head only above his neck and behind it, and s
       }
       was = now;
     }
-    assert.ok(over > 150, `facing ${facing}: the hand is over his head through the rub (${over} of 401 frames)`);
+    assert.ok(over > 150, `facing ${facing}: the hand is over his face through the wipe (${over} of 401 frames)`);
   }
 });

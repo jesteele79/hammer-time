@@ -12,7 +12,7 @@ import { HERO_W } from "../sim/constants";
 import type { Placement, Solved } from "../sim/rig/fk";
 import { multiplyTint } from "./lighting";
 import { LAYER_Z, layerFile, skinLayer, type LayerName, type RigFile, type RigLayer } from "./skin";
-import { TOWEL, Towel, towelOverHead, towelTexture } from "./towel";
+import { TOWEL, Towel, towelAtFace, towelTexture } from "./towel";
 
 export type Character = {
   container: Container;
@@ -21,8 +21,8 @@ export type Character = {
   ready: Promise<void>;
   /**
    * `ambient` tints the body, the mallet and the towel; the head plate is never tinted.
-   * `towel` hangs the towel from the far hand (the wipe). While the hand is up at his head,
-   * the hand and the towel are drawn over the head, rubbing it; never over the face box.
+   * `towel` hangs the towel from the far hand (the wipe). While that hand is up at his face, it
+   * and the towel are drawn over the head: the one time anything covers his face (owner's call).
    */
   apply(solved: Solved, expression: Expression, heightAboveFloor: number, ambient?: number, towel?: boolean): void;
   /** The product of every tint from the head sprite up to the stage: 0xffffff when nothing colors it. */
@@ -36,7 +36,7 @@ const FAR_LAYERS = new Set<LayerName>(["armFar", "legFar"]);
 const MIPMAPS = { autoGenerateMipmaps: true };
 /** In front of the far arm that holds it, behind the legs, the torso, the near arm, the mallet and the head. */
 const TOWEL_Z = 0.5;
-/** Rubbing his head: the towel over the head plate, and the far hand over the towel. */
+/** Wiping his face: the towel over the head plate, and the far hand over the towel. */
 const TOWEL_OVER_Z = 7.4;
 const HAND_OVER_Z = 7.5;
 /** One turned towel texture per plate, shared by every character (the boards draw dozens). */
@@ -194,7 +194,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     shadow,
     ready,
     apply(solved, expression, heightAboveFloor, ambient = 0xffffff, holdTowel = false) {
-      const over = holdTowel && towelOverHead(solved);
+      const over = holdTowel && towelAtFace(solved);
       if (rig) {
         for (const s of skinned) {
           skinLayer(s.positions, s.layer, rig, solved);
