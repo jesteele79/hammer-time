@@ -77,7 +77,7 @@ export function swingContact(h: HeroState, targets: Target[], events: GameEvent[
   }
 }
 
-/** The slam: once, where the mallet meets the floor; every cart within the radius flies. */
+/** The slam: once, where the mallet meets the floor; every cart within the radius flies away from him, as in the shipped game. */
 export function superBurst(h: HeroState, targets: Target[], events: GameEvent[]): void {
   const m = h.move;
   if (m?.kind !== "super" || !m.burst || m.fired) return;
@@ -89,7 +89,9 @@ export function superBurst(h: HeroState, targets: Target[], events: GameEvent[])
     const cx = t.x;
     const cy = t.y - t.h / 2;
     if (Math.hypot(cx - at.x, cy - at.y) > BURST_R) continue;
-    knock(t, cx >= at.x ? 1 : -1, 1100, 600);
+    // Away from Hammer, not from the impact: a cart between him and the mallet must not fly into him.
+    const dir = (cx - h.x) * h.facing >= 0 ? h.facing : h.facing === 1 ? -1 : 1;
+    knock(t, dir, 1100, 600);
     events.push({ type: "hit", by: "burst", x: cx, y: cy, target: t.id });
   }
 }

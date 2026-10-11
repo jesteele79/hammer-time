@@ -344,3 +344,21 @@ test("a hit freezes the world on the step it lands: nothing more steps until the
   for (let f = 0; f < 3; f++) runFrame(clock, frame, 1 / 60, () => steps++);
   assert.ok(steps > 1, "the world runs on once the stop ends");
 });
+
+test("the smash throws carts away from Hammer, even one between him and the mallet's impact", () => {
+  // The impact lands where the mallet head meets the floor, out in front of him.
+  const impact = malletAt({ x: 100, y: 0, facing: 1, move: { kind: "super" } }, 0.56).x;
+  for (const facing of [1, -1]) {
+    const x = (at) => 100 + facing * (at - 100);
+    const between = createCart(1, x(100 + (impact - 100) * 0.6));
+    // Just behind him, inside the burst's reach.
+    const behind = createCart(2, x(100 - 60));
+    const w = createWorld(flat(), { x: 100, y: 0 }, { charge: 10, targets: [between, behind] });
+    w.hero.facing = facing;
+    settle(w);
+    press(w, "super");
+    steps(w, MOVE_SECONDS.super);
+    assert.ok((between.x - x(100 + (impact - 100) * 0.6)) * facing > 150, `facing ${facing}: the cart in front flies on ahead`);
+    assert.ok((behind.x - x(100 - 60)) * facing < -150, `facing ${facing}: the cart behind flies back`);
+  }
+});
