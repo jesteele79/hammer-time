@@ -15,14 +15,13 @@ export function applyFeel(c: Clock, f: Feel): void {
   }
 }
 
-/** The sim seconds `dt` wall seconds are worth. Slow motion keeps counting through a hit-stop. */
+/** The sim seconds `dt` wall seconds are worth. Slow motion waits out a hit-stop, so all of it shows. */
 export function tickClock(c: Clock, dt: number): number {
   let left = dt;
   let sim = 0;
   if (c.hitstop > 0) {
     const used = Math.min(left, c.hitstop);
     c.hitstop -= used;
-    c.slowmo = Math.max(0, c.slowmo - used);
     left -= used;
   }
   if (left > 0 && c.slowmo > 0) {

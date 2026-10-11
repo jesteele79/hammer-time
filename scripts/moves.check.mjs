@@ -32,14 +32,29 @@ test("two hits in one step stop for the longer hit-stop, not the sum", () => {
   assert.ok(near(c.hitstop, 0.06));
 });
 
-test("the super burst stops, then runs a quarter speed for a quarter second of wall time", () => {
+test("the super burst freezes for 0.08 s, then runs at a quarter speed for a whole quarter second", () => {
   const c = createClock();
   applyFeel(c, feelOf({ type: "burst", x: 0, y: 0 }));
   let sim = 0;
   for (let i = 0; i < 50; i++) sim += tickClock(c, 0.01);
-  // 0.08 frozen (the slow motion keeps counting), 0.17 at a quarter, 0.25 at full speed.
-  assert.ok(near(sim, 0.17 * 0.25 + 0.25, 1e-6), `sim ${sim}`);
+  // 0.08 frozen, 0.25 at a quarter, 0.17 at full speed.
+  assert.ok(near(sim, 0.25 * 0.25 + 0.17, 1e-6), `sim ${sim}`);
   assert.equal(c.scale, 1);
+});
+
+test("a landing shakes the camera in proportion to the fall, capped, and never freezes", () => {
+  assert.equal(feelOf({ type: "land", x: 0, y: 0, speed: 900 }), null, "a hop lands quietly");
+  const jump = feelOf({ type: "land", x: 0, y: 0, speed: 1900 });
+  assert.ok(jump.trauma > 0.05 && jump.trauma < 0.15 && jump.hitstop === 0, JSON.stringify(jump));
+  const drop = feelOf({ type: "land", x: 0, y: 0, speed: 2600 });
+  assert.ok(near(drop.trauma, 0.25) && drop.hitstop === 0, JSON.stringify(drop));
+  assert.ok(near(feelOf({ type: "land", x: 0, y: 0, speed: 9000 }).trauma, 0.25), "capped");
+});
+
+test("damage stops the world for 0.04 s; the knockdown hits harder", () => {
+  assert.deepEqual(feelOf({ type: "hurt", x: 0, y: 0, dir: 1 }), { hitstop: 0.04, trauma: 0.3 });
+  const down = feelOf({ type: "tumble", x: 0, y: 0, dir: -1 });
+  assert.ok(down.hitstop === 0.06 && down.trauma > 0.5, JSON.stringify(down));
 });
 
 test("slow motion never compounds: a second burst keeps the deeper scale and the longer time", () => {

@@ -7,6 +7,9 @@ export type Feel = {
   zoom?: { amount: number; seconds: number };
 };
 
+/** A landing's shake: none below `from` px/s, rising by 1 per `per`, never past `max`. */
+export const LAND_TRAUMA = { from: 1400, per: 4800, max: 0.25 } as const;
+
 /** What each event does to time and the camera (spec §5.4, §6.4, §9). */
 export function feelOf(e: GameEvent): Feel | null {
   switch (e.type) {
@@ -20,6 +23,16 @@ export function feelOf(e: GameEvent): Feel | null {
       return { hitstop: 0, trauma: 0.15 };
     case "fire":
       return { hitstop: 0, trauma: 0.08 };
+    case "land": {
+      const trauma = Math.min(LAND_TRAUMA.max, Math.max(0, (e.speed - LAND_TRAUMA.from) / LAND_TRAUMA.per));
+      return trauma > 0 ? { hitstop: 0, trauma } : null;
+    }
+    case "hurt":
+      return { hitstop: 0.04, trauma: 0.3 };
+    case "tumble":
+      return { hitstop: 0.06, trauma: 0.55 };
+    case "lectureStart":
+      return { hitstop: 0, trauma: 0.06 };
     default:
       return null;
   }

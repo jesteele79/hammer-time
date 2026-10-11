@@ -122,6 +122,7 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   if (Math.abs(h.vy) < APEX_BAND && !h.onGround) g *= APEX_FLOAT;
   h.vy = Math.min(MAX_FALL, h.vy + g * dt);
 
+  const falling = h.vy;
   moveBody(h, stage, dt);
 
   const prev = h.state;
@@ -129,7 +130,7 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   if (!h.onGround) next = h.vy < 0 ? "jump" : "fall";
   else if (prev === "jump" || prev === "fall") {
     next = "land";
-    events.push({ type: "land", x: h.x, y: h.y });
+    events.push({ type: "land", x: h.x, y: h.y, speed: falling });
   }
   else if (prev === "land" && h.stateT < LAND_T) next = "land";
   else if (h.slideT > 0) next = "slide";

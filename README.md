@@ -266,8 +266,8 @@ running move is never restarted.
   cart white and adds one smash charge.
 - **Q, the smash:** with a full charge (ten bonks) he hops, plunges and slams
   the mallet into the floor as he lands; every cart within reach flies. The
-  slam freezes for 0.08 s, runs at quarter speed for 0.25 s and punches the
-  camera in.
+  slam freezes for 0.08 s, then runs at quarter speed for 0.25 s, and punches
+  the camera in.
 - **F, C or K, the snot rocket:** three charges, one back every 1.5 s, half a
   second between shots and three in flight at most. It leaves just ahead of
   his nose, knocks a cart and splats, or lands as a puddle that dries in
