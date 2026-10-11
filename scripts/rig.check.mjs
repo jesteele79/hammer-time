@@ -395,3 +395,80 @@ test("the belly springs from a hard landing up to 0.04 and settles without overs
   assert.ok(under > -1e-3, `no overshoot: ${under}`);
   assert.ok(Math.abs(s.belly) < 1e-3, `settled: ${s.belly}`);
 });
+
+import { plantFeet } from "../src/sim/rig/feet.ts";
+import { legTo } from "../src/sim/rig/ik.ts";
+
+const slope = (deg) => (dx) => dx * Math.tan((deg * Math.PI) / 180);
+const soles = (r, facing) => {
+  const s = solve(r.pose, facing, 0.26);
+  const lift = FAR_FLOOR * s.scale * s.squash.y;
+  return [
+    ["Near", 0],
+    ["Far", -lift],
+  ].map(([leg, line]) => ({
+    line,
+    pts: [s.joints[`heel${leg}`], s.joints[`toe${leg}`]].map((q) => ({ x: q.x, y: q.y + r.dy })),
+  }));
+};
+
+test("leg IK puts the ankle on a reachable target with the foot at the asked angle", () => {
+  for (const [leg, target, foot] of [
+    ["near", { x: -10, y: 40 }, -20],
+    ["far", { x: 30, y: 60 }, -10],
+  ]) {
+    const r = legTo(leg, target, foot, 1);
+    const p = pose({ rot: leg === "near" ? { hipNear: r.hip, kneeNear: r.knee, ankleNear: r.ankle } : { hipFar: r.hip, kneeFar: r.knee, ankleFar: r.ankle } });
+    const s = solve(p, 1, 0.26);
+    const a = s.joints[leg === "near" ? "ankleNear" : "ankleFar"];
+    assert.ok(Math.hypot(a.x - target.x * s.scale, a.y + target.y * s.scale) < 0.5, `${leg} ankle off`);
+  }
+});
+
+test("on a flat floor foot IK changes nothing", () => {
+  for (const [name, u] of [
+    ["idle", 0],
+    ["walk", 0.3],
+    ["crouch", 0],
+  ]) {
+    const p = CLIPS[name](u, { ...ctx, speed: 400 });
+    const r = plantFeet(p, 1, 0.26, undefined, "planted", () => 0);
+    assert.deepEqual(r.pose, p);
+    assert.equal(r.dy, groundShift(solve(p, 1, 0.26), "planted"));
+  }
+});
+
+test("foot IK stands both soles on a slope within 2 px, up to 30 degrees either way, facing either way", () => {
+  for (const deg of [-30, -20, -10, 10, 20, 30])
+    for (const facing of [1, -1])
+      for (const [name, u] of [
+        ["idle", 0],
+        ["idle", 0.5],
+        ["crouch", 0],
+        ["land", 0.5],
+        ["walk", 0],
+        ["walk", 0.5],
+      ]) {
+        const floor = slope(deg);
+        const r = plantFeet(CLIPS[name](u, { ...ctx, speed: 400 }), facing, 0.26, undefined, "planted", floor);
+        assert.ok(Number.isFinite(r.dy) && r.gap <= 2, `${name} ${u} ${deg}° facing ${facing}: a planted sole is ${r.gap.toFixed(2)} px off`);
+        for (const { line, pts } of soles(r, facing))
+          for (const q of pts)
+            assert.ok(q.y - (floor(q.x) + line) <= 2, `${name} ${u} ${deg}° facing ${facing}: a sole sinks ${(q.y - floor(q.x) - line).toFixed(2)} px`);
+      }
+});
+
+test("a foot over a ledge or a ramp's foot leaves him on his counter, sinks nothing, makes no NaN", () => {
+  const idle = CLIPS.idle(0, ctx);
+  const level = groundShift(solve(idle, 1, 0.26), "planted");
+  // The back foot hangs over the counter's end: the floor there is 180 px down.
+  const ledge = plantFeet(idle, 1, 0.26, undefined, "planted", (dx) => (dx < -10 ? 180 : 0));
+  assert.ok(Math.abs(ledge.dy - level) < 1e-9, `kept on the counter: ${ledge.dy} vs ${level}`);
+  const gap = plantFeet(idle, 1, 0.26, undefined, "planted", (dx) => (dx < -10 ? null : 0));
+  assert.ok(Number.isFinite(gap.dy) && JSON.stringify(gap.pose).indexOf("null") < 0, "no NaN over a gap");
+  for (const facing of [1, -1]) {
+    const kink = (dx) => (dx * facing < 0 ? 0 : dx * facing * Math.tan((25 * Math.PI) / 180) * -1);
+    const r = plantFeet(idle, facing, 0.26, undefined, "planted", kink);
+    for (const { line, pts } of soles(r, facing)) for (const q of pts) assert.ok(q.y - (kink(q.x) + line) <= 2, `facing ${facing}: a sole sinks at the ramp's foot`);
+  }
+});

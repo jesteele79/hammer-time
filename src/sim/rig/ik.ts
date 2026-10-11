@@ -3,19 +3,22 @@ import { JOINTS, type JointName, type Point } from "./skeleton";
 const DEG = 180 / Math.PI;
 const ang = (a: Point, b: Point) => Math.atan2(b.y - a.y, b.x - a.x) * DEG;
 const norm = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
-const CHAINS: Record<"near" | "far", [JointName, JointName, JointName, JointName]> = {
+type Chain = "near" | "far" | "legNear" | "legFar";
+const CHAINS: Record<Chain, [JointName, JointName, JointName, JointName]> = {
   near: ["shoulderNear", "elbowNear", "wristNear", "knuckleNear"],
   far: ["shoulderFar", "elbowFar", "wristFar", "handFar"],
+  legNear: ["hipNear", "kneeNear", "ankleNear", "toeNear"],
+  legFar: ["hipFar", "kneeFar", "ankleFar", "toeFar"],
 };
 
 /**
- * Shoulder, elbow and wrist rotations (degrees, the chest's frame, facing right) that put the
- * wrist on `target` (rest units) and turn the hand to `handDeg`. The elbow sits on the
- * counter-clockwise side of the shoulder-to-wrist line for `bend` 1, clockwise for −1. A target
- * out of reach is pulled in along that line.
+ * Rotations (degrees, the chain root's parent frame, facing right) for the three joints of a
+ * two-bone chain that put its third joint on `target` (rest units) and turn its last segment to
+ * `endDeg`. The bend sits on the counter-clockwise side of the root-to-target line for `bend` 1,
+ * clockwise for −1. A target out of reach is pulled in along that line.
  */
-export function armTo(arm: "near" | "far", target: Point, handDeg: number, bend: 1 | -1) {
-  const [s, e, w, k] = CHAINS[arm];
+function chainTo(chain: Chain, target: Point, endDeg: number, bend: 1 | -1): [number, number, number] {
+  const [s, e, w, k] = CHAINS[chain];
   const S = JOINTS[s].rest;
   const E0 = JOINTS[e].rest;
   const W0 = JOINTS[w].rest;
@@ -29,8 +32,24 @@ export function armTo(arm: "near" | "far", target: Point, handDeg: number, bend:
   const upperRad = base + bend * off;
   const E = { x: S.x + a * Math.cos(upperRad), y: S.y + a * Math.sin(upperRad) };
   const T = { x: S.x + d * Math.cos(base), y: S.y + d * Math.sin(base) };
-  const shoulder = norm(upperRad * DEG - ang(S, E0));
-  const elbow = norm(ang(E, T) - ang(E0, W0) - shoulder);
-  const wrist = norm(handDeg - ang(W0, K0) - shoulder - elbow);
+  const first = norm(upperRad * DEG - ang(S, E0));
+  const second = norm(ang(E, T) - ang(E0, W0) - first);
+  const third = norm(endDeg - ang(W0, K0) - first - second);
+  return [first, second, third];
+}
+
+/**
+ * Shoulder, elbow and wrist rotations (degrees, the chest's frame, facing right) that put the
+ * wrist on `target` (rest units) and turn the hand to `handDeg`. The elbow sits on the
+ * counter-clockwise side of the shoulder-to-wrist line for `bend` 1, clockwise for −1.
+ */
+export function armTo(arm: "near" | "far", target: Point, handDeg: number, bend: 1 | -1) {
+  const [shoulder, elbow, wrist] = chainTo(arm, target, handDeg, bend);
   return { shoulder, elbow, wrist };
+}
+
+/** The leg's rotations for an ankle target with the root at the origin (the legs take no lean). A knee bends forward with `bend` 1. */
+export function legTo(leg: "near" | "far", target: Point, footDeg: number, bend: 1 | -1) {
+  const [hip, knee, ankle] = chainTo(leg === "near" ? "legNear" : "legFar", target, footDeg, bend);
+  return { hip, knee, ankle };
 }
