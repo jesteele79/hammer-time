@@ -43,6 +43,8 @@ export type NextProbe = {
     puddles: number;
     heroX: number;
   };
+  /** Sound: whether a key has unlocked it, and every cue asked for since boot. */
+  sound?: { unlocked: boolean; played: Record<string, number> };
 };
 declare global {
   interface Window {

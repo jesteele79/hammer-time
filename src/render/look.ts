@@ -27,6 +27,7 @@ import { PALETTE } from "./palette";
 import { Particles } from "./particles";
 import { Props } from "./props";
 import { createScene } from "./scene";
+import { createSound } from "./sound";
 import { installFonts, label } from "./text";
 import { Words } from "./words";
 
@@ -113,6 +114,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   title.alpha = 0.8;
   scene.layers.post.addChild(vignette, title);
   const meters = new Meters(scene.layers.post);
+  const sound = createSound();
 
   const down = new Set<string>();
   // A tap shorter than a frame still counts for the frame's steps.
@@ -120,6 +122,8 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   const onKey = (e: KeyboardEvent) => {
     if (e.code in KEY_BINDINGS) e.preventDefault();
     if (e.type === "keydown") {
+      // Browsers only let sound start from a key or a tap.
+      sound.unlock();
       down.add(e.code);
       tapped.add(e.code);
     } else down.delete(e.code);
@@ -222,6 +226,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   /** Time and the camera answer each event at once; its look waits for this frame's pose. */
   const feel = (e: GameEvent) => {
     counts[e.type] = (counts[e.type] ?? 0) + 1;
+    sound.play(e);
     const f = feelOf(e);
     if (f) {
       applyFeel(clock, f);
@@ -424,6 +429,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
         puddles: cur.puddles.length,
         heroX: h.x,
       };
+      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
     }
   };
   app.ticker.add(tick);
@@ -447,6 +453,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
       window.removeEventListener("blur", onBlur);
+      sound.destroy();
       scene.destroy();
     },
   };

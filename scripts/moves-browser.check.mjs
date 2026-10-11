@@ -81,9 +81,14 @@ try {
   assert.ok((m.events.burst ?? 0) >= 1, "the smash bursts");
   await page.screenshot({ path: resolve(out, "moves-smash.png") });
 
+  const sound = await page.evaluate(() => window.__next.sound);
+  assert.ok(sound?.unlocked, "the first key press unlocks sound");
+  for (const cue of ["whoosh", "bonk", "honk", "splat", "cloth", "boom"])
+    assert.ok((sound.played[cue] ?? 0) >= 1, `${cue} played`);
+
   assert.deepEqual(errors, []);
   writeFileSync(resolve(out, "moves-check.json"), JSON.stringify({ moves: await moves(), errors }, null, 2));
-  console.log("PASS: swing, bonk, snot, splat, towel and smash in the lobby, no errors.");
+  console.log("PASS: swing, bonk, snot, splat, towel and smash in the lobby with their sounds, no errors.");
 } catch (err) {
   console.error("Moves check failure", errors);
   await page?.screenshot({ path: resolve(out, "moves-failure.png") });
