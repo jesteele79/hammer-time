@@ -561,3 +561,18 @@ test("the tumble goes over backward, lies flat on his back on the floor, and get
   }
   assert.ok(solve(ACTIONS.tumble(TUMBLE_LAND), 1, 0.26).spin > 60, "most of the way over by the landing frame");
 });
+
+import { groundForAction } from "../src/sim/rig/ground.ts";
+
+test("touching down never snaps him: each act grounds the same way in the air as on the floor, near the landing", () => {
+  for (const kind of ["tumble", "hurt", "super"]) {
+    const from = kind === "super" ? 0.5 : 0;
+    for (let i = 0; i <= 40; i++) {
+      const u = from + ((1 - from) * i) / 40;
+      const s = solve(ACTIONS[kind](u), 1, 0.26);
+      const air = groundShift(s, groundForAction(kind, "fall", false, u));
+      const floor = groundShift(s, groundForAction(kind, "idle", true, u));
+      assert.ok(Math.abs(air - floor) < 2, `${kind} u ${u.toFixed(3)}: lands with a ${(floor - air).toFixed(0)} px snap`);
+    }
+  }
+});

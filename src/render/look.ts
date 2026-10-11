@@ -1,7 +1,9 @@
 import { Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { loadRegistry, type Expression, type Registry } from "../art/registry";
+import { ASIDES, DAMAGE_LINE, LECTURES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
-import { HEAD_SCALE, LAND_T, RUN, STEP } from "../sim/constants";
+import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
+import { PATIENCE_MAX } from "../sim/damage";
 import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
@@ -10,8 +12,10 @@ import { CHARGE_MAX, moveU, type Move, type MoveKind } from "../sim/moves";
 import { floorAt } from "../sim/physics";
 import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
+import { plantFeet, type FloorProbe } from "../sim/rig/feet";
 import { solve, type Solved } from "../sim/rig/fk";
-import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
+import { groundForAction, type Ground } from "../sim/rig/ground";
+import { addBody, addLean, createLayers, stepLayers } from "../sim/rig/layers";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
 import { createCart } from "../sim/targets";
@@ -20,6 +24,7 @@ import { createWorld } from "../sim/world";
 import type { RenderApp } from "./app";
 import { loadBackdrop } from "./backdrop";
 import { createBoards } from "./boards";
+import { Bubbles } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
 import { Meters } from "./meters";
@@ -32,9 +37,16 @@ import { TOWEL_OUT } from "./towel";
 import { installFonts, label } from "./text";
 import { Words } from "./words";
 
-/** The lobby's first stretch: the floor, two counters, a balcony and a service pass. */
+/** The lobby's first stretch: the floor, two counters, a balcony, a service pass and a ramp. */
 export const LOBBY_STAGE: Stage = {
-  floor: [{ x0: -1000, x1: 14000, y0: 0, y1: 0 }],
+  floor: [
+    { x0: -1000, x1: 7000, y0: 0, y1: 0 },
+    // A 30-degree ramp up to a landing and a 15-degree one down: the look test's stand-in for R2's grand staircase.
+    { x0: 7000, x1: 7600, y0: 0, y1: -346 },
+    { x0: 7600, x1: 8400, y0: -346, y1: -346 },
+    { x0: 8400, x1: 9700, y0: -346, y1: 0 },
+    { x0: 9700, x1: 14000, y0: 0, y1: 0 },
+  ],
   platforms: [
     { x0: 1500, x1: 2000, y: -180 },
     { x0: 3200, x1: 3700, y: -180 },
@@ -68,6 +80,12 @@ const STEAM_EVERY = 0.08;
 const SWEAT_EVERY = 0.25;
 const STEAM_HEAT = 80;
 const SWEAT_HEAT = 45;
+/** How far above his feet a floor may be and still be the floor under a foot: a stride up a slope. */
+const STRIDE_UP = 60;
+/** The look test's practice hit (G) comes from this far in front of him. */
+const PRACTICE_HIT = 160;
+/** The watch is drawn while his wrist is up: these fractions of the watch check. */
+const WATCH_SHOWN = [0.15, 0.85] as const;
 /** The mallet's smear: the strike's display fractions it shows in, its trail, and its clearance from the face. */
 const SMEAR = { from: 0.36, to: 0.5, points: 6, trail: 0.06, width: 26, clear: 40 } as const;
 
@@ -116,6 +134,11 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   scene.layers.post.addChild(vignette, title);
   const meters = new Meters(scene.layers.post);
   const sound = createSound();
+  const layers = createLayers();
+  const bubbles = new Bubbles(scene.layers.fx);
+  let lectures = 0;
+  /** This frame's events, for the procedural layers. */
+  const stepped: GameEvent[] = [];
 
   const down = new Set<string>();
   // A tap shorter than a frame still counts for the frame's steps.
@@ -125,6 +148,11 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     if (e.type === "keydown") {
       // Browsers only let sound start from a key or a tap.
       sound.unlock();
+      if (e.code === "KeyG" && !e.repeat) {
+        // The look test's practice hit, from in front of him: nothing in the lobby can hit him until R2.
+        e.preventDefault();
+        world.hit(world.hero.x + world.hero.facing * PRACTICE_HIT);
+      }
       down.add(e.code);
       tapped.add(e.code);
     } else down.delete(e.code);
@@ -181,8 +209,6 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
             : Math.min(1, phase / 0.3);
     const ctx: ClipCtx = { t: time, speed: Math.abs(h.vx), vy: h.vy, facing: h.facing };
     let pose = CLIPS[clip](u, ctx);
-    // Lean into the motion on top of the clip's own lean.
-    pose.lean += (6 * h.vx * h.facing) / RUN;
     if (fromPose && blendT < 1) {
       blendT = Math.min(1, blendT + dt / BLEND_T);
       pose = blend(fromPose, pose, blendT);
@@ -192,7 +218,9 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   };
 
   /** The move's clip over the locomotion: in over 0.06 s, its last frame held while it blends out over 0.12 s. */
-  const play = (m: Move | null, dt: number) => {
+  const play = (move: Move | null, dt: number) => {
+    // Under reduced motion the foot doesn't tap (the shipped rule).
+    const m = move?.kind === "tap" && reduced ? null : move;
     if (m) {
       if (m.kind !== actionKind || m.t < moveT || moveT < 0) {
         actionKind = m.kind;
@@ -211,17 +239,28 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     }
   };
 
-  /** The super stands on the floor only once it lands; the towel always does; the rest leave it to the clip. */
-  const groundMode = (h: HeroState): Ground => {
-    if (actionKind === "super") return h.onGround ? "planted" : "none";
-    if (actionKind === "wipe") return "planted";
-    return groundModeFor(clip, h.onGround);
-  };
+  const groundMode = (h: HeroState): Ground =>
+    groundForAction(actionKind, clip, h.onGround, h.move?.kind === actionKind && h.move ? moveU(h.move) : 1);
 
   const supportY = (x: number, y: number) => {
     let best = floorAt(LOBBY_STAGE, x, y - 1) ?? y;
     for (const p of LOBBY_STAGE.platforms) if (x >= p.x0 && x <= p.x1 && p.y >= y - 1 && p.y < best) best = p.y;
     return best;
+  };
+
+  /** The floor or counter top under x, no higher than a stride above the feet; null over a gap. */
+  const supportAt = (fx: number, fy: number): number | null => {
+    let best = floorAt(LOBBY_STAGE, fx, fy - STRIDE_UP);
+    for (const p of LOBBY_STAGE.platforms)
+      if (fx >= p.x0 && fx <= p.x1 && p.y >= fy - STRIDE_UP && (best === null || p.y < best)) best = p.y;
+    return best;
+  };
+  const floorProbe = (fx: number, fy: number): FloorProbe => {
+    const under = supportAt(fx, fy) ?? fy;
+    return (dx) => {
+      const f = supportAt(fx + dx, fy);
+      return f === null ? null : f - under;
+    };
   };
 
   /** Time and the camera answer each event at once; its look waits for this frame's pose. */
@@ -235,6 +274,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
       if (f.zoom) scene.punch(f.zoom.amount, f.zoom.seconds);
     }
     pending.push(e);
+    stepped.push(e);
   };
 
   const show = (e: GameEvent, at: Frame) => {
@@ -272,6 +312,27 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
         break;
       case "shine":
         particles.emit("glint", at.crown.x, at.crown.y, 6);
+        bubbles.think(ASIDES.better.text, 1.2);
+        break;
+      case "lectureStart":
+        bubbles.think(LECTURES[lectures++ % LECTURES.length].text, 1.8);
+        break;
+      case "harrumph":
+        bubbles.think(ASIDES.anyDayNow.text, 1.6);
+        break;
+      case "hurt":
+        particles.emit("impact", e.x, e.y, 10);
+        words.say("OOF!", e.x + e.dir * 90, e.y - 40, false, face, view);
+        bubbles.say(DAMAGE_LINE.text, 1.6);
+        break;
+      case "tumble":
+        particles.emit("impact", e.x, e.y, 16);
+        words.say("WHAM!", e.x + e.dir * 120, e.y - 60, true, face, view);
+        bubbles.say(DAMAGE_LINE.text, 1.6);
+        break;
+      case "getUp":
+        // The look test's practice convenience, like the smash refill: the game itself will not do this.
+        world.hero.patience = PATIENCE_MAX;
         break;
       case "boiling":
         words.say("BOILING!", at.crown.x, at.crown.y - 90, true, face, view);
@@ -323,28 +384,35 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
     const y = prev.hero.y + (h.y - prev.hero.y) * alpha;
+    stepLayers(layers, h, stepped, simDt);
+    stepped.length = 0;
 
-    const base = animate(h, simDt);
+    const base = addLean(animate(h, simDt), layers);
     const m = h.move;
     play(m, simDt);
-    const pose = action && actionKind ? overlay(base, action, ACTION_MASK[actionKind], actionW) : base;
+    const acted = action && actionKind ? overlay(base, action, ACTION_MASK[actionKind], actionW) : base;
+    // The feet stand on the floor under each of them, slopes included.
+    const planted = plantFeet(addBody(acted, layers), h.facing, HEAD_SCALE, headPlate, groundMode(h), floorProbe(x, y));
     // Solved facing left, the plates' own facing; the character mirrors itself for the right.
-    const solved: Solved = solve(pose, h.facing, HEAD_SCALE, headPlate);
+    const solved: Solved = solve(planted.pose, h.facing, HEAD_SCALE, headPlate);
     const floorY = supportY(x, y);
     smugT = Math.max(0, smugT - simDt);
     const expression: Expression =
-      m?.kind === "super"
-        ? "angry"
-        : smugT > 0
-          ? "smug"
-          : !m && h.state === "idle" && h.stateT > 4
-            ? "bored"
-            : "neutral";
-    const drawY = y + groundShift(solved, groundMode(h));
+      m?.kind === "tumble" || h.hurtT > 0
+        ? "hurt"
+        : m?.kind === "super" || m?.kind === "lecture"
+          ? "angry"
+          : smugT > 0
+            ? "smug"
+            : h.bored
+              ? "bored"
+              : "neutral";
+    const drawY = y + planted.dy;
     const towel = m?.kind === "wipe" && moveU(m) > TOWEL_OUT[0] && moveU(m) < TOWEL_OUT[1];
+    const watchUp = m?.kind === "watch" && actionKind === "watch" && moveU(m) > WATCH_SHOWN[0] && moveU(m) < WATCH_SHOWN[1];
     character.container.position.set(x, drawY);
     character.container.zIndex = y;
-    character.apply(solved, expression, floorY - drawY, scene.ambient, towel);
+    character.apply(solved, expression, floorY - drawY, scene.ambient, towel, watchUp);
     // The carts, the snot and the puddles sort just behind him: none of them ever covers his face.
     props.container.zIndex = y - 0.5;
     props.sync(prev, cur, alpha, simDt);
@@ -399,6 +467,7 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
     scene.update(dt);
     lighting.update(dt);
     words.update(simDt, face, scene.view());
+    bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     particles.update(simDt, face);
     meters.set(h.heat, h.sinus, h.charge);
     vignette.width = scene.width;
@@ -424,6 +493,12 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
         snot: cur.snot.length,
         puddles: cur.puddles.length,
         heroX: h.x,
+        heroY: h.y,
+        patience: h.patience,
+        bored: h.bored,
+        expression,
+        bubble: bubbles.text,
+        feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
     }
@@ -432,13 +507,15 @@ export async function startLook(render: RenderApp, opts: { noart?: boolean; boar
   if (opts.board) {
     // The boards move Hammer without stepping the sim; the next tick re-places him from the world.
     const placeHero = (x: number) => {
+      const y = supportAt(x, 0) ?? 0;
       world.hero.x = x;
+      world.hero.y = y;
       world.hero.vx = 0;
       cur = prev = world.snapshot();
-      const solved = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), 1, HEAD_SCALE, headPlate);
-      const dy = groundShift(solved, "planted");
-      character.container.position.set(x, dy);
-      character.apply(solved, "neutral", -dy, scene.ambient);
+      const p = plantFeet(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing: 1 }), 1, HEAD_SCALE, headPlate, "planted", floorProbe(x, y));
+      const solved = solve(p.pose, 1, HEAD_SCALE, headPlate);
+      character.container.position.set(x, y + p.dy);
+      character.apply(solved, "neutral", -p.dy, scene.ambient);
     };
     window.__nextBoard = createBoards(render, scene, registry, particles, placeHero);
   }

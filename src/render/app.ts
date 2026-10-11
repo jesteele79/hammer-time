@@ -42,6 +42,15 @@ export type NextProbe = {
     snot: number;
     puddles: number;
     heroX: number;
+    heroY: number;
+    patience: number;
+    bored: boolean;
+    /** The head plate on screen. */
+    expression: string;
+    /** The thought or caption showing, if any. */
+    bubble: string | null;
+    /** How far (px) the legs left a placed foot from where the floor puts it. */
+    feetGap: number;
   };
   /** Sound: whether a key has unlocked it, and every cue asked for since boot. */
   sound?: { unlocked: boolean; played: Record<string, number> };

@@ -17,7 +17,14 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   flick: ["snap"],
   shine: ["glint"],
   boiling: ["whistle"],
+  lectureStart: ["harrumph"],
+  harrumph: ["harrumph"],
+  watch: ["tickSfx"],
+  hurt: ["curse"],
+  tumble: ["curse", "thud"],
 };
+/** A fall harder than a full jump's landing thuds. */
+const HARD_LANDING = 2200;
 
 export type Sound = {
   unlock(): void;
@@ -38,11 +45,23 @@ export function createSound(): Sound {
     unlock() {
       if (sound.unlocked) return;
       bus.unlock();
+      // The damage recording decodes now, so the first hit plays it at once.
+      bus.preloadCurse();
       sound.unlocked = !bus.failed;
     },
     play(e) {
       const names: Cue[] =
-        e.type === "hit" ? (e.by === "mallet" ? ["bonk"] : e.by === "snot" ? ["splat"] : []) : (CUES[e.type] ?? []);
+        e.type === "hit"
+          ? e.by === "mallet"
+            ? ["bonk"]
+            : e.by === "snot"
+              ? ["splat"]
+              : []
+          : e.type === "land"
+            ? e.speed >= HARD_LANDING
+              ? ["thud"]
+              : []
+            : (CUES[e.type] ?? []);
       for (const name of names) {
         played[name] = (played[name] ?? 0) + 1;
         if (sound.unlocked) (bus[name] as () => void).call(bus);

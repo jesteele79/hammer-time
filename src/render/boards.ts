@@ -12,7 +12,7 @@ import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves"; resolution?: number };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -28,7 +28,9 @@ const EXPRESSIONS: Expression[] = ["neutral", "angry", "hurt", "smug", "bored", 
 const HEAD_SCALES = [0.22, 0.26, 0.3];
 const COSTUMES: Costume[] = ["affliction", "scrubs", "suit", "banquet"];
 const CTX: ClipCtx = { t: 0, speed: 640, vy: 0, facing: 1 };
-const MOVES: MoveKind[] = ["swing", "super", "snot", "wipe"];
+const MOVES: MoveKind[] = ["swing", "super", "snot", "wipe", "lecture"];
+/** What he does when he is not attacking: the idle acts and taking a hit. */
+const ACTS: MoveKind[] = ["watch", "tap", "hurt", "tumble"];
 const MOVE_FRAMES = 10;
 /** The moves board draws Hammer this much bigger, for a closer look. */
 const MOVE_SCALE = 1.5;
@@ -55,7 +57,9 @@ function cellPose(cell: Cell) {
 /** Grounded as the game grounds it: a move stands on the floor, except the super's hop before the slam. */
 function cellGround(cell: Cell): Ground {
   if (!cell.move) return groundModeFor(cell.clip, true);
-  return cell.move === "super" && cell.u < SUPER_CUT[0] ? "none" : "planted";
+  if (cell.move === "super" && cell.u < SUPER_CUT[0]) return "none";
+  if (cell.move === "tumble") return "body";
+  return "planted";
 }
 
 const moveCells = (move: MoveKind, row: number, frames: number): Cell[] =>
@@ -120,13 +124,14 @@ export function createBoards(
       const solved = solve(cellPose(cell), 1, cell.headScale, registry.hammer.heads.neutral!);
       const dy = groundShift(solved, cellGround(cell));
       const towel = cell.move === "wipe" && cell.u > TOWEL_OUT[0] && cell.u < TOWEL_OUT[1];
+      const watch = cell.move === "watch" && cell.u > 0.15 && cell.u < 0.85;
       ch.container.scale.set(scale);
       ch.container.position.set(
         150 + cell.col * cellW + cellW * 0.4,
         50 + cell.row * cellH + cellH - 32 * scale + dy * scale,
       );
       // A fresh towel hangs at its chain's rest shape: straight down from the hand.
-      ch.apply(solved, cell.expression, -dy, undefined, towel);
+      ch.apply(solved, cell.expression, -dy, undefined, towel, watch);
     }
     return snapshot(board, width, height);
   };
@@ -192,8 +197,8 @@ export function createBoards(
             for (let col = 0; col < 6; col++)
               cells.push({ col, row, clip, u: col / 6, costume: "affliction", expression: "neutral", headScale: 0.26 });
           });
-          MOVES.forEach((move, i) => cells.push(...moveCells(move, CLIP_NAMES.length + i, 6)));
-          const rows = [...CLIP_NAMES, ...MOVES];
+          [...MOVES, ...ACTS].forEach((move, i) => cells.push(...moveCells(move, CLIP_NAMES.length + i, 6)));
+          const rows = [...CLIP_NAMES, ...MOVES, ...ACTS];
           return sheet(6, rows.length, cells, rows, [0, 1, 2, 3, 4, 5].map((i) => `u = ${(i / 6).toFixed(2)}`));
         }
         case "heads": {
@@ -218,6 +223,11 @@ export function createBoards(
           const cells = MOVES.flatMap((move, row) => moveCells(move, row, MOVE_FRAMES));
           const heads = Array.from({ length: MOVE_FRAMES }, (_, i) => `u = ${(i / MOVE_FRAMES).toFixed(2)}`);
           return sheet(MOVE_FRAMES, MOVES.length, cells, MOVES, heads, MOVE_SCALE);
+        }
+        case "acts": {
+          const cells = ACTS.flatMap((move, row) => moveCells(move, row, MOVE_FRAMES));
+          const heads = Array.from({ length: MOVE_FRAMES }, (_, i) => `u = ${(i / MOVE_FRAMES).toFixed(2)}`);
+          return sheet(MOVE_FRAMES, ACTS.length, cells, ACTS, heads, MOVE_SCALE);
         }
         case "lobby":
           return lobby();

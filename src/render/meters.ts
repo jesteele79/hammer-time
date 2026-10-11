@@ -31,7 +31,7 @@ export class Meters {
       t.position.set(X, y - 3);
       this.container.addChild(t);
     }
-    const hint = label("H SWING · F SNOT · T TOWEL · Q SMASH", "ui", 16);
+    const hint = label("H SWING · F SNOT · E LECTURE · T TOWEL · Q SMASH · G PRACTICE HIT", "ui", 16);
     hint.position.set(X, ROWS.hint);
     hint.alpha = 0.8;
     this.container.addChild(this.heat, this.snot, this.smash, hint);

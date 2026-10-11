@@ -1,3 +1,4 @@
+import { SUPER_CUT, type MoveKind } from "../moves";
 import type { Solved } from "./fk";
 import { FAR_FLOOR } from "./skeleton";
 
@@ -36,4 +37,23 @@ export function groundShift(solved: Solved, mode: Ground): number {
 export function groundModeFor(clip: string, onGround: boolean): Ground {
   if (!onGround || clip === "jump" || clip === "fall") return "none";
   return clip === "run" ? "push" : "planted";
+}
+
+/** How a move at fraction `u` stands him on the floor, over the locomotion clip's own rule. */
+export function groundForAction(kind: MoveKind | null, clip: string, onGround: boolean, u = 0): Ground {
+  switch (kind) {
+    case "super":
+      // Free through the hop; from the plunge he comes down feet first, so the slam lands without a snap.
+      return onGround || u >= SUPER_CUT[0] ? "planted" : "none";
+    case "hurt":
+      return onGround ? "planted" : "none";
+    case "wipe":
+    case "lecture":
+      return "planted";
+    case "tumble":
+      // Down or flying, whatever is lowest of him rides his feet point, so landing never snaps him.
+      return "body";
+    default:
+      return groundModeFor(clip, onGround);
+  }
 }

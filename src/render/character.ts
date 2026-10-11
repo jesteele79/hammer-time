@@ -1,4 +1,4 @@
-import { Assets, Container, Graphics, Mesh, MeshGeometry, Sprite, Texture } from "pixi.js";
+import { Assets, Container, Graphics, Mesh, MeshGeometry, Rectangle, Sprite, Texture } from "pixi.js";
 import {
   ART_BASE,
   HEAD_PLATE_FACING,
@@ -23,8 +23,9 @@ export type Character = {
    * `ambient` tints the body, the mallet and the towel; the head plate is never tinted.
    * `towel` hangs the towel from the far hand (the wipe). While that hand is up at his face, it
    * and the towel are drawn over the head: the one time anything covers his face (owner's call).
+   * `watch` shows the wristwatch on his left wrist (the watch check).
    */
-  apply(solved: Solved, expression: Expression, heightAboveFloor: number, ambient?: number, towel?: boolean): void;
+  apply(solved: Solved, expression: Expression, heightAboveFloor: number, ambient?: number, towel?: boolean, watch?: boolean): void;
   /** The product of every tint from the head sprite up to the stage: 0xffffff when nothing colors it. */
   headTintChain(): number;
 };
@@ -39,6 +40,19 @@ const TOWEL_Z = 0.5;
 /** Wiping his face: the hand over the head plate, and the towel gathered in it over its wrist. */
 const HAND_OVER_Z = 7.4;
 const TOWEL_OVER_Z = 7.5;
+/** On his left wrist, just above that arm and behind everything else. */
+const WATCH_Z = 0.2;
+/**
+ * The plate's open band rings a wrist seen end-on, which a forearm seen from the side can't wear, so
+ * only the case and dial are drawn (plate px), sat on top of the wrist with the dial turned up.
+ */
+const WATCH_CASE = { x: 10, y: 150, w: 520, h: 610 } as const;
+/** The dial's middle in that crop, as fractions. */
+const WATCH_PIVOT = { x: 0.365, y: 0.5 } as const;
+/** The case's width across his wrist, how far above the wrist's middle it sits and how far back toward the elbow, rest units. */
+const WATCH_W = 26;
+const WATCH_UP = 6;
+const WATCH_BACK = 5;
 /** One turned towel texture per plate, shared by every character (the boards draw dozens). */
 const towelTextures = new Map<string, Texture>();
 
@@ -122,6 +136,14 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
   container.addChild(head);
   const towelPlate = registry.hammer.props.towel;
   let towel: Towel | null = null;
+  const watchPlate = registry.hammer.props.wristwatch;
+  const watchSprite = watchPlate ? new Sprite() : null;
+  if (watchSprite) {
+    watchSprite.anchor.set(WATCH_PIVOT.x, WATCH_PIVOT.y);
+    watchSprite.zIndex = WATCH_Z;
+    watchSprite.visible = false;
+    container.addChild(watchSprite);
+  }
 
   let rig: RigFile | null = null;
   const skinned: Skinned[] = [];
@@ -141,7 +163,13 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
       ...plates.map((p) => load(p.file)),
       mallet ? load(mallet.file) : null,
       towelPlate ? load(towelPlate.file) : null,
+      watchPlate ? load(watchPlate.file) : null,
     ]);
+    const watchTexture = watchPlate && textures.get(watchPlate.file);
+    if (watchSprite && watchTexture) {
+      const c = WATCH_CASE;
+      watchSprite.texture = new Texture({ source: watchTexture.source, frame: new Rectangle(c.x, c.y, c.w, c.h) });
+    }
     const plate = towelPlate && textures.get(towelPlate.file);
     if (towelPlate && plate) {
       let turned = towelTextures.get(towelPlate.file);
@@ -207,7 +235,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     container,
     shadow,
     ready,
-    apply(solved, expression, heightAboveFloor, ambient = 0xffffff, holdTowel = false) {
+    apply(solved, expression, heightAboveFloor, ambient = 0xffffff, holdTowel = false, showWatch = false) {
       const over = holdTowel && towelAtFace(solved);
       if (rig) {
         for (const s of skinned) {
@@ -233,6 +261,25 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
         const len = Math.hypot(mallet.tip.x - mallet.pivot.x, mallet.tip.y - mallet.pivot.y);
         placeProp(malletSprite, { pivot: mallet.pivot, tip: mallet.tip }, pl, solved.facing, MALLET_PLATE_FACING, pl.length / len);
         malletSprite.tint = ambient;
+      }
+      if (watchSprite) {
+        watchSprite.visible = showWatch && watchSprite.texture !== Texture.EMPTY;
+        if (watchSprite.visible) {
+          const w = solved.joints.wristFar;
+          const e = solved.joints.elbowFar;
+          const f = solved.facing;
+          const a = Math.atan2(w.y - e.y, w.x - e.x);
+          // The top of his forearm, whichever way he faces; the dial turns to face it.
+          const up = { x: f * Math.sin(a), y: -f * Math.cos(a) };
+          const k = solved.scale;
+          watchSprite.position.set(
+            w.x + (up.x * WATCH_UP - Math.cos(a) * WATCH_BACK) * k,
+            w.y + (up.y * WATCH_UP - Math.sin(a) * WATCH_BACK) * k,
+          );
+          watchSprite.rotation = a + (f * Math.PI) / 2;
+          watchSprite.scale.set((WATCH_W * solved.scale) / WATCH_CASE.w);
+          watchSprite.tint = ambient;
+        }
       }
       if (towel) {
         towel.update(holdTowel ? solved : null);
