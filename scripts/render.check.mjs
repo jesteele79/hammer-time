@@ -201,3 +201,27 @@ test("the torso scale widens the shirt front to back about the spine and moves n
     assert.ok(Math.abs(dy) < 1e-6, `${p}->${c} no taller`);
   });
 });
+
+import { bubbleLayout } from "../src/render/bubbles.ts";
+
+test("a thought never covers his face or its puffs, wherever he stands and whichever way he faces", () => {
+  const view = { x: 0, y: 0, w: 1920, h: 1080 };
+  const hit = (a, b) => a.x < b.x + b.w + 2 && a.x + a.w + 2 > b.x && a.y < b.y + b.h + 2 && a.y + a.h + 2 > b.y;
+  for (const facing of [1, -1]) {
+    const s = solve(CLIPS.idle(0, { t: 0, speed: 0, vy: 0, facing }), facing, 0.26);
+    for (let x = 60; x <= 1860; x += 60)
+      for (let y = 140; y <= 1060; y += 40)
+        for (const size of [
+          { w: 180, h: 70 },
+          { w: 440, h: 140 },
+        ]) {
+          const face = { x: x + s.faceBox.x, y: y + s.faceBox.y, w: s.faceBox.w, h: s.faceBox.h };
+          const crown = { x: x + s.crown.x, y: y + s.crown.y };
+          const { box, puffs } = bubbleLayout(size, crown, facing, face, view);
+          assert.ok(!hit(box, face), `facing ${facing} at ${x},${y}: the bubble covers the face`);
+          for (const p of puffs)
+            assert.ok(!hit({ x: p.x - p.r, y: p.y - p.r, w: 2 * p.r, h: 2 * p.r }, face), `facing ${facing} at ${x},${y}: a puff covers the face`);
+          assert.ok(box.x >= view.x && box.x + box.w <= view.x + view.w, "in view across");
+        }
+  }
+});
