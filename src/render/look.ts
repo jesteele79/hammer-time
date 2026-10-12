@@ -1,14 +1,14 @@
-import { Graphics, Sprite, Texture, type Ticker } from "pixi.js";
+import { Container, Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
 import { ASIDES, DAMAGE_LINE, LECTURES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
-import { PATIENCE_MAX } from "../sim/damage";
 import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
 import { KEY_BINDINGS, emptyInput, inputFromKeys, type Action } from "../sim/input";
-import { CHARGE_MAX, moveU, type Move } from "../sim/moves";
+import { createGame, type GameMode } from "../sim/game";
+import { moveU, type Move } from "../sim/moves";
 import { floorAt } from "../sim/physics";
 import { ACTIONS, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
@@ -19,17 +19,18 @@ import { addBody, addLean, createLayers, stepLayers } from "../sim/rig/layers";
 import { createPlayback, playAction } from "../sim/rig/playback";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
-import { stageOf } from "../sim/level";
+import type { Level } from "../sim/level";
 import { LOBBY } from "../sim/levels/lobby";
-import { createCart } from "../sim/targets";
-import type { HeroState, Point, Rect, Stage } from "../sim/types";
-import { createWorld } from "../sim/world";
+import { STASH } from "../sim/levels/stash";
+import { RUN } from "../sim/run";
+import type { HeroState, Point, Rect } from "../sim/types";
 import type { RenderApp } from "./app";
-import { loadBackdrop } from "./backdrop";
+import { loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards } from "./boards";
 import { Bubbles } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
+import { drawCrate, Objects } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
 import { Props } from "./props";
@@ -38,12 +39,13 @@ import { createSound } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, type HudPayload } from "./hud";
 import { installFonts } from "./text";
-import { drawVenue } from "./venue";
+import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
 
-/** The lobby the look scene stands him in (R2a); the run itself arrives with the Game. */
-export const LOBBY_STAGE: Stage = stageOf(LOBBY);
-const LOBBY_LIGHTS: Light[] = LOBBY.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04 }));
+const LEVELS = { lobby: LOBBY, stash: STASH } as const;
+const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
+/** Seconds the camera takes to settle into a zone's zoom. */
+const ZOOM_EASE = 0.5;
 /** World px one walk or run cycle covers, so the feet don't skate. */
 const STRIDE = 280;
 const BLEND_T = 0.1;
@@ -51,56 +53,65 @@ const DUST_EVERY = 0.12;
 const SMUG_T = 0.6;
 /** How far ahead of the towel hand the sweat spray starts. */
 const SPRAY_AHEAD = 24;
-/** The look test's practice convenience: the smash refills this long after a burst. */
-const REFILL_T = 2;
 const STEAM_EVERY = 0.08;
 const SWEAT_EVERY = 0.25;
 const STEAM_HEAT = 80;
 const SWEAT_HEAT = 45;
 /** How far above his feet a floor may be and still be the floor under a foot: a stride up a slope. */
 const STRIDE_UP = 60;
-/** The look test's practice hit (G) comes from this far in front of him. */
+/** The dev practice hit (G) comes from this far in front of him. */
 const PRACTICE_HIT = 160;
 /** The watch is drawn while his wrist is up: these fractions of the watch check. */
 const WATCH_SHOWN = [0.15, 0.85] as const;
 /** The mallet's smear: the strike's display fractions it shows in, its trail, and its clearance from the face. */
 const SMEAR = { from: 0.36, to: 0.5, points: 6, trail: 0.06, width: 26, clear: 40 } as const;
 
-export type Look = { stop(): void };
+export type Look = {
+  stop(): void;
+  /** A fresh run from the start card. */
+  newRun(): void;
+  togglePause(): void;
+};
 
 /** Where things are this frame, in world px, for the effects. */
 type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point };
 
-/** The look test: Hammer in the lobby under the keyboard with the practice carts; the shell draws the HUD from `onHud`. */
+/**
+ * The lobby, played: the Game under the keyboard, Hammer drawn as R1 built him, the venue, its
+ * pickups and crates. The shell draws the HUD from `onHud` and its cards from `onMode`. With `dev`,
+ * G is a practice hit and `window.__next.dev` can teleport him, for the checks.
+ */
 export async function startLook(
   render: RenderApp,
-  opts: { noart?: boolean; board?: boolean; onHud?: (hud: HudPayload) => void } = {},
+  opts: { noart?: boolean; board?: boolean; dev?: boolean; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
-  const world = createWorld(
-    LOBBY_STAGE,
-    LOBBY.spawn,
-    { charge: CHARGE_MAX, targets: LOBBY.carts.map((x, i) => createCart(i + 1, x)) },
-  );
+  const game = createGame(LEVELS, newSeed());
+  const world = game.world;
   const clock = createClock();
-  scene.camera.bounds = LOBBY_STAGE.bounds;
-  scene.camera.x = 400;
+  scene.camera.bounds = LOBBY.bounds;
+  scene.camera.x = LOBBY.spawn.x;
   scene.camera.focusY = scene.camera.y = -HERO_HEIGHT * 0.55;
 
   await installFonts();
   let registry = await loadRegistry();
   if (opts.noart) registry = stripped(registry);
-  await loadBackdrop(scene, "lobby", LOBBY.length, registry);
-  const venue = drawVenue(scene, LOBBY);
-  const lighting = createLighting(scene, render.quality, LOBBY_LIGHTS);
-  render.onQuality = (q) => lighting.setQuality(q);
+  const backdrops: Record<Level["id"], Backdrop> = {
+    lobby: await loadBackdrop(scene, "lobby", LOBBY.length, registry),
+    stash: await loadBackdrop(scene, "stash", STASH.length, registry),
+  };
+  const venues: Record<Level["id"], VenueView> = { lobby: drawVenue(scene, LOBBY), stash: drawVenue(scene, STASH) };
   const reduced = scene.reducedMotion;
   const particles = new Particles(scene.layers.fx, reduced ? 400 : 600, reduced);
   const words = new Words(scene.layers.fx);
   const smear = new Graphics();
   if (!reduced) smear.blendMode = "add";
   scene.layers.fx.addChild(smear);
+  const objects = new Objects(scene.layers.play, particles);
+  // The lamps light the play layer's children as they are now, so everything it holds comes first.
+  const lighting = createLighting(scene, render.quality, [...lightsOf(LOBBY), ...lightsOf(STASH)]);
+  render.onQuality = (q) => lighting.setQuality(q);
   const props = new Props(scene.layers.play, particles, scene.ambient);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
@@ -127,10 +138,14 @@ export async function startLook(
     if (e.type === "keydown") {
       // Browsers only let sound start from a key or a tap.
       sound.unlock();
-      if (e.code === "KeyG" && !e.repeat) {
-        // The look test's practice hit, from in front of him: nothing in the lobby can hit him until R2.
+      if (opts.dev && e.code === "KeyG" && !e.repeat) {
+        // A practice hit from in front of him, until R2b's cast can hit him.
         e.preventDefault();
         world.hit(world.hero.x + world.hero.facing * PRACTICE_HIT);
+      }
+      if ((e.code === "KeyP" || e.code === "Escape") && !e.repeat) {
+        e.preventDefault();
+        game.togglePause();
       }
       down.add(e.code);
       tapped.add(e.code);
@@ -158,7 +173,10 @@ export async function startLook(
   let time = 0;
   const playback = createPlayback();
   let smugT = 0;
-  let refillT = 0;
+  let shown: Level["id"] | null = null;
+  let shownPickups = game.pickups;
+  let lastMode: GameMode | null = null;
+  let savedT = 0;
   let steamT = 0;
   let sweatT = 0;
   const counts: Record<string, number> = {};
@@ -196,19 +214,18 @@ export async function startLook(
   const groundMode = (h: HeroState): Ground =>
     groundForAction(playback.kind, clip, h.onGround, h.move?.kind === playback.kind && h.move ? moveU(h.move) : 1);
 
-  const supportY = (x: number, y: number) => {
-    let best = floorAt(LOBBY_STAGE, x, y - 1) ?? y;
-    for (const p of LOBBY_STAGE.platforms) if (x >= p.x0 && x <= p.x1 && p.y >= y - 1 && p.y < best) best = p.y;
+  /** The top of whatever he could stand on under x, no higher than `reach`: floors, platforms and solids. */
+  const topUnder = (x: number, reach: number): number | null => {
+    const stage = world.stage;
+    let best = floorAt(stage, x, reach);
+    for (const p of stage.platforms) if (x >= p.x0 && x <= p.x1 && p.y >= reach && (best === null || p.y < best)) best = p.y;
+    for (const s of stage.solids) if (x >= s.x && x <= s.x + s.w && s.y >= reach && (best === null || s.y < best)) best = s.y;
     return best;
   };
+  const supportY = (x: number, y: number) => topUnder(x, y - 1) ?? y;
 
   /** The floor or counter top under x, no higher than a stride above the feet; null over a gap. */
-  const supportAt = (fx: number, fy: number): number | null => {
-    let best = floorAt(LOBBY_STAGE, fx, fy - STRIDE_UP);
-    for (const p of LOBBY_STAGE.platforms)
-      if (fx >= p.x0 && fx <= p.x1 && p.y >= fy - STRIDE_UP && (best === null || p.y < best)) best = p.y;
-    return best;
-  };
+  const supportAt = (fx: number, fy: number): number | null => topUnder(fx, fy - STRIDE_UP);
   const floorProbe = (fx: number, fy: number): FloorProbe => {
     const under = supportAt(fx, fy) ?? fy;
     return (dx) => {
@@ -247,7 +264,6 @@ export async function startLook(
         particles.emit("debris", e.x, e.y, 30);
         particles.emit("dust", e.x, e.y, 20);
         words.say("HAMMER TIME!", e.x, e.y - 300, true, face, view);
-        refillT = REFILL_T;
         break;
       case "fire":
         particles.emit("snot", e.x, e.y, 8);
@@ -284,9 +300,39 @@ export async function startLook(
         words.say("WHAM!", e.x + e.dir * 120, e.y - 60, true, face, view);
         bubbles.say(DAMAGE_LINE.text, 1.6);
         break;
-      case "getUp":
-        // The look test's practice convenience, like the smash refill: the game itself will not do this.
-        world.hero.patience = PATIENCE_MAX;
+      case "pickup":
+        objects.pop(e.kind, e.x, e.y);
+        if (e.kind === "nuts") words.say("NUTS!", e.x, e.y - 80, false, face, view);
+        if (e.kind === "bucees") words.say("BUC-EE'S!", e.x, e.y - 100, true, face, view);
+        if (e.kind === "pepper") words.say("HOT!", e.x, e.y - 100, true, face, view);
+        break;
+      case "canPop":
+        particles.emit("fizz", e.x, e.y, 10);
+        particles.emit("glint", e.x, e.y - 30, 2);
+        break;
+      case "crate":
+        particles.emit("debris", e.x, e.y, 6);
+        break;
+      case "caseBreak":
+        objects.splinter(e.x, e.y);
+        words.say("CRUNCH!", e.x, e.y - 90, false, face, view);
+        break;
+      case "bump":
+        particles.emit("dust", e.x, e.y, 4);
+        break;
+      case "bell":
+        words.say("DING!", e.x, e.y - 70, false, face, view);
+        break;
+      case "checkpoint":
+        venues.lobby.punch(e.id);
+        particles.emit("glint", e.x, e.y - 360, 6);
+        savedT = 2;
+        break;
+      case "oneUp":
+        words.say("1UP!", at.crown.x, at.crown.y - 90, true, face, view);
+        break;
+      case "timeOut":
+        words.say("TIME!", at.crown.x, at.crown.y - 120, true, face, view);
         break;
       case "boiling":
         words.say("BOILING!", at.crown.x, at.crown.y - 90, true, face, view);
@@ -319,8 +365,31 @@ export async function startLook(
     }
   };
 
+  /** Puts the camera on him at once: after a door, a respawn or a teleport. */
+  function snapCamera(x: number, y: number) {
+    scene.camera.x = x;
+    // His chest at the screen's centre, as at the start; the dead zone takes over from there.
+    scene.camera.focusY = scene.camera.y = y - HERO_HEIGHT * 0.55;
+  }
+
+  /** The level he is in now: its venue, backdrop, lamps, bounds and camera. */
+  function showLevel(level: Level, x: number, y: number) {
+    shown = level.id;
+    for (const k of ["lobby", "stash"] as const) {
+      venues[k].setVisible(k === level.id);
+      backdrops[k].setVisible(k === level.id);
+    }
+    lighting.setGroup(level.id);
+    scene.camera.bounds = level.bounds;
+    objects.clear();
+    shownPickups = game.pickups;
+    if (level.id === "lobby") venues.lobby.setPunched(game.run.punched);
+    snapCamera(x, y);
+  }
+
   const tick = (t: Ticker) => {
-    const dt = Math.min(t.deltaMS / 1000, 0.1);
+    // A break stops everything that runs on game time; the camera and the screen still draw.
+    const dt = game.mode === "pause" ? 0 : Math.min(t.deltaMS / 1000, 0.1);
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
     // Hit-stop and slow motion: the sim and everything it drives run on the clock's seconds,
     // and a hit freezes the world on the step it lands.
@@ -328,9 +397,11 @@ export async function startLook(
       const input = inputFromKeys(keys, prevHeld);
       prevHeld = input.held;
       prev = cur;
-      world.step(input);
+      game.step(input);
       cur = world.snapshot();
-      for (const e of world.events) feel(e);
+      for (const e of game.events) feel(e);
+      // A door or a respawn moves him: no sliding across the gap between frames.
+      if (game.events.some((e) => e.type === "respawn" || e.type === "door")) prev = cur;
     });
     time += simDt;
     if (steps > 0) tapped.clear();
@@ -407,20 +478,38 @@ export async function startLook(
       // Thrown up and back, away from his face; mirrored when he faces left.
       particles.emit("sweat", back, face.y + face.h * 0.25, 1, h.facing === -1);
     }
-    if (refillT > 0) {
-      refillT -= simDt;
-      if (refillT <= 0) world.hero.charge = CHARGE_MAX;
-    }
     drawSmear(m, base, x, drawY, h.facing, face);
 
+    if (game.level.id !== shown) showLevel(game.level, x, y);
+    if (game.pickups !== shownPickups) {
+      // A respawn or a door laid the pickups out afresh.
+      objects.clear();
+      shownPickups = game.pickups;
+      if (game.level.id === "lobby") venues.lobby.setPunched(game.run.punched);
+      snapCamera(x, y);
+    }
+    objects.sync(game.pickups, game.crates, simDt);
+    const door = game.door && (game.door.kind === "stash" || game.door.kind === "return") ? game.door.id : null;
+    venues[game.level.id].setDoorGlow(door);
+    if (game.mode !== lastMode) {
+      lastMode = game.mode;
+      sound.music(game.mode === "play" ? game.level.music : null);
+      opts.onMode?.(game.mode);
+    }
+    sound.setHurry(game.level.time > 0 && game.run.time < RUN.hurry);
+    sound.tick();
+    savedT = Math.max(0, savedT - simDt);
+
     const cam = scene.camera;
+    const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
+    cam.zoom += ((zone?.zoom ?? 1) - cam.zoom) * Math.min(1, dt / ZOOM_EASE);
     cam.target = { x, y };
     cam.facing = h.facing;
     cam.moving = Math.abs(h.vx) > 40;
     cam.falling = h.vy > 900;
     scene.update(dt);
     lighting.update(dt);
-    venue.update(simDt);
+    venues[game.level.id].update(simDt);
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     particles.update(simDt, face);
@@ -434,6 +523,22 @@ export async function startLook(
     vignette.height = scene.height;
 
     if (window.__next) {
+      window.__next.run = {
+        mode: game.mode,
+        level: game.level.id,
+        x: h.x,
+        y: h.y,
+        score: game.run.score,
+        cans: game.run.cans,
+        lives: game.run.lives,
+        time: game.run.time,
+        patience: h.patience,
+        hot: h.hot,
+        star: game.run.star,
+        checkpoint: game.run.checkpoint,
+        saved: savedT > 0,
+        events: { ...counts },
+      };
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
@@ -470,7 +575,7 @@ export async function startLook(
   if (opts.board) {
     // The boards move Hammer without stepping the sim; the next tick re-places him from the world.
     const placeHero = (x: number, at?: number) => {
-      const y = at ?? floorAt(LOBBY_STAGE, x, -1) ?? 0;
+      const y = at ?? floorAt(world.stage, x, -1) ?? 0;
       world.hero.x = x;
       world.hero.y = y;
       world.hero.vx = 0;
@@ -481,8 +586,47 @@ export async function startLook(
       character.apply(solved, "neutral", -p.dy, scene.ambient);
       return y;
     };
-    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero);
+    // The boards show the stash by swapping the visuals for one frame; the game stays where it is.
+    // Another level's frame draws that level's crates in place of the live objects.
+    let boardCrates: Container | null = null;
+    const showForBoard = (id: Level["id"]) => {
+      for (const k of ["lobby", "stash"] as const) {
+        venues[k].setVisible(k === id);
+        backdrops[k].setVisible(k === id);
+      }
+      lighting.setGroup(id);
+      scene.camera.bounds = LEVELS[id].bounds;
+      boardCrates?.destroy({ children: true });
+      boardCrates = null;
+      objects.setVisible(id === game.level.id);
+      if (id !== game.level.id) {
+        boardCrates = new Container();
+        for (const c of LEVELS[id].crates) {
+          const g = drawCrate(new Graphics(), c.kind, false);
+          g.position.set(c.x, c.y);
+          boardCrates.addChild(g);
+        }
+        scene.layers.play.addChild(boardCrates);
+      }
+    };
+    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id));
   }
+  if (opts.dev && window.__next)
+    window.__next.dev = {
+      teleport(x: number, y = 0) {
+        const hero = world.hero;
+        hero.x = x;
+        hero.y = y;
+        hero.vx = 0;
+        hero.vy = 0;
+        hero.onGround = false;
+        prev = cur = world.snapshot();
+        snapCamera(x, y);
+      },
+      hit() {
+        world.hit(world.hero.x + world.hero.facing * PRACTICE_HIT);
+      },
+    };
   return {
     stop() {
       app.ticker.remove(tick);
@@ -491,8 +635,18 @@ export async function startLook(
       window.removeEventListener("keyup", onKey);
       window.removeEventListener("blur", onBlur);
       sound.destroy();
-      venue.destroy();
+      objects.destroy();
+      venues.lobby.destroy();
+      venues.stash.destroy();
+      if (window.__next) delete window.__next.dev;
       scene.destroy();
+    },
+    newRun() {
+      game.newRun(newSeed());
+      prev = cur = world.snapshot();
+    },
+    togglePause() {
+      game.togglePause();
     },
   };
 }
@@ -524,4 +678,9 @@ function vignetteTexture(): Texture {
   ctx.fillRect(0, 0, size, size);
   vignetteTex = Texture.from(canvas);
   return vignetteTex;
+}
+
+/** A run's seed: a new layout every run. */
+function newSeed(): number {
+  return Math.floor(Math.random() * 2 ** 31);
 }

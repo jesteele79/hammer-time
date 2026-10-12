@@ -216,6 +216,10 @@ export class Objects {
     }
   }
 
+  setVisible(on: boolean) {
+    this.root.visible = on;
+  }
+
   /** A pickup taken: a burst in its colours. */
   pop(kind: PickupKind, x: number, y: number) {
     this.particles.emit(BURSTS[kind], x, y, 14);

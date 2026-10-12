@@ -56,6 +56,25 @@ export type NextProbe = {
   };
   /** Sound: whether a key has unlocked it, and every cue asked for since boot. */
   sound?: { unlocked: boolean; played: Record<string, number> };
+  /** The run: its mode, level and numbers, and every event type counted since the page loaded. */
+  run?: {
+    mode: string;
+    level: string;
+    x: number;
+    y: number;
+    score: number;
+    cans: number;
+    lives: number;
+    time: number;
+    patience: number;
+    hot: boolean;
+    star: number;
+    checkpoint: string | null;
+    saved: boolean;
+    events: Record<string, number>;
+  };
+  /** With `&dev=1`: move him anywhere and hit him, for the checks. */
+  dev?: { teleport(x: number, y?: number): void; hit(): void };
 };
 declare global {
   interface Window {

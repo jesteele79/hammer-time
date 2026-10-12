@@ -4,7 +4,8 @@ import type { Quality } from "./app";
 import { PALETTE, dim } from "./palette";
 import type { Scene } from "./scene";
 
-export type Light = { x: number; y: number; radius: number; color: string; intensity: number; flicker?: number };
+/** `group` names the level a lamp belongs to; lamps of other levels stay dark. */
+export type Light = { x: number; y: number; radius: number; color: string; intensity: number; flicker?: number; group?: string };
 
 let radial: Texture | null = null;
 /** A soft disc, white at the center fading to clear. */
@@ -24,7 +25,7 @@ function radialTexture(): Texture {
   return radial;
 }
 
-export type Lighting = { setQuality(q: Quality): void; update(dt: number): void };
+export type Lighting = { setQuality(q: Quality): void; update(dt: number): void; setGroup(group: string): void };
 
 /** Two tints combined channel by channel. */
 export function multiplyTint(a: number, b: number): number {
@@ -57,6 +58,9 @@ export function createLighting(scene: Scene, quality: Quality, lights: Light[], 
     setQuality(q) {
       layer.visible = q !== "low";
       layer.filters = q === "ultra" || q === "high" ? [bloom] : [];
+    },
+    setGroup(group) {
+      for (const lamp of lamps) lamp.sprite.visible = !lamp.light.group || lamp.light.group === group;
     },
     update(dt) {
       t += dt;

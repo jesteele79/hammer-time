@@ -1,4 +1,4 @@
-import { Assets, Graphics, Sprite, Texture, TilingSprite } from "pixi.js";
+import { Assets, Container, Graphics, Sprite, Texture, TilingSprite } from "pixi.js";
 import { ART_BASE, type Registry } from "../art/registry";
 import { PALETTE, shadowOf, highlightOf, tones } from "./palette";
 import { PARALLAX, type Scene } from "./scene";
@@ -22,8 +22,17 @@ function gradientTexture(stops: [number, string][], vertical = true): Texture {
   return Texture.from(canvas);
 }
 
-/** The venue's planes behind the play: sky, the inked far plate and the mid scenery, wide enough for `length` px of level. */
-export async function loadBackdrop(scene: Scene, venue: string, length: number, registry: Registry): Promise<void> {
+export type Backdrop = { setVisible(on: boolean): void };
+
+/**
+ * A level's planes behind the play: sky, the inked far plate and the mid scenery, wide enough for
+ * `length` px of level. The stash has no plate: a back-of-house block wall stands in for it.
+ */
+export async function loadBackdrop(scene: Scene, venue: string, length: number, registry: Registry): Promise<Backdrop> {
+  const planes = { sky: new Container(), far: new Container(), mid: new Container() };
+  scene.layers.sky.addChild(planes.sky);
+  scene.layers.far.addChild(planes.far);
+  scene.layers.mid.addChild(planes.mid);
   const sky = new Sprite(gradientTexture([
     [0, "#1c1512"],
     [0.6, "#3a2a22"],
@@ -31,7 +40,7 @@ export async function loadBackdrop(scene: Scene, venue: string, length: number, 
   ]));
   sky.width = 4096;
   sky.height = 2304;
-  scene.layers.sky.addChild(sky);
+  planes.sky.addChild(sky);
 
   const far = registry.backdrops[venue]?.far;
   if (far) {
@@ -40,14 +49,37 @@ export async function loadBackdrop(scene: Scene, venue: string, length: number, 
     tile.scale.set(FAR_SCALE);
     tile.position.set(-1500, -FAR_FLOOR_LINE * FAR_SCALE);
     tile.tint = "#c4b9ad";
-    scene.layers.far.addChild(tile);
+    planes.far.addChild(tile);
   }
+  if (venue === "stash") planes.far.addChild(blockWall(length));
+  else planes.mid.addChild(drawMid(length));
+  return {
+    setVisible(on) {
+      for (const c of Object.values(planes)) c.visible = on;
+    },
+  };
+}
 
-  drawMid(scene, length);
+/** The stash's back wall: painted block, a pipe run and a strip light, in the far plane. */
+function blockWall(length: number): Graphics {
+  const g = new Graphics();
+  const block = tones("#5d6460");
+  const w = length * PARALLAX.far + 2400;
+  g.rect(-1200, -1400, w, 1400).fill(block.base);
+  for (let y = -1400, row = 0; y < 0; y += 70, row++) {
+    g.rect(-1200, y, w, 4).fill(block.shadow);
+    for (let x = -1200 + (row % 2) * 70; x < w; x += 140) g.rect(x, y, 4, 70).fill(block.shadow);
+  }
+  // A sealed concrete floor running back to the wall, under the play floor's front edge.
+  g.rect(-1200, 0, w, 900).fill(shadowOf("#4a4b47"));
+  for (let x = -1200; x < w; x += 360) g.rect(x, 0, 3, 900).fill({ color: "#000000", alpha: 0.25 });
+  g.rect(-1200, -980, w, 26).fill(tones("#8a8f93").base);
+  g.rect(-1200, -980, w, 26).stroke({ width: MID_OUTLINE, color: PALETTE.outline, alpha: 0.75 });
+  return g;
 }
 
 /** Columns and palms against the wall, in a muted palette with thinner lines, spread over the mid plane's share of the level. */
-function drawMid(scene: Scene, length: number) {
+function drawMid(length: number): Graphics {
   const g = new Graphics();
   const span = length * PARALLAX.mid + 2400;
   const stone = tones("#cfc6b8");
@@ -83,5 +115,5 @@ function drawMid(scene: Scene, length: number) {
       g.moveTo(x, -332).quadraticCurveTo(cx, cy - 4, ex - 10, ey - 6).stroke({ width: 5, color: highlightOf(PALETTE.leaf), cap: "round" });
     }
   }
-  scene.layers.mid.addChild(g);
+  return g;
 }

@@ -47,6 +47,7 @@ export type VenueView = {
   /** Every clock in `ids` punched, the rest fresh: after a respawn. */
   setPunched(ids: readonly string[]): void;
   update(dt: number): void;
+  setVisible(on: boolean): void;
   destroy(): void;
 };
 
@@ -126,6 +127,9 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
         const d = doors.get(glowing);
         if (d) d.glow.alpha = 0.65 + 0.35 * Math.sin(t * 6);
       }
+    },
+    setVisible(on) {
+      root.visible = on;
     },
     destroy() {
       root.destroy({ children: true });

@@ -15,7 +15,7 @@ import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects"; resolution?: number };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -106,6 +106,8 @@ export function createBoards(
   particles: Particles,
   /** Stands him at x, on the floor there or at `y`, and returns where his feet are. */
   placeHero: (x: number, y?: number) => number,
+  /** Shows a level's visuals (null: the one he is in) without moving the game. */
+  showLevel: (id: "lobby" | "stash" | null) => void = () => {},
 ): Boards {
   const { app } = render;
 
@@ -231,13 +233,14 @@ export function createBoards(
     return snapshot(board, width, height);
   };
 
-  const lobby = async () => {
+  const lobby = async (frameList = LOBBY_FRAMES, level: "lobby" | "stash" = "lobby") => {
     const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target, zoom: scene.camera.zoom };
     const frames: string[] = [];
     scene.camera.target = null;
     scene.width = 1920;
     scene.height = 1080;
-    for (const f of LOBBY_FRAMES) {
+    showLevel(level);
+    for (const f of frameList) {
       const y = placeHero(f.x, f.y);
       particles.emit("dust", f.x - 40, y, 12);
       particles.update(0.12);
@@ -256,6 +259,7 @@ export function createBoards(
     scene.camera.y = saved.y;
     scene.camera.target = saved.target;
     scene.camera.zoom = saved.zoom;
+    showLevel(null);
     scene.fit();
     return frames.join("\n");
   };
@@ -324,6 +328,8 @@ export function createBoards(
           return lobby();
         case "objects":
           return objects();
+        case "stash":
+          return lobby([{ x: 1300, y: -330, cx: 1500, cy: -420 }], "stash");
       }
     },
   };

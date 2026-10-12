@@ -42,6 +42,10 @@ try {
     frames.forEach((f, i) => save(`lobby-look-${i + 1}.png`, f));
     count += frames.length;
   }
+  if (want("stash")) {
+    save("stash.png", await render("stash"));
+    count++;
+  }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log(`PASS: ${count} boards rendered.`);
 } catch (err) {
