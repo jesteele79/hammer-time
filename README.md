@@ -265,19 +265,23 @@ running move is never restarted.
   (0.42 s). The strike over his head is skipped on screen and still counted
   for contact, so a cart is hit anywhere along the arc in front, once per
   swing. A bonk freezes the action for 0.06 s, shakes the camera, flashes the
-  cart white and adds one smash charge.
-- **Q, the smash:** with a full charge (ten bonks) he hops, plunges and slams
-  the mallet into the floor as he lands; every cart within reach flies. The
+  cart white and rolls it away.
+- **Q, the smash:** with a full charge (three bags of nuts) he hops, plunges
+  and slams the mallet into the floor as he lands; every cart within reach
+  flies, and crates hung over the floor within reach open or break. The
   slam freezes for 0.08 s, then runs at quarter speed for 0.25 s, and punches
   the camera in.
-- **F, C or K, the snot rocket:** three charges, one back every 1.5 s, half a
-  second between shots and three in flight at most. It leaves just ahead of
-  his nose, knocks a cart and splats, or lands as a puddle that dries in
-  7 s. Hot snot (pepper, later) is faster and bigger and goes through a cart.
+- **F, C or K, the snot rocket:** his left hand comes up and presses one
+  nostril, he rears back and blows, then flicks the hand off forward and
+  drops it. Three charges, one back every 1.5 s, half a second between shots
+  and three in flight at most. It leaves just ahead of his nose, knocks a cart
+  and splats, or lands as a puddle that dries in 7 s. Hot snot (the pepper's)
+  burns orange, sheds embers, is faster and bigger and goes through a cart.
 - **T, the towel:** with any heat, on the ground, he stands still, lets the
   mallet hang down in his right hand, brings the towel up in his left and
   wipes his face, flicks the sweat off and shines; heat drains fast. That hand
-  and the towel are the one thing ever drawn over his face.
+  and the towel, and the same hand at his nose for the snot rocket, are the
+  only things ever drawn over his face.
 - **Heat:** running heats him, resting cools him, and jumps, swings and snot
   add to it. From 45 he sweats, from 80 he steams and runs slower, and near
   100 he boils over.
@@ -340,10 +344,17 @@ restocks on every visit and its clock never runs.
   and the music hurries.
 - **Pickups** are laid out fresh each run by the shipped seeded rule (anchors
   on floors and platforms, Buc-ee's and nuts first, the rest cans), and each
-  route always gets a can, nuts and a Buc-ee's. A Coke Zero is 200 points and
-  10 heat off, and every hundred is a life; nuts are 500 and three smash
-  charges; a Buc-ee's is 1000 and ten seconds nothing can touch him; the
-  pepper is 1000, three pips and hot snot.
+  route always gets a can, nuts and a Buc-ee's. They are the real products
+  (the shipped pictures in `public/`: Coca-Cola Zero Sugar, Mixed Nuts and
+  Buc-ee's Beaver Nuggets), about a quarter of his height, and each has one
+  job, which the hint line names for two seconds after he takes it:
+  - **Coke Zero cools him down:** 25 heat off with a frosty fizz, so he runs
+    at full speed again; 200 points, and every hundred cans is a life.
+  - **Nuts are smash fuel:** three bags fill the Super Smash; 500 points.
+  - **Buc-ee's is a shield:** ten seconds of a gold glow behind him (it
+    flickers through its last two), nothing hurts him, and whatever he runs
+    into goes flying; 1000 points. The HUD counts it down beside the beaver.
+  - **The pepper is a hot head:** an extra hit point and hot snot; 1000 points.
 - **Crates** open to a head bump from below or the mallet: the ! crate lets
   out a pepper (nuts if he is already hot) that rises, slides off and turns at
   walls; the Coke Zero crate pops a can; a delivery case pays a can a hit and

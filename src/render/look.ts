@@ -30,20 +30,25 @@ import { createBoards } from "./boards";
 import { Bubbles } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
-import { drawCrate, Objects } from "./objects";
+import { drawCrate, loadProducts, Objects } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
 import { Props } from "./props";
 import { createScene } from "./scene";
 import { createSound } from "./sound";
 import { TOWEL_OUT } from "./towel";
-import { hudKey, hudOf, type HudPayload } from "./hud";
+import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
+import type { PickupKind } from "../sim/rewards";
 import { installFonts } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
 
 const LEVELS = { lobby: LOBBY, stash: STASH } as const;
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
+/** How long a pickup's line stays in the hint. */
+const NOTE_T = 2;
+/** The Buc-ee's shield's look: its glow around his middle, and its last seconds' flicker. */
+const SHIELD_LOOK = { up: 170, rx: 130, ry: 215, rings: 5, alpha: 0.22, color: 0xffcf3a, rim: 0xfff1a0, flicker: 2, sparkEvery: 0.08 } as const;
 /** Seconds the camera takes to settle into a zone's zoom. */
 const ZOOM_EASE = 0.5;
 /** World px one walk or run cycle covers, so the feet don't skate. */
@@ -100,6 +105,7 @@ export async function startLook(
   scene.camera.focusY = scene.camera.y = -HERO_HEIGHT * 0.55;
 
   await installFonts();
+  const products = await loadProducts();
   let registry = await loadRegistry();
   if (opts.noart) registry = stripped(registry);
   const backdrops: Record<Level["id"], Backdrop> = {
@@ -114,6 +120,10 @@ export async function startLook(
   if (!reduced) smear.blendMode = "add";
   scene.layers.fx.addChild(smear);
   const objects = new Objects(scene.layers.play, particles);
+  // The Buc-ee's shield: a gold glow drawn behind him, so nothing of it is ever over his face.
+  const shieldGlow = new Graphics();
+  if (!reduced) shieldGlow.blendMode = "add";
+  scene.layers.play.addChild(shieldGlow);
   // The lamps light the play layer's children as they are now, so everything it holds comes first.
   const lighting = createLighting(scene, render.quality, [...lightsOf(LOBBY), ...lightsOf(STASH)]);
   render.onQuality = (q) => lighting.setQuality(q);
@@ -195,6 +205,12 @@ export async function startLook(
   let shownPickups = game.pickups;
   let lastMode: GameMode | null = null;
   let savedT = 0;
+  /** A pickup's line for the hint, and how long it has left. */
+  let note: string | null = null;
+  let noteT = 0;
+  let sparkT = 0;
+  let shieldShown = false;
+  let gifts = 0;
   let faceOnScreen: Rect | null = null;
   let steamT = 0;
   let sweatT = 0;
@@ -321,12 +337,17 @@ export async function startLook(
         break;
       case "pickup":
         objects.pop(e.kind, e.x, e.y);
-        if (e.kind === "nuts") words.say("NUTS!", e.x, e.y - 80, false, face, view);
-        if (e.kind === "bucees") words.say("BUC-EE'S!", e.x, e.y - 100, true, face, view);
+        note = pickupNote(e.kind, world.hero);
+        noteT = NOTE_T;
+        if (e.kind === "nuts")
+          words.say(world.hero.charge >= CHARGE_MAX ? "SMASH READY!" : "NUTS!", e.x, e.y - 80, world.hero.charge >= CHARGE_MAX, face, view);
+        if (e.kind === "bucees") words.say("SHIELD!", e.x, e.y - 100, true, face, view);
         if (e.kind === "pepper") words.say("HOT!", e.x, e.y - 100, true, face, view);
         break;
       case "canPop":
-        particles.emit("fizz", e.x, e.y, 10);
+        particles.emit("frost", e.x, e.y, 10);
+        note = pickupNote("can", world.hero);
+        noteT = NOTE_T;
         particles.emit("glint", e.x, e.y - 30, 2);
         break;
       case "crate":
@@ -383,6 +404,32 @@ export async function startLook(
         .stroke({ width: SMEAR.width * k, color: 0xfff4c8, alpha: 0.35 * k, cap: "round" });
     }
   };
+
+  /**
+   * The Buc-ee's shield while it lasts: a gold glow around him, drawn just behind him, flickering
+   * through its last two seconds, with sparkles turning round its rim (the face keep-out drops any
+   * that would cross his face).
+   */
+  function drawShield(x: number, drawY: number, sortY: number, dt: number) {
+    shieldGlow.clear();
+    const left = game.run.star;
+    shieldShown = left > 0 && (left > SHIELD_LOOK.flicker || Math.floor(time * 10) % 2 === 0);
+    if (!shieldShown) return;
+    const cy = drawY - SHIELD_LOOK.up;
+    for (let i = SHIELD_LOOK.rings; i >= 1; i--) {
+      const k = i / SHIELD_LOOK.rings;
+      shieldGlow.ellipse(x, cy, SHIELD_LOOK.rx * k, SHIELD_LOOK.ry * k).fill({ color: SHIELD_LOOK.color, alpha: SHIELD_LOOK.alpha * (1 - k * 0.6) });
+    }
+    shieldGlow.ellipse(x, cy, SHIELD_LOOK.rx, SHIELD_LOOK.ry).stroke({ width: 6, color: SHIELD_LOOK.rim, alpha: 0.7 });
+    shieldGlow.zIndex = sortY - 1;
+    sparkT += dt;
+    if (sparkT >= SHIELD_LOOK.sparkEvery) {
+      sparkT = 0;
+      const a = time * 3.1;
+      particles.emit("glint", x + Math.cos(a) * SHIELD_LOOK.rx, cy + Math.sin(a) * SHIELD_LOOK.ry, 1);
+      particles.emit("glint", x - Math.cos(a) * SHIELD_LOOK.rx, cy - Math.sin(a) * SHIELD_LOOK.ry, 1);
+    }
+  }
 
   /** Puts the camera on him at once: after a door, a respawn or a teleport. */
   function snapCamera(x: number, y: number) {
@@ -505,6 +552,7 @@ export async function startLook(
       particles.emit("sweat", back, face.y + face.h * 0.25, 1, h.facing === -1);
     }
     drawSmear(m, base, x, drawY, h.facing, face);
+    drawShield(x, drawY, y, simDt);
 
     if (game.level.id !== shown) showLevel(game.level, x, y);
     if (game.pickups !== shownPickups) {
@@ -526,6 +574,7 @@ export async function startLook(
     sound.setHurry(game.level.time > 0 && game.run.time < RUN.hurry);
     sound.tick();
     savedT = Math.max(0, savedT - simDt);
+    noteT = Math.max(0, noteT - simDt);
 
     const cam = scene.camera;
     const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
@@ -540,7 +589,7 @@ export async function startLook(
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     particles.update(simDt, face);
-    const hud = hudOf(game, portrait, savedT > 0);
+    const hud = hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null);
     const key = hudKey(hud);
     if (key !== hudLast) {
       hudLast = key;
@@ -564,6 +613,7 @@ export async function startLook(
         star: game.run.star,
         checkpoint: game.run.checkpoint,
         saved: savedT > 0,
+        shield: shieldShown,
         events: { ...counts },
       };
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
@@ -574,6 +624,7 @@ export async function startLook(
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,
         bodies: Object.keys(registry.hammer.bodies).length,
+        products,
       };
       window.__next.moves = {
         move: m?.kind ?? null,
@@ -653,6 +704,10 @@ export async function startLook(
       },
       charge() {
         world.hero.charge = CHARGE_MAX;
+      },
+      give(kind: PickupKind) {
+        const h = world.hero;
+        game.pickups.push({ id: 900000 + gifts++, kind, x: h.x, y: h.y - h.h / 2, taken: false });
       },
     };
   return {

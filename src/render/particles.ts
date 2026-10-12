@@ -46,6 +46,10 @@ export const RECIPES = {
   ring: { speed: [700, 900], angle: [180, 360], gravity: 0, drag: 2.4, life: [0.35, 0.45], size: [12, 26], colors: ["#fff3d0", "#e9b866"], additive: true },
   // Pickups taken, in their own colours: the can's red and silver, the nuts' crumbs, Buc-ee's gold.
   fizz: { speed: [180, 420], angle: [200, 340], gravity: 900, drag: 1.6, life: [0.3, 0.5], size: [8, 3], colors: ["#ff5a4f", "#c9ccd1"], additive: false },
+  // The Coke Zero's cool-down: an icy fizz bursting up and out.
+  frost: { speed: [160, 420], angle: [200, 340], gravity: 300, drag: 1.8, life: [0.35, 0.6], size: [9, 3], colors: ["#f2fbff", "#7cc8f0"], additive: true },
+  // Hot snot sheds embers as it flies.
+  ember: { speed: [20, 90], angle: [180, 360], gravity: -160, drag: 2, life: [0.2, 0.4], size: [6, 2], colors: ["#ffd36a", "#ff5a1f"], additive: true },
   crumbs: { speed: [140, 360], angle: [200, 340], gravity: 1500, drag: 1, life: [0.3, 0.55], size: [6, 3], colors: ["#d9a86a", "#8a5a2c"], additive: false },
   gold: { speed: [200, 480], angle: [0, 360], gravity: 300, drag: 2, life: [0.35, 0.6], size: [9, 3], colors: ["#fff1a0", "#f2c230"], additive: true },
   // The pepper crate's steam, a slow wisp rising off its top.

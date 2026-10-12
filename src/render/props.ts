@@ -130,7 +130,7 @@ export class Props {
     this.pool(this.blobs, s.snot.length, 2);
     s.snot.forEach((b, i) => {
       drawSnot(this.blobs[i], b);
-      if (trail) this.particles.emit("snot", b.x, b.y, 1);
+      if (trail) this.particles.emit(b.hot ? "ember" : "snot", b.x, b.y, b.hot ? 2 : 1);
     });
     this.pool(this.puddles, s.puddles.length, 0);
     s.puddles.forEach((p, i) => drawPuddle(this.puddles[i], p));
@@ -169,12 +169,12 @@ export class Props {
   }
 }
 
-/** An outlined blob stretched along its flight; hot snot is bigger and yellower. */
+/** An outlined blob stretched along its flight; hot snot (the pepper's) is bigger and burns orange. */
 function drawSnot(g: Graphics, b: Snot) {
   const r = b.hot ? 20 : 14;
   const speed = Math.hypot(b.vx, b.vy);
   const stretch = 1 + Math.min(0.7, speed / 2400);
-  const body = tones(b.hot ? "#c8e04a" : "#8fbf3f");
+  const body = tones(b.hot ? "#ff7a1f" : "#8fbf3f");
   g.clear();
   g.ellipse(0, 0, r * stretch, r / Math.sqrt(stretch)).fill(body.base).stroke({ width: 3, color: INK });
   g.ellipse(r * 0.25 * stretch, -r * 0.3, r * 0.35 * stretch, r * 0.2).fill(body.highlight);

@@ -458,6 +458,15 @@ His jump (about 398 px) cannot reach the mezzanine from the floor or the
 landing. Both routes get a can, nuts and a Buc-ee's every run. The bellhop and
 the rest of the cast arrive in R2b.
 
+Owner changes after R2a (2026-10-12): the head sits 8 rest units further
+forward and 9 lower in the collar (his body keeps its size, so he stands about
+10 px shorter); Coke Zero, the nuts and Buc-ee's are the real products'
+pictures with their logos; his left hand presses his nose through the snot
+rocket (drawn over his face, the second exception after the towel); and each
+power-up has one job: Coke Zero cools 25, three bags of nuts fill the smash,
+Buc-ee's is a ten-second shield that bowls over whatever he runs into, the
+pepper is an extra hit and hot snot.
+
 **Restaurant (1-2).** Dining room (tables and booths as platforms, a host
 stand), the kitchen pass (a counter with heat lamps, the service pass to slide
 under, a swinging door that knocks), the line (steel counters, a flat-top that

@@ -59,6 +59,18 @@ try {
   assert.deepEqual([r.lives, r.patience, r.cans, r.level], [3, 2, 0, "lobby"]);
   await shot("run-start.png");
 
+  // The real products, each with one clear job the hint line names for two seconds.
+  assert.equal(await page.evaluate(() => window.__next.art.products), 3, "the Coke Zero, nuts and Buc-ee's pictures load");
+  const hint = () => page.evaluate(() => document.querySelector(".next-hud__hint")?.textContent);
+  await page.evaluate(() => window.__next.dev.give("can"));
+  await page.waitForFunction(() => document.querySelector(".next-hud__hint")?.textContent === "Coke Zero · cooled down", {}, { timeout: 2000 });
+  await page.evaluate(() => window.__next.dev.give("bucees"));
+  r = await waitFor((x) => x.star > 9, 1000);
+  assert.ok(r.star > 9 && r.shield, `the Buc-ee's shield is up and drawn: ${JSON.stringify({ star: r.star, shield: r.shield })}`);
+  assert.equal(await hint(), "Buc-ee's · shield for 10 seconds");
+  assert.ok(await page.evaluate(() => !!document.querySelector(".next-hud__star img")), "the HUD's shield countdown wears the beaver");
+  await shot("run-shield.png");
+
   // The early pepper crate: stand under it and jump; the pepper slides off, off the desk and back to him.
   await tp(760);
   await page.waitForTimeout(250);

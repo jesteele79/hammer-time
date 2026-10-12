@@ -31,7 +31,8 @@ export type NextProbe = {
   headTintChain?: number;
   /** His face box on screen, CSS px: nothing in the shell may cover it. */
   faceScreen?: { x: number; y: number; w: number; h: number };
-  art?: { heads: number; bodies: number };
+  /** `products`: how many of the three pickups have their real pictures. */
+  art?: { heads: number; bodies: number; products?: number };
   /** The move layer, set by the look scene: `events` counts every event type seen since boot. */
   moves?: {
     move: string | null;
@@ -71,10 +72,12 @@ export type NextProbe = {
     star: number;
     checkpoint: string | null;
     saved: boolean;
+    /** The Buc-ee's shield is drawn this frame. */
+    shield: boolean;
     events: Record<string, number>;
   };
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
-  dev?: { teleport(x: number, y?: number): void; hit(): void; charge(): void };
+  dev?: { teleport(x: number, y?: number): void; hit(): void; charge(): void; give(kind: "can" | "nuts" | "bucees" | "pepper"): void };
 };
 declare global {
   interface Window {

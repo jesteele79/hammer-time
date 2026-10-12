@@ -7,16 +7,9 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2,
 /** Up to this many lives show as portraits; more show one and a count. */
 const LIFE_PIPS = 5;
 
-/** The Coke Zero can, drawn: black, a red band, a silver top. */
+/** The Coke Zero can: the real product's picture. */
 function CanIcon() {
-  return (
-    <svg className="next-hud__can" viewBox="0 0 14 22" aria-hidden="true">
-      <rect x="1" y="1" width="12" height="20" rx="3" fill="#151515" stroke="#0d1118" strokeWidth="1.2" />
-      <rect x="1" y="9" width="12" height="5" fill="#d4202c" />
-      <rect x="1.6" y="1.6" width="10.8" height="3" rx="1.5" fill="#c9ccd1" />
-      <rect x="3" y="6" width="1.6" height="12" rx="0.8" fill="#ffffff" opacity="0.4" />
-    </svg>
-  );
+  return <img className="next-hud__can" src="/coke-zero.webp" alt="" />;
 }
 
 /** Pause and sound, drawn: two bars, and a speaker with its waves or a cross. */
@@ -78,7 +71,8 @@ export function NextHud({
           {lives > LIFE_PIPS && <b>×{lives}</b>}
         </span>
         {hud.star > 0 && (
-          <span className="next-hud__star" aria-label={`Buc-ee's boost, ${hud.star} seconds`}>
+          <span className="next-hud__star" aria-label={`Buc-ee's shield, ${hud.star} seconds`}>
+            <img src="/beaver.png" alt="" />
             {hud.star}
           </span>
         )}

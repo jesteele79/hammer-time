@@ -1817,8 +1817,9 @@ button:focus-visible {
   gap: 5px;
 }
 .next-hud__can {
-  width: 14px;
-  height: 22px;
+  width: auto;
+  height: 28px;
+  margin: -4px -4px -4px -6px;
 }
 .next-hud__lives {
   display: inline-flex;
@@ -1843,11 +1844,20 @@ button:focus-visible {
   color: var(--hud-gold);
 }
 .next-hud__star {
-  padding: 2px 8px;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 3px;
+  border-radius: 999px;
   background: #f2c230;
   color: var(--hud-ink);
   font-size: 0.8em;
+  box-shadow: 0 0 10px rgb(242 194 48 / 0.6);
+}
+.next-hud__star img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
 }
 .next-hud__clock {
   min-width: 2.6em;

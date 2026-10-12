@@ -1,4 +1,4 @@
-import { Container, Graphics } from "pixi.js";
+import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import { CRATE, type Crate } from "../sim/crates";
 import type { CrateKind } from "../sim/level";
 import type { Pickup, PickupKind } from "../sim/rewards";
@@ -29,7 +29,65 @@ const PICKUP_Z = SCENERY_Z + 1;
 const CRATE_Z = SCENERY_Z + 2;
 /** A crate hit from below jumps this far and settles over this long. */
 const CRATE_BUMP = { px: 12, t: 0.12 } as const;
-const BURSTS: Record<PickupKind, RecipeName> = { can: "fizz", nuts: "crumbs", bucees: "gold", pepper: "fizz" };
+const BURSTS: Record<PickupKind, RecipeName> = { can: "frost", nuts: "crumbs", bucees: "gold", pepper: "fizz" };
+
+/**
+ * The real products (owner, 2026-10-12: "obvious and with their original logos"): the shipped
+ * game's pictures in public/, cropped to what is painted, and how tall each stands in the world
+ * (about a quarter of his height). The beaver marks the Buc-ee's case.
+ */
+const PRODUCTS = {
+  can: { file: "/coke-zero.webp", box: [149, 81, 876, 1444], height: 84 },
+  nuts: { file: "/nuts-bag.webp", box: [149, 58, 1074, 1230], height: 84 },
+  bucees: { file: "/buccees-pickup.webp", box: [33, 34, 1053, 1413], height: 88 },
+  beaver: { file: "/beaver.png", box: [0, 0, 475, 502], height: 58 },
+} as const;
+type Product = keyof typeof PRODUCTS;
+const productTextures = new Map<Product, Texture>();
+/** The can stencilled on the Coke Zero crate stands this tall. */
+const CRATE_CAN = 56;
+
+/** Loads the product pictures once. Returns how many of the three pickups have theirs; the rest keep the drawn stand-in. */
+export async function loadProducts(): Promise<number> {
+  await Promise.all(
+    (Object.keys(PRODUCTS) as Product[]).map(async (k) => {
+      if (productTextures.has(k)) return;
+      try {
+        const p = PRODUCTS[k];
+        const t = await Assets.load<Texture>(p.file);
+        const [x0, y0, x1, y1] = p.box;
+        productTextures.set(k, new Texture({ source: t.source, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0) }));
+      } catch {
+        // The drawn stand-in stays.
+      }
+    }),
+  );
+  return (["can", "nuts", "bucees"] as const).filter((k) => productTextures.has(k)).length;
+}
+
+function productSprite(k: Product, height: number = PRODUCTS[k].height): Sprite | null {
+  const t = productTextures.get(k);
+  if (!t) return null;
+  const s = new Sprite(t);
+  s.anchor.set(0.5);
+  s.scale.set(height / t.frame.height);
+  return s;
+}
+
+/** A pickup about its middle: the real product where its picture loaded, the ink stand-in otherwise. */
+export function pickupView(kind: PickupKind): Container {
+  const c = new Container();
+  const s = kind === "pepper" ? null : productSprite(kind);
+  c.addChild(s ?? drawPickup(new Graphics(), kind));
+  return c;
+}
+
+/** The logo on a fresh crate, from the bottom middle: the can on the Coke Zero crate, the beaver on the Buc-ee's case. */
+export function crateLogo(kind: CrateKind): Sprite | null {
+  const s = kind === "can" ? productSprite("can", CRATE_CAN) : kind === "bucees" ? productSprite("beaver") : null;
+  s?.position.set(0, -CRATE.size / 2);
+  return s;
+}
 
 /** A pickup's float: 10 px either way, each out of step with its neighbours. */
 export const bob = (t: number, id: number) => 10 * Math.sin(t * 2.6 + id * 1.7);
@@ -93,8 +151,8 @@ export function drawPickup(g: Graphics, kind: PickupKind): Graphics {
   }
 }
 
-/** A crate drawn from its bottom middle: the mark says what is inside until it is spent. */
-export function drawCrate(g: Graphics, kind: CrateKind, used: boolean, cans = 0): Graphics {
+/** A crate drawn from its bottom middle: the mark says what is inside until it is spent. `mark` false leaves it to a logo. */
+export function drawCrate(g: Graphics, kind: CrateKind, used: boolean, cans = 0, mark = true): Graphics {
   const s = CRATE.size;
   const x = -s / 2;
   const y = -s;
@@ -120,7 +178,7 @@ export function drawCrate(g: Graphics, kind: CrateKind, used: boolean, cans = 0)
   g.rect(x, y, s, 12).fill(wood.highlight);
   g.rect(x, y + s - 12, s, 12).fill(wood.shadow);
   g.rect(x, y, s, s).stroke(INK);
-  if (used) return g;
+  if (used || !mark) return g;
   const cx = 0;
   const cy = y + s / 2;
   if (kind === "pepper") {
@@ -140,7 +198,7 @@ export function drawCrate(g: Graphics, kind: CrateKind, used: boolean, cans = 0)
   return g;
 }
 
-type CrateView = { g: Graphics; key: string; bump: number };
+type CrateView = { root: Container; g: Graphics; logo: Sprite | null; key: string; bump: number };
 
 /** The level's pickups and crates on screen: bobbing, glinting, bursting when taken, jolting when hit. */
 export class Objects {
@@ -160,7 +218,7 @@ export class Objects {
   /** Forget everything drawn: the level changed or he came back. */
   clear() {
     for (const p of this.pickups.values()) p.c.destroy({ children: true });
-    for (const c of this.crates.values()) c.g.destroy();
+    for (const c of this.crates.values()) c.root.destroy({ children: true });
     this.pickups.clear();
     this.crates.clear();
   }
@@ -172,8 +230,7 @@ export class Objects {
       seen.add(p.id);
       let view = this.pickups.get(p.id);
       if (!view) {
-        const c = new Container();
-        c.addChild(drawPickup(new Graphics(), p.kind));
+        const c = pickupView(p.kind);
         c.zIndex = PICKUP_Z;
         this.root.addChild(c);
         view = { c, taken: p.taken };
@@ -198,20 +255,26 @@ export class Objects {
       let view = this.crates.get(c.id);
       const key = `${c.used}|${c.broken}|${c.cans}`;
       if (!view) {
-        view = { g: new Graphics(), key: "", bump: 0 };
-        view.g.zIndex = CRATE_Z;
-        this.root.addChild(view.g);
+        const root = new Container();
+        const g = new Graphics();
+        const logo = crateLogo(c.kind);
+        root.addChild(g);
+        if (logo) root.addChild(logo);
+        root.zIndex = CRATE_Z;
+        this.root.addChild(root);
+        view = { root, g, logo, key: "", bump: 0 };
         this.crates.set(c.id, view);
       }
       if (view.key !== key) {
         if (view.key && !c.broken) view.bump = CRATE_BUMP.t;
         view.key = key;
         view.g.clear();
-        if (!c.broken) drawCrate(view.g, c.kind, c.used, c.cans);
+        if (!c.broken) drawCrate(view.g, c.kind, c.used, c.cans, !view.logo);
+        if (view.logo) view.logo.visible = !c.used && !c.broken;
       }
       view.bump = Math.max(0, view.bump - dt);
       const lift = view.bump > 0 ? CRATE_BUMP.px * Math.sin((view.bump / CRATE_BUMP.t) * Math.PI) : 0;
-      view.g.position.set(c.x, c.y - lift);
+      view.root.position.set(c.x, c.y - lift);
       if (puff && c.kind === "pepper" && !c.used) this.particles.emit("steamPuff", c.x + 20, c.y - CRATE.size, 1);
     }
   }

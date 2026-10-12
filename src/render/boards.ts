@@ -9,7 +9,7 @@ import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { FAR_FLOOR } from "../sim/rig/skeleton";
 import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
-import { drawCrate, drawPickup } from "./objects";
+import { crateLogo, drawCrate, pickupView } from "./objects";
 import type { Particles } from "./particles";
 import type { Scene } from "./scene";
 import { label } from "./text";
@@ -207,10 +207,18 @@ export function createBoards(
   /** Every pickup, every crate fresh, and every crate spent, twice their size on the dark board. */
   const objects = async () => {
     const cell = 260;
-    const rows: [string, (g: Graphics, i: number) => void, string[]][] = [
-      ["pickups", (g, i) => drawPickup(g, (["can", "nuts", "bucees", "pepper"] as const)[i]), ["Coke Zero", "Mixed nuts", "Buc-ee's", "Pepper"]],
-      ["crates", (g, i) => drawCrate(g, (["pepper", "can", "bucees", "case"] as const)[i], false), ["! pepper", "? can", "Buc-ee's", "Delivery case"]],
-      ["spent", (g, i) => drawCrate(g, (["pepper", "can", "bucees", "case"] as const)[i], true, 3), ["opened", "opened", "opened", "3 cans out"]],
+    const CRATES = ["pepper", "can", "bucees", "case"] as const;
+    const crate = (i: number, used: boolean) => {
+      const c = new Container();
+      const logo = used ? null : crateLogo(CRATES[i]);
+      c.addChild(drawCrate(new Graphics(), CRATES[i], used, used ? 3 : 0, !logo));
+      if (logo) c.addChild(logo);
+      return c;
+    };
+    const rows: [string, (i: number) => Container, string[]][] = [
+      ["pickups", (i) => pickupView((["can", "nuts", "bucees", "pepper"] as const)[i]), ["Coke Zero", "Mixed nuts", "Buc-ee's", "Pepper"]],
+      ["crates", (i) => crate(i, false), ["! pepper", "? can", "Buc-ee's", "Delivery case"]],
+      ["spent", (i) => crate(i, true), ["opened", "opened", "opened", "3 cans out"]],
     ];
     const width = 150 + 4 * cell;
     const height = 50 + rows.length * cell;
@@ -221,8 +229,7 @@ export function createBoards(
       t.position.set(16, 50 + r * cell + 12);
       board.addChild(t);
       names.forEach((n, c) => {
-        const g = new Graphics();
-        draw(g, c);
+        const g = draw(c);
         g.scale.set(r === 0 ? 2 : 1.7);
         g.position.set(150 + c * cell + cell / 2, 50 + r * cell + (r === 0 ? cell / 2 + 16 : cell - 24));
         const caption = label(n, "ui", 20);
