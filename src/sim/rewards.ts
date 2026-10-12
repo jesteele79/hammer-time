@@ -13,7 +13,8 @@ export type Pickup = {
   x: number;
   y: number;
   taken: boolean;
-  body?: Body & { emerge: number; dir: number };
+  /** `top` is where its rise out of the crate ends: the crate's top. */
+  body?: Body & { emerge: number; dir: number; top: number };
 };
 
 /** The shipped generator (mulberry32), so a seed lays a run out the same way every time. */
@@ -67,7 +68,8 @@ export function stepPickups(pickups: Pickup[], stage: Stage, dt: number): void {
     if (!b || p.taken) continue;
     if (b.emerge > 0) {
       b.emerge = Math.max(0, b.emerge - dt);
-      b.y -= (CRATE.size / CRATE.emerge) * dt;
+      // Ends exactly on the crate's top: a hair inside it and the crate's side would shove it off backward.
+      b.y = b.top + (CRATE.size * b.emerge) / CRATE.emerge;
     } else {
       b.vx = CRATE.slide * b.dir;
       b.vy += GRAVITY_DOWN * dt;

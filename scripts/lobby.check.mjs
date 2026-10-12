@@ -140,3 +140,148 @@ test("the world reports this step's mallet path in front of him, for crates and 
   }
   assert.ok(seen > 5, `the path shows through the strike: ${seen} steps`);
 });
+
+import { createGame } from "../src/sim/game.ts";
+import { RUN } from "../src/sim/run.ts";
+
+const stashOf = () => ({ ...mini(), id: "stash", name: "Stash", length: 2400, time: 0, doors: [{ id: "back", kind: "return", x: 300, y: 0, label: "BACK" }], checkpoints: [], carts: [], crates: [], spawn: { x: 600, y: 0 }, rewards: { count: 4, bucees: 1, nuts: 1 }, music: "cellar", floor: [{ x0: -200, x1: 2600, y0: 0, y1: 0, kind: "marble" }], solids: [], passes: [], platforms: [] });
+const play = (g) => { while (g.mode === "card") g.step(input()); };
+const stepsG = (g, seconds, held = {}) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP); i++) { g.step(input(held)); evs.push(...g.events); } return evs; };
+/** Steps until `done(g)` (or the time runs out) and returns every event on the way. */
+const until = (g, done, seconds = 10, held = {}) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) { g.step(input(held)); evs.push(...g.events); } return evs; };
+const knockOut = (g) => { g.world.hero.patience = 1; g.world.hit(g.world.hero.x + 100); };
+
+test("a run starts on a card with three lives, two pips, no cans and the full clock", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  assert.equal(g.mode, "card");
+  play(g);
+  assert.equal(g.mode, "play");
+  assert.deepEqual([g.run.lives, g.run.cans, g.run.score, g.world.hero.patience], [3, 0, 0, RUN.patience]);
+  assert.ok(Math.abs(g.run.time - 420) < 0.01);
+  stepsG(g, 2);
+  assert.ok(Math.abs(g.run.time - 418) < 0.05, `the clock runs: ${g.run.time}`);
+});
+
+test("cans score 200 and cool him 10; the 100th is a life; nuts charge 3; Buc-ee's is ten seconds of nothing touching him", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  const h = g.world.hero;
+  h.heat = 50;
+  g.run.cans = 99;
+  g.pickups.push({ id: 900, kind: "can", x: h.x, y: h.y - 100, taken: false });
+  const evs = stepsG(g, STEP);
+  assert.deepEqual([g.run.cans, g.run.lives], [0, 4]);
+  assert.ok(evs.some((e) => e.type === "oneUp"));
+  assert.ok(Math.abs(h.heat - 40) < 0.2 && g.run.score >= 200);
+  g.pickups.push({ id: 901, kind: "nuts", x: h.x, y: h.y - 100, taken: false }, { id: 902, kind: "bucees", x: h.x, y: h.y - 100, taken: false });
+  stepsG(g, STEP);
+  assert.equal(h.charge, 3);
+  assert.ok(g.run.star > 9.9);
+  g.world.hit(h.x + 100);
+  stepsG(g, STEP);
+  assert.equal(h.patience, RUN.patience, "the boost ignores a hit");
+});
+
+test("the pepper makes him hot with three pips", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  const h = g.world.hero;
+  g.pickups.push({ id: 903, kind: "pepper", x: h.x, y: h.y - 100, taken: false });
+  stepsG(g, STEP);
+  assert.deepEqual([h.patience, h.hot], [3, true]);
+});
+
+test("a punch clock saves where he comes back; the last pip, the shaft and the clock each cost one life, once", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  g.world.hero.x = 3050;
+  const evs = stepsG(g, 0.1);
+  assert.ok(evs.some((e) => e.type === "checkpoint" && e.id === "k1"));
+  // The last pip, well clear of the gap behind him: knocked flat, he lies, the run counts one life.
+  g.world.hero.x = 3400;
+  knockOut(g);
+  const down = until(g, (x) => x.mode === "card");
+  assert.ok(down.some((e) => e.type === "tumble"));
+  assert.equal(down.filter((e) => e.type === "lifeLost").length, 1);
+  assert.equal(g.run.lives, 2);
+  play(g);
+  assert.ok(Math.abs(g.world.hero.x - 3000) < 1 && g.world.hero.onGround, `back at the clock: ${g.world.hero.x}`);
+  assert.equal(g.world.hero.patience, RUN.patience);
+  assert.ok(Math.abs(g.run.time - 420) < 1e-9, "a full clock");
+  // The shaft (the gap at 2500..2830), while still in respawn grace.
+  assert.ok(g.world.hero.invuln > 0);
+  g.world.hero.x = 2665;
+  g.world.hero.y = -10;
+  const fall = until(g, (x) => x.mode === "card");
+  assert.equal(fall.filter((e) => e.type === "lifeLost").length, 1, "a fall counts once, grace or not");
+  assert.equal(g.run.lives, 1);
+  play(g);
+  // The clock.
+  g.run.time = 0.01;
+  const late = until(g, (x) => x.mode === "over" || x.mode === "card");
+  assert.ok(late.some((e) => e.type === "timeOut"));
+  assert.equal(g.mode, "over");
+  assert.equal(g.run.lives, 0);
+});
+
+test("the clock running out during a lethal knockdown still costs one life", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  knockOut(g);
+  g.run.time = 0.05;
+  const evs = until(g, (x) => x.mode === "card" || x.mode === "over");
+  assert.equal(evs.filter((e) => e.type === "lifeLost").length, 1);
+  assert.equal(g.run.lives, 2);
+});
+
+test("nothing is collected and the clock stops while he is dying", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  const h = g.world.hero;
+  knockOut(g);
+  until(g, (x) => x.mode === "dying");
+  assert.equal(g.mode, "dying");
+  const t = g.run.time;
+  g.pickups.push({ id: 904, kind: "can", x: h.x, y: h.y - 100, taken: false });
+  stepsG(g, 0.5);
+  assert.equal(g.run.cans, 0, "no pickup while dying");
+  assert.ok(Math.abs(g.run.time - t) < 1e-9, "the clock stands still");
+});
+
+test("respawn brings the level's pickups and crates back as the run laid them out", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  const layout = JSON.stringify(g.pickups.map((p) => [p.kind, p.x, p.y]));
+  g.pickups.forEach((p) => (p.taken = true));
+  g.crates[0].used = true;
+  knockOut(g);
+  until(g, (x) => x.mode === "card");
+  play(g);
+  assert.equal(JSON.stringify(g.pickups.map((p) => [p.kind, p.x, p.y])), layout);
+  assert.ok(g.pickups.every((p) => !p.taken) && !g.crates[0].used);
+});
+
+test("pause stops the clock and the world; it comes back where it was", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  g.togglePause();
+  assert.equal(g.mode, "pause");
+  const before = [g.run.time, g.world.hero.x];
+  stepsG(g, 1, { right: true });
+  assert.deepEqual([g.run.time, g.world.hero.x], before);
+  g.togglePause();
+  assert.equal(g.mode, "play");
+});
+
+test("a head bump opens the crate above him once, and its pepper is his to catch", () => {
+  const g = createGame({ lobby: { ...mini(), solids: [] }, stash: stashOf() }, 7);
+  play(g);
+  g.world.hero.x = 760;
+  stepsG(g, 0.1);
+  g.step(input({ jump: true }, { jump: true }));
+  const evs = [...g.events, ...stepsG(g, 0.8, { jump: true })];
+  assert.equal(evs.filter((e) => e.type === "crate").length, 1);
+  assert.ok(g.crates[0].used);
+  const got = until(g, (x) => x.world.hero.hot, 4, { right: true });
+  assert.ok(got.some((e) => e.type === "pickup" && e.kind === "pepper"), "he catches the pepper");
+});

@@ -1,4 +1,5 @@
-import type { CrateKind } from "./level";
+import type { GameMode } from "./game";
+import type { CrateKind, DoorKind } from "./level";
 import type { PickupKind } from "./rewards";
 import type { Rect } from "./types";
 
@@ -39,4 +40,19 @@ export type GameEvent =
   | { type: "caseBreak"; x: number; y: number }
   | { type: "pickup"; kind: PickupKind; x: number; y: number }
   /** The mallet rang the front desk's bell. */
-  | { type: "bell"; x: number; y: number };
+  | { type: "bell"; x: number; y: number }
+  /** A hundred cans: a life. */
+  | { type: "oneUp" }
+  /** He passed a punch clock: where he comes back. */
+  | { type: "checkpoint"; id: string; x: number; y: number }
+  | { type: "fell" }
+  | { type: "timeOut" }
+  | { type: "lifeLost"; lives: number }
+  | { type: "respawn" }
+  | { type: "over" }
+  | { type: "door"; kind: DoorKind; id: string }
+  | { type: "exit" }
+  /** The tally counted another whole second of the clock into points. */
+  | { type: "tallyTick"; seconds: number }
+  | { type: "clear" }
+  | { type: "mode"; mode: GameMode };

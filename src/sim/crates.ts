@@ -56,7 +56,7 @@ export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateO
     x: c.x,
     y: c.y - 35,
     taken: false,
-    body: { x: c.x, y: c.y, w: 60, h: 70, vx: 0, vy: 0, onGround: false, emerge: CRATE.emerge, dir: 1 },
+    body: { x: c.x, y: c.y, w: 60, h: 70, vx: 0, vy: 0, onGround: false, emerge: CRATE.emerge, dir: 1, top: c.y - CRATE.size },
   });
 }
 
