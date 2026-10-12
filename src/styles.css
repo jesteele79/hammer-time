@@ -1784,6 +1784,99 @@ button:focus-visible {
   text-align: center;
   color: var(--hud-gold);
 }
+/* The run along the top right: score, Coke Zero, lives as portraits, the Buc-ee's boost and the clock. */
+.next-hud__bar-top {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: var(--hud-slate);
+  border: 1px solid var(--hud-edge);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.next-hud__score {
+  letter-spacing: 0.05em;
+}
+.next-hud__cans {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.next-hud__can {
+  width: 14px;
+  height: 22px;
+}
+.next-hud__lives {
+  display: inline-flex;
+  align-items: center;
+}
+.next-hud__lives img,
+.next-hud__lives i {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 58%;
+  border: 1.5px solid var(--hud-gold);
+  background: var(--hud-ink);
+}
+.next-hud__lives > :not(:first-child) {
+  margin-left: -7px;
+}
+.next-hud__lives b {
+  margin-left: 4px;
+  font-size: 0.8em;
+  color: var(--hud-gold);
+}
+.next-hud__star {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #f2c230;
+  color: var(--hud-ink);
+  font-size: 0.8em;
+}
+.next-hud__clock {
+  min-width: 2.6em;
+  text-align: right;
+  color: var(--hud-gold);
+}
+.next-hud__clock[data-hurry="true"] {
+  color: #ff6a5c;
+  animation: next-hud-pulse 0.5s ease-in-out infinite alternate;
+}
+/* Hot: the pepper's pips burn orange. */
+.next-hud__row dd[data-hot="true"] .next-hud__pip--patience {
+  --pip: #ff7a3c;
+}
+.next-hud__saved {
+  position: absolute;
+  left: 50%;
+  bottom: 62px;
+  padding: 6px 14px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: var(--hud-gold);
+  color: var(--hud-ink);
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.next-hud__hint {
+  font-size: 13px;
+  color: var(--hud-text);
+}
 @keyframes next-hud-pulse {
   from {
     opacity: 0.7;
@@ -1793,13 +1886,27 @@ button:focus-visible {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .next-hud__segs[data-full="true"] .next-hud__seg {
+  .next-hud__segs[data-full="true"] .next-hud__seg,
+  .next-hud__clock[data-hurry="true"] {
     animation: none;
   }
 }
 @media (max-width: 480px) {
   .next-hud__hint {
     border-radius: 14px;
+  }
+}
+/* A phone held upright: the run's bar spans the top, the panel sits under it. */
+@media (max-width: 600px) and (min-height: 481px) {
+  .next-hud__bar-top {
+    left: 16px;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    font-size: 22px;
+  }
+  .next-hud__panel {
+    top: 70px;
   }
 }
 @media (max-height: 480px) {
@@ -1826,5 +1933,21 @@ button:focus-visible {
     bottom: 8px;
     padding: 5px 10px;
     font-size: 11px;
+  }
+  .next-hud__bar-top {
+    top: 10px;
+    right: 10px;
+    gap: 12px;
+    padding: 6px 12px;
+    font-size: 20px;
+  }
+  .next-hud__lives img,
+  .next-hud__lives i {
+    width: 20px;
+    height: 20px;
+  }
+  .next-hud__saved {
+    bottom: 42px;
+    font-size: 15px;
   }
 }

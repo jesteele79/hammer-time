@@ -29,6 +29,7 @@ const hudFits = async (name) => {
     };
     return {
       panel: box(document.querySelector(".next-hud__panel")),
+      bar: box(document.querySelector(".next-hud__bar-top")),
       hint: box(document.querySelector(".next-hud__hint")),
       face: window.__next.faceScreen,
       vw: innerWidth,
@@ -38,12 +39,13 @@ const hudFits = async (name) => {
   });
   const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   assert.ok(r.scroll <= r.vw, `${name}: no horizontal overflow (${r.scroll} > ${r.vw})`);
-  for (const k of ["panel", "hint"]) {
+  assert.ok(!hit(r.bar, r.panel), `${name}: the run bar and the panel overlap ${JSON.stringify(r.bar)} ${JSON.stringify(r.panel)}`);
+  for (const k of ["panel", "bar", "hint"]) {
     const b = r[k];
     assert.ok(b.x >= 0 && b.y >= 0 && b.x + b.w <= r.vw && b.y + b.h <= r.vh, `${name}: the ${k} is on screen ${JSON.stringify(b)}`);
     assert.ok(!hit(b, r.face), `${name}: the ${k} covers his face ${JSON.stringify(b)} ${JSON.stringify(r.face)}`);
   }
-  verdict.hud[name] = { panel: r.panel, hint: r.hint };
+  verdict.hud[name] = { panel: r.panel, bar: r.bar, hint: r.hint };
   await page.screenshot({ path: resolve(out, `hud-${name}.png`) });
 };
 const booted = async (url) => {

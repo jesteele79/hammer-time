@@ -1,11 +1,12 @@
 import { PATIENCE_MAX } from "../sim/damage";
-import { CHARGE_MAX, SINUS_MAX } from "../sim/moves";
-import type { HeroState } from "../sim/types";
+import type { Game } from "../sim/game";
+import { CHARGE_MAX, HEAT, SINUS_MAX } from "../sim/moves";
+import { RUN } from "../sim/run";
 
-/** What the shell's HUD shows (spec §10), as far as the look scene goes; R2 adds score, Coke Zero, lives and the clock. */
+/** What the shell's HUD shows (spec §10). */
 export type HudPayload = {
   venue: string;
-  mode: string;
+  world: string;
   portrait: string | null;
   heat: number;
   sinus: number;
@@ -14,17 +15,54 @@ export type HudPayload = {
   chargeMax: number;
   patience: number;
   patienceMax: number;
-  /** Keys and what they do, joined by " · ", each written "KEY what". */
+  score: number;
+  cans: number;
+  lives: number;
+  /** Whole seconds on the clock, or null where there is no clock (the stash). */
+  time: number | null;
+  hurry: boolean;
+  /** Whole seconds left of a Buc-ee's boost. */
+  star: number;
+  hot: boolean;
+  /** "Checkpoint saved" shows for two seconds after a punch clock. */
+  saved: boolean;
+  /** The most pressing thing to know, one line. */
   hint: string;
 };
 
-export const HUD_HINT = "H swing · F snot · E lecture · T towel · Q smash · G practice hit";
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+/** Up on the mezzanine side: the landing, the stairs and the balcony. */
+const MEZZANINE = { x0: 6560, x1: 10200, below: -100 } as const;
+/** The early stretch where the first hint teaches the snot and the ! crate. */
+const EARLY_X = 1500;
 
-export function hudOf(h: Pick<HeroState, "heat" | "sinus" | "charge" | "patience">, portrait: string | null): HudPayload {
+/** The shipped game's hint (src/game/engine.ts hint()), first match wins, without the cast's lines. */
+export function hintOf(game: Game): string {
+  const h = game.world.hero;
+  const d = game.door;
+  if (d) {
+    if (d.kind === "stash") return `↓ ${d.label} · the stash`;
+    if (d.kind === "return") return "↓ at the cart · back to the lobby";
+    if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
+    return `${d.label} · ${d.opens ?? "closed"}`;
+  }
+  if (h.crouch) return "Stay low · release ↓ when clear to stand";
+  if (game.level.id === "stash") return "Staff stash · ↓ at the cart to go back";
+  if (game.run.star > 0) return "Buc-ee's boost · nothing can touch you";
+  if (h.heat >= HEAT.tired) return "Overheated · T to towel off";
+  if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
+  if (h.x < EARLY_X) return "F snot rocket · jump into the ! crate for hot pepper";
+  if (h.x >= MEZZANINE.x0 && h.x <= MEZZANINE.x1 && h.y <= MEZZANINE.below) return "Up to the mezzanine · ↓ + jump drops you back down";
+  return h.hot ? "Hot snot pierces · nuts charge Q super smash" : "Find a ! crate for hot pepper";
+}
+
+export function hudOf(game: Game, portrait: string | null, saved = false): HudPayload {
+  const h = game.world.hero;
+  const clocked = game.level.time > 0;
+  const time = clocked ? Math.ceil(game.run.time) : null;
   return {
-    venue: "Hotel lobby",
-    mode: "Look test",
+    venue: game.level.name,
+    world: game.level.world,
     portrait,
     heat: clamp(h.heat, 0, 100),
     sinus: clamp(h.sinus, 0, SINUS_MAX),
@@ -33,9 +71,33 @@ export function hudOf(h: Pick<HeroState, "heat" | "sinus" | "charge" | "patience
     chargeMax: CHARGE_MAX,
     patience: clamp(h.patience, 0, PATIENCE_MAX),
     patienceMax: PATIENCE_MAX,
-    hint: HUD_HINT,
+    score: game.run.score,
+    cans: game.run.cans,
+    lives: game.run.lives,
+    time,
+    hurry: clocked && game.run.time < RUN.hurry,
+    star: Math.ceil(game.run.star),
+    hot: h.hot,
+    saved,
+    hint: hintOf(game),
   };
 }
 
-/** Changes only when the HUD would look different: whole heat points, tenths of a snot charge. */
-export const hudKey = (p: HudPayload) => [Math.round(p.heat), p.sinus.toFixed(1), p.charge, p.patience, p.portrait].join("|");
+/** Changes only when the HUD would look different: whole heat points, tenths of a snot charge, whole seconds. */
+export const hudKey = (p: HudPayload) =>
+  [
+    Math.round(p.heat),
+    p.sinus.toFixed(1),
+    p.charge,
+    p.patience,
+    p.portrait,
+    p.score,
+    p.cans,
+    p.lives,
+    p.time,
+    p.star,
+    p.hot,
+    p.saved,
+    p.hint,
+    p.venue,
+  ].join("|");

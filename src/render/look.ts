@@ -513,7 +513,7 @@ export async function startLook(
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     particles.update(simDt, face);
-    const hud = hudOf(h, portrait);
+    const hud = hudOf(game, portrait, savedT > 0);
     const key = hudKey(hud);
     if (key !== hudLast) {
       hudLast = key;

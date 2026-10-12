@@ -269,15 +269,73 @@ test("sweat flies back off his head, away from his face, facing either way", () 
   }
 });
 
-import { HUD_HINT, hudKey, hudOf } from "../src/render/hud.ts";
+import { hintOf, hudKey, hudOf } from "../src/render/hud.ts";
+import { createGame } from "../src/sim/game.ts";
+import { emptyInput } from "../src/sim/input.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
 
-test("the HUD payload carries the meters, clamped, and changes only when what it shows does", () => {
-  const a = hudOf({ heat: 41.2, sinus: 2.04, charge: 3, patience: 3 }, "/art/hammer/head-three-quarter.png");
-  assert.deepEqual([a.heat, a.sinus, a.charge, a.patience, a.patienceMax, a.chargeMax, a.sinusMax], [41.2, 2.04, 3, 3, 3, 10, 3]);
-  assert.equal(a.hint, HUD_HINT);
-  assert.equal(hudKey(a), hudKey(hudOf({ heat: 41.4, sinus: 2.02, charge: 3, patience: 3 }, a.portrait)), "noise does not re-render");
-  assert.notEqual(hudKey(a), hudKey(hudOf({ heat: 42.6, sinus: 2.04, charge: 3, patience: 3 }, a.portrait)));
-  assert.equal(hudOf({ heat: 140, sinus: -1, charge: 12, patience: 5 }, null).heat, 100);
+/** A run past its start card, him standing at x. */
+const gameAt = (x = 3000, y = 0) => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 3);
+  while (g.mode === "card") g.step(emptyInput());
+  Object.assign(g.world.hero, { x, y });
+  return g;
+};
+
+test("the HUD carries the run: score, cans, lives, the clock in whole seconds and its hurry, and clamped meters", () => {
+  const g = gameAt();
+  Object.assign(g.run, { score: 4200, cans: 42, time: 79.4 });
+  Object.assign(g.world.hero, { heat: 140, sinus: -1, charge: 12, patience: 5 });
+  const a = hudOf(g, "/art/hammer/head-three-quarter.png", true);
+  assert.deepEqual([a.score, a.cans, a.lives, a.time, a.hurry, a.saved, a.world, a.venue], [4200, 42, 3, 80, true, true, "1-1", "Hotel lobby"]);
+  assert.deepEqual([a.heat, a.sinus, a.charge, a.patience], [100, 0, 10, 3]);
+  g.run.time = 80.2;
+  assert.equal(hudOf(g, null).hurry, false, "no hurry at 81 s");
+  g.level = g.levels.stash;
+  const s = hudOf(g, null);
+  assert.deepEqual([s.time, s.hurry, s.venue], [null, false, "Staff-only stash"], "the stash has no clock");
+});
+
+test("the HUD re-renders when what it shows changes, not on noise", () => {
+  const g = gameAt();
+  g.run.time = 100.4;
+  const a = hudOf(g, null);
+  g.run.time = 100.2;
+  g.world.hero.heat = 0.3;
+  assert.equal(hudKey(hudOf(g, null)), hudKey(a), "the same whole second and heat point");
+  g.run.score += 200;
+  assert.notEqual(hudKey(hudOf(g, null)), hudKey(a));
+  assert.notEqual(hudKey(hudOf(g, null, true)), hudKey(hudOf(g, null, false)), "the checkpoint note");
+});
+
+test("the hint says the most pressing thing, the shipped hint's order without the cast", () => {
+  const g = gameAt(12000);
+  const h = g.world.hero;
+  assert.equal(hintOf(g), "Find a ! crate for hot pepper");
+  h.hot = true;
+  assert.equal(hintOf(g), "Hot snot pierces · nuts charge Q super smash");
+  Object.assign(h, { x: 7000, y: -253 });
+  assert.equal(hintOf(g), "Up to the mezzanine · ↓ + jump drops you back down");
+  Object.assign(h, { x: 900, y: 0 });
+  assert.equal(hintOf(g), "F snot rocket · jump into the ! crate for hot pepper");
+  h.charge = 10;
+  assert.equal(hintOf(g), "Super smash ready · Q");
+  h.heat = 85;
+  assert.equal(hintOf(g), "Overheated · T to towel off");
+  g.run.star = 4;
+  assert.equal(hintOf(g), "Buc-ee's boost · nothing can touch you");
+  g.level = g.levels.stash;
+  assert.equal(hintOf(g), "Staff stash · ↓ at the cart to go back");
+  h.crouch = true;
+  assert.equal(hintOf(g), "Stay low · release ↓ when clear to stand");
+  g.level = g.levels.lobby;
+  g.door = LOBBY.doors.find((d) => d.id === "staff");
+  assert.equal(hintOf(g), "↓ STAFF ONLY · the stash");
+  g.door = LOBBY.doors.find((d) => d.id === "buffet");
+  assert.equal(hintOf(g), "BUFFET · Opens with Hungry Hungry Hammer");
+  g.door = LOBBY.doors.find((d) => d.id === "out");
+  assert.equal(hintOf(g), "CLOCK OUT · walk in to finish your shift");
 });
 
 import { escalatorSteps } from "../src/render/venue.ts";
