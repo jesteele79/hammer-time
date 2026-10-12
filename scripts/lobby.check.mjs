@@ -354,3 +354,68 @@ test("dying in the stash brings him back to the lobby at his last punch clock", 
   assert.ok(Math.abs(g.world.hero.x - 3000) < 1, `at the clock: ${g.world.hero.x}`);
   assert.ok(Math.abs(g.run.time - 420) < 1e-9);
 });
+
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+import { drive } from "../src/sim/drive.ts";
+
+test("the lobby keeps the spec's shape: 14,000 to 18,000 px, two clocks, the three bands, an early pepper crate", () => {
+  assert.ok(LOBBY.length >= 14000 && LOBBY.length <= 18000);
+  assert.equal(LOBBY.checkpoints.length, 2);
+  const heights = new Set([...LOBBY.platforms.map((p) => p.y), ...LOBBY.solids.map((s) => s.y)]);
+  assert.ok([...heights].some((y) => y <= -150 && y >= -220), "counters and tables near 180");
+  assert.ok(LOBBY.platforms.some((p) => p.y === -520 && p.kind === "balcony"), "the mezzanine at 520");
+  const stairs = LOBBY.floor.find((f) => f.kind === "stairs");
+  const deg = (Math.atan2(Math.abs(stairs.y1 - stairs.y0), stairs.x1 - stairs.x0) * 180) / Math.PI;
+  assert.ok(Math.abs(deg - 30) < 0.5, `a 30-degree staircase: ${deg}`);
+  assert.ok(LOBBY.floor.some((f) => f.kind === "escalator" && f.belt > 0), "an escalator");
+  const peppers = LOBBY.crates.filter((c) => c.kind === "pepper").map((c) => c.x).sort((a, b) => a - b);
+  assert.ok(peppers[0] < 1200, "the first pepper crate is early");
+  for (const d of ["BUFFET", "AIRPORT SHUTTLE", "M CLUB", "STAFF ONLY", "CLOCK OUT"]) assert.ok(LOBBY.doors.some((x) => x.label === d), d);
+});
+
+test("every run of the lobby has a can, nuts and a Buc-ee's on both routes", () => {
+  assert.deepEqual(LOBBY.routes.map((r) => r.id), ["floor", "balcony"]);
+  for (let seed = 1; seed <= 24; seed++) {
+    const p = seedRewards(LOBBY, seed);
+    assert.equal(p.length, LOBBY.rewards.count);
+    for (const r of LOBBY.routes)
+      for (const kind of ["can", "nuts", "bucees"])
+        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id} route`);
+  }
+});
+
+test("nothing hangs where his head would meet the balcony from below", () => {
+  const balcony = LOBBY.platforms.find((p) => p.kind === "balcony");
+  for (const c of LOBBY.crates) assert.ok(c.x < balcony.x0 - 100 || c.x > balcony.x1 + 100, `crate ${c.id} under the balcony`);
+  for (const p of LOBBY.platforms) if (p !== balcony && p.x1 > balcony.x0 && p.x0 < balcony.x1) assert.ok(p.y - balcony.y > 300 + 100, `platform at ${p.y} under the balcony`);
+});
+
+test("a scripted player gets through the lobby by either route, alive, inside the clock", () => {
+  for (const route of ["floor", "balcony"]) {
+    const g = createGame({ lobby: LOBBY, stash: STASH }, 11);
+    play(g);
+    let topY = 0, t = 0, last = g.world.hero.x, stuck = 0;
+    while (g.mode === "play" && t < 120) {
+      g.step(drive(g.level, g.world.hero, route));
+      t += STEP;
+      topY = Math.min(topY, g.world.hero.y);
+      if (Math.floor(t * 2) !== Math.floor((t - STEP) * 2)) {
+        stuck = g.world.hero.x <= last + 1 ? stuck + 1 : 0;
+        last = g.world.hero.x;
+        assert.ok(stuck < 6, `${route}: stuck at ${g.world.hero.x}`);
+      }
+    }
+    assert.equal(g.run.lives, 3, `${route}: no life lost`);
+    assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `${route}: reached the exit (${g.mode} at ${g.world.hero.x})`);
+    if (route === "balcony") assert.ok(topY <= -520, "went up on the balcony");
+    else assert.ok(topY > -400, "stayed on the floor");
+  }
+});
+
+test("the stash's shelf route reaches the Buc-ee's case", () => {
+  const shelf = STASH.platforms[0];
+  const box = STASH.crates.find((c) => c.kind === "bucees");
+  assert.ok(box.x > shelf.x0 && box.x < shelf.x1, "over the shelf");
+  assert.ok(box.y - shelf.y >= -440 && box.y - shelf.y <= -400, "a jump's bump above it");
+});

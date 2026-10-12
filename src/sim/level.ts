@@ -1,7 +1,7 @@
 import type { FloorSegment, Platform, Point, Rect, Stage } from "./types";
 
 export type PlatformKind = "counter" | "sofa" | "landing" | "balcony" | "table" | "shelf";
-export type FloorKind = "marble" | "carpet" | "stairs" | "escalator";
+export type FloorKind = "marble" | "tile" | "stairs" | "escalator";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
 export type LevelPlatform = Platform & { kind: PlatformKind };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
