@@ -1,0 +1,34 @@
+Final refinement of bellhop-2.png using Image 5 as the young woman's identity reference. Preserve the freckles, dark low bun, distinct young face, red-gold uniform and the matched pose. WIDEN the CLOSED-LIP grin so it reads eager to please, no teeth or open mouth. Retain her small shorter stature and foot placement. Strict full-body LEFT side profile, near and far open empty white-gloved hands clearly separate.
+Use perfectly flat uniform #00FF00 background, no texture, and exactly one shadow plus one highlight per material. No additions. Original Image 1 canvas/pose input must remain native 1086 x 1448.
+Use case: precise-object-edit. Create only bellhop-2.png, one full-body game character.
+Image 1 is the INPUT IMAGE: preserve its native 1086 x 1448 portrait canvas, orthographic left-profile camera, frame placement, each sole's vertical frame location and small foot stagger. COMPLETELY replace its man; only the pose/camera/framing remains.
+Image 2 is drawing style only, never identity.
+Image 3 is the kept bellhop-1: match its inked cartoon style, finish, arm pose and placement; never copy its identity.
+Image 4 is costume CUT only, never its person, pose, props or colors.
+
+ITEM DESCRIPTION (exact):
+A hotel bellhop: a young woman in her early twenties, a little shorter than Image 1, eager to please. Dark hair in a low neat bun, freckles, a wide keen grin with lips closed. The same uniform as item 1: the RED jacket with gold buttons and braid, black trousers with a gold stripe, white gloves, black shoes. Bareheaded.
+Identity distinction: Young freckled woman, soft oval face and small nose, no likeness to either older male reference.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Specific framing: keep soles where Image 1's are (far forward shoe around y=1330, near rear shoe around y=1420). This subject is the height described in the item: top of head around y=110, feet stay fixed. Center within green margins. True LEFT side elevation through the entire body, not a three-quarter chest. Both near and far arms nearly straight, forward/downward at about 30 degrees from vertical, relaxed open EMPTY hands, visible separately. Green triangular gap between near forearm and belly.
+The entire background must be digitally FLAT exact RGB(0,255,0), #00FF00; do not copy the reference's uneven green pixels. One shadow color and one highlight color per material, tiny white glints, no gradients.
+No text, props, floor or cast shadow. Output native 1086 x 1448 PNG with no resizing.

@@ -1,0 +1,36 @@
+Final server-2 keeper refinement from Image 5. EXACT canvas dimensions 1086 pixels wide by 1448 pixels high, identical to Image 1 and Image 5, no pixel added or removed, no resizing.
+Keep his curly brown hair, long thin clean-shaven young face, lanky tall body, closed broad smile, side-view vest, rolled sleeves and black waist apron below knees. Sole positions, shoes and feet stay fixed. Preserve both nearly straight down-left arms and open bare EMPTY hands.
+Only improve the shading and background: all background pixels identical pure #00FF00, all material shading flat base/one shadow/one highlight. No extra textures, text, floor or shadow. One single character.
+Use case: precise-object-edit. Create only server-2.png, one full-body game character.
+Image 1 is the INPUT IMAGE: preserve its native 1086 x 1448 portrait canvas, orthographic left-profile camera, frame placement, each sole's vertical frame location and small foot stagger. COMPLETELY replace its man; only the pose/camera/framing remains.
+Image 2 is drawing style only, never identity.
+Image 3 is the kept bellhop-1: match its inked cartoon style, finish, arm pose and placement; never copy its identity.
+Image 4 is costume CUT only, never its person, pose, props or colors.
+
+ITEM DESCRIPTION (exact):
+A restaurant server: a lanky young man in his early twenties, tall and thin, curly brown hair, a too-wide customer-service smile (lips closed). The same uniform as item 3: white shirt with rolled sleeves, black vest, long black waist apron, black trousers, black shoes.
+Identity distinction: Clean-shaven lanky young man with a long slim face, prominent nose and curly brown hair. Not the older man in either male reference.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Specific framing: keep soles where Image 1's are (far forward shoe around y=1330, near rear shoe around y=1420). This subject is the height described in the item: top of head around y=10, feet stay fixed. Center within green margins. True LEFT side elevation through the entire body, not a three-quarter chest. Both near and far arms nearly straight, forward/downward at about 30 degrees from vertical, relaxed open EMPTY hands, visible separately. Green triangular gap between near forearm and belly.
+The entire background must be digitally FLAT exact RGB(0,255,0), #00FF00; do not copy the reference's uneven green pixels. One shadow color and one highlight color per material, tiny white glints, no gradients.
+No text, props, floor or cast shadow. Output native 1086 x 1448 PNG with no resizing.
+Server-specific: clean-shaven young man, CURLY BROWN hair, tall LANKY build with long narrow face and long legs. A TOO-WIDE customer-service grin with LIPS CLOSED, no teeth, no open mouth. BARE hands open and empty, no gloves. White sleeves rolled to the elbow, black vest, long black WAIST apron below knees, black trousers and shoes. No tray or props. Small standing foot stagger matching Image 1 and bellhop-1, never the walking stride of the costume photo: far shoe x=335..595 with sole y=1330, near shoe x=445..745 with sole y=1420. STRICT LEFT side view of torso, no chest visible.

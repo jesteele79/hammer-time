@@ -1,0 +1,379 @@
+{
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/bellhop-1.png. Layers as in hammer-body.json, plus head: everything above the collar's top edge, claimed after the torso (so the collar stays with the jacket) and drawn behind it; its fill paints the neck on down under the collar. rig.joints are the painted joints; the neck joint sits on the collar's top edge at the neck's middle (the head turns about it). The arms take Hammer's rest directions in the game (ARM_BONES). Check with: node scripts/art-grid.mjs cast/bellhop-1.",
+ "space": "crop",
+ "rig": {
+  "sole": 1411,
+  "rootX": 468,
+  "joints": {
+   "pelvis": [435,845],
+   "chest": [430,520],
+   "neck": [415,250],
+   "shoulderNear": [470,375],
+   "elbowNear": [347,589],
+   "wristNear": [250,757],
+   "knuckleNear": [212,805],
+   "handNear": [146,887],
+   "shoulderFar": [450,403],
+   "elbowFar": [268,565],
+   "wristFar": [125,692],
+   "handFar": [45,822],
+   "hipNear": [470,905],
+   "kneeNear": [495,1075],
+   "ankleNear": [528,1295],
+   "toeNear": [338,1404],
+   "heelNear": [597,1404],
+   "hipFar": [390,905],
+   "kneeFar": [402,1065],
+   "ankleFar": [395,1228],
+   "toeFar": [230,1308],
+   "heelFar": [450,1312]
+  },
+  "bones": [
+   [
+    "pelvis",
+    "hipNear"
+   ],
+   [
+    "pelvis",
+    "chest"
+   ],
+   [
+    "chest",
+    "neck"
+   ],
+   [
+    "shoulderNear",
+    "elbowNear"
+   ],
+   [
+    "elbowNear",
+    "wristNear"
+   ],
+   [
+    "wristNear",
+    "knuckleNear"
+   ],
+   [
+    "knuckleNear",
+    "handNear"
+   ],
+   [
+    "shoulderFar",
+    "elbowFar"
+   ],
+   [
+    "elbowFar",
+    "wristFar"
+   ],
+   [
+    "wristFar",
+    "handFar"
+   ],
+   [
+    "hipNear",
+    "kneeNear"
+   ],
+   [
+    "kneeNear",
+    "ankleNear"
+   ],
+   [
+    "ankleNear",
+    "toeNear"
+   ],
+   [
+    "hipFar",
+    "kneeFar"
+   ],
+   [
+    "kneeFar",
+    "ankleFar"
+   ],
+   [
+    "ankleFar",
+    "toeFar"
+   ]
+  ],
+  "skin": {
+   "torso": {
+    "chain": [
+     "pelvis",
+     "chest",
+     "neck"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [-30,30],
+    "blend": [
+     60
+    ]
+   },
+   "armNear": {
+    "chain": [
+     "shoulderNear",
+     "elbowNear",
+     "wristNear",
+     "knuckleNear",
+     "handNear"
+    ],
+    "parent": [
+     "chest",
+     "neck"
+    ],
+    "start": [0,60],
+    "blend": [
+     34,
+     12,
+     10
+    ]
+   },
+   "armFar": {
+    "chain": [
+     "shoulderFar",
+     "elbowFar",
+     "wristFar",
+     "handFar"
+    ],
+    "parent": [
+     "chest",
+     "neck"
+    ],
+    "start": [0,60],
+    "blend": [30,12]
+   },
+   "legNear": {
+    "chain": [
+     "hipNear",
+     "kneeNear",
+     "ankleNear",
+     "toeNear"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [0,70],
+    "blend": [36,16]
+   },
+   "legFar": {
+    "chain": [
+     "hipFar",
+     "kneeFar",
+     "ankleFar",
+     "toeFar"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [0,70],
+    "blend": [32,14]
+   }
+  }
+ },
+ "layers": {
+  "head": {
+   "polygon": [
+    [240,0],
+    [612,0],
+    [612,300],
+    [240,300]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [350,270],
+      [478,219],
+      [492,245],
+      [496,330],
+      [352,330]
+     ],
+     "from": [
+      [345,262],
+      [352,236],
+      [400,212],
+      [455,195],
+      [470,200],
+      [476,222],
+      [352,272]
+     ]
+    }
+   ]
+  },
+  "torso": {
+   "polygon": [
+    [350,269],
+    [478,218],
+    [490,240],
+    [530,290],
+    [552,360],
+    [560,500],
+    [566,700],
+    [566,790],
+    [548,800],
+    [548,905],
+    [330,905],
+    [330,800],
+    [318,790],
+    [300,700],
+    [296,620],
+    [293,500],
+    [296,400],
+    [318,330],
+    [348,305]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [330,320],
+      [545,320],
+      [545,790],
+      [330,790]
+     ],
+     "from": [
+      [293,270],
+      [570,270],
+      [570,785],
+      [293,785]
+     ]
+    }
+   ]
+  },
+  "armNear": {
+   "polygon": [
+    [398,322],
+    [455,310],
+    [520,340],
+    [540,400],
+    [538,470],
+    [505,540],
+    [445,620],
+    [390,690],
+    [345,740],
+    [340,775],
+    [300,790],
+    [285,820],
+    [240,870],
+    [200,898],
+    [150,900],
+    [115,885],
+    [110,850],
+    [115,815],
+    [138,790],
+    [160,768],
+    [190,742],
+    [212,722],
+    [222,700],
+    [258,672],
+    [290,615],
+    [325,545],
+    [360,470],
+    [385,400]
+   ]
+  },
+  "armFar": {
+   "polygon": [
+    [300,440],
+    [318,470],
+    [318,560],
+    [312,640],
+    [240,690],
+    [200,720],
+    [185,740],
+    [150,768],
+    [110,822],
+    [60,842],
+    [8,832],
+    [3,780],
+    [28,720],
+    [88,680],
+    [100,630],
+    [160,580],
+    [230,510],
+    [262,455]
+   ],
+   "fill": [
+    [
+     [491,404],
+     [442,349],
+     [237,531],
+     [287,586]
+    ]
+   ],
+   "extrude": true
+  },
+  "legNear": {
+   "polygon": [
+    [425,860],
+    [565,860],
+    [578,1000],
+    [585,1150],
+    [592,1250],
+    [598,1300],
+    [612,1340],
+    [612,1420],
+    [300,1420],
+    [300,1370],
+    [330,1345],
+    [380,1325],
+    [420,1310],
+    [462,1290],
+    [460,1200],
+    [452,1100],
+    [440,1000],
+    [430,930]
+   ],
+   "fill": [
+    [
+     [425,830],
+     [565,830],
+     [565,910],
+     [425,910]
+    ]
+   ]
+  },
+  "legFar": {
+   "polygon": [
+    [335,860],
+    [445,860],
+    [450,1000],
+    [458,1100],
+    [465,1200],
+    [465,1292],
+    [420,1312],
+    [300,1325],
+    [250,1322],
+    [195,1310],
+    [190,1270],
+    [230,1250],
+    [300,1232],
+    [345,1215],
+    [375,1150],
+    [365,1000],
+    [352,900]
+   ],
+   "fill": [
+    [
+     [430,880],
+     [470,880],
+     [470,1300],
+     [430,1300]
+    ],
+    [
+     [335,830],
+     [445,830],
+     [445,910],
+     [335,910]
+    ],
+    [
+     [380,1290],
+     [470,1290],
+     [470,1320],
+     [380,1320]
+    ]
+   ]
+  }
+ }
+}

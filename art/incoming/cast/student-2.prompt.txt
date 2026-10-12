@@ -1,0 +1,36 @@
+Final student-2 pass from Image 5. Preserve the correctly sized draft's distinctive deadpan young face, DARK knit BEANIE, WHITE wireless earbuds, grey hoodie HOOD DOWN, black joggers, plain chunky WHITE sneakers, BLACK backpack worn on BOTH shoulders with two straps, and no other accessories.
+Maintain true 90-degree LEFT SIDE profile of head/torso/hips/legs/both shoes, chin level and CLOSED neutral lips. Both arms down-left around 30 degrees from vertical, nearly straight elbows, BARE hands OPEN and EMPTY, far arm/hand behind near one and visible. Green triangular space near forearm/belly. Both original sole heights and small stagger fixed.
+Only flat solid #00FF00 background, exactly one shadow and one highlight per material, clean thick black outlines, tiny white glints, no text/gradients/texture/floor/shadow. EXACT native output 1086 x 1448 portrait.
+Use case: precise-object-edit. Create only student-2.png, one full-body game character.
+Image 1 is the INPUT IMAGE: preserve its native 1086 x 1448 portrait canvas, orthographic left-profile camera, frame placement, each sole's vertical frame location and small foot stagger. COMPLETELY replace its man; only the pose/camera/framing remains.
+Image 2 is drawing style only, never identity.
+Image 3 is the kept bellhop-1: match its inked cartoon style, finish, arm pose and placement; never copy its identity.
+Image 4 is costume CUT only, never its person, pose, props or colors.
+
+ITEM DESCRIPTION (exact):
+A college student: early twenties, about the height of Image 1, a deadpan bored face, white wireless earbuds. A grey hoodie with the hood down, a dark knit beanie, black joggers, chunky white sneakers, a black backpack worn on both shoulders.
+Identity distinction: Distinct young college student with a narrow face, small straight nose and bored heavy-lidded expression; dark knit beanie is REQUIRED and allowed despite generic no-hat rule.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Specific framing: keep soles where Image 1's are (far forward shoe around y=1330, near rear shoe around y=1420). This subject is the height described in the item: top of head around y=22, feet stay fixed. Center within green margins. True LEFT side elevation through the entire body, not a three-quarter chest. Both near and far arms nearly straight, forward/downward at about 30 degrees from vertical, relaxed open EMPTY hands, visible separately. Green triangular gap between near forearm and belly.
+The entire background must be digitally FLAT exact RGB(0,255,0), #00FF00; do not copy the reference's uneven green pixels. One shadow color and one highlight color per material, tiny white glints, no gradients.
+No text, props, floor or cast shadow. Output native 1086 x 1448 PNG with no resizing.
+Student-2-specific: a DISTINCT early-twenties college student with a narrow youthful face, small straight nose, heavy-lidded bored eyes and DEADPAN expression, closed neutral mouth. Not the smiling curly-haired student, not any prior worker, not the original man. No glasses, no beard or mustache. WHITE wireless earbuds. GREY hoodie with hood DOWN, DARK knit BEANIE worn on the head (explicit item requirement overrides generic no-hat block), BLACK joggers, chunky plain WHITE sneakers with completely blank side panels and no logos/brand-like shapes. BLACK backpack on BOTH shoulders, both shoulder straps, pack on the back. BARE hands open relaxed EMPTY. No phone, book, extra accessories or gloves. Height about Image 1, small standing foot stagger exactly original: far shoe x=335..595 sole y=1330, near x=445..745 sole y=1420. No walking stride. All body parts true LEFT side profile.

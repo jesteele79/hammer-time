@@ -1,0 +1,25 @@
+Final keeper refinement of the isolated bellhop HAT in Image 5.
+Keep RED short cylindrical pillbox cap, GOLD band round lower part, short BLACK loose chin-strap LOOP, front image-LEFT with gold fastening at left, whole large centered object, no human.
+SHORTEN the cap vertically: width about 950 pixels, total cap height ONLY about 270 pixels (red upper part about 180, gold band 60, lower red rim 30). Keep the chin-strap loop short, hanging about 200 pixels below the rim.
+EXACT ORTHOGRAPHIC SIDE ELEVATION at hat height. Top outline straight HORIZONTAL, no raised arc, no visible top ellipse/rim/top disc. No looking down, no tilt. Flat side, front LEFT.
+Crisp black ink outlines and ONLY base/one shadow/one highlight per material with tiny white glints. Uniform PURE #00FF00 background, no gradients, texture, backdrop shadow, floor, writing, logos or decoration. EXACT 1086 x 1448 portrait native PNG, no resizing.
+Use case: stylized-concept. Asset type: one isolated game costume object, bellhop-hat.png, ITEM 9 only. NO PERSON, NO HEAD, NO mannequin, no other item.
+Image 1 and Image 2 are inked drawing-style references only for this OBJECT. Image 3 is kept bellhop-1: match its thick black outlines, flat cel finish, RED fabric and GOLD trim. Image 4 (npc-bellhop.png) is pillbox hat CUT/SHAPE only, replace its navy with RED.
+
+ITEM 9 EXACT:
+The bellhops' hat on its own: a RED pillbox hat (a short flat-topped cylinder) with a gold band round it and a short black chin strap hanging loose, seen exactly from the side, the front of the hat to the left. Large in the frame, flat green background.
+
+Object framing: orthographic STRICT SIDE ELEVATION at hat level, front to image-left, NO top-down or three-quarter camera. The flat top is an edge, not a large visible ellipse/top-disc. Short flat-topped RED cylindrical pillbox, GOLD band horizontal round the sides, short thin BLACK chin strap drooping loose below the rim. One single whole hat, large centered in the portrait canvas with green margin on all sides, no cropping. Use native 1086 x 1448 PNG output, do not upscale or resize. No human/body pose requirements apply to this single object.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+This is ITEM 9, a HAT ONLY: feet and human pose rules do not apply. The entire background is digitally uniform exact RGB(0,255,0), #00FF00, not the reference's uneven green texture. No floor, shadow or props. Red hat with gold band and short loose black chin strap; NO badge, emblem, writing, brim, feathers or extra decoration.

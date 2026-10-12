@@ -1,16 +1,19 @@
 // Zooms into a keyed body plate with a labelled grid in the keyed crop's pixels, for measuring
-// joints and cut lines by eye. The rig's joints, bones and layer outlines from
-// art/cuts/hammer-body.json are drawn over it when they exist.
-// Usage: node scripts/art-grid.mjs <costume> [x y w h] [scale] [--bare]
-//   writes artifacts/grid-<costume>.png
+// joints and cut lines by eye. The rig's joints, bones and layer outlines (fills dashed) from the
+// body's cut file are drawn over it when they exist: art/cuts/hammer-body.json for Hammer's
+// costumes, art/cuts/cast-<person>.json for a cast painting.
+// Usage: node scripts/art-grid.mjs <costume | cast/<person>> [x y w h] [scale] [--bare]
+//   writes artifacts/grid-<costume>.png or artifacts/grid-cast-<person>.png
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import sharp from "sharp";
 import { keyOut } from "./art-cut.mjs";
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const bare = process.argv.includes("--bare");
-const costume = args[0] ?? "affliction";
-const keyed = await keyOut(readFileSync(`art/incoming/hammer/body-${costume}.png`));
+const target = args[0] ?? "affliction";
+// A cast painting is named cast/<person>: its plate and its own cut file.
+const person = target.startsWith("cast/") ? target.slice(5) : null;
+const keyed = await keyOut(readFileSync(person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`));
 const [x0, y0, w, h] = args.length >= 5 ? args.slice(1, 5).map(Number) : [0, 0, keyed.width, keyed.height];
 const scale = Number(args[5] ?? (args.length >= 5 ? 2 : 1));
 const W = Math.round(w * scale),
@@ -35,17 +38,20 @@ for (let y = Math.ceil(y0 / step) * step; y <= y0 + h; y += step) {
   if (major) shapes.push(`<text x="2" y="${py(y) - 2}" font-size="12" font-family="monospace" fill="#39ff6a">${y}</text>`);
 }
 
-const cutsFile = "art/cuts/hammer-body.json";
+const cutsFile = person ? `art/cuts/cast-${person}.json` : "art/cuts/hammer-body.json";
 if (!bare && existsSync(cutsFile)) {
   const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
-  const colors = { torso: "#ff3b3b", armNear: "#ffd23b", armFar: "#3bb0ff", legNear: "#ff7ad9", legFar: "#3bfff0" };
-  const layers = { ...(cuts.layers ?? {}), ...(cuts.overrides?.[costume]?.layers ?? {}) };
+  const colors = { head: "#c08cff", torso: "#ff3b3b", armNear: "#ffd23b", armFar: "#3bb0ff", legNear: "#ff7ad9", legFar: "#3bfff0" };
+  const layers = { ...(cuts.layers ?? {}), ...(person ? {} : (cuts.overrides?.[target]?.layers ?? {})) };
+  const outline = (poly, c, dashed) => {
+    const pts = poly.map(([x, y]) => `${px(x)},${py(y)}`).join(" ");
+    shapes.push(`<polygon points="${pts}" fill="none" stroke="${c}" stroke-width="2" stroke-dasharray="${dashed ? "6 4" : ""}"/>`);
+  };
   for (const [name, layer] of Object.entries(layers)) {
     const c = colors[name] ?? "#ffffff";
-    for (const poly of [layer.polygon, layer.hidden].filter(Boolean)) {
-      const pts = poly.map(([x, y]) => `${px(x)},${py(y)}`).join(" ");
-      shapes.push(`<polygon points="${pts}" fill="none" stroke="${c}" stroke-width="2" stroke-dasharray="${poly === layer.hidden ? "6 4" : ""}"/>`);
-    }
+    if (layer.polygon) outline(layer.polygon, c, false);
+    if (layer.hidden) outline(layer.hidden, c, true);
+    for (const f of layer.fill ?? []) outline(Array.isArray(f) ? f : f.polygon, c, true);
   }
   const joints = cuts.rig?.joints ?? {};
   for (const [a, b] of cuts.rig?.bones ?? []) {
@@ -68,6 +74,6 @@ const base = await sharp(keyed.png)
   .toBuffer();
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${shapes.join("")}</svg>`;
 mkdirSync("artifacts", { recursive: true });
-const out = `artifacts/grid-${costume}.png`;
+const out = `artifacts/grid-${person ? `cast-${person}` : target}.png`;
 await sharp(base).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).png().toFile(out);
 console.log(`${out}: crop ${keyed.width}x${keyed.height}, region ${x0},${y0} ${w}x${h} at ${scale}x`);

@@ -14,6 +14,7 @@ import {
   buildMesh,
   skinWeights,
   LAYER_Z,
+  layerZ,
 } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
@@ -381,3 +382,105 @@ test("a profile head registers its nose tip at the face box's front edge", async
   assert.ok(reg.nose.y > reg.face.y && reg.nose.y < reg.face.y + reg.face.h * 0.7, `nose height ${reg.nose.y}`);
 });
 
+
+const CAST_IN = "art/incoming/cast";
+const PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+/** The cast bodies with a painting and a cut: every cast check runs on each. */
+const CAST_CUT = PERSONS.filter((p) => existsSync(`${CAST_IN}/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`));
+const castCache = new Map();
+/** A cast body keyed and cut, with its painting's pixels. */
+const castOf = async (person) => {
+  if (!castCache.has(person)) {
+    const keyed = await keyOut(readFileSync(`${CAST_IN}/${person}.png`));
+    const cuts = JSON.parse(readFileSync(`art/cuts/cast-${person}.json`, "utf8"));
+    const { data } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    castCache.set(person, { keyed, cuts, data, ...(await separateLayers(keyed, cuts)) });
+  }
+  return castCache.get(person);
+};
+
+test("the first bellhop is cut, and every cut cast body is its painting put back together at rest, nothing lost", async () => {
+  assert.ok(CAST_CUT.includes("bellhop-1"), "bellhop-1 has its cut file");
+  for (const person of CAST_CUT) {
+    const { W, H, layers, owner, data, cuts } = await castOf(person);
+    const z = layerZ(cuts);
+    assert.deepEqual(z, ["armFar", "legFar", "legNear", "head", "torso", "armNear"]);
+    let wrong = 0,
+      extra = 0,
+      lost = 0;
+    for (let i = 0; i < W * H; i++) {
+      let top = null;
+      for (const name of z) if (layers[name].rgba[i * 4 + 3] > 0) top = name;
+      if (owner[i] < 0) {
+        if (top) extra++;
+        if (data[i * 4 + 3] >= 128) lost++;
+        continue;
+      }
+      const px = layers[top].rgba.subarray(i * 4, i * 4 + 4);
+      if (px[0] !== data[i * 4] || px[1] !== data[i * 4 + 1] || px[2] !== data[i * 4 + 2] || px[3] !== data[i * 4 + 3]) wrong++;
+    }
+    assert.equal(wrong, 0, `${person}: the frontmost layer shows the painted pixel`);
+    assert.equal(extra, 0, `${person}: nothing is drawn where the painting is empty`);
+    assert.ok(lost < 40, `${person}: ${lost} painted pixels belong to no layer`);
+  }
+});
+
+test("each cast body's neck runs on under its collar, out of sight at rest", async () => {
+  for (const person of CAST_CUT) {
+    const { W, layers, cuts } = await castOf(person);
+    const [nx, ny] = cuts.rig.joints.neck;
+    let under = 0,
+      shown = 0;
+    // From 18 px down: the collar's top edge slopes, and above it at the throat the neck shows as painted.
+    for (let y = ny + 18; y < ny + 44; y++)
+      for (let x = nx - 30; x <= nx + 30; x++) {
+        const i = y * W + x;
+        if (layers.head.rgba[i * 4 + 3] === 0) continue;
+        under++;
+        if (layers.torso.rgba[i * 4 + 3] === 0) shown++;
+      }
+    assert.ok(under > 400, `${person}: the neck runs on under the collar (${under} px)`);
+    assert.ok(shown < under * 0.15, `${person}: and the collar covers it (${shown} of ${under} show)`);
+  }
+});
+
+test("each cast body's layers are meshed and skinned: every painted pixel in a cell, weights summing to one", async () => {
+  for (const person of CAST_CUT) {
+    const { W, H, layers, cuts } = await castOf(person);
+    for (const name of LAYER_Z) {
+      const alpha = new Uint8Array(W * H);
+      for (let i = 0; i < W * H; i++) alpha[i] = layers[name].rgba[i * 4 + 3] > 0 ? 1 : 0;
+      const mesh = buildMesh(alpha, W, H, 14);
+      const covered = new Set();
+      for (let t = 0; t < mesh.indices.length; t += 6)
+        covered.add(`${Math.round((mesh.positions[mesh.indices[t] * 2] - mesh.x0) / mesh.cell)},${Math.round((mesh.positions[mesh.indices[t] * 2 + 1] - mesh.y0) / mesh.cell)}`);
+      let missed = 0;
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++)
+          if (alpha[y * W + x] && !covered.has(`${Math.floor((x - mesh.x0) / mesh.cell)},${Math.floor((y - mesh.y0) / mesh.cell)}`)) missed++;
+      assert.equal(missed, 0, `${person} ${name}: every painted pixel lies in a cell`);
+      const { weights } = skinWeights(mesh.positions, cuts.rig, name);
+      for (let v = 0; v < mesh.positions.length / 2; v++) {
+        const sum = weights[v * 4] + weights[v * 4 + 1] + weights[v * 4 + 2] + weights[v * 4 + 3];
+        assert.ok(Math.abs(sum - 1) < 1e-6, `${person} ${name} vertex ${v} weights sum to ${sum}`);
+      }
+    }
+  }
+});
+
+test("each cast body's joints lie on its painting, and its sole is its near shoe's lowest row", async () => {
+  for (const person of CAST_CUT) {
+    const { W, H, data, cuts } = await castOf(person);
+    const painted = (x, y) => x >= 0 && y >= 0 && x < W && y < H && data[(y * W + x) * 4 + 3] >= 128;
+    for (const [name, [x, y]] of Object.entries(cuts.rig.joints)) {
+      let on = false;
+      for (let dy = -14; dy <= 14 && !on; dy++) for (let dx = -14; dx <= 14 && !on; dx++) on = painted(Math.round(x) + dx, Math.round(y) + dy);
+      assert.ok(on, `${person}: ${name} at ${x},${y} is off the painting`);
+    }
+    const [tx] = cuts.rig.joints.toeNear,
+      [hx] = cuts.rig.joints.heelNear;
+    let lowest = -1;
+    for (let y = H - 1; y >= 0 && lowest < 0; y--) for (let x = Math.min(tx, hx); x <= Math.max(tx, hx); x++) if (painted(x, y)) lowest = y;
+    assert.ok(Math.abs(cuts.rig.sole - lowest) <= 3, `${person}: sole ${cuts.rig.sole}, near shoe's lowest row ${lowest}`);
+  }
+});

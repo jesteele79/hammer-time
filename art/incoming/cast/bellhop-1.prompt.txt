@@ -1,0 +1,37 @@
+Create ITEM 1 bellhop-1.png only using the supplied images.
+Image 1 is the required original pose/camera/framing and native 1086 x 1448 canvas input.
+Image 2 is the inked drawing-style reference.
+Image 3 is uniform cut reference only, not its hat, pose, colors or luggage.
+Image 4 is the current bellhop draft to improve; retain its distinct grey-haired and grey-mustached older bellhop identity and strictly left-profile red/gold uniform.
+
+MANDATORY CHANGES FROM IMAGE 4:
+Redraw BOTH ARMS so they project farther FORWARD/LEFT from the shoulders. The near arm has a nearly straight shoulder-elbow-wrist line at 30 degrees forward from downward vertical. Shift its elbow and wrist LEFT sufficiently that the lower sleeve is visibly separate from the belly: a broad triangular GREEN gap must show between forearm and belly, not merely a gap between the two arms. The near forearm must NOT cover or touch the abdomen. The far arm is parallel and offset just behind, with its own visible empty open white glove.
+Digitally flat RGB 0,255,0 background over the entire canvas, perfectly identical green everywhere outside the subject. Erase all reference background texture and variation. No gradients.
+Top of head at y=10, feet retain Image 1 sole positions. Exactly 1086 x 1448 pixels, no dimension changes.
+Use one shadow tone and one highlight tone per material and thick clean black outlines; eliminate extra intermediate shading bands.
+
+Follow these brief blocks word for word:
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+ITEM 1:
+A hotel bellhop: an older gentleman in his late fifties, tall, very upright, chest out, proud of his job. Short neat grey hair, a trim grey mustache, a small eager smile. A fitted RED bellhop jacket with a standing collar, two rows of gold buttons, gold braid at the collar and cuffs, black trousers with a thin gold stripe down the side, white gloves, polished black shoes. Bareheaded. Hands open and empty as in Image 1.
+
+
+Final output: one full-body left-profile bellhop on green, no comparison, no other item. Preserve the white-gloved relaxed open empty hands, each foot's stagger and sole height, bareheaded whole figure with margins.

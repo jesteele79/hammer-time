@@ -1,0 +1,36 @@
+Final office-1 refinement from Image 5. Preserve his distinct clean-shaven office face, rectangular glasses, bald crown/short DARK side hair, wireless WHITE earbud, distracted CLOSED mouth, soft middle, visibly LOOSENED BURGUNDY tie, open collar, BLANK white badge and khaki/brown costume.
+Match the reference arm reach precisely: nearly straight, about 30 degrees forward/down from vertical, hands open and EMPTY, far arm and hand visible, clear green gap near forearm/belly. Keep strictly left-facing side-view torso and hips, not three-quarter front. Keep both original sole positions.
+Digital flat uniform #00FF00 background. Graphic inked cel shading with only base, one shadow and one highlight for each material plus tiny white glints. No gradients or extra tones. EXACT 1086 x 1448 portrait.
+Use case: precise-object-edit. Create only office-1.png, one full-body game character.
+Image 1 is the INPUT IMAGE: preserve its native 1086 x 1448 portrait canvas, orthographic left-profile camera, frame placement, each sole's vertical frame location and small foot stagger. COMPLETELY replace its man; only the pose/camera/framing remains.
+Image 2 is drawing style only, never identity.
+Image 3 is the kept bellhop-1: match its inked cartoon style, finish, arm pose and placement; never copy its identity.
+Image 4 is costume CUT only, never its person, pose, props or colors.
+
+ITEM DESCRIPTION (exact):
+An office worker at a conference: a man in his mid forties, average height, a little soft around the middle, balding with short dark hair at the sides, rectangular glasses, white wireless earbuds, a flat distracted expression. A light blue dress shirt with the sleeves rolled, a loosened burgundy tie, a lanyard with a blank white badge, pleated khaki trousers, brown shoes.
+Identity distinction: Soft middle-aged office man with a round face, bald crown and rectangular glasses. Clean-shaven, clearly different from the original man, bellhop and young server.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Specific framing: keep soles where Image 1's are (far forward shoe around y=1330, near rear shoe around y=1420). This subject is the height described in the item: top of head around y=55, feet stay fixed. Center within green margins. True LEFT side elevation through the entire body, not a three-quarter chest. Both near and far arms nearly straight, forward/downward at about 30 degrees from vertical, relaxed open EMPTY hands, visible separately. Green triangular gap between near forearm and belly.
+The entire background must be digitally FLAT exact RGB(0,255,0), #00FF00; do not copy the reference's uneven green pixels. One shadow color and one highlight color per material, tiny white glints, no gradients.
+No text, props, floor or cast shadow. Output native 1086 x 1448 PNG with no resizing.
+Office-specific: a distinct CLEAN-SHAVEN man in his mid forties, soft round face, short dark hair only at sides of BALDING crown, rectangular glasses and WHITE wireless earbuds. Flat distracted expression, lips closed, no smile or mustache. Light blue dress shirt with both sleeves rolled, loosened BURGUNDY tie, lanyard with totally BLANK WHITE badge, pleated KHAKI trousers, brown shoes. Bare hands open EMPTY, no briefcase, phone, documents or gloves. Match Image 1's small standing foot stagger exactly: far shoe x=335..595 sole y=1330, near shoe x=445..745 sole y=1420. True side view, no walking stride.

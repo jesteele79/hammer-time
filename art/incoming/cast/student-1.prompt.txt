@@ -1,0 +1,36 @@
+Final student-1 keeper pass from Image 5. Preserve his distinct young identity, curly DARK hair, ROUND glasses, WHITE earbuds, closed smirk, shorter head height, gentle slouch, both open empty hands, OLIVE overshirt/white t-shirt/blue jeans, completely plain WHITE canvas sneakers with NO brand-like marks, and MAROON backpack worn on BOTH shoulders. Keep each sole position fixed.
+Torso and hips must be exact LEFT SIDE PROFILE, only narrow front edge of shirt visible, no chest turned toward camera. Both backpack straps remain worn over shoulders, far one peeks behind, no extra props. Arms nearly straight down-left at 30 degrees with green gap near forearm/belly.
+Perfect uniform #00FF00 background, flat cel shading one shadow and one highlight only per material, thick clean black outlines, tiny white glints. EXACT 1086 x 1448 native output.
+Use case: precise-object-edit. Create only student-1.png, one full-body game character.
+Image 1 is the INPUT IMAGE: preserve its native 1086 x 1448 portrait canvas, orthographic left-profile camera, frame placement, each sole's vertical frame location and small foot stagger. COMPLETELY replace its man; only the pose/camera/framing remains.
+Image 2 is drawing style only, never identity.
+Image 3 is the kept bellhop-1: match its inked cartoon style, finish, arm pose and placement; never copy its identity.
+Image 4 is costume CUT only, never its person, pose, props or colors.
+
+ITEM DESCRIPTION (exact):
+A college student: early twenties, a little shorter than Image 1, slouchy posture but keeping the pose, curly dark hair, round glasses, white wireless earbuds, an unbothered smirk (lips closed). An olive green overshirt open over a white t-shirt, blue jeans, white sneakers, a maroon backpack worn on both shoulders (the straps over the shoulders, the pack on the back).
+Identity distinction: Youthful round-faced college student with curly dark hair, round glasses and relaxed slouch; distinct from rectangular-glasses office man and curly-brown-haired server.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Specific framing: keep soles where Image 1's are (far forward shoe around y=1330, near rear shoe around y=1420). This subject is the height described in the item: top of head around y=110, feet stay fixed. Center within green margins. True LEFT side elevation through the entire body, not a three-quarter chest. Both near and far arms nearly straight, forward/downward at about 30 degrees from vertical, relaxed open EMPTY hands, visible separately. Green triangular gap between near forearm and belly.
+The entire background must be digitally FLAT exact RGB(0,255,0), #00FF00; do not copy the reference's uneven green pixels. One shadow color and one highlight color per material, tiny white glints, no gradients.
+No text, props, floor or cast shadow. Output native 1086 x 1448 PNG with no resizing.
+Student-1-specific: a distinct youthful CLEAN-SHAVEN round-faced college student with curly DARK hair, round glasses (not the office man's rectangular ones), WHITE wireless earbuds and an unbothered CLOSED-LIP smirk. Slightly shorter and gently SLOUCHY shoulders but SAME arm and foot pose, chin level. OLIVE GREEN overshirt open over plain WHITE t-shirt, BLUE jeans, WHITE sneakers. MAROON backpack worn on BOTH shoulders: two straps over shoulders, the backpack on the back. Show near strap clearly and far strap peeking behind in side view. Hands BARE, open relaxed EMPTY. NO book, phone, hat, badge, apron, gloves or extra accessories. Small standing foot stagger exactly Image 1: far shoe x=335..595 sole y=1330, near x=445..745 sole y=1420, no walking.

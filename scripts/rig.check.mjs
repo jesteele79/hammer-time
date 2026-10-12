@@ -687,3 +687,26 @@ test("a painted body's solve turns its head on its own neck joint, crown at the 
   assert.deepEqual(h.turns, {});
   assert.equal(h.farFloor, FAR_FLOOR);
 });
+
+import { existsSync } from "node:fs";
+const CAST_PEOPLE = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"].filter((p) => existsSync(`art/cuts/cast-${p}.json`));
+
+test("each cut cast body is pose-locked to Hammer's painting: legs and spine within 15 degrees, arms turned under 25", () => {
+  assert.ok(CAST_PEOPLE.includes("bellhop-1"));
+  const deg = (r) => (r * 180) / Math.PI;
+  for (const person of CAST_PEOPLE) {
+    const { rig } = JSON.parse(readFileSync(`art/cuts/cast-${person}.json`, "utf8"));
+    const s = skeletonFrom({ joints: rig.joints, sole: rig.sole, rootX: rig.rootX }, rig.match ?? ARM_BONES);
+    const u = 296 / (rig.sole - rig.joints.neck[1]);
+    for (const [p, c] of rig.bones) {
+      if (ARM_BONES.some(([a, b]) => a === p && b === c)) {
+        assert.ok(Math.abs(deg(s.turns[c])) < 25, `${person}: ${p}->${c} turned ${deg(s.turns[c]).toFixed(1)} degrees`);
+        continue;
+      }
+      const ours = Math.atan2((rig.joints[p][1] - rig.joints[c][1]) * u, (rig.joints[p][0] - rig.joints[c][0]) * u);
+      const his = Math.atan2(JOINTS[c].rest.y - JOINTS[p].rest.y, JOINTS[c].rest.x - JOINTS[p].rest.x);
+      const off = deg(Math.atan2(Math.sin(ours - his), Math.cos(ours - his)));
+      assert.ok(Math.abs(off) < 15, `${person}: ${p}->${c} is ${off.toFixed(1)} degrees off Hammer's`);
+    }
+  }
+});

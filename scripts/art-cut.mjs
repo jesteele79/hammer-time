@@ -265,6 +265,12 @@ export const LAYER_ORDER = ["armNear", "torso", "legNear", "legFar", "armFar"];
 const DROPPED = -2;
 /** The order they are drawn in, back to front. */
 export const LAYER_Z = ["armFar", "legFar", "legNear", "torso", "armNear"];
+/**
+ * A cast body's cut adds its head: claimed after the torso, so the collar stays with the jacket,
+ * and drawn behind it, so the neck runs on down under the collar however the head turns.
+ */
+export const layerOrder = (cuts) => (cuts.layers.head ? ["armNear", "torso", "head", "legNear", "legFar", "armFar"] : LAYER_ORDER);
+export const layerZ = (cuts) => (cuts.layers.head ? ["armFar", "legFar", "legNear", "head", "torso", "armNear"] : LAYER_Z);
 const OUTLINE = [16, 16, 16];
 const OUTLINE_PX = 3;
 
@@ -670,9 +676,11 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
   const W = info.width,
     H = info.height;
   const origin = { x: 0, y: 0 };
+  const order = layerOrder(cuts);
+  const zs = layerZ(cuts);
   const skin = skinMask(data, W, H, 5);
   const owner = new Int8Array(W * H).fill(-1);
-  LAYER_ORDER.forEach((name, idx) => {
+  order.forEach((name, idx) => {
     const spec = layerSpec(cuts, costume, name);
     const m = polygonMask(spec.polygon, W, H, origin);
     if (spec.material) materialMask(m, skin, W, H, spec.material);
@@ -690,10 +698,10 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
   // A layer drawn in front keeps its own ink: near-black pixels just outside its edge, over a
   // layer behind it, are its outline painted across that layer (the belly's line over the far
   // forearm), so they stay with it instead of riding off on the limb.
-  LAYER_ORDER.forEach((name, idx) => {
+  order.forEach((name, idx) => {
     const spec = layerSpec(cuts, costume, name);
     if (!spec.ink) return;
-    const over = new Set(spec.ink.over.map((n) => LAYER_ORDER.indexOf(n)));
+    const over = new Set(spec.ink.over.map((n) => order.indexOf(n)));
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         const i = y * W + x;
@@ -702,9 +710,9 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
       }
   });
   const layers = {};
-  LAYER_ORDER.forEach((name, idx) => {
+  order.forEach((name, idx) => {
     const spec = layerSpec(cuts, costume, name);
-    const above = new Set(LAYER_Z.slice(LAYER_Z.indexOf(name) + 1).map((n) => LAYER_ORDER.indexOf(n)));
+    const above = new Set(zs.slice(zs.indexOf(name) + 1).map((n) => order.indexOf(n)));
     const visible = new Uint8Array(W * H),
       known = new Uint8Array(W * H),
       fill = new Uint8Array(W * H);
@@ -761,7 +769,7 @@ export async function separateLayers(keyed, cuts, costume = "affliction") {
       variants[vname] = v.reverse ? reverseLettering(rgba, W, H, v.reverse) : curlVariant(rgba, W, H, v);
     layers[name] = { rgba, visible, fill, variants };
   });
-  return { W, H, layers, owner };
+  return { W, H, layers, owner, order };
 }
 
 /**
