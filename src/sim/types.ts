@@ -85,9 +85,8 @@ export type Target = {
   onGround: boolean;
   flash: number;
   spin: number;
-  /** How many staff this roll has bowled over (the chain), and the bellhop who shoved it. */
+  /** How many staff this roll has bowled over (the chain). */
   chain: number;
-  owner: number | null;
 };
 
 export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[] };

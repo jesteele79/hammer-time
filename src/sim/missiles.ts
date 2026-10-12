@@ -71,7 +71,7 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       w.hits.push(m.x);
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y: m.y, floor: false, hero: true });
-      if (m.kind === "coffee") puddleAt(w, h.x, h.y);
+      if (m.kind === "coffee") puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y);
       continue;
     }
     const floor = floorAt(w.stage, m.x, a.y);

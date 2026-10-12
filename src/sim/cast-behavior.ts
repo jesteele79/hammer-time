@@ -172,7 +172,6 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
         cart.vy = 0;
         cart.onGround = true;
         cart.chain = 0;
-        cart.owner = n.id;
       }
       attack(n, events, cart?.x, cart ? cart.y - cart.h / 2 : undefined);
       setAct(n, "chase");
@@ -194,6 +193,8 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
       return;
     }
     const stopped = cart.onGround && Math.abs(cart.vx) < 10;
+    // He faces the cart he goes after, so he never walks backwards to it.
+    n.facing = cart.x >= n.x ? 1 : -1;
     const want = cart.x - n.facing * c.hold;
     const dx = want - n.x;
     n.vx = Math.abs(dx) < 8 ? 0 : Math.sign(dx) * c.walk;
@@ -271,7 +272,8 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
     setAct(n, "hop");
     return;
   }
-  const planes = w.missiles.filter((m) => m.kind === "plane").length;
+  // Planes in the air and planes being folded count together, so two wind-ups never take it past three.
+  const planes = w.missiles.filter((m) => m.kind === "plane").length + w.cast.filter((m) => m.role === "student" && m.act === "windup").length;
   if (!n.noticed || n.rest > 0 || Math.abs(h.x - n.x) > c.notice || planes >= c.planes || !ticketFree(w.cast)) return;
   windup(n, w, events);
   say(n, CAST_LINES.student.heads, events);
@@ -450,7 +452,12 @@ function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   if (n.y > b.y + b.h - FALL_MARGIN) {
     n.alive = false;
     events.push({ type: "castFell", id: n.id, x: n.x, y: n.y, points: POINTS.shaft });
-  } else if ((n.act === "leave" || n.act === "flee") && Math.abs(n.x - w.hero.x) > T.gone) n.alive = false;
+  } else if (n.act === "leave" || n.act === "flee") {
+    const far = Math.abs(n.x - w.hero.x);
+    // Walking off into a wall: gone if he cannot see them any more, else they turn back the other way.
+    if (far > T.gone || (n.blocked && far > T.offView)) n.alive = false;
+    else if (n.blocked) n.facing = n.facing === 1 ? -1 : 1;
+  }
 }
 
 /** Overlapping him: a stomp from above knocks them down and bounces him (students sidestep). */
@@ -467,6 +474,8 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
   }
   // An attack under way costs a pip; the office worker's coffee goes all over him and he staggers, then rests.
   if (attacking(n, h)) {
+    // In grace (or down) an attack passes through him: no pip, no coffee, no stagger.
+    if (h.invuln > 0 || h.move?.kind === "tumble") return;
     w.hits.push(n.x);
     if (n.role === "office") {
       events.push({ type: "castSplash", x: h.x, y: h.y - h.h * 0.6 });
@@ -547,6 +556,12 @@ function lectureOn(w: CastWorld, reach: Rect, events: GameEvent[]): void {
       events.push({ type: "castSchooled", id: n.id, x: n.x, y: n.y - n.h, points: POINTS.schooled });
       schooled++;
     } else if (standing(n)) {
+      // Caught rearing back behind the screen: out in the open now, he marches when the freeze ends.
+      if (n.hide) {
+        n.hide = false;
+        n.x0 = n.x - 400;
+        n.x1 = n.x + 400;
+      }
       n.vx = 0;
       n.facing = toward(n, w.hero);
       setAct(n, "frozen");

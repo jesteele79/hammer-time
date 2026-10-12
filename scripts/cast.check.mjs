@@ -283,7 +283,6 @@ test("a bellhop grips his cart, winds up 0.7 s, shoves it at 650 toward him, fol
   const shoved = until(w, () => npc(w, "b").act === "chase", 2);
   assert.ok(w.time - t0 >= CAST.bellhop.windup - 2 * STEP && of(shoved, "castAttack").length === 1);
   assert.equal(cart.vx, -CAST.bellhop.shove);
-  assert.equal(cart.owner, b.id);
   // Hammer out of the way: the cart rolls, he fetches it and wheels it home in peace.
   w.hero.x = -1500;
   until(w, () => Math.abs(w.targets[0].vx) < 10, 6);
@@ -770,4 +769,80 @@ test("a bonk on a cart in the bellhop's hands knocks it out of them: it flies ba
   const after = steps(w, 0.3);
   assert.ok(w.targets[0].x > x0 + 80, `the cart flew out of his hands: ${w.targets[0].x - x0}`);
   assert.ok(["chase", "fly", "down"].includes(b.act) && (b.act !== "chase" || of(after, "castHit").length === 0), `he let go, or it bowled him: ${b.act}`);
+});
+
+test("a knocked-out staffer walking off into a wall turns back on screen, and is gone at once off it", () => {
+  const wall = flat({ solids: [{ x: 1500, y: -400, w: 100, h: 400 }] });
+  const w = worldWith([{ id: "s", person: "server-1", x: 1300, y: 0 }], { x: 900, y: 0 }, {}, [], wall);
+  const s = npc(w, "s");
+  Object.assign(s, { out: true, facing: 1, act: "leave", actT: 0, noticed: true });
+  steps(w, 1.2);
+  assert.ok(s.alive && s.facing === -1, "in view of him, she turns back from the wall");
+  // 1250 px off at the wall: past his view, short of the 1500 px that removes anyone walking off.
+  const far = worldWith([{ id: "s", person: "server-1", x: 1300, y: 0 }], { x: 200, y: 0 }, {}, [], wall);
+  const f = npc(far, "s");
+  Object.assign(f, { out: true, facing: 1, act: "leave", actT: 0, noticed: true });
+  steps(far, 1.2);
+  assert.equal(f.alive, false, "out of his view and blocked, she is gone");
+});
+
+test("coffee that hits him in the air leaves its puddle on the floor under him", () => {
+  const w = worldWith([], { x: 1000, y: 0 });
+  Object.assign(w.hero, { y: -260, onGround: false, vy: 0, invuln: 0 });
+  w.missiles.push({ id: 1, kind: "coffee", x: 1000, y: -400, vx: 0, vy: 0, spin: 0, life: 1, phase: 0, from: 0 });
+  const evs = [];
+  stepMissiles(w, STEP, evs);
+  assert.ok(evs.some((e) => e.type === "missileHit" && e.hero), "it hit him");
+  assert.equal(w.puddles.at(-1).y, 0, "on the marble, not in the air");
+});
+
+test("planes in the air and planes being folded count together against the cap of three", () => {
+  const w = worldWith([{ id: "a", person: "student-1", x: 1400, y: 0 }, { id: "b", person: "student-2", x: 1600, y: 0 }], { x: 700, y: 0 });
+  for (const n of w.cast) Object.assign(n, { noticed: true, rest: 0 });
+  for (const id of [90, 91]) w.missiles.push({ id, kind: "plane", x: 5000 + id, y: -2600, vx: 0, vy: 0, spin: 0, life: 3, phase: 0, from: 0 });
+  let worst = 0;
+  for (let i = 0; i < Math.round(1 / STEP); i++) {
+    w.step(input());
+    const up = w.missiles.filter((m) => m.kind === "plane").length + w.cast.filter((n) => n.act === "windup").length;
+    worst = Math.max(worst, up);
+  }
+  assert.ok(worst <= 3, `at most three, counted ${worst}`);
+});
+
+test("a lecture landing while the screen's office worker rears back brings him out to march, not idle and hidden", () => {
+  const w = worldWith([{ id: "o", person: "office-2", x: 1400, y: 0, hide: true }], { x: 300, y: 0 });
+  w.hero.x = 1000;
+  until(w, () => npc(w, "o").act === "windup", 1);
+  const o = npc(w, "o");
+  assert.equal(o.act, "windup");
+  w.hero.facing = 1;
+  w.hero.lectureCd = 0;
+  press(w, "lecture");
+  until(w, (x) => x.events.some((e) => e.type === "castFreeze"), 1);
+  assert.ok(o.act === "frozen" && !o.hide, "frozen in the open");
+  until(w, () => o.act === "walk", 3);
+  assert.equal(o.act, "walk", "he marches once the freeze ends");
+});
+
+test("an office worker marching into him in grace passes through: no coffee, no line, no stagger", () => {
+  const w = worldWith([{ id: "o", person: "office-1", x: 1000, y: 0, x0: 600, x1: 1400 }], { x: -1500, y: 0 });
+  const o = npc(w, "o");
+  until(w, () => npc(w, "o").facing === 1 && npc(w, "o").x > 900 && npc(w, "o").x < 1200, 6);
+  o.noticed = true;
+  Object.assign(w.hero, { x: o.x + 60, y: 0, facing: -1, invuln: 1.4 });
+  const evs = steps(w, 0.1);
+  assert.equal(of(evs, "castSplash").length, 0, "no coffee over him in grace");
+  assert.ok(!of(evs, "castLine").some((e) => e.text === "Oh. Were you standing there?"));
+  assert.equal(o.act, "walk", "he marches on");
+  assert.equal(w.hero.patience, 3);
+});
+
+test("a bellhop chasing his cart faces it, wherever it rolled", () => {
+  const w = worldWith([{ id: "b", person: "bellhop-1", x: 1000, y: 0, cart: 850 }], { x: -1500, y: 0 }, {}, [850]);
+  const b = npc(w, "b");
+  Object.assign(w.targets[0], { x: 1700, vx: 0 });
+  Object.assign(b, { noticed: true, act: "chase", actT: 0, facing: -1 });
+  steps(w, 0.3);
+  assert.equal(b.facing, 1, "turned to the cart behind him");
+  assert.ok(b.vx > 0, "and walking forwards to it");
 });

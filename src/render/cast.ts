@@ -395,6 +395,8 @@ export class Cast {
         }
         v.mask.clear().rect(sheet.x, sheet.y, sheet.w, sheet.h).fill(0xffffff);
         drawFigure(v.body, solved, v.look, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: true });
+        // His head on the sheet, so "Got a minute?" has somewhere to hang from.
+        this.crowns.set(n.id, { x: n.x + solved.crown.x * k * 0.95, y: sheet.y + sheet.h + 30 + solved.crown.y * k * 0.95, facing: n.facing });
         v.root.zIndex = -1e5;
         continue;
       }

@@ -492,3 +492,11 @@ test("the HUD says when he is too hot to run, when the stash is cleaned out, and
   g.pickups[0].taken = false;
   assert.equal(hintOf(g), "Staff stash · ↓ at the cart to go back");
 });
+
+import { cuesFor } from "../src/render/sound.ts";
+
+test("the server's order-up ding rings with her warning, not with her rush", () => {
+  assert.deepEqual(cuesFor({ type: "castWindup", id: 1, role: "server", x: 0, y: 0 }), ["sting", "ding"]);
+  assert.deepEqual(cuesFor({ type: "castWindup", id: 1, role: "bellhop", x: 0, y: 0 }), ["sting"]);
+  assert.ok(!cuesFor({ type: "castAttack", id: 1, role: "server", x: 0, y: 0 }).includes("ding"));
+});

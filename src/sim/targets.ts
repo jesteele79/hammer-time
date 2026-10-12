@@ -10,7 +10,7 @@ export const CART = { w: 200, h: 340, friction: 260 } as const;
 
 /** A brass luggage cart stacked with cases: the lobby's practice target. */
 export function createCart(id: number, x: number, y = 0): Target {
-  return { id, kind: "cart", x, y, w: CART.w, h: CART.h, vx: 0, vy: 0, onGround: true, flash: 0, spin: 0, chain: 0, owner: null };
+  return { id, kind: "cart", x, y, w: CART.w, h: CART.h, vx: 0, vy: 0, onGround: true, flash: 0, spin: 0, chain: 0 };
 }
 
 /** Sent flying: the spec's staff knockback is 1100 px/s and 600 up. */

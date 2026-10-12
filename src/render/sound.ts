@@ -33,7 +33,6 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   exit: ["clear"],
   bell: ["ding"],
   castNotice: ["glint"],
-  castWindup: ["sting"],
   castBump: ["bump"],
   castFreeze: ["tickSfx"],
   castSchooled: ["ding"],
@@ -73,7 +72,7 @@ export type Sound = {
 };
 
 /** The cues an event asks for: the table, with the events whose cue depends on what they carry. */
-function cuesFor(e: GameEvent): Cue[] {
+export function cuesFor(e: GameEvent): Cue[] {
   switch (e.type) {
     case "hit":
       return e.by === "mallet" ? ["bonk"] : e.by === "shield" ? ["kick"] : e.by === "snot" ? ["splat"] : [];
@@ -85,8 +84,11 @@ function cuesFor(e: GameEvent): Cue[] {
       return e.mode === "dying" ? ["die"] : [];
     case "tallyTick":
       return e.seconds % TALLY_TICK === 0 ? ["tickSfx"] : [];
+    case "castWindup":
+      // The server's warning carries the order-up ding (R2b §2.2); every wind-up carries the sting.
+      return e.role === "server" ? ["sting", "ding"] : ["sting"];
     case "castAttack":
-      return e.role === "bellhop" ? ["squeal"] : e.role === "server" ? ["ding"] : e.role === "office" ? ["whoosh"] : ["paper"];
+      return e.role === "bellhop" ? ["squeal"] : e.role === "server" || e.role === "office" ? ["whoosh"] : ["paper"];
     case "castHit": {
       // The mallet and the snot ring through their own hit event; a knocked-out server's glasses shatter, an office worker's coffee splashes.
       const names: Cue[] = e.by === "stomp" ? ["stomp"] : e.by === "puddle" ? ["slip"] : e.by === "mallet" || e.by === "snot" ? [] : ["kick"];
