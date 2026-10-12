@@ -580,6 +580,117 @@ test("the Game scores the cast: a knockdown 100, a chain's points, and the eight
   assert.equal(c.run.lives, lives + 1, "the eighth is a life");
 });
 
+test("the desk bellhop keeps his cart on the side with room: it never goes into the desk, and no ticket is left held", () => {
+  // The desk: a solid from 1500 to 2400, 180 high, right beside his spot at 1400.
+  const stage = flat({ solids: [{ x: 1500, y: -180, w: 900, h: 180 }] });
+  const w = worldWith([{ id: "b", person: "bellhop-1", x: 1400, y: 0, cart: 1250 }], { x: -1500, y: 0 }, {}, [1250], stage);
+  Object.assign(w.hero, { x: 600, invuln: 99 });
+  const b = npc(w, "b");
+  const cart = w.targets[0];
+  until(w, () => npc(w, "b").act === "chase", 4);
+  assert.equal(b.act, "chase", "shoved");
+  // Hammer jumps it and runs on past the desk; the cart stops and he goes to fetch it.
+  Object.assign(w.hero, { x: 2600, y: 0 });
+  let jump = 0;
+  let last = cart.x;
+  for (let i = 0; i < Math.round(14 / STEP) && !(b.act === "idle" && Math.abs(b.x - 1400) < 10); i++) {
+    w.step(input());
+    jump = Math.max(jump, Math.abs(cart.x - last));
+    last = cart.x;
+  }
+  assert.ok(b.act === "idle" && Math.abs(b.x - 1400) < 10, `home and idle: ${b.act} at ${b.x}`);
+  assert.ok(cart.x < 1500 - cart.w / 2, `the cart stays clear of the desk: ${cart.x}`);
+  assert.ok(jump <= 20, `the cart never jumps: ${jump} px in one step`);
+  assert.equal(attackers(w.cast), 0, "no ticket held");
+  // A cart that ends up beyond the desk is given up on: he stops at the desk, lets it go, and the ticket comes back.
+  Object.assign(cart, { x: 2600, vx: 0, vy: 0, onGround: true });
+  until(w, () => npc(w, "b").act === "chase", 1);
+  assert.equal(b.act, "chase", "he goes after it");
+  until(w, () => npc(w, "b").act !== "chase", 4);
+  assert.ok(b.act === "idle" && b.x < 1500, `gave up at the desk: ${b.act} at ${b.x}`);
+  const after = steps(w, 2);
+  assert.equal(attackers(w.cast), 0, "no ticket held for a cart he cannot reach");
+  assert.equal(of(after, "castWindup").length, 0, "and no shove without it");
+});
+
+test("the Game scores the shield's bowl: 200", () => {
+  const none = { count: 0, bucees: 0, nuts: 0 };
+  const one = { ...LOBBY, cast: [{ id: "o", person: "office-1", x: 2930, y: 0 }], carts: [], crates: [], checkpoints: [], rewards: none };
+  const g = createGame({ lobby: one, stash: STASH }, 3);
+  play(g);
+  Object.assign(g.world.hero, { x: 2700, y: 0, facing: 1 });
+  g.run.star = 10;
+  const evs = stepsG(g, 2, { right: true, run: true });
+  assert.ok(of(evs, "castHit").some((e) => e.by === "shield"), "he bowled the office worker");
+  assert.equal(g.run.score, 200, "the shield's 200");
+});
+
+test("touching a student in his throw's follow-through costs nothing: only the plane hurts", () => {
+  const w = worldWith([{ id: "k", person: "student-1", x: 700, y: 0 }], { x: 300, y: 0 });
+  until(w, () => npc(w, "k").act === "windup", 8);
+  until(w, () => npc(w, "k").act === "attack", 1);
+  const k = npc(w, "k");
+  assert.equal(k.act, "attack", "the follow-through");
+  w.missiles.length = 0;
+  Object.assign(w.hero, { x: k.x - 30, invuln: 0 });
+  const evs = steps(w, 0.1);
+  assert.equal(w.hero.patience, 3, "no pip");
+  assert.equal(of(evs, "hurt").length, 0);
+});
+
+test("the office worker's march hurts head-on, not walked into from behind", () => {
+  const w = worldWith([{ id: "o", person: "office-1", x: 1000, y: 0, x0: 600, x1: 1400 }], { x: -1500, y: 0 });
+  const o = npc(w, "o");
+  until(w, () => npc(w, "o").facing === 1 && npc(w, "o").x > 900 && npc(w, "o").x < 1200, 6);
+  // He has seen Hammer already (the first sighting turns him round); now dropped onto his back as he walks right.
+  o.noticed = true;
+  Object.assign(w.hero, { x: o.x - 60, y: 0, facing: 1, invuln: 0 });
+  let evs = steps(w, 0.1);
+  assert.equal(w.hero.patience, 3, "his back hurts nobody");
+  assert.equal(of(evs, "hurt").length, 0);
+  // In his path, once the nudge's stagger is over and he marches again, it is a pip.
+  until(w, () => npc(w, "o").act === "walk" && npc(w, "o").facing === 1, 3);
+  Object.assign(w.hero, { x: o.x + 60, y: 0, facing: -1, invuln: 0 });
+  evs = steps(w, 0.1);
+  assert.equal(w.hero.patience, 2, "head-on costs a pip");
+});
+
+test("a plane thrown at him under the balcony dies on the slab, and one thrown at him mid-tumble passes through", () => {
+  const stage = flat({ platforms: [{ x0: 600, x1: 2000, y: -520 }] });
+  const under = worldWith([], { x: 1400, y: 0 }, {}, [], stage);
+  under.missiles.push(launchPlane(1, { id: 1001, x: 1500, y: -520, h: 310, facing: -1 }, { x: 1400, y: -180 }));
+  const evs = until(under, (x) => x.missiles.length === 0, 3);
+  assert.equal(under.hero.patience, 3, "never reached him");
+  const died = of(evs, "missileHit");
+  assert.ok(died.length === 1 && died[0].floor && !died[0].hero && Math.abs(died[0].y + 520) < 1, `it died on the slab: ${JSON.stringify(died)}`);
+  const down = worldWith([], { x: 1000, y: 0 });
+  down.hero.patience = 1;
+  down.hit(down.hero.x + 10);
+  until(down, (x) => x.hero.move?.kind === "tumble", 1);
+  assert.equal(down.hero.move?.kind, "tumble");
+  down.missiles.push(launchPlane(1, { id: 1001, x: 1300, y: -100, h: 310, facing: -1 }, { x: 1000, y: -150 }));
+  const through = until(down, (x) => x.missiles.length === 0, 3);
+  assert.ok(!of(through, "missileHit").some((e) => e.hero) && of(through, "missileHit").some((e) => e.floor), "through him and down on the floor");
+});
+
+test("whatever step her rush reaches him against the swing, it is one knockdown or one pip, never both, and the ticket comes back", () => {
+  for (let d = 150; d <= 400; d += 10) {
+    const w = worldWith([{ id: "s", person: "server-1", x: 900, y: 0 }], { x: 300, y: 0 });
+    until(w, () => npc(w, "s").act === "attack", 3);
+    assert.equal(npc(w, "s").act, "attack", `at ${d} px she rushes`);
+    w.hero.facing = 1;
+    until(w, () => npc(w, "s").x - w.hero.x <= d, 3);
+    press(w, "hammer");
+    const evs = steps(w, 0.8);
+    const hits = of(evs, "castHit").length;
+    const pips = 3 - w.hero.patience;
+    assert.ok(hits + pips === 1, `at ${d} px: ${hits} knockdowns and ${pips} pips`);
+    // Knocked down, her attack ends at once; past him, her rush runs its course (2 s or 1000 px) and then ends.
+    until(w, (x) => attackers(x.cast) === 0, 3);
+    assert.equal(attackers(w.cast), 0, `at ${d} px the ticket is back`);
+  }
+});
+
 const ACTS = ["idle", "walk", "notice", "windup", "attack", "recover", "chase", "return", "hide", "bumped", "fly", "down", "getup", "leave", "slide", "slip", "frozen", "schooled", "duck", "hop", "flee"];
 const ROLES = ["bellhop", "server", "office", "student"];
 const ctx = (role, act, t, extra = {}) => ({ role, act, t, speed: 300, onGround: true, sit: false, spin: 0, hits: 0, ...extra });

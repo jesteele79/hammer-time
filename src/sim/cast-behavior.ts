@@ -46,14 +46,15 @@ export type CastWorld = {
 const TICKET_ACTS: ReadonlySet<CastAct> = new Set<CastAct>(["windup", "attack", "chase"]);
 export const attackers = (cast: Npc[]): number => cast.filter((n) => n.alive && TICKET_ACTS.has(n.act)).length;
 export const ticketFree = (cast: Npc[]): boolean => attackers(cast) < TICKETS;
-/** On the attack now: what costs a pip on contact. */
-export const attacking = (n: Npc): boolean => n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0);
+const toward = (n: Npc, h: HeroState): 1 | -1 => (h.x < n.x ? -1 : 1);
+/** On the attack now: what costs a pip on contact. A student's follow-through hurts nobody, and the office worker's march only head-on. */
+export const attacking = (n: Npc, h: HeroState): boolean =>
+  n.role !== "student" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
 /** How much of a rolling cart hurts him: the stacked cases, from the floor up; the brass frame and arch hurt nobody. */
 const CART_HURT = { w: 140, h: 220 } as const;
 /** Going about their business: what a touch from him staggers. */
 const BUMPABLE: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice", "chase", "return"]);
 
-const toward = (n: Npc, h: HeroState): 1 | -1 => (h.x < n.x ? -1 : 1);
 const sameLevel = (n: Npc, h: HeroState) => Math.abs(h.y - n.level) < 60;
 
 /** Something to stand on at `x` within a step of `y`: a floor or a platform. */
@@ -142,6 +143,13 @@ function stepServer(n: Npc, w: CastWorld, events: GameEvent[]): void {
   say(n, pick(CAST_LINES.server.warn, n.k + n.hits), events);
 }
 
+/** Which side of him the cart stands on: Hammer's, where there is room for it; the other where a solid (the desk) is in the way. */
+function cartSide(n: Npc, w: CastWorld, cart: Target, facing: 1 | -1): 1 | -1 {
+  const fits = (x: number) => !w.stage.solids.some((s) => overlapsRect({ x: x - cart.w / 2, y: cart.y - cart.h, w: cart.w, h: cart.h }, s));
+  if (fits(n.x + facing * CAST.bellhop.hold)) return facing;
+  return fits(n.x - facing * CAST.bellhop.hold) ? ((-facing) as 1 | -1) : facing;
+}
+
 /** The bellhop: grips his cart, winds up, shoves it at him, follows it where it stops and wheels it home. */
 function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.bellhop;
@@ -177,6 +185,14 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
       setAct(n, "idle");
       return;
     }
+    // Walked into something on the way (the desk, with the cart beyond it): the cart is given up on, and the
+    // ticket with it, until it moves again.
+    if (n.blocked) {
+      n.vx = 0;
+      n.mark = cart.x;
+      setAct(n, "idle");
+      return;
+    }
     const stopped = cart.onGround && Math.abs(cart.vx) < 10;
     const want = cart.x - n.facing * c.hold;
     const dx = want - n.x;
@@ -190,7 +206,8 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
       n.vx = 0;
       n.facing = toward(n, h);
       if (cart) {
-        cart.x = n.x + n.facing * c.hold;
+        // Home: the cart keeps its side (the wind-up moves it between them), so nothing jumps.
+        cart.x = n.x + cartSide(n, w, cart, cart.x >= n.x ? 1 : -1) * c.hold;
         cart.vx = 0;
       }
       setAct(n, "idle");
@@ -200,7 +217,8 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
     n.facing = dx > 0 ? 1 : -1;
     n.vx = n.facing * c.walk;
     if (cart) {
-      cart.x = n.x + n.facing * c.hold;
+      // The cart stays on the side he took it up from, led or dragged, unless a solid leaves no room there.
+      cart.x = n.x + cartSide(n, w, cart, cart.x >= n.x ? 1 : -1) * c.hold;
       cart.vx = 0;
       cart.vy = 0;
       cart.y = n.y;
@@ -210,14 +228,16 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
   }
   n.vx = 0;
   if (!cart) return;
-  // A cart out of his hands (bonked away, or he was staggered chasing it) is fetched first.
+  // A cart out of his hands (bonked away, or he was staggered chasing it) is fetched first, unless it is the
+  // one he gave up on, still where it was.
   if (Math.abs(cart.x - n.x) > c.hold + 40) {
-    setAct(n, "chase");
+    if (Math.abs(cart.x - n.mark) > 40) setAct(n, "chase");
     return;
   }
   if (!n.noticed || n.rest > 0 || !sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
-  // The cart goes between him and Hammer before the shove.
+  // The cart goes between him and Hammer before the shove; with no room for it there (the desk), no shove.
   n.facing = toward(n, h);
+  if (cartSide(n, w, cart, n.facing) !== n.facing) return;
   cart.x = n.x + n.facing * c.hold;
   windup(n, w, events);
 }
@@ -446,7 +466,7 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
     return;
   }
   // An attack under way costs a pip; the office worker's coffee goes all over him and he staggers, then rests.
-  if (attacking(n)) {
+  if (attacking(n, h)) {
     w.hits.push(n.x);
     if (n.role === "office") {
       events.push({ type: "castSplash", x: h.x, y: h.y - h.h * 0.6 });

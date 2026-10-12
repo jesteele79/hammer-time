@@ -361,7 +361,8 @@ comes near, says a line in a speech bubble, and goes about the job:
   tables) carrying trays of water. A warning crouch, then a two-second rush;
   the mallet meets her and the glasses shatter into a puddle of water.
 - **Two office workers.** One marches the elevator bank on his phone (it chimes
-  as he closes) and knocks over whoever he walks into. The other hides behind
+  as he closes) and knocks over whoever meets him head-on; walked into from
+  behind, he only staggers. The other hides behind
   the projector screen, his silhouette on the sheet, and leaps out when Hammer
   is near, flinging his coffee: a puddle that staff slip on.
 - **Four students** (three at the mezzanine rail, one sitting on the far

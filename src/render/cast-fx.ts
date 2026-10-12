@@ -18,6 +18,11 @@ export class Flyers {
     layer.addChild(this.root);
   }
 
+  /** Sorted by the look each frame, just behind Hammer. */
+  get container(): Container {
+    return this.root;
+  }
+
   private add(draw: (g: Graphics) => void, x: number, y: number, vx: number, vy: number, spin: number, life: number, onLand: (f: Flyer) => void) {
     const g = new Graphics();
     draw(g);

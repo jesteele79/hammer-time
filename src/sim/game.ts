@@ -376,13 +376,16 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     world.step(input);
     ev.push(...world.events);
     // The cast's points ride their events; the eighth bowl of a chain is a life.
-    for (const e of world.events) {
-      if ("points" in e && e.points) addScore(run, e.points);
-      if (e.type === "chain" && e.oneUp) {
-        run.lives++;
-        ev.push({ type: "oneUp" });
+    const score = (list: GameEvent[]) => {
+      for (const e of list) {
+        if ("points" in e && e.points) addScore(run, e.points);
+        if (e.type === "chain" && e.oneUp) {
+          run.lives++;
+          ev.push({ type: "oneUp" });
+        }
       }
-    }
+    };
+    score(world.events);
     strikeCrates(ev);
     if (tryDoors(input, ev)) return;
     stepCrates(game.crates, STEP);
@@ -390,7 +393,13 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     // Knocked flat on his last pip he is on his way out: nothing he tumbles past is his, no clock punches.
     const lethal = h.move?.kind === "tumble";
     if (!lethal) for (const kind of collectPickups(h, game.pickups, ev)) take(kind, ev);
-    if (run.star > 0) shieldBowl(ev);
+    if (run.star > 0) {
+      // The shield's bowling scores like any other hit on the cast.
+      const bowled: GameEvent[] = [];
+      shieldBowl(bowled);
+      score(bowled);
+      ev.push(...bowled);
+    }
     if (!lethal && game.level.id === "lobby")
       for (const k of game.level.checkpoints)
         if (!run.punched.includes(k.id) && h.x >= k.x) {
