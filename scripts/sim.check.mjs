@@ -200,3 +200,56 @@ test("a landing never holds him: full speed carries through, and a swing or a ju
     }
   }
 });
+
+test("down and jump on a one-way platform drops through it; on the floor or a solid it does nothing of the kind", () => {
+  // The platform sits above a jump's reach from the floor, so the crouch jump below cannot land on it.
+  const st = flat({ platforms: [{ x0: 0, x1: 2000, y: -450 }], solids: [{ x: 3000, y: -180, w: 600, h: 180 }] });
+  const w = createWorld(st, { x: 500, y: -450 });
+  run(w, 0.1);
+  assert.ok(w.hero.onGround && w.hero.y === -450, "standing on the platform");
+  w.step(input({ down: true, jump: true }, { jump: true }));
+  run(w, 0.6);
+  assert.ok(w.hero.onGround && w.hero.y === 0, `dropped to the floor: ${w.hero.y}`);
+  // On the floor or the desk, down + jump is the crouch jump it always was: he may go up, never through.
+  for (const [x, top] of [[500, 0], [3300, -180]]) {
+    const f = createWorld(st, { x, y: top });
+    run(f, 0.1);
+    f.step(input({ down: true, jump: true }, { jump: true }));
+    let low = -Infinity;
+    for (let i = 0; i < 180; i++) {
+      f.step(input({ down: true }));
+      low = Math.max(low, f.hero.y);
+    }
+    assert.ok(low <= top + 1e-6, `never through the surface at ${top}: ${low}`);
+    assert.ok(f.hero.onGround && f.hero.y === top, `back on the surface at ${top}: ${f.hero.y}`);
+  }
+});
+
+test("a belt carries him along it, and running against it still gets him off", () => {
+  const st = flat({ floor: [{ x0: -2000, x1: 1000, y0: 0, y1: 0 }, { x0: 1000, x1: 1900, y0: -520, y1: 0, belt: 200 }, { x0: 1900, x1: 20000, y0: 0, y1: 0 }] });
+  const ride = createWorld(st, { x: 1100, y: -470 });
+  run(ride, 0.1);
+  assert.ok(ride.hero.onGround, "standing on the escalator");
+  const x0 = ride.hero.x;
+  run(ride, 1);
+  assert.ok(ride.hero.x - x0 > 150, `carried down: ${ride.hero.x - x0}`);
+  const up = createWorld(st, { x: 1800, y: -60 });
+  run(up, 0.1);
+  run(up, 3, { left: true, run: true });
+  assert.ok(up.hero.x < 1000, `ran up against it: ${up.hero.x}`);
+});
+
+test("jumping into the underside of a solid bumps it once, at the point he hit", () => {
+  const st = flat({ solids: [{ x: 400, y: -545, w: 110, h: 110 }] });
+  const w = createWorld(st, { x: 455, y: 0 });
+  run(w, 0.1);
+  w.step(input({ jump: true }, { jump: true }));
+  const evs = [...w.events];
+  for (let i = 0; i < 60; i++) {
+    w.step(input({ jump: true }));
+    evs.push(...w.events);
+  }
+  const bumps = evs.filter((e) => e.type === "bump");
+  assert.equal(bumps.length, 1);
+  assert.ok(Math.abs(bumps[0].y + 435) < 1 && bumps[0].x > 400 && bumps[0].x < 510, JSON.stringify(bumps[0]));
+});

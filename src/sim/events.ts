@@ -27,4 +27,6 @@ export type GameEvent =
   /** `dir` is the way he is thrown. */
   | { type: "hurt"; x: number; y: number; dir: 1 | -1 }
   | { type: "tumble"; x: number; y: number; dir: 1 | -1 }
-  | { type: "getUp" };
+  | { type: "getUp" }
+  /** His head met the underside of a solid; the point is inside the solid's bottom edge. */
+  | { type: "bump"; x: number; y: number };

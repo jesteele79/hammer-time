@@ -4,8 +4,8 @@ import type { Puddle, Snot } from "./snot";
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 
-/** A floor the feet follow; sloped when y0 differs from y1. */
-export type FloorSegment = { x0: number; x1: number; y0: number; y1: number };
+/** A floor the feet follow; sloped when y0 differs from y1. `belt` (px/s along x) carries whoever stands on it: an escalator. */
+export type FloorSegment = { x0: number; x1: number; y0: number; y1: number; belt?: number };
 /** Landed on from above only. */
 export type Platform = { x0: number; x1: number; y: number };
 /** A low ceiling: slide under it, never stand under it. */
@@ -66,6 +66,8 @@ export type HeroState = {
   hurtT: number;
   /** Seconds of grace after a hit. */
   invuln: number;
+  /** Seconds one-way platforms let him through after down + jump. */
+  dropT: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

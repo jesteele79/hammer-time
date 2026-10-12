@@ -16,8 +16,10 @@ import {
   JUMP_V0,
   LAND_T,
   MAX_FALL,
+  LEDGE,
   RUN,
   SLIDE_DECEL,
+  SNAP,
   SLIDE_END,
   SLIDE_START,
   WALK,
@@ -26,7 +28,7 @@ import { PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
 import type { Input } from "./input";
 import { HEAT, LOCKING, SINUS_MAX, TIRED } from "./moves";
-import { canStand, moveBody } from "./physics";
+import { canStand, floorAt, floorUnder, moveBody } from "./physics";
 import type { HeroMotion, HeroState, Point, Stage } from "./types";
 
 export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patience?: number };
@@ -61,8 +63,18 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     patience: opts.patience ?? PATIENCE_MAX,
     hurtT: 0,
     invuln: 0,
+    dropT: 0,
   };
 }
+
+/** Seconds one-way platforms let him through after down + jump. */
+const DROP_T = 0.25;
+
+/** Standing on a one-way platform rather than a floor or a solid: the only thing down + jump drops him through. */
+const onPlatform = (h: HeroState, stage: Stage) =>
+  stage.platforms.some((p) => h.x >= p.x0 - LEDGE && h.x <= p.x1 + LEDGE && Math.abs(p.y - h.y) < 1) &&
+  floorAt(stage, h.x, h.y - 1) !== h.y &&
+  !stage.solids.some((s) => Math.abs(s.y - h.y) < 1 && h.x > s.x - h.w / 2 && h.x < s.x + s.w + h.w / 2);
 
 /** Moves `v` toward `target` by at most `step`. */
 const approach = (v: number, target: number, step: number) =>
@@ -70,6 +82,7 @@ const approach = (v: number, target: number, step: number) =>
 
 export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, events: GameEvent[] = []): void {
   const { held, pressed } = input;
+  h.dropT = Math.max(0, h.dropT - dt);
   // The towel, the lecture and a hit hold him still: no steering and no jump until they end.
   const locked = h.move !== null && LOCKING.has(h.move.kind);
   const dir = locked ? 0 : (held.right ? 1 : 0) - (held.left ? 1 : 0);
@@ -111,6 +124,16 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   // The cut comes before the jump starts, so a tap always gets its first full step of rise.
   // Only his own jump: a knockdown's throw is not his to cut short.
   if (!held.jump && !locked && h.state === "jump" && h.vy < -JUMP_CUT) h.vy = -JUMP_CUT;
+  if (pressed.jump && held.down && h.onGround && !locked && onPlatform(h, stage)) {
+    // Down + jump on a one-way platform drops through it instead of jumping.
+    h.dropT = DROP_T;
+    h.onGround = false;
+    h.coyote = 0;
+    h.buffer = 0;
+    h.crouch = false;
+    h.h = HERO_H;
+    h.slideT = 0;
+  }
   const canJump = h.onGround || (h.coyote > 0 && h.state !== "jump");
   if (h.buffer > 0 && canJump && (!h.crouch || canStand(h, stage, HERO_H))) {
     h.crouch = false;
@@ -130,8 +153,12 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   if (Math.abs(h.vy) < APEX_BAND && !h.onGround) g *= APEX_FLOAT;
   h.vy = Math.min(MAX_FALL, h.vy + g * dt);
 
+  if (h.onGround) {
+    const belt = floorUnder(stage, h.x, h.y - SNAP)?.belt;
+    if (belt) h.x += belt * dt;
+  }
   const falling = h.vy;
-  moveBody(h, stage, dt);
+  moveBody(h, stage, dt, (s) => events.push({ type: "bump", x: Math.min(s.x + s.w, Math.max(s.x, h.x)), y: s.y + s.h }));
 
   const prev = h.state;
   let next: HeroMotion;
