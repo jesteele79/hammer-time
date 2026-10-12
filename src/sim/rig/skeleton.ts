@@ -169,16 +169,14 @@ export const HAMMER: Skeleton = { joints: JOINTS, turns: {}, farFloor: FAR_FLOOR
 /**
  * The bones a painted cast body takes Hammer's rest directions for. Each painting reaches its arms
  * a little differently, and every clip and every reach for a rail, a tray or a phone was posed on
- * his; turned to his stance, they land where they land on him.
+ * his; turned to his stance, they land where they land on him. The hands keep their painted angle
+ * and turn with their forearms: turned too, every glove bent at the wrist even standing still.
  */
 export const ARM_BONES: readonly (readonly [JointName, JointName])[] = [
   ["shoulderNear", "elbowNear"],
   ["elbowNear", "wristNear"],
-  ["wristNear", "knuckleNear"],
-  ["knuckleNear", "handNear"],
   ["shoulderFar", "elbowFar"],
   ["elbowFar", "wristFar"],
-  ["wristFar", "handFar"],
 ];
 
 /** A painting's marks: joints in its keyed crop's pixels (facing left, y down), its sole's row and its feet point's x. */

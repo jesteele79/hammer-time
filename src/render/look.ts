@@ -139,11 +139,13 @@ export async function startLook(
   const lighting = createLighting(scene, render.quality, [...lightsOf(LOBBY), ...lightsOf(STASH)]);
   render.onQuality = (q) => lighting.setQuality(q);
   const props = new Props(scene.layers.play, particles, scene.ambient);
-  const cast = new Cast(scene.layers.play, scene.ambient);
+  const cast = new Cast(scene.layers.play, scene.ambient, registry);
   const flyers = new Flyers(scene.layers.play, particles);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   await character.ready;
+  // Every painting the lobby's cast wears, before the first frame, so nobody pops from stand-in to painting.
+  await cast.preload((LOBBY.cast ?? []).map((s) => s.person));
   const headPlate = registry.hammer.heads.neutral!;
 
   const vignette = new Sprite(vignetteTexture());
@@ -772,6 +774,7 @@ export async function startLook(
         feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.castArt = cast.artState();
       window.__next.cast = {
         acts: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, n.act])),
         positions: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, { x: n.x, y: n.y }])),
@@ -895,7 +898,7 @@ export async function startLook(
   };
 }
 
-/** The dev-only loader that forgets every plate but the neutral head and the Affliction body. */
+/** The dev-only loader that forgets every plate but the neutral head and the Affliction body, and the cast's paintings. */
 function stripped(registry: Registry): Registry {
   return {
     ...registry,
@@ -904,6 +907,8 @@ function stripped(registry: Registry): Registry {
       heads: { neutral: registry.hammer.heads.neutral },
       bodies: { affliction: registry.hammer.bodies.affliction },
     },
+    // The cast draws as the stand-ins.
+    cast: { bodies: {}, hat: null },
   };
 }
 

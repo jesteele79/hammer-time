@@ -45,6 +45,10 @@ export type RigFile = {
 export type CastHead = HeadPlate & {
   /** The painted head's height, crown to neck joint, as a share of the whole figure. */
   share: number;
+  /** Plate px per crop px: the plate is stored smaller than the painting. */
+  scale: number;
+  /** Under the chin to the nape, plate px: the head grows above it, the neck below it stays as painted. */
+  jaw?: [[number, number], [number, number]];
   /** White where the head is painted: the rim light's edge. */
   sil: string;
   /** The face edit, knocked silly, framed exactly like the plate. */

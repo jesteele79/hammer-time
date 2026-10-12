@@ -964,6 +964,8 @@ export async function castRig(person, keyed, cuts) {
     face: head.face,
     nose: head.nose,
     share: Math.round(share * 1000) / 1000,
+    scale: TEXTURE_SCALE,
+    ...(cuts.jaw ? { jaw: cuts.jaw.map(([x, y]) => [Math.round((x - head.box.x) * TEXTURE_SCALE), Math.round((y - head.box.y) * TEXTURE_SCALE)]) } : {}),
   };
   return { rig: out, images, layers, W, H, head };
 }

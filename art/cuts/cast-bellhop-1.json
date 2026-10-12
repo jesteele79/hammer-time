@@ -1,6 +1,10 @@
 {
- "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/bellhop-1.png. Layers as in hammer-body.json, plus head: everything above the collar's top edge, claimed after the torso (so the collar stays with the jacket) and drawn behind it; its fill paints the neck on down under the collar. rig.joints are the painted joints; the neck joint sits on the collar's top edge at the neck's middle (the head turns about it). The arms take Hammer's rest directions in the game (ARM_BONES). Check with: node scripts/art-grid.mjs cast/bellhop-1.",
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/bellhop-1.png. Layers as in hammer-body.json, plus head: everything above the collar's top edge, claimed after the torso (so the collar stays with the jacket) and drawn behind it; its fill paints the neck on down under the collar. rig.joints are the painted joints; the neck joint sits on the collar's top edge at the neck's middle (the head turns about it). The arms take Hammer's rest directions in the game (ARM_BONES). jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. Check with: node scripts/art-grid.mjs cast/bellhop-1.",
  "space": "crop",
+ "jaw": [
+  [325,234],
+  [470,200]
+ ],
  "rig": {
   "sole": 1411,
   "rootX": 468,
@@ -184,11 +188,11 @@
    "fill": [
     {
      "polygon": [
-      [350,270],
-      [478,219],
-      [492,245],
-      [496,330],
-      [352,330]
+      [352,272],
+      [470,222],
+      [478,240],
+      [470,300],
+      [365,300]
      ],
      "from": [
       [345,262],
@@ -228,8 +232,15 @@
     {
      "polygon": [
       [330,320],
-      [545,320],
-      [545,790],
+      [420,300],
+      [478,232],
+      [500,252],
+      [530,292],
+      [550,350],
+      [556,430],
+      [558,520],
+      [561,640],
+      [564,790],
       [330,790]
      ],
      "from": [
@@ -243,16 +254,16 @@
   },
   "armNear": {
    "polygon": [
-    [398,322],
-    [455,310],
-    [520,340],
-    [540,400],
-    [538,470],
-    [505,540],
-    [445,620],
-    [390,690],
-    [345,740],
-    [340,775],
+    [401,335],
+    [470,375],
+    [539,412],
+    [520,444],
+    [495,481],
+    [470,525],
+    [445,581],
+    [425,630],
+    [328,737],
+    [330,778],
     [300,790],
     [285,820],
     [240,870],
@@ -296,8 +307,8 @@
    ],
    "fill": [
     [
-     [491,404],
-     [442,349],
+     [469,424],
+     [419,369],
      [237,531],
      [287,586]
     ]

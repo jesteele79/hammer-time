@@ -1,6 +1,6 @@
 import { Container, Graphics, Matrix, RenderTexture } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
-import type { CastAct } from "../sim/cast";
+import type { CastAct, CastRole } from "../sim/cast";
 import { HEAD_SCALE } from "../sim/constants";
 import type { CastPerson } from "../sim/level";
 import { ACT_SECONDS, castGround, castPose } from "../sim/rig/cast";
@@ -11,7 +11,9 @@ import { plantFeet } from "../sim/rig/feet";
 import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { FAR_FLOOR, HERO_HEIGHT } from "../sim/rig/skeleton";
-import { LOOKS, drawFigure, star } from "./cast";
+import { DAZED, LOOKS, drawCarried, drawFigure, star } from "./cast";
+import { castHeadScale } from "./cast-art";
+import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
 import { drawMissile, drawPuddle } from "./props";
 import { Particles } from "./particles";
 import { wordStar } from "./words";
@@ -22,7 +24,10 @@ import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx"; resolution?: number };
+export type BoardSpec = {
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads";
+  resolution?: number;
+};
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -68,6 +73,8 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
 ];
 const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
+/** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
+const HEAD_SHARES = [0.22, 0.26];
 const STUDENT_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "flee", "hop", "schooled", "duck"];
 /** Floors the slopes board stands him on, degrees: negative rises to the right. */
 const SLOPES = [-30, -15, 0, 15, 30];
@@ -270,7 +277,9 @@ export function createBoards(
     for (let r = 0; r <= rows; r++) bg.rect(150, 50 + r * CELL_H, cols * CELL_W, 2).fill("#343a44");
     for (let c = 0; c <= cols; c++) bg.rect(150 + c * CELL_W, 50, 2, rows * CELL_H).fill("#343a44");
     board.addChild(bg);
+    const arts = await Promise.all(PERSONS.map((p) => loadCastArt(registry, p)));
     PERSONS.forEach((person, row) => {
+      const art = arts[row];
       const t = label(person, "display", 30);
       t.position.set(16, 50 + row * CELL_H + 12);
       board.addChild(t);
@@ -284,19 +293,81 @@ export function createBoards(
         }
         const tt = ACT_SECONDS[act] ? ACT_SECONDS[act] / 3 : 0.4;
         const pose = castPose({ role, act, t: tt, speed: 300, onGround: act !== "fly" && act !== "hop", sit: false, spin: act === "fly" ? 120 : 0, hits: 0 });
-        const solved = solve(pose, -1, HEAD_SCALE, HEAD_PLATE_DEFAULT);
         const look = LOOKS[person];
+        const solved = art
+          ? solve(pose, -1, castHeadScale(look.head ?? art.head.share, art.head), art.head, art.skeleton)
+          : solve(pose, -1, HEAD_SCALE, HEAD_PLATE_DEFAULT);
         const k = look.height / HERO_HEIGHT;
         const dy = groundShift(solved, castGround(act, act !== "fly" && act !== "hop", false));
         const cell = new Container();
         const g = new Graphics();
-        drawFigure(g, solved, look, { role, act, hat: role === "bellhop", prop: true, slimed: false, silhouette: false });
+        const opts = { role, act, hat: role === "bellhop", prop: true, slimed: false, silhouette: false };
+        if (art) {
+          const fig = new PaintedFigure(art);
+          fig.apply(solved, { recolor: null, dazed: DAZED.has(act), hat: opts.hat, silhouette: false });
+          drawCarried(g, solved, opts);
+          cell.addChild(fig.container);
+        } else drawFigure(g, solved, look, opts);
         cell.addChild(g);
         cell.scale.set(k);
         cell.position.set(150 + col * CELL_W + CELL_W * 0.55, 50 + row * CELL_H + CELL_H - 32 + dy * k);
         board.addChild(cell);
       });
     });
+    return snapshot(board, width, height);
+  };
+
+  /** Each painted person beside Hammer at their painted head, 0.22 and 0.26 of their height, for the owner to pick. */
+  const castHeads = async () => {
+    const people: [CastPerson, CastArt][] = [];
+    for (const p of PERSONS) {
+      const a = await loadCastArt(registry, p);
+      if (a) people.push([p, a]);
+    }
+    const cols = 2 + HEAD_SHARES.length;
+    const rows = Math.max(1, people.length);
+    const width = cols * CELL_W + 150;
+    const height = rows * CELL_H + 50;
+    const board = new Container();
+    const bg = new Graphics().rect(0, 0, width, height).fill("#20242b");
+    for (let r = 0; r <= rows; r++) bg.rect(150, 50 + r * CELL_H, cols * CELL_W, 2).fill("#343a44");
+    for (let c = 0; c <= cols; c++) bg.rect(150 + c * CELL_W, 50, 2, rows * CELL_H).fill("#343a44");
+    board.addChild(bg);
+    ["Hammer", "as painted", ...HEAD_SHARES.map(String)].forEach((text, c) => {
+      const t = label(text, "ui", 22);
+      t.position.set(150 + c * CELL_W + 12, 14);
+      board.addChild(t);
+    });
+    const plate = registry.hammer.heads.neutral!;
+    for (const [row, [person, art]] of people.entries()) {
+      const t = label(person, "display", 26);
+      t.position.set(16, 50 + row * CELL_H + 12);
+      const share = label(art.head.share.toFixed(2), "ui", 20);
+      share.position.set(16, 50 + row * CELL_H + 48);
+      board.addChild(t, share);
+      const feet = 50 + row * CELL_H + CELL_H - 32;
+      const hammer = createCharacter(registry, "affliction");
+      board.addChild(hammer.container);
+      await hammer.ready;
+      const hs = solve(CLIPS.idle(0, CTX), -1, HEAD_SCALE, plate);
+      hammer.container.position.set(150 + CELL_W * 0.6, feet + groundShift(hs, "planted"));
+      hammer.apply(hs, "neutral", 0);
+      const k = LOOKS[person].height / HERO_HEIGHT;
+      const role = person.slice(0, -2) as CastRole;
+      [art.head.share, ...HEAD_SHARES].forEach((s, i) => {
+        const pose = castPose({ role, act: "idle", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
+        const solved = solve(pose, -1, castHeadScale(s, art.head), art.head, art.skeleton);
+        const fig = new PaintedFigure(art);
+        fig.apply(solved, { recolor: null, dazed: false, hat: role === "bellhop", silhouette: false });
+        const g = new Graphics();
+        drawCarried(g, solved, { role, act: "idle", hat: role === "bellhop", prop: true, slimed: false, silhouette: false });
+        const cell = new Container();
+        cell.addChild(fig.container, g);
+        cell.scale.set(k);
+        cell.position.set(150 + (i + 1) * CELL_W + CELL_W * 0.55, feet + groundShift(solved, "planted") * k);
+        board.addChild(cell);
+      });
+    }
     return snapshot(board, width, height);
   };
 
@@ -451,6 +522,8 @@ export function createBoards(
           return lobby(CAST_FRAMES);
         case "cast-fx":
           return castFx();
+        case "cast-heads":
+          return castHeads();
       }
     },
   };

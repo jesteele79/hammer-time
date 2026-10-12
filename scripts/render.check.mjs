@@ -528,3 +528,121 @@ test("a body painted with its arms swung still carries every bone's end onto its
         });
       }
 });
+
+import { existsSync } from "node:fs";
+import { castHeadScale, castSkeleton } from "../src/render/cast-art.ts";
+import { castRig, keyOut } from "./art-cut.mjs";
+import { castPose } from "../src/sim/rig/cast.ts";
+import { HERO_HEIGHT } from "../src/sim/rig/skeleton.ts";
+
+/** Every cast person painted and cut: the checks below run on each, so each new cut is held to them. */
+const CAST_PEOPLE = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"].filter(
+  (p) => existsSync(`art/incoming/cast/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`),
+);
+const rigs = new Map();
+/** A person's rig as the sync writes it (no files written). */
+const rigOf = async (person) => {
+  if (!rigs.has(person))
+    rigs.set(person, (await castRig(person, await keyOut(readFileSync(`art/incoming/cast/${person}.png`)), JSON.parse(readFileSync(`art/cuts/cast-${person}.json`, "utf8")))).rig);
+  return rigs.get(person);
+};
+const roleOf = (person) => person.slice(0, -2);
+/** Every act each role plays (the hidden one aside: it is drawn as a silhouette of the idle). */
+const actsOf = (person) =>
+  roleOf(person) === "student"
+    ? ["idle", "walk", "notice", "windup", "attack", "fly", "flee", "hop", "schooled", "duck"]
+    : ["idle", "walk", "notice", "windup", "attack", "recover", "chase", "return", "bumped", "fly", "down", "getup", "leave", "slide", "slip", "frozen"];
+const poseOf = (person, act, t) =>
+  castPose({ role: roleOf(person), act, t, speed: 300, onGround: act !== "fly" && act !== "hop", sit: false, spin: act === "fly" ? 120 : 0, hits: 0 });
+
+test("a head share sizes a painted head: crown to neck is that share of HERO_HEIGHT, the crown at the top", async () => {
+  assert.ok(CAST_PEOPLE.includes("bellhop-1"));
+  for (const person of CAST_PEOPLE) {
+    const rig = await rigOf(person);
+    for (const share of [rig.head.share, 0.22, 0.26]) {
+      const s = solve(REST_POSE, -1, castHeadScale(share, rig.head), rig.head, castSkeleton(rig));
+      assert.ok(Math.abs(s.parts.head.y - s.crown.y - share * HERO_HEIGHT) < 0.5, `${person} share ${share}: ${s.parts.head.y - s.crown.y}`);
+      assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 0.5, `${person}: crown at ${s.crown.y}`);
+    }
+  }
+});
+
+test("every painting carries every bone's end onto its solved joint in every act, facing either way", async () => {
+  for (const person of CAST_PEOPLE) {
+    const rig = await rigOf(person);
+    const skel = castSkeleton(rig);
+    const ends = { positions: rig.bones.flatMap(([, c]) => rig.joints[c]), bones: rig.bones.flatMap((_, b) => [b, 0, 0, 0]), weights: rig.bones.flatMap(() => [1, 0, 0, 0]) };
+    const out = new Float32Array(ends.positions.length);
+    for (const act of actsOf(person))
+      for (const t of [0.05, 0.3, 0.9])
+        for (const facing of [-1, 1]) {
+          const solved = solve(poseOf(person, act, t), facing, castHeadScale(0.22, rig.head), rig.head, skel);
+          skinLayer(out, ends, rig, solved);
+          rig.bones.forEach(([, c], b) => {
+            const d = Math.hypot(out[b * 2] - solved.joints[c].x, out[b * 2 + 1] - solved.joints[c].y);
+            assert.ok(d < 0.5, `${person} ${act} t=${t} facing ${facing}: ${c} is ${d.toFixed(2)} px off`);
+          });
+        }
+  }
+});
+
+// Linear skinning stretches the paint where two bones meet in a sharp pose (Hammer's own long-sleeved suit, through these
+// acts, stretches an arm's edge up to 5.8 times). What turning the arms to his stance must not do is make that worse.
+test("turning a painting's arms to Hammer's stance never stretches its arms or torso more than the untouched painting does", async () => {
+  for (const person of CAST_PEOPLE) {
+    const rig = await rigOf(person);
+    const turned = castSkeleton(rig);
+    const untouched = skeletonFrom({ joints: rig.joints, sole: rig.root[1], rootX: rig.root[0] }, []);
+    for (const name of ["armNear", "armFar", "torso"]) {
+      const layer = rig.layers[name];
+      const out = new Float32Array(layer.positions.length);
+      const worst = (skel) => {
+        let w = 0;
+        for (const act of actsOf(person))
+          for (const t of [0.05, 0.3, 0.9]) {
+            const solved = solve(poseOf(person, act, t), -1, castHeadScale(0.22, rig.head), rig.head, skel);
+            skinLayer(out, layer, rig, solved);
+            const K = bodyScale(solved, rig);
+            for (let i = 0; i < layer.indices.length; i += 3)
+              for (const [a, b] of [[0, 1], [1, 2], [2, 0]]) {
+                const p = layer.indices[i + a],
+                  q = layer.indices[i + b];
+                const painted = K * Math.hypot(layer.positions[p * 2] - layer.positions[q * 2], layer.positions[p * 2 + 1] - layer.positions[q * 2 + 1]);
+                w = Math.max(w, Math.hypot(out[p * 2] - out[q * 2], out[p * 2 + 1] - out[q * 2 + 1]) / painted);
+              }
+          }
+        return w;
+      };
+      const [a, b] = [worst(turned), worst(untouched)];
+      assert.ok(a <= b * 1.1, `${person} ${name}: turned, an edge stretches ${a.toFixed(2)} times; untouched, ${b.toFixed(2)}`);
+      assert.ok(a <= 6, `${person} ${name}: an edge stretches ${a.toFixed(2)} times, past Hammer's suit`);
+    }
+  }
+});
+
+import { taperHead } from "../src/render/cast-art.ts";
+
+test("a painted head grows above its jaw and keeps its painted neck below it, the crown landing where the solve puts it", async () => {
+  for (const person of CAST_PEOPLE) {
+    const rig = await rigOf(person);
+    const h = rig.head;
+    assert.ok(h.jaw && h.scale > 0, `${person}: the cut marks the jaw, and the plate knows its scale`);
+    const [[ax, ay], [bx, by]] = h.jaw;
+    const mid = [(ax + bx) / 2, (ay + by) / 2];
+    // A point 5 plate px below the jaw line's middle, on the neck's side.
+    let n = [-(by - ay), bx - ax];
+    const len = Math.hypot(n[0], n[1]);
+    n = [n[0] / len, n[1] / len];
+    if ((h.crown.x - mid[0]) * n[0] + (h.crown.y - mid[1]) * n[1] < 0) n = [-n[0], -n[1]];
+    const neckPoint = [mid[0] - 5 * n[0], mid[1] - 5 * n[1]];
+    const verts = [h.crown.x, h.crown.y, h.neck.x, h.neck.y, ...neckPoint];
+    const same = taperHead(verts, h, 1);
+    [h.crown.x - h.neck.x, h.crown.y - h.neck.y, 0, 0, neckPoint[0] - h.neck.x, neckPoint[1] - h.neck.y].forEach((v, i) =>
+      assert.ok(Math.abs(same[i] - v) < 1e-6, `${person}: grown by 1 nothing moves (${i})`),
+    );
+    const big = taperHead(verts, h, 1.5);
+    assert.ok(Math.abs(big[1] - 1.5 * (h.crown.y - h.neck.y)) < 1e-6, `${person}: the crown where a whole head 1.5 times as big would put it: ${big[1]}`);
+    assert.ok(Math.abs(big[2]) < 1e-9 && Math.abs(big[3]) < 1e-9, `${person}: the neck anchor stays`);
+    assert.ok(Math.abs(big[4] - (neckPoint[0] - h.neck.x)) < 1e-6 && Math.abs(big[5] - (neckPoint[1] - h.neck.y)) < 1e-6, `${person}: the neck below the jaw stays as painted`);
+  }
+});

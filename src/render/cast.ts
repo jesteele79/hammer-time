@@ -1,5 +1,5 @@
 import { Container, Graphics } from "pixi.js";
-import { HEAD_PLATE_DEFAULT } from "../art/registry";
+import { HEAD_PLATE_DEFAULT, type Registry } from "../art/registry";
 import type { CastAct, CastRole } from "../sim/cast";
 import { HEAD_SCALE, STEP } from "../sim/constants";
 import type { CastPerson, Furniture } from "../sim/level";
@@ -8,6 +8,8 @@ import { solve, type Solved } from "../sim/rig/fk";
 import { groundShift } from "../sim/rig/ground";
 import { HERO_HEIGHT, type JointName } from "../sim/rig/skeleton";
 import type { Point, Snapshot } from "../sim/types";
+import { castHeadScale } from "./cast-art";
+import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
 import { between } from "./interp";
 import { PALETTE, tones } from "./palette";
 
@@ -33,6 +35,8 @@ export type CastLook = {
   backpack?: string;
   lanyard?: boolean;
   braid?: boolean;
+  /** The head's share of the height, crown to neck, the owner picked on the cast-heads board; the painting's own when missing. */
+  head?: number;
 };
 export type FigureOpts = { role: CastRole; act: CastAct; hat: boolean; prop: boolean; slimed: boolean; silhouette: boolean };
 
@@ -197,6 +201,13 @@ function drawProp(g: Graphics, j: Record<JointName, Point>, k: number, f: 1 | -1
   }
 }
 
+/** What the role carries, and the slime: over the painted body as over the stand-in. */
+export function drawCarried(g: Graphics, s: Solved, o: FigureOpts): void {
+  if (o.silhouette) return;
+  drawProp(g, s.joints, s.scale, s.facing, o);
+  if (o.slimed) g.ellipse(s.joints.chest.x, s.joints.chest.y, 26 * s.scale, 18 * s.scale).fill("#8fbf3f").stroke({ width: 3, color: INK });
+}
+
 /** A caricature head on the neck seat: skull, ear, nose, eye, mouth, hair or hat; the front is the way he faces. */
 function drawHead(g: Graphics, s: Solved, look: CastLook, o: FigureOpts) {
   const p = s.parts.head;
@@ -331,26 +342,65 @@ export function star(g: Graphics, x: number, y: number, r: number) {
   g.poly(pts).fill("#ffe14a").stroke({ width: 2, color: INK, join: "round" });
 }
 
-type View = { root: Container; body: Graphics; shadow: Graphics; stars: Graphics; look: CastLook; mask: Graphics | null; air: boolean; squashT: number };
+type View = {
+  root: Container;
+  body: Graphics;
+  /** The person's painting, when it loaded; the stand-in (`body`) otherwise. */
+  painted: PaintedFigure | null;
+  carried: Graphics;
+  shadow: Graphics;
+  stars: Graphics;
+  look: CastLook;
+  mask: Graphics | null;
+  air: boolean;
+  squashT: number;
+};
 const SHADOW_RX = 60;
 /** Dazed: three stars circling the head. */
 const STARS = { n: 3, r: 40, size: 9, rate: 4 } as const;
-const DAZED: ReadonlySet<CastAct> = new Set<CastAct>(["down", "slide", "slip", "getup"]);
+export const DAZED: ReadonlySet<CastAct> = new Set<CastAct>(["down", "slide", "slip", "getup"]);
 /** A landing's squash, the design's 0.09 s. */
 const SQUASH = { x: 1.08, y: 0.92, t: 0.09 } as const;
 /** The lit screen's sheet, below the furniture's top. */
 const SHEET_H = 300;
 
-/** Draws the cast from each snapshot: a stand-in per member on the shared skeleton, stars when dazed, a shadow on the sheet while hiding. */
+/**
+ * Draws the cast from each snapshot: each member from their painting, skinned on their own skeleton, or as the stand-in
+ * when it is missing; stars when dazed, a shadow on the sheet while hiding.
+ */
 export class Cast {
   readonly container = new Container({ label: "cast" });
   private readonly views = new Map<number, View>();
   private readonly crowns = new Map<number, { x: number; y: number; facing: 1 | -1 }>();
+  private readonly arts = new Map<CastPerson, CastArt | null>();
 
-  constructor(layer: Container, ambient: number) {
+  constructor(
+    layer: Container,
+    ambient: number,
+    private readonly registry: Registry | null = null,
+  ) {
     this.container.sortableChildren = true;
     this.container.tint = ambient;
     layer.addChild(this.container);
+  }
+
+  /** Loads the paintings these people wear; anyone whose painting is missing or does not load draws as the stand-in. */
+  async preload(persons: Iterable<CastPerson>): Promise<void> {
+    const reg = this.registry;
+    await Promise.all([...new Set(persons)].map(async (p) => this.arts.set(p, reg ? await loadCastArt(reg, p) : null)));
+  }
+
+  /** Who draws from their painting and who as the stand-in, for the checks. */
+  artState(): { painted: CastPerson[]; standIn: CastPerson[] } {
+    const all = [...this.arts];
+    return { painted: all.filter(([, a]) => a).map(([p]) => p), standIn: all.filter(([, a]) => !a).map(([p]) => p) };
+  }
+
+  /** The painting where it loaded, the stand-in where it did not. */
+  private draw(v: View, s: Solved, o: FigureOpts, recolor: string | null, dazed: boolean): void {
+    if (!v.painted) return drawFigure(v.body, s, v.look, o);
+    v.painted.apply(s, { recolor, dazed, hat: o.hat && o.role === "bellhop", silhouette: o.silhouette });
+    drawCarried(v.carried, s, o);
   }
 
   sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, screens: Furniture[]): void {
@@ -365,18 +415,26 @@ export class Cast {
         const shadow = new Graphics();
         const body = new Graphics();
         const stars = new Graphics();
-        root.addChild(shadow, body, stars);
+        const art = this.arts.get(n.person) ?? null;
+        const painted = art ? new PaintedFigure(art) : null;
+        const carried = new Graphics();
+        root.addChild(shadow, body, ...(painted ? [painted.container] : []), carried, stars);
         this.container.addChild(root);
-        v = { root, body, shadow, stars, look: recolored(LOOKS[n.person], n.recolor), mask: null, air: !n.onGround, squashT: 0 };
+        v = { root, body, painted, carried, shadow, stars, look: recolored(LOOKS[n.person], n.recolor), mask: null, air: !n.onGround, squashT: 0 };
         this.views.set(n.id, v);
       }
       const hidden = n.act === "hide" || (n.hide && n.act === "windup");
       const t = n.actT + alpha * STEP;
       const pose = castPose({ role: n.role, act: n.act, t, speed: Math.abs(n.vx), onGround: n.onGround, sit: n.sit, spin: n.spin, hits: n.hits });
-      const solved = solve(pose, n.facing, HEAD_SCALE, HEAD_PLATE_DEFAULT);
+      const art = v.painted ? this.arts.get(n.person)! : null;
+      const solved = art
+        ? solve(pose, n.facing, castHeadScale(v.look.head ?? art.head.share, art.head), art.head, art.skeleton)
+        : solve(pose, n.facing, HEAD_SCALE, HEAD_PLATE_DEFAULT);
       const k = v.look.height / HERO_HEIGHT;
       const dy = groundShift(solved, castGround(n.act, n.onGround, n.sit));
+      const dazed = DAZED.has(n.act);
       v.body.clear();
+      v.carried.clear();
       v.shadow.clear();
       v.stars.clear();
       if (hidden) {
@@ -394,7 +452,7 @@ export class Cast {
           v.root.mask = v.mask;
         }
         v.mask.clear().rect(sheet.x, sheet.y, sheet.w, sheet.h).fill(0xffffff);
-        drawFigure(v.body, solved, v.look, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: true });
+        this.draw(v, solved, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: true }, n.recolor, dazed);
         // His head on the sheet, so "Got a minute?" has somewhere to hang from.
         this.crowns.set(n.id, { x: n.x + solved.crown.x * k * 0.95, y: sheet.y + sheet.h + 30 + solved.crown.y * k * 0.95, facing: n.facing });
         v.root.zIndex = -1e5;
@@ -415,8 +473,8 @@ export class Cast {
       v.root.scale.set(k * (1 + (SQUASH.x - 1) * q), k * (1 + (SQUASH.y - 1) * q));
       v.root.zIndex = n.y;
       v.shadow.ellipse(0, -dy, SHADOW_RX * v.look.build, 14).fill({ color: 0x000000, alpha: 0.3 });
-      drawFigure(v.body, solved, v.look, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false });
-      if (DAZED.has(n.act)) {
+      this.draw(v, solved, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed);
+      if (dazed) {
         const c = solved.crown;
         for (let i = 0; i < STARS.n; i++) {
           const a = time * STARS.rate + (i * Math.PI * 2) / STARS.n;
