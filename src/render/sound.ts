@@ -1,4 +1,5 @@
 import { AudioBus } from "../game/audio";
+import type { TauntId } from "../game/taunts";
 import type { GameEvent } from "../sim/events";
 
 type Cue = keyof AudioBus & string;
@@ -45,6 +46,8 @@ export type Sound = {
   music(theme: "day" | "cellar" | null): void;
   setHurry(on: boolean): void;
   setMuted(on: boolean): void;
+  /** One of the owner's recordings, by name. */
+  voice(id: TauntId): void;
   /** Schedules the music's next notes: once a frame. */
   tick(): void;
   destroy(): void;
@@ -113,6 +116,10 @@ export function createSound(): Sound {
     },
     setMuted(on) {
       bus.setMuted(on);
+    },
+    voice(id) {
+      played[`voice:${id}`] = (played[`voice:${id}`] ?? 0) + 1;
+      if (sound.unlocked) bus.voice(id);
     },
     tick() {
       // Music asked for before the first key starts once the key unlocks sound.

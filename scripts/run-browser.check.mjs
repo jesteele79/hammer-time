@@ -117,11 +117,44 @@ try {
   await shot("run-stash.png");
   let played = await page.evaluate(() => window.__next.sound.played);
   assert.ok((played["music:cellar"] ?? 0) >= 1, `the stash plays the cellar music: ${JSON.stringify(played)}`);
+  // Cleaned out, the stash stays empty: walking back in he thinks it, then says "They need to get fired."
+  await page.evaluate(() => window.__next.dev.clearShelves());
   await tp(320);
   await page.waitForTimeout(250);
   await hold(["ArrowDown"], 300);
   r = await waitFor((x) => x.level === "lobby", 1500);
   assert.ok(r.level === "lobby" && Math.abs(r.x - 9700) < 5, `back at the staff door: ${r.level} ${r.x}`);
+  await page.waitForTimeout(300);
+  await hold(["ArrowDown"], 300);
+  r = await waitFor((x) => x.level === "stash", 1500);
+  assert.equal(r.level, "stash");
+  await page.waitForFunction(() => window.__next.moves.bubble === "Can't keep one shelf stocked.", {}, { timeout: 2000 });
+  await page.waitForFunction(() => window.__next.moves.bubble === "They need to get fired.", {}, { timeout: 4000 });
+  assert.ok((await page.evaluate(() => window.__next.sound.played["voice:fired"])) >= 1, "the owner's recording plays");
+  assert.equal(await page.evaluate(() => document.querySelector(".next-hud__hint")?.textContent), "Staff stash · cleaned out · ↓ at the cart to go back");
+  await shot("run-stash-empty.png");
+  await tp(320);
+  await page.waitForTimeout(250);
+  await hold(["ArrowDown"], 300);
+  r = await waitFor((x) => x.level === "lobby", 1500);
+  assert.equal(r.level, "lobby");
+
+  // Hot, he slows and the heat bar pulses; boiled over he cannot run until he towels off.
+  await page.evaluate(() => window.__next.dev.heat(100));
+  await page.keyboard.down("ShiftLeft");
+  await page.keyboard.down("ArrowLeft");
+  await page.waitForTimeout(700);
+  const boiledSpeed = Math.abs(await page.evaluate(() => window.__next.hero.vx));
+  assert.ok(boiledSpeed < 300, `boiled over, walking pace: ${boiledSpeed}`);
+  assert.equal(await page.evaluate(() => document.querySelector(".next-hud__bar")?.getAttribute("data-slowed")), "true", "the heat bar pulses");
+  assert.equal(await page.evaluate(() => document.querySelector(".next-hud__hint")?.textContent), "Too hot to run · T to towel off");
+  await shot("run-tired.png");
+  await page.keyboard.up("ArrowLeft");
+  await page.keyboard.up("ShiftLeft");
+  await page.waitForTimeout(200);
+  // The towel cools him back down.
+  await hold(["KeyT"], 100);
+  await page.waitForFunction(() => window.__next.moves.heat < 50, {}, { timeout: 3000 });
   await page.waitForTimeout(200);
   played = await page.evaluate(() => window.__next.sound.played);
   assert.ok((played["music:day"] ?? 0) >= 2, `the day music comes back in the lobby: ${JSON.stringify(played)}`);

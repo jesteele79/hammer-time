@@ -1721,6 +1721,11 @@ button:focus-visible {
 .next-hud__bar[data-level="hot"] > b {
   background: #e0482f;
 }
+/* Heat is slowing him: the bar glows and pulses red until he cools or towels off. */
+.next-hud__bar[data-slowed="true"] {
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.6), 0 0 8px rgb(224 72 47 / 0.75);
+  animation: next-hud-pulse 0.45s ease-in-out infinite alternate;
+}
 .next-hud__pip {
   width: 14px;
   height: 14px;
@@ -2121,7 +2126,8 @@ button:focus-visible {
 }
 @media (prefers-reduced-motion: reduce) {
   .next-hud__segs[data-full="true"] .next-hud__seg,
-  .next-hud__clock[data-hurry="true"] {
+  .next-hud__clock[data-hurry="true"],
+  .next-hud__bar[data-slowed="true"] {
     animation: none;
   }
 }

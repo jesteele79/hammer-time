@@ -1,6 +1,6 @@
 import { PATIENCE_MAX } from "../sim/damage";
 import type { Game } from "../sim/game";
-import { CHARGE_MAX, HEAT, SINUS_MAX } from "../sim/moves";
+import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA } from "../sim/moves";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -25,6 +25,8 @@ export type HudPayload = {
   /** Whole seconds left of a Buc-ee's boost. */
   star: number;
   hot: boolean;
+  /** Heat is slowing him (past half full): the heat bar pulses. */
+  slowed: boolean;
   /** The lecture is off its cooldown: the touch pad lights its button. */
   lecture: boolean;
   /** "Checkpoint saved" shows for two seconds after a punch clock. */
@@ -50,8 +52,12 @@ export function hintOf(game: Game): string {
     return `${d.label} · ${d.opens ?? "closed"}`;
   }
   if (h.crouch) return "Stay low · release ↓ when clear to stand";
-  if (game.level.id === "stash") return "Staff stash · ↓ at the cart to go back";
+  if (game.level.id === "stash") {
+    const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
+    return cleanedOut ? "Staff stash · cleaned out · ↓ at the cart to go back" : "Staff stash · ↓ at the cart to go back";
+  }
   if (game.run.star > 0) return "Buc-ee's boost · nothing can touch you";
+  if (h.boiled) return "Too hot to run · T to towel off";
   if (h.heat >= HEAT.tired) return "Overheated · T to towel off";
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
   if (h.x < EARLY_X) return "F snot rocket · jump into the ! crate for hot pepper";
@@ -91,6 +97,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     hurry: clocked && game.run.time < RUN.hurry,
     star: Math.ceil(game.run.star),
     hot: h.hot,
+    slowed: h.heat > STAMINA.from,
     lecture: h.lectureCd <= 0,
     saved,
     hint: note ?? hintOf(game),
@@ -111,6 +118,7 @@ export const hudKey = (p: HudPayload) =>
     p.time,
     p.star,
     p.hot,
+    p.slowed,
     p.lecture,
     p.saved,
     p.hint,

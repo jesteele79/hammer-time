@@ -106,7 +106,7 @@ export function NextHud({
           <div className="next-hud__row">
             <dt>Heat</dt>
             <dd aria-label={`${Math.round(hud.heat)} percent`}>
-              <span className="next-hud__bar" data-level={level(hud.heat)}>
+              <span className="next-hud__bar" data-level={level(hud.heat)} data-slowed={hud.slowed}>
                 <b style={{ width: `${hud.heat}%` }} />
               </span>
             </dd>

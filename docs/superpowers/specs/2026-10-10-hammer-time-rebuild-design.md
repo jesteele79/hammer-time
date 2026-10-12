@@ -465,7 +465,10 @@ pictures with their logos; his left hand presses his nose through the snot
 rocket (drawn over his face, the second exception after the towel); and each
 power-up has one job: Coke Zero cools 25, three bags of nuts fill the smash,
 Buc-ee's is a ten-second shield that bowls over whatever he runs into, the
-pepper is an extra hit and hot snot.
+pepper is an extra hit and hot snot. Heat is his stamina: from half full his
+speed falls steadily to two-thirds, and boiled over he cannot run until he
+cools below 70. The staff stash is stocked once a run, and walking into it
+cleaned out he says "They need to get fired."
 
 **Restaurant (1-2).** Dining room (tables and booths as platforms, a host
 stand), the kitchen pass (a counter with heat lamps, the service pass to slide

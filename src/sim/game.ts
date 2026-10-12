@@ -38,6 +38,8 @@ export type Game = {
 
 /** A fall this far above the level's bottom edge is a lost life: he is off the screen by then. */
 const FALL_MARGIN = 200;
+/** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
+const STASH_SEED = 7919;
 /** The shipped 20 px door reach at the new scale. */
 const DOOR_REACH = 136;
 /** How far above the slam a crate's bottom may hang and still be shaken open: a jump's bump and then some. */
@@ -58,7 +60,8 @@ export function createGame(levels: Levels, seed: number): Game {
   let timedOut = false;
   /** Down must come up between doors, so arriving with it held never sends him straight back. */
   let armed = true;
-  let stashVisits = 0;
+  /** The stash's shelves this run: stocked on the first visit and never again (owner, 2026-10-12). */
+  let stashStock: { pickups: Pickup[]; crates: Crate[] } | null = null;
   /** The lobby as he left it for the stash. */
   let lobbySave: { pickups: Pickup[]; crates: Crate[]; targets: World["targets"]; facing: 1 | -1; door: DoorSpec } | null = null;
   let exitDoor: DoorSpec | null = null;
@@ -131,6 +134,7 @@ export function createGame(levels: Levels, seed: number): Game {
 
   function newRun(s: number) {
     game.run = createRun(s);
+    stashStock = null;
     begin(0, (game.events = []));
   }
 
@@ -263,12 +267,14 @@ export function createGame(levels: Levels, seed: number): Game {
     if (d.kind === "stash") {
       lobbySave = { pickups: game.pickups, crates: game.crates, targets: world.targets, facing: h.facing, door: d };
       const stash = levels.stash;
-      stashVisits++;
-      game.crates = cratesOf(stash);
-      game.pickups = seedRewards(stash, game.run.seed + stashVisits * 7919);
+      stashStock ??= { pickups: seedRewards(stash, game.run.seed + STASH_SEED), crates: cratesOf(stash) };
+      game.crates = stashStock.crates;
+      game.pickups = stashStock.pickups;
       world.targets = stash.carts.map((x, i) => createCart(i + 1, x));
       enter(stash, stash.spawn);
       game.door = null;
+      const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
+      if (cleanedOut) ev.push({ type: "stashEmpty" });
       return true;
     }
     if (d.kind === "return" && lobbySave) {

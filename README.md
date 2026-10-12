@@ -282,9 +282,12 @@ running move is never restarted.
   wipes his face, flicks the sweat off and shines; heat drains fast. That hand
   and the towel, and the same hand at his nose for the snot rocket, are the
   only things ever drawn over his face.
-- **Heat:** running heats him, resting cools him, and jumps, swings and snot
-  add to it. From 45 he sweats, from 80 he steams and runs slower, and near
-  100 he boils over.
+- **Heat is his stamina:** running (Shift) heats him, walking or standing
+  cools him, and jumps, swings and snot add to it. From half full he slows
+  steadily, running or walking, to two-thirds of his speed when it is full,
+  and the heat bar pulses red. From 45 he sweats, from 60 he pants, from 80 he
+  steams and sweats twice as fast, and near 100 he boils over: then he cannot
+  run at all until he cools below 70. The towel (T) or a Coke Zero cools him.
 
 ### His other acts, his body and the HUD
 
@@ -335,7 +338,9 @@ The lobby (`src/sim/levels/lobby.ts`) runs 16,400 px in three acts:
 The camera eases out to 0.88 over the mezzanine and never shows past the
 level's edges. The staff stash (`src/sim/levels/stash.ts`) has a shelf whose
 jump bumps the Buc-ee's case, a ! crate and the cart back to the lobby; it
-restocks on every visit and its clock never runs.
+is stocked once a run: what he takes stays gone, across visits and lost
+lives, and its clock never runs. Walking into it cleaned out, he thinks
+"Can't keep one shelf stocked." and then says "They need to get fired."
 
 ### The run
 

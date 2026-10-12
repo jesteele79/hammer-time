@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
-import { ASIDES, DAMAGE_LINE, LECTURES } from "../game/lines";
+import { ASIDES, DAMAGE_LINE, LECTURES, TAUNT_LINES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
 import type { GameEvent } from "../sim/events";
@@ -62,6 +62,12 @@ const STEAM_EVERY = 0.08;
 const SWEAT_EVERY = 0.25;
 const STEAM_HEAT = 80;
 const SWEAT_HEAT = 45;
+/** Past this heat he pants, and past STEAM_HEAT he sweats twice as fast: he is tiring (owner, 2026-10-12). */
+const PANT_HEAT = 60;
+const PANT_EVERY = 0.5;
+/** Walking into a cleaned-out stash: a thought, then the owner's recording a beat later. */
+const STASH_THOUGHT = "Can't keep one shelf stocked.";
+const STASH_LINE_AFTER = 1.5;
 /** How far above his feet a floor may be and still be the floor under a foot: a stride up a slope. */
 const STRIDE_UP = 60;
 /** The dev practice hit (G) comes from this far in front of him. */
@@ -211,6 +217,9 @@ export async function startLook(
   let sparkT = 0;
   let shieldShown = false;
   let gifts = 0;
+  let pantT = 0;
+  /** A spoken line waiting for its thought to finish: when it is due, on the scene's clock. */
+  let lineDue: number | null = null;
   let faceOnScreen: Rect | null = null;
   let steamT = 0;
   let sweatT = 0;
@@ -324,6 +333,10 @@ export async function startLook(
         break;
       case "harrumph":
         bubbles.think(ASIDES.anyDayNow.text, 1.6);
+        break;
+      case "stashEmpty":
+        bubbles.think(STASH_THOUGHT, 1.4);
+        lineDue = time + STASH_LINE_AFTER;
         break;
       case "hurt":
         particles.emit("impact", e.x, e.y, 10);
@@ -545,11 +558,23 @@ export async function startLook(
       particles.emit("steam", at.crown.x, at.crown.y, 1);
     }
     sweatT = h.heat > SWEAT_HEAT && m?.kind !== "wipe" ? sweatT + simDt : 0;
-    if (sweatT >= SWEAT_EVERY) {
+    if (sweatT >= (h.heat >= STEAM_HEAT ? SWEAT_EVERY / 2 : SWEAT_EVERY)) {
       sweatT = 0;
       const back = h.facing === 1 ? face.x - 8 : face.x + face.w + 8;
       // Thrown up and back, away from his face; mirrored when he faces left.
       particles.emit("sweat", back, face.y + face.h * 0.25, 1, h.facing === -1);
+    }
+    // Tiring, he pants: puffs out in front of his mouth, quicker the hotter he is.
+    pantT = h.heat >= PANT_HEAT && m?.kind !== "wipe" ? pantT + simDt : 0;
+    if (pantT >= PANT_EVERY * (1.6 - h.heat / 100)) {
+      pantT = 0;
+      const front = h.facing === 1 ? face.x + face.w + 14 : face.x - 14;
+      particles.emit("pant", front, face.y + face.h * 0.72, 2, h.facing === -1);
+    }
+    if (lineDue !== null && time >= lineDue) {
+      lineDue = null;
+      bubbles.say(TAUNT_LINES.fired.text, 1.8);
+      sound.voice("fired");
     }
     drawSmear(m, base, x, drawY, h.facing, face);
     drawShield(x, drawY, y, simDt);
@@ -704,6 +729,13 @@ export async function startLook(
       },
       charge() {
         world.hero.charge = CHARGE_MAX;
+      },
+      heat(n: number) {
+        world.hero.heat = n;
+      },
+      clearShelves() {
+        for (const p of game.pickups) p.taken = true;
+        for (const c of game.crates) c.used = true;
       },
       give(kind: PickupKind) {
         const h = world.hero;

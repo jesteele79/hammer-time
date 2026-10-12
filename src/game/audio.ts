@@ -401,6 +401,19 @@ export class AudioBus {
     return id;
   }
 
+  /** One particular recording now, for a scripted line; skipped while another is playing. */
+  voice(id: TauntId): boolean {
+    if (!this.ctx || !this.master || this.muted || this.yellSrc) return false;
+    const buffer = this.tauntBuffers.get(id);
+    if (!buffer) return false;
+    const at = this.ctx.currentTime;
+    this.playVoice(buffer, at);
+    this.nextTauntAt = Math.max(at + TAUNT_GAP_SECONDS, at + buffer.duration + 0.8);
+    this.lastTaunt = id;
+    this.tauntCount++;
+    return true;
+  }
+
   curse() {
     if (this.muted) return;
     this.stopVoice();

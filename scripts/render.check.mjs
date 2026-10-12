@@ -398,3 +398,24 @@ test("the snot hand goes over his head only up at his nose, and switches where i
     assert.ok(over > 120, `facing ${facing}: the hand is up at his nose through the blow (${over} of 401 frames)`);
   }
 });
+
+test("the HUD says when he is too hot to run, when the stash is cleaned out, and flags the heat bar while it slows him", () => {
+  const g = gameAt(12000);
+  const h = g.world.hero;
+  h.heat = 85;
+  assert.equal(hintOf(g), "Overheated · T to towel off");
+  h.boiled = true;
+  assert.equal(hintOf(g), "Too hot to run · T to towel off");
+  h.boiled = false;
+  h.heat = 40;
+  assert.equal(hudOf(g, null).slowed, false, "below half, full speed");
+  h.heat = 60;
+  assert.equal(hudOf(g, null).slowed, true, "past half, slower");
+  assert.notEqual(hudKey(hudOf(g, null)), (h.heat = 40, hudKey(hudOf(g, null))));
+  g.level = g.levels.stash;
+  g.pickups = [{ id: 1, kind: "can", x: 0, y: 0, taken: true }];
+  g.crates = [];
+  assert.equal(hintOf(g), "Staff stash · cleaned out · ↓ at the cart to go back");
+  g.pickups[0].taken = false;
+  assert.equal(hintOf(g), "Staff stash · ↓ at the cart to go back");
+});

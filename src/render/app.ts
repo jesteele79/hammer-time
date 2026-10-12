@@ -77,7 +77,16 @@ export type NextProbe = {
     events: Record<string, number>;
   };
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
-  dev?: { teleport(x: number, y?: number): void; hit(): void; charge(): void; give(kind: "can" | "nuts" | "bucees" | "pepper"): void };
+  dev?: {
+    teleport(x: number, y?: number): void;
+    hit(): void;
+    charge(): void;
+    give(kind: "can" | "nuts" | "bucees" | "pepper"): void;
+    /** Takes everything in the level he is in, as if he had cleaned it out. */
+    clearShelves(): void;
+    /** Sets his heat. */
+    heat(n: number): void;
+  };
 };
 declare global {
   interface Window {

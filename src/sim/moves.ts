@@ -46,7 +46,13 @@ export const CHARGE_MAX = 10;
 export const SUPER_HOP = 1020;
 export const SUPER_PLUNGE = 1215;
 /** Caps while tired, as fractions of the run and walk speeds. */
-export const TIRED = { run: 0.73, walk: 0.67 } as const;
+/**
+ * Heat is his stamina (owner, 2026-10-12): from half full his top speed, running or walking,
+ * falls steadily to two-thirds when it is full. Boiled over, he cannot run at all.
+ */
+export const STAMINA = { from: 50, floor: 0.66 } as const;
+export const tiredFactor = (heat: number) =>
+  1 - (1 - STAMINA.floor) * Math.min(1, Math.max(0, (heat - STAMINA.from) / (100 - STAMINA.from)));
 
 /**
  * The shipped lecture (src/game/engine.ts `deliverLecture`): 1.4 s from one to the next, delivered

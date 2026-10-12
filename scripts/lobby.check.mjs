@@ -310,7 +310,7 @@ test("↓ at the staff door goes to the stash; ↓ at its cart comes back to the
   g.world.hero.x = 5200;
   stepsG(g, 0.5);
   stepsG(g, 0.1, { down: true });
-  assert.equal(g.pickups.filter((p) => !p.taken).length, 4, "the stash restocks every visit");
+  assert.equal(g.pickups.filter((p) => !p.taken).length, 4, "a second visit finds what he left");
 });
 
 test("a closed door does nothing; the exit walks him in, counts the clock into points and clears the lobby", () => {
@@ -484,4 +484,44 @@ test("the Buc-ee's shield sends a luggage cart he runs into flying, and he keeps
   plain.world.hero.x = 800;
   const quiet = stepsG(plain, 1, { right: true, run: true });
   assert.ok(!quiet.some((e) => e.type === "hit"), "without the shield, running into a cart does nothing to it");
+});
+
+test("the stash is stocked once a run: what he takes stays gone, and walking into it cleaned out he says so", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  const enter = () => {
+    g.world.hero.x = 5200;
+    stepsG(g, 0.3);
+    return stepsG(g, 0.1, { down: true });
+  };
+  const leave = () => {
+    g.world.hero.x = 300;
+    stepsG(g, 0.3);
+    stepsG(g, 0.1, { down: true });
+  };
+  const first = enter();
+  assert.equal(g.level.id, "stash");
+  assert.ok(!first.some((e) => e.type === "stashEmpty"), "stocked on the first visit");
+  const stock = g.pickups.length;
+  g.pickups[0].taken = true;
+  leave();
+  enter();
+  assert.equal(g.pickups.filter((p) => p.taken).length, 1, "what he took stays taken");
+  assert.equal(g.pickups.length, stock, "nothing new on the shelves");
+  g.pickups.forEach((p) => (p.taken = true));
+  g.crates.forEach((c) => (c.used = true));
+  leave();
+  const empty = enter();
+  assert.ok(empty.some((e) => e.type === "stashEmpty"), "cleaned out: he says so");
+  // A lost life does not restock it either.
+  knockOut(g);
+  until(g, (x) => x.mode === "card");
+  play(g);
+  const after = enter();
+  assert.ok(after.some((e) => e.type === "stashEmpty") && g.pickups.every((p) => p.taken), "still empty after a lost life");
+  // A new run stocks it again.
+  g.newRun(8);
+  play(g);
+  const fresh = enter();
+  assert.ok(!fresh.some((e) => e.type === "stashEmpty") && g.pickups.some((p) => !p.taken), "a new run, a stocked stash");
 });

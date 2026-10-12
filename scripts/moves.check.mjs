@@ -69,7 +69,7 @@ test("slow motion never compounds: a second burst keeps the deeper scale and the
 
 import { createWorld } from "../src/sim/world.ts";
 import { STEP, RUN, WALK } from "../src/sim/constants.ts";
-import { MOVE_SECONDS, HEAT, SUPER_HOP, SUPER_PLUNGE, SUPER_CUT, CHARGE_MAX } from "../src/sim/moves.ts";
+import { MOVE_SECONDS, HEAT, SUPER_HOP, SUPER_PLUNGE, SUPER_CUT, CHARGE_MAX, tiredFactor } from "../src/sim/moves.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -170,11 +170,34 @@ test("heat rises running and jumping, falls at rest, and boils once", () => {
   assert.ok(Math.abs(rest.hero.heat - (50 - HEAT.rest * (1 + 6 * STEP))) < 0.05, `resting ${rest.hero.heat}`);
 });
 
-test("hot and tired: at 80 heat the run tops out lower", () => {
-  const w = createWorld(flat(), { x: 100, y: 0 }, { heat: 95 });
+test("heat is his stamina: from half full his top speed falls steadily, to two-thirds when it is full", () => {
+  assert.equal(tiredFactor(0), 1);
+  assert.equal(tiredFactor(50), 1);
+  assert.ok(Math.abs(tiredFactor(75) - 0.83) < 1e-9);
+  assert.ok(Math.abs(tiredFactor(100) - 0.66) < 1e-9);
+  for (let h = 0; h < 100; h += 5) assert.ok(tiredFactor(h + 5) <= tiredFactor(h), "never faster for being hotter");
+  const top = (heat, held) => {
+    const w = createWorld(flat(), { x: 100, y: 0 }, { heat });
+    settle(w);
+    steps(w, 0.5, held);
+    return { vx: w.hero.vx, heat: w.hero.heat };
+  };
+  assert.ok(Math.abs(top(10, { right: true, run: true }).vx - RUN) < 1, "fresh, full speed");
+  const warm = top(80, { right: true, run: true });
+  assert.ok(Math.abs(warm.vx - RUN * tiredFactor(warm.heat)) < 2, `warm run ${warm.vx} at ${warm.heat}`);
+  const walk = top(90, { right: true });
+  assert.ok(Math.abs(walk.vx - WALK * tiredFactor(walk.heat)) < 2, `hot walk ${walk.vx} at ${walk.heat}`);
+});
+
+test("boiled over he cannot run until he cools below 70, and the towel gets him there", () => {
+  const w = createWorld(flat(), { x: 100, y: 0 }, { heat: 100 });
   settle(w);
-  steps(w, 1, { right: true, run: true });
-  assert.ok(w.hero.vx < RUN * 0.75 && w.hero.vx > WALK * 0.6, `tired run ${w.hero.vx}`);
+  assert.ok(w.hero.boiled, "boiling");
+  steps(w, 0.6, { right: true, run: true });
+  assert.ok(w.hero.vx <= WALK * tiredFactor(w.hero.heat) + 1, `walking pace at most: ${w.hero.vx} at ${w.hero.heat}`);
+  w.hero.heat = 60;
+  steps(w, 0.6, { right: true, run: true });
+  assert.ok(w.hero.vx > WALK * 1.2, `cooled, he runs again: ${w.hero.vx}`);
 });
 
 test("snot spends a sinus charge, waits half a second, and the sinus refills", () => {

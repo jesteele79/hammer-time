@@ -56,4 +56,6 @@ export type GameEvent =
   /** The tally counted another whole second of the clock into points. */
   | { type: "tallyTick"; seconds: number }
   | { type: "clear" }
+  /** He walked into a stash he had already cleaned out. */
+  | { type: "stashEmpty" }
   | { type: "mode"; mode: GameMode };
