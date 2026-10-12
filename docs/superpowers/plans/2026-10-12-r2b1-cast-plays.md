@@ -649,7 +649,7 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
 export function spill(w: StrikeWorld, n: Npc, kind: "water" | "coffee"): void;
 // src/sim/snot.ts: Puddle gains kind: "snot" | "water" | "coffee" (stepSnot writes "snot"); stepSnot's world gains cast: Npc[]
 // src/sim/hits.ts: swingContact(h, w: { targets: Target[]; cast: Npc[]; missiles: Missile[]; puddles: Puddle[]; stage: Stage }, events)
-// src/sim/events.ts additions
+// src/sim/events.ts additions (type-only imports: CastRole, CastHitBy from ./cast; MissileKind from ./missiles)
   | { type: "castHit"; id: number; role: CastRole; by: CastHitBy; x: number; y: number; dir: 1 | -1; down: boolean; points: number }
   /** He landed on someone from above; `landed` is false when a student sidestepped. */
   | { type: "stomp"; x: number; y: number; landed: boolean }
@@ -2721,7 +2721,7 @@ export function star(g: Graphics, x: number, y: number, r: number) {
 }
 ```
 
-(The `between` result carries `cast`, so `s.cast` has the interpolated positions and the rest of each record.)
+(The `between` result carries `cast`, so `s.cast` has the interpolated positions and the rest of each record. Add the landing squash the design asks for: each view keeps `air: boolean`; when a member's `onGround` turns true after being false, `squashT = 0.09`; while it runs, `v.root.scale.set(k * 1.08, k * 0.92)` easing back to `k` as `squashT` runs out.)
 
 `src/render/cast-fx.ts`:
 
