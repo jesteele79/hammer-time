@@ -58,4 +58,8 @@ export type GameEvent =
   | { type: "clear" }
   /** He walked into a stash he had already cleaned out. */
   | { type: "stashEmpty" }
+  /** A cast member noticed him: the double-take. */
+  | { type: "castNotice"; id: number; x: number; y: number }
+  /** A cast member says a line (a speech bubble). */
+  | { type: "castLine"; id: number; text: string; seconds: number }
   | { type: "mode"; mode: GameMode };

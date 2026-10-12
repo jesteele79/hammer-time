@@ -1,3 +1,5 @@
+import type { Npc } from "./cast";
+import type { Missile } from "./missiles";
 import type { Move } from "./moves";
 import type { Puddle, Snot } from "./snot";
 
@@ -85,4 +87,4 @@ export type Target = {
   spin: number;
 };
 
-export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[] };
+export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[] };

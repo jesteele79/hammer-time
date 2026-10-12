@@ -1,4 +1,5 @@
 import { HERO_H, SNAP, STEP } from "./constants";
+import { createCast, type Npc } from "./cast";
 import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
 import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
@@ -6,6 +7,7 @@ import { createHero } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { emptyInput, type Input } from "./input";
 import { stageOf, type DoorSpec, type Level } from "./level";
+import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { collectPickups, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
@@ -55,7 +57,8 @@ const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x 
  * A run of the lobby: the world, plus everything the shipped engine kept around it (src/game/engine.ts):
  * the seeded pickups and the crates, score, cans, lives and the clock, punch clocks, deaths and respawn.
  */
-export function createGame(levels: Levels, seed: number): Game {
+/** `cast: false` runs the lobby with nobody in it (the older browser checks). */
+export function createGame(levels: Levels, seed: number, opts: { cast?: boolean } = {}): Game {
   const world = createWorld(stageOf(levels.lobby), levels.lobby.spawn, { patience: RUN.patience });
   let timedOut = false;
   /** Down must come up between doors, so arriving with it held never sends him straight back. */
@@ -63,7 +66,7 @@ export function createGame(levels: Levels, seed: number): Game {
   /** The stash's shelves this run: stocked on the first visit and never again (owner, 2026-10-12). */
   let stashStock: { pickups: Pickup[]; crates: Crate[] } | null = null;
   /** The lobby as he left it for the stash. */
-  let lobbySave: { pickups: Pickup[]; crates: Crate[]; targets: World["targets"]; facing: 1 | -1; door: DoorSpec } | null = null;
+  let lobbySave: { pickups: Pickup[]; crates: Crate[]; targets: World["targets"]; cast: Npc[]; missiles: Missile[]; facing: 1 | -1; door: DoorSpec } | null = null;
   let exitDoor: DoorSpec | null = null;
   let nextPickup = 1000;
   let swingMove: Move | null = null;
@@ -117,6 +120,9 @@ export function createGame(levels: Levels, seed: number): Game {
     Object.assign(world.hero, createHero(at, { patience: RUN.patience, charge }));
     restage();
     world.targets = lobby.carts.map((x, i) => createCart(i + 1, x));
+    world.cast = opts.cast === false ? [] : createCast(lobby, world.targets);
+    world.missiles = [];
+    world.nextMissile = 0;
     world.snot = [];
     world.puddles = [];
     world.hits = [];
@@ -268,12 +274,15 @@ export function createGame(levels: Levels, seed: number): Game {
     armed = false;
     ev.push({ type: "door", kind: d.kind, id: d.id });
     if (d.kind === "stash") {
-      lobbySave = { pickups: game.pickups, crates: game.crates, targets: world.targets, facing: h.facing, door: d };
+      lobbySave = { pickups: game.pickups, crates: game.crates, targets: world.targets, cast: world.cast, missiles: world.missiles, facing: h.facing, door: d };
       const stash = levels.stash;
       stashStock ??= { pickups: seedRewards(stash, game.run.seed + STASH_SEED), crates: cratesOf(stash) };
       game.crates = stashStock.crates;
       game.pickups = stashStock.pickups;
       world.targets = stash.carts.map((x, i) => createCart(i + 1, x));
+      // Nobody works the stash.
+      world.cast = [];
+      world.missiles = [];
       enter(stash, stash.spawn);
       game.door = null;
       const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
@@ -286,6 +295,8 @@ export function createGame(levels: Levels, seed: number): Game {
       game.pickups = save.pickups;
       game.crates = save.crates;
       world.targets = save.targets;
+      world.cast = save.cast;
+      world.missiles = save.missiles;
       enter(levels.lobby, { x: save.door.x, y: save.door.y });
       h.facing = save.facing;
       game.door = save.door;

@@ -27,6 +27,24 @@ export type FurnitureKind =
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
 export type CameraZone = { x0: number; x1: number; zoom: number };
+export type CastPerson = "bellhop-1" | "bellhop-2" | "server-1" | "server-2" | "office-1" | "office-2" | "student-1" | "student-2";
+/**
+ * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
+ * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
+ */
+export type CastSpawn = {
+  id: string;
+  person: CastPerson;
+  x: number;
+  y: number;
+  facing?: 1 | -1;
+  x0?: number;
+  x1?: number;
+  cart?: number;
+  hide?: boolean;
+  sit?: boolean;
+  recolor?: string;
+};
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
@@ -56,6 +74,8 @@ export type Level = Omit<Stage, "floor" | "platforms"> & {
   music: "day" | "cellar";
   /** The x before which the first hint teaches the snot and the ! crate. */
   hints?: { early: number };
+  /** The lobby's people (R2b). */
+  cast?: CastSpawn[];
 };
 
 export const PICKUP_SIZE = 70;

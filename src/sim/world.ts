@@ -1,20 +1,29 @@
+import type { Npc } from "./cast";
+import { stepCast } from "./cast-behavior";
 import { STEP } from "./constants";
 import { damage } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
 import type { Input } from "./input";
+import type { Missile } from "./missiles";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
 import { stepTargets } from "./targets";
 import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
 
-export type WorldOptions = HeroOptions & { targets?: Target[] };
+export type WorldOptions = HeroOptions & { targets?: Target[]; cast?: Npc[] };
 
 export type World = {
   stage: Stage;
   hero: HeroState;
   targets: Target[];
+  /** The lobby's people: stepped after him and the carts. */
+  cast: Npc[];
+  /** Paper planes and coffee in the air. */
+  missiles: Missile[];
+  /** The last missile id handed out. */
+  nextMissile: number;
   snot: Snot[];
   /** The last snot id handed out. */
   nextSnot: number;
@@ -38,6 +47,9 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     stage,
     hero: createHero(spawn, opts),
     targets: opts.targets ?? [],
+    cast: opts.cast ?? [],
+    missiles: [],
+    nextMissile: 0,
     snot: [],
     nextSnot: 0,
     puddles: [],
@@ -54,6 +66,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       for (const from of world.hits.splice(0)) damage(h, world.stage, from, events);
       startMove(h, input, world.snot.length, events);
       steerMove(h);
+      const prevY = h.y;
       stepHero(h, world.stage, input, STEP, events);
       advanceMove(h, STEP, events);
       world.swing = swingContact(h, world.targets, events);
@@ -62,6 +75,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       deliverLecture(h, events);
       stepSnot(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP);
+      stepCast(world, STEP, prevY, input.held.jump, events);
       stepHeat(h, input, STEP, events);
       stepIdle(h, input, STEP, events);
       world.events = events;
@@ -75,6 +89,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         targets: world.targets.map((t) => ({ ...t })),
         snot: world.snot.map((b) => ({ ...b, hit: [...b.hit] })),
         puddles: world.puddles.map((p) => ({ ...p })),
+        cast: world.cast.map((n) => ({ ...n })),
+        missiles: world.missiles.map((m) => ({ ...m })),
       };
     },
   };

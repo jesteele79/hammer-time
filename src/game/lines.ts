@@ -91,6 +91,36 @@ export const RETORTS = [
 
 export const STAFF_SIGHS = ["Sir, I just work here.", "I'll get my manager.", "Noted, sir.", "Wow. Okay."];
 
+/** The lobby cast's new lines (R2b): speech bubbles, never recordings. */
+export const CAST_LINES = {
+  bellhop: {
+    notice: ["Welcome to the Marriott!", "Let me get that for you, sir.", "Right this way, sir.", "Luggage, sir?"],
+    shove: ["Coming through!", "Cart!", "Make way, sir!"],
+    bump: ["Sir, check-in is at four.", "Mind the cart, sir."],
+    down: ["I'll get my manager.", "That's a resort fee, sir."],
+  },
+  server: {
+    warn: ["Can I start you off with some waters?!", "Order up!", "Be right with you!!"],
+    skid: ["Be right with you!", "Still working on that?"],
+    bump: ["Behind you!", "Hot plate!"],
+    down: ["I'm going on break.", "Is Pepsi okay? No? Okay."],
+  },
+  office: {
+    notice: ["Per my last email...", "Quick sync?", "Let's circle back."],
+    march: ["Oh. Were you standing there?"],
+    ambush: ["Got a minute?", "Can we take this offline?"],
+    frozen: "Per my last em\u2014",
+    down: ["I'm putting this in an email.", "Let's circle back."],
+    shaft: "Per my last emaaaail",
+  },
+  student: {
+    notice: ["I'm rating your customer service.", "Say hi to the internet.", "This is going in the group chat.", "Sir, this is a hotel."],
+    heads: "Heads up!",
+    duck: "lol",
+    snot: "EW!",
+  },
+} as const;
+
 
 export const IMPACT_WORDS = ["BONK!", "WHAM!", "CLONK!", "THWACK!"];
 

@@ -3,6 +3,7 @@ import type { GameEvent } from "./events";
 import { SWING_ACTIVE, moveU, type Move } from "./moves";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
+import { sweptHeadHits } from "./geometry";
 import { knock } from "./targets";
 import type { HeroState, Point, Rect, Target } from "./types";
 
@@ -11,29 +12,7 @@ export const MALLET_R = 36;
 /** The super burst's radius (54 px at 50 tall, scaled by HERO_HEIGHT). */
 export const BURST_R = 367;
 
-/** A head of radius r moving from a to b touches the rect anywhere along the way (slab test on the grown rect). */
-export function sweptHeadHits(a: Point, b: Point, r: number, rect: Rect): boolean {
-  let lo = 0;
-  let hi = 1;
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  for (const [p, q] of [
-    [-dx, a.x - rect.x + r],
-    [dx, rect.x + rect.w + r - a.x],
-    [-dy, a.y - rect.y + r],
-    [dy, rect.y + rect.h + r - a.y],
-  ]) {
-    if (Math.abs(p) < 1e-9) {
-      if (q < 0) return false;
-      continue;
-    }
-    const t = q / p;
-    if (p < 0) lo = Math.max(lo, t);
-    else hi = Math.min(hi, t);
-    if (lo > hi) return false;
-  }
-  return true;
-}
+export { sweptHeadHits } from "./geometry";
 
 /** Where the mallet head is at move fraction u, in world px, from the same rig the renderer draws. */
 export function malletAt(
