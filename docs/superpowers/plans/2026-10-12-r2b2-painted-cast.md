@@ -40,7 +40,8 @@
 4. The rim light is a warm copy of the figure's silhouette drawn behind it, a few pixels toward the nearest lamp, fading over 1300 px; off at the low quality tier.
 5. The projector silhouette is the painted figure darkened, so it has the person's real outline.
 6. The stand-in stays per person: anyone whose painting is not in, not cut or not loaded is drawn as the stand-in; `&noart=1` draws everyone as stand-ins.
-7. R2b-1's cheap deferred minors are fixed first (Task 1); the costly ones stay deferred (the cart's snap at a wind-up toward the other side, ticket timing, posture colliders, the plane line-of-sight check, the shaft line, the board-only overlaps).
+7. The hat's painting has a long chin-strap loop under it: on a bellhop's head the hat is drawn cut at its base (the loop would cross his face); knocked off and flying, the whole hat shows, strap and all.
+8. R2b-1's cheap deferred minors are fixed first (Task 1); the costly ones stay deferred (the cart's snap at a wind-up toward the other side, ticket timing, posture colliders, the plane line-of-sight check, the shaft line, the board-only overlaps).
 
 ---
 
@@ -1705,12 +1706,15 @@ export async function hatBase(png) {
     const meta = await sharp(png).metadata();
     const base = await hatBase(png);
     writeFileSync(join(OUT, "cast/bellhop-hat.png"), png);
-    registry.cast.hat = { file: "cast/bellhop-hat.png", width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
+    // Worn, the long chin-strap loop the painting hangs below the hat would cross the face: the head wears the hat cut at its base.
+    const worn = await sharp(png).extract({ left: 0, top: 0, width: meta.width, height: Math.min(meta.height, base.y + 2) }).png().toBuffer();
+    writeFileSync(join(OUT, "cast/bellhop-hat-worn.png"), worn);
+    registry.cast.hat = { file: "cast/bellhop-hat.png", worn: "cast/bellhop-hat-worn.png", width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
     console.log(`cast hat: ${meta.width}x${meta.height}, sits at ${base.x},${base.y}`);
   }
 ```
 
-`src/art/registry.ts`: `Prop` gains `/** A hat's width at its base, in its own pixels. */ span?: number;`.
+`src/art/registry.ts`: `Prop` gains `/** A hat's width at its base, in its own pixels. */ span?: number;` and `/** The hat as worn: cut at its base, the strap left off (same top-left, so the same pivot). */ worn?: string;`.
 
 `src/render/cast-art.ts`:
 
@@ -1720,9 +1724,9 @@ export const hatWorldWidth = (head: CastHead, share: number, height: number): nu
   ((head.hat?.width ?? 0) * castHeadScale(share, head) * height) / head.height;
 ```
 
-`src/render/cast-body.ts`: `CastArt` gains `hat: { texture: Texture; plate: Prop } | null`; `loadCastArt` loads `registry.cast.hat.file` for bellhops whose rig has `head.hat` and fills it; `PaintedFigure`'s constructor adds, when `art.hat && art.head.hat`, a `Sprite` in `this.head` anchored at the plate's `pivot`, placed at `(head.hat.x - head.neck.x, head.hat.y - head.neck.y)` (the head container is in plate pixels about the neck) and scaled `head.hat.width / plate.span`; `apply` sets its `visible = o.hat` and its tint like the head's. The hat lives in the head's container, so it turns, flips and sizes with the head.
+`src/render/cast-body.ts`: `CastArt` gains `hat: { texture: Texture; plate: Prop } | null`; `loadCastArt` loads `registry.cast.hat.worn` (or `.file` when there is no worn cut) for bellhops whose rig has `head.hat` and fills it; `PaintedFigure`'s constructor adds, when `art.hat && art.head.hat`, a `Sprite` of that texture in `this.head` anchored at the plate's `pivot`, placed at `(head.hat.x - head.neck.x, head.hat.y - head.neck.y)` (the head container is in plate pixels about the neck) and scaled `head.hat.width / plate.span`; `apply` sets its `visible = o.hat` and its tint like the head's. The hat lives in the head's container, so it turns, flips and sizes with the head.
 
-`src/render/cast.ts`: the stand-in's hat is unchanged; `hat()` returns, from bellhop-1's art, `{ texture, pivot, scale: hatWorldWidth(head, LOOKS["bellhop-1"].head ?? head.share, LOOKS["bellhop-1"].height) / plate.span }`, or null without the painted hat.
+`src/render/cast.ts`: the stand-in's hat is unchanged; `hat()` returns, from bellhop-1's art, the whole hat, strap and all (loaded from `registry.cast.hat.file`), `{ texture, pivot, scale: hatWorldWidth(head, LOOKS["bellhop-1"].head ?? head.share, LOOKS["bellhop-1"].height) / plate.span }`, or null without the painted hat.
 
 `src/render/cast-fx.ts`: `Flyer.g` becomes `Container`; `add` takes a ready `Container` instead of a draw function (the two code-drawn props build their `Graphics` first); `setHat(texture, pivot, scale)` keeps them; `hat()` draws the painted hat when set (a `Sprite`, anchored at its pivot, `scale.set(dir * -scale, scale)` so its front leads), the code-drawn one otherwise.
 
