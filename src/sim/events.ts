@@ -71,4 +71,14 @@ export type GameEvent =
   | { type: "castFlee"; id: number; x: number; y: number; points: number }
   /** Someone went down the open shaft. */
   | { type: "castFell"; id: number; x: number; y: number; points: number }
+  /** An attack's telegraph: the ! burst and its sound. */
+  | { type: "castWindup"; id: number; role: CastRole; x: number; y: number }
+  /** The attack itself: a shove, a rush, a fling, a throw. */
+  | { type: "castAttack"; id: number; role: CastRole; x: number; y: number }
+  /** He walked into someone who was not attacking: a nudge and a line, no pip. */
+  | { type: "castBump"; id: number; x: number; y: number }
+  /** The office worker's coffee, all over him. */
+  | { type: "castSplash"; x: number; y: number }
+  /** A marching office worker's phone, as he closes in. */
+  | { type: "chime"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

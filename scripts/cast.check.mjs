@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { STEP } from "../src/sim/constants.ts";
 import { createWorld } from "../src/sim/world.ts";
 import { createCast, CAST, CAST_ID } from "../src/sim/cast.ts";
+import { attackers } from "../src/sim/cast-behavior.ts";
 import { createCart } from "../src/sim/targets.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
@@ -187,4 +188,77 @@ test("knocked below the level, a cast member is gone: OUT OF ORDER, 500", () => 
   const evs = steps(w, 0.5);
   assert.deepEqual(of(evs, "castFell").map((e) => [e.id, e.points]), [[o.id, 500]]);
   assert.equal(o.alive, false);
+});
+
+test("a server warns for 0.45 s, then rushes at 420 for up to 2 s or 1000 px, skids, rests, and only the rush hurts", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 900, y: 0, x0: 700, x1: 1100 }], { x: 300, y: 0 });
+  const evs = until(w, () => npc(w, "s").act === "windup", 2);
+  const s = npc(w, "s");
+  assert.equal(s.act, "windup");
+  assert.ok(of(evs, "castWindup").some((e) => e.id === s.id && e.role === "server"), "the ! burst");
+  assert.ok(of(evs, "castLine").some((e) => e.text.includes("waters") || e.text === "Order up!" || e.text.includes("Be right")));
+  assert.equal(w.hits.length, 0, "nothing hurts during the warning");
+  const t0 = s.actT;
+  until(w, () => npc(w, "s").act === "attack", 1);
+  assert.ok(CAST.server.windup - t0 <= 0.46 && s.act === "attack" && Math.abs(s.vx) === CAST.server.rush && s.facing === -1);
+  const start = s.x;
+  until(w, () => npc(w, "s").act !== "attack", 3);
+  assert.equal(s.act, "recover");
+  assert.ok(Math.abs(s.x - start) <= CAST.server.rushPx + 20, `no further than 1000: ${Math.abs(s.x - start)}`);
+  until(w, () => npc(w, "s").act !== "recover", 3);
+  assert.ok(["idle", "walk"].includes(s.act), "back to work");
+});
+
+test("a rushing server who reaches him costs one pip; walking into one who is not attacking only bumps her with a line", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 700, y: 0 }], { x: 300, y: 0 });
+  until(w, () => npc(w, "s").act === "attack", 3);
+  const evs = until(w, (x) => x.hero.patience < 3, 2);
+  assert.equal(w.hero.patience, 2, "one pip");
+  assert.ok(of(evs, "hurt").length === 1);
+  const calm = worldWith([{ id: "s", person: "server-1", x: 700, y: 0 }], { x: 300, y: 0 });
+  calm.cast[0].noticed = true;
+  calm.cast[0].rest = 99;
+  const bumped = until(calm, (x) => x.hero.x > 650, 3, { right: true, run: true });
+  assert.equal(calm.hero.patience, 3, "no pip");
+  assert.ok(of(bumped, "castBump").length >= 1 && of(bumped, "castLine").length >= 1, "a nudge and a line");
+  assert.ok(["bumped", "idle", "walk"].includes(calm.cast[0].act));
+});
+
+test("at most two attack at once: a third waits for a ticket", () => {
+  const w = worldWith(
+    [{ id: "a", person: "server-1", x: 600, y: 0 }, { id: "b", person: "server-2", x: 650, y: 0 }, { id: "c", person: "server-1", x: 700, y: 0 }],
+    { x: 300, y: 0 },
+  );
+  let most = 0;
+  for (let i = 0; i < Math.round(4 / STEP); i++) { w.step(input()); most = Math.max(most, attackers(w.cast)); }
+  assert.equal(most, 2);
+  assert.ok(w.cast.some((n) => n.act === "windup" || n.act === "attack" || n.rest > 0), "the third got its turn once a ticket came back");
+});
+
+test("an office worker marches head-down at 160, chimes at 400 px, hits once on contact and spills coffee, then rests 2 s", () => {
+  const w = worldWith([{ id: "o", person: "office-1", x: 1200, y: 0, x0: 600, x1: 1400 }], { x: 300, y: 0 });
+  const o = npc(w, "o");
+  assert.ok(Math.abs(o.vx) === CAST.office.march);
+  const evs = until(w, (x) => x.hero.patience < 3, 8, { right: true });
+  assert.ok(of(evs, "chime").length === 1, "one chime on the approach");
+  assert.equal(w.hero.patience, 2);
+  assert.ok(of(evs, "castSplash").length === 1 && of(evs, "castLine").some((e) => e.text === "Oh. Were you standing there?"));
+  assert.ok(o.rest > 1.5 && o.act === "bumped", "he staggers and rests");
+  const more = steps(w, 1.6);
+  assert.equal(of(more, "hurt").length, 0, "not twice inside his rest and Hammer's grace");
+});
+
+test("her rush landing on him in the step his mallet lands on her: one pip, one knockdown, the attack over", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 760, y: 0 }], { x: 300, y: 0 });
+  const s = npc(w, "s");
+  until(w, () => npc(w, "s").act === "attack", 3);
+  w.hero.facing = 1;
+  // Swing as she arrives: the strike window opens 0.14 s in, about when she reaches him.
+  until(w, () => Math.abs(npc(w, "s").x - w.hero.x) < 320, 2);
+  press(w, "hammer");
+  const evs = steps(w, 0.6);
+  assert.equal(of(evs, "castHit").length, 1);
+  assert.ok(w.hero.patience >= 2, `at most one pip: ${w.hero.patience}`);
+  assert.ok(["fly", "down"].includes(s.act));
+  assert.equal(attackers(w.cast), 0, "the ticket is back");
 });
