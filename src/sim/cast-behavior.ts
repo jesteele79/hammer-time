@@ -232,7 +232,8 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
     return;
   }
   if (n.act === "attack") {
-    if (n.actT >= 0.3) setAct(n, "idle");
+    // The throw's follow-through.
+    if (n.actT >= 0.4) setAct(n, "idle");
     return;
   }
   // Out of melee: a hop back when he closes in on their floor, once every 1.5 s.

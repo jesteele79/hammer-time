@@ -9,6 +9,9 @@ import { createCart } from "../src/sim/targets.ts";
 import { createGame } from "../src/sim/game.ts";
 import { LOBBY } from "../src/sim/levels/lobby.ts";
 import { STASH } from "../src/sim/levels/stash.ts";
+import { castPose, castGround, ACT_SECONDS } from "../src/sim/rig/cast.ts";
+import { solve } from "../src/sim/rig/fk.ts";
+import { JOINT_NAMES } from "../src/sim/rig/skeleton.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -575,4 +578,56 @@ test("the Game scores the cast: a knockdown 100, a chain's points, and the eight
   stepsG(c, 3);
   assert.equal(c.run.score, 100 + 200 + 400 + 800 + 1000 + 2000 + 4000 + 8000, "one chain through the row");
   assert.equal(c.run.lives, lives + 1, "the eighth is a life");
+});
+
+const ACTS = ["idle", "walk", "notice", "windup", "attack", "recover", "chase", "return", "hide", "bumped", "fly", "down", "getup", "leave", "slide", "slip", "frozen", "schooled", "duck", "hop", "flee"];
+const ROLES = ["bellhop", "server", "office", "student"];
+const ctx = (role, act, t, extra = {}) => ({ role, act, t, speed: 300, onGround: true, sit: false, spin: 0, hits: 0, ...extra });
+
+test("every act of every role animates without a jump: no joint turns more than 9 degrees in one step", () => {
+  const bad = [];
+  for (const role of ROLES)
+    for (const act of ACTS) {
+      const seconds = ACT_SECONDS[act] || 2;
+      let worst = 0;
+      let last = castPose(ctx(role, act, 0));
+      for (let t = STEP; t <= seconds; t += STEP) {
+        const p = castPose(ctx(role, act, t));
+        for (const j of JOINT_NAMES) worst = Math.max(worst, Math.abs(p.rot[j] - last.rot[j]));
+        worst = Math.max(worst, Math.abs(p.lean - last.lean), Math.abs(p.headTilt - last.headTilt), Math.abs(p.root.y - last.root.y) / 4);
+        last = p;
+      }
+      if (worst > 9) bad.push(`${role} ${act}: a step of ${worst.toFixed(1)}`);
+    }
+  assert.deepEqual(bad, []);
+});
+
+test("walking swings the hips and the arms, and the students sit when seated", () => {
+  const hips = [];
+  for (let t = 0; t < 1; t += 0.05) hips.push(castPose(ctx("server", "walk", t)).rot.hipNear);
+  assert.ok(Math.max(...hips) - Math.min(...hips) >= 30, "the hips swing");
+  const arms = [];
+  for (let t = 0; t < 1; t += 0.05) arms.push(castPose(ctx("server", "walk", t)).rot.shoulderFar);
+  assert.ok(Math.max(...arms) - Math.min(...arms) >= 15, "the free arm swings");
+  const seated = castPose(ctx("student", "idle", 0, { sit: true }));
+  assert.ok(seated.rot.hipNear > 70 && seated.rot.kneeNear < -70, "legs folded");
+  assert.equal(castGround("idle", true, true), "body");
+});
+
+test("down, sliding, slipping and schooled rest on the body; flying is free; the rest stand on their feet", () => {
+  assert.equal(castGround("down", true, false), "body");
+  assert.equal(castGround("slide", true, false), "body");
+  assert.equal(castGround("schooled", true, false), "body");
+  assert.equal(castGround("fly", false, false), "none");
+  assert.equal(castGround("walk", true, false), "planted");
+  assert.equal(castGround("hop", false, false), "none");
+});
+
+test("a flying body turns with its spin and lies flat when down from a slide; a tray hand stays up at shoulder height", () => {
+  const p = castPose(ctx("office", "fly", 0.3, { spin: 120 }));
+  assert.equal(p.spin, 120);
+  const slide = castPose(ctx("bellhop", "slide", 0.2));
+  assert.ok(Math.abs(slide.spin) >= 80, "on his back");
+  const s = solve(castPose(ctx("server", "idle", 0.4)), 1, 0.26);
+  assert.ok(s.joints.wristNear.y < s.joints.shoulderNear.y + 30 && s.joints.wristNear.x > s.joints.shoulderNear.x, `the tray hand up in front: ${JSON.stringify(s.joints.wristNear)}`);
 });
