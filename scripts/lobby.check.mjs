@@ -419,3 +419,38 @@ test("the stash's shelf route reaches the Buc-ee's case", () => {
   assert.ok(box.x > shelf.x0 && box.x < shelf.x1, "over the shelf");
   assert.ok(box.y - shelf.y >= -440 && box.y - shelf.y <= -400, "a jump's bump above it");
 });
+
+test("a knockdown or the clock running out beside CLOCK OUT costs a life; it never clears the lobby", () => {
+  const level = { ...mini(), doors: [{ id: "out", kind: "exit", x: 5900, y: 0, label: "CLOCK OUT" }] };
+  const g = createGame({ lobby: level, stash: stashOf() }, 7);
+  play(g);
+  g.world.hero.x = 5600;
+  stepsG(g, 0.1);
+  g.world.hero.patience = 1;
+  g.world.hit(5500);
+  until(g, (x) => x.mode !== "play");
+  assert.equal(g.mode, "dying", "thrown into the door, he still goes down");
+  const t = createGame({ lobby: level, stash: stashOf() }, 7);
+  play(t);
+  Object.assign(t.world.hero, { x: 5650, facing: -1 });
+  stepsG(t, 0.1);
+  t.world.hero.facing = -1;
+  t.run.time = 0.02;
+  until(t, (x) => x.mode !== "play");
+  assert.equal(t.mode, "dying", "out of time, he goes down");
+});
+
+test("the smash breaks a delivery case and opens a crate hanging over the floor in front of him", () => {
+  const level = { ...mini(), solids: [], crates: [{ id: "k", kind: "case", x: 1250, y: -435 }, { id: "p", kind: "pepper", x: 1450, y: -435 }] };
+  const g = createGame({ lobby: level, stash: stashOf() }, 7);
+  play(g);
+  g.world.hero.x = 1000;
+  g.world.hero.charge = 10;
+  stepsG(g, 0.1);
+  g.step(input({ super: true }, { super: true }));
+  const evs = [...g.events, ...until(g, (x) => x.events.some((e) => e.type === "burst"), 3)];
+  evs.push(...stepsG(g, STEP));
+  assert.ok(evs.some((e) => e.type === "burst"), "the slam lands");
+  assert.ok(g.crates.find((c) => c.id === "k").broken, "the case breaks");
+  assert.ok(g.crates.find((c) => c.id === "p").used, "the crate opens");
+});

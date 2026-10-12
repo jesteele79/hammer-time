@@ -34,6 +34,20 @@ const hold = async (keys, ms) => {
   for (const k of keys) await page.keyboard.up(k);
 };
 const shot = (n) => page.screenshot({ path: resolve(out, n) });
+const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+/** The card on screen stays off his face on both phone shapes and the desktop; a screenshot of each. */
+const cardClearOfFace = async (name) => {
+  for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(700);
+    const r = await page.evaluate(() => {
+      const b = document.querySelector(".next-veil__card").getBoundingClientRect();
+      return { card: { x: b.x, y: b.y, w: b.width, h: b.height }, face: window.__next.faceScreen };
+    });
+    assert.ok(!hit(r.card, r.face), `${name} at ${w}x${h}: the card covers his face ${JSON.stringify(r)}`);
+    await shot(`${name}-${w}x${h}.png`);
+  }
+};
 try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on("pageerror", (e) => errors.push(e.message));
@@ -89,11 +103,16 @@ try {
   assert.equal(r.level, "stash");
   await page.waitForTimeout(500);
   await shot("run-stash.png");
+  let played = await page.evaluate(() => window.__next.sound.played);
+  assert.ok((played["music:cellar"] ?? 0) >= 1, `the stash plays the cellar music: ${JSON.stringify(played)}`);
   await tp(320);
   await page.waitForTimeout(250);
   await hold(["ArrowDown"], 300);
   r = await waitFor((x) => x.level === "lobby", 1500);
   assert.ok(r.level === "lobby" && Math.abs(r.x - 9700) < 5, `back at the staff door: ${r.level} ${r.x}`);
+  await page.waitForTimeout(200);
+  played = await page.evaluate(() => window.__next.sound.played);
+  assert.ok((played["music:day"] ?? 0) >= 2, `the day music comes back in the lobby: ${JSON.stringify(played)}`);
 
   // The exit: walk in, the tally, the clear.
   await tp(15700);
@@ -106,22 +125,29 @@ try {
   assert.equal(r.time, 0);
   await page.waitForSelector(".next-veil__card", { timeout: 2000 });
   await shot("run-clear.png");
+  await cardClearOfFace("veil-clear");
 
   // Play again: a fresh run from its card.
   await page.click("text=Play again");
   r = await waitFor((x) => x.mode === "play", 5000);
   assert.deepEqual([r.mode, r.lives, r.score, r.level], ["play", 3, 0, "lobby"], "a fresh run");
 
-  // Three falls down the shaft: game over, and Try again starts over.
-  for (let i = 0; i < 3; i++) {
+  // Two falls down the shaft and a knockdown: game over, and Try again starts over.
+  for (let i = 0; i < 2; i++) {
     await tp(6060, -40);
     await waitFor((x) => x.mode !== "play", 3000);
-    if (i < 2) await waitFor((x) => x.mode === "play", 6000);
+    await waitFor((x) => x.mode === "play", 6000);
   }
+  // Past his respawn grace, two practice hits: the first costs a pip, the last knocks him flat.
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.__next.dev.hit());
+  await page.waitForTimeout(1700);
+  await page.evaluate(() => window.__next.dev.hit());
   r = await waitFor((x) => x.mode === "over", 6000);
   assert.deepEqual([r.mode, r.lives], ["over", 0], "hammer down");
   await page.waitForSelector("text=Hammer down", { timeout: 2000 });
   await shot("run-over.png");
+  await cardClearOfFace("veil-over");
   await page.click("text=Try again");
   r = await waitFor((x) => x.mode === "play", 5000);
   assert.deepEqual([r.mode, r.lives], ["play", 3], "tried again");

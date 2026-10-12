@@ -1,5 +1,5 @@
 import { SNAP, STEP } from "./constants";
-import { CRATE, crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
+import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
 import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero } from "./hero";
@@ -40,6 +40,8 @@ export type Game = {
 const FALL_MARGIN = 200;
 /** The shipped 20 px door reach at the new scale. */
 const DOOR_REACH = 136;
+/** How far above the slam a crate's bottom may hang and still be shaken open: a jump's bump and then some. */
+const SMASH_UP = 600;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 
@@ -183,7 +185,8 @@ export function createGame(levels: Levels, seed: number): Game {
         const c = live.find((k) => near(e, crateRect(k), 1));
         if (c) hit(c, "bump");
       } else if (e.type === "burst") {
-        for (const c of live) if (Math.hypot(c.x - e.x, c.y - CRATE.size / 2 - e.y) <= BURST_R) hit(c, "burst");
+        // The slam shakes everything over the floor within its reach, crates hung at head-bump height included.
+        for (const c of live) if (Math.abs(c.x - e.x) <= BURST_R && e.y - c.y <= SMASH_UP && c.y <= e.y + 1) hit(c, "burst");
       }
     }
     if (h.move !== swingMove) {
@@ -239,7 +242,11 @@ export function createGame(levels: Levels, seed: number): Game {
     const h = world.hero;
     if (!input.held.down) armed = true;
     game.door = game.level.doors.find((d) => Math.abs(h.x - d.x) <= DOOR_REACH && Math.abs(h.y - d.y) < 60) ?? null;
-    const exit = game.level.doors.find((d) => d.kind === "exit" && Math.abs(h.x - d.x) <= EXIT_REACH && h.onGround);
+    // Only a man still on his feet clocks out: not one knocked flat, or out of time, thrown into the door.
+    const standing = h.move?.kind !== "tumble" && !timedOut;
+    const exit = standing
+      ? game.level.doors.find((d) => d.kind === "exit" && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
+      : undefined;
     if (exit) {
       exitDoor = exit;
       world.hits = [];

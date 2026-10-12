@@ -73,6 +73,8 @@ export type Look = {
   togglePause(): void;
   /** A touch button went down or came up. */
   press(action: Action, down: boolean): void;
+  /** His face on the screen, in CSS px, as last drawn: the cards keep clear of it. */
+  face(): Rect | null;
   setMuted(on: boolean): void;
 };
 
@@ -148,7 +150,9 @@ export async function startLook(
       }
       if ((e.code === "KeyP" || e.code === "Escape") && !e.repeat) {
         e.preventDefault();
+        forgetPresses();
         game.togglePause();
+        return;
       }
       down.add(e.code);
       tapped.add(e.code);
@@ -159,6 +163,12 @@ export async function startLook(
   const touchTapped = new Set<Action>();
   const onBlur = () => {
     down.clear();
+    tapped.clear();
+    touchDown.clear();
+    touchTapped.clear();
+  };
+  /** Taps and touches end at a break or a new run: none of them fires on the far side of it. */
+  const forgetPresses = () => {
     tapped.clear();
     touchDown.clear();
     touchTapped.clear();
@@ -185,6 +195,7 @@ export async function startLook(
   let shownPickups = game.pickups;
   let lastMode: GameMode | null = null;
   let savedT = 0;
+  let faceOnScreen: Rect | null = null;
   let steamT = 0;
   let sweatT = 0;
   const counts: Record<string, number> = {};
@@ -455,6 +466,9 @@ export async function startLook(
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
+    const faceTl = scene.toScreen({ x: face.x, y: face.y });
+    const faceBr = scene.toScreen({ x: face.x + face.w, y: face.y + face.h });
+    faceOnScreen = { x: faceTl.x, y: faceTl.y, w: faceBr.x - faceTl.x, h: faceBr.y - faceTl.y };
     const at: Frame = {
       face,
       view: scene.view(),
@@ -502,9 +516,10 @@ export async function startLook(
     objects.sync(game.pickups, game.crates, simDt);
     const door = game.door && (game.door.kind === "stash" || game.door.kind === "return") ? game.door.id : null;
     venues[game.level.id].setDoorGlow(door);
+    // The level's theme while he plays (the stash has its own), silence otherwise; a repeat changes nothing.
+    sound.music(game.mode === "play" ? game.level.music : null);
     if (game.mode !== lastMode) {
       lastMode = game.mode;
-      sound.music(game.mode === "play" ? game.level.music : null);
       opts.onMode?.(game.mode);
     }
     sound.setHurry(game.level.time > 0 && game.run.time < RUN.hurry);
@@ -554,9 +569,7 @@ export async function startLook(
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.headTintChain = character.headTintChain();
-      const tl = scene.toScreen({ x: face.x, y: face.y });
-      const br = scene.toScreen({ x: face.x + face.w, y: face.y + face.h });
-      window.__next.faceScreen = { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
+      window.__next.faceScreen = faceOnScreen;
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,
         bodies: Object.keys(registry.hammer.bodies).length,
@@ -656,11 +669,16 @@ export async function startLook(
       scene.destroy();
     },
     newRun() {
+      forgetPresses();
       game.newRun(newSeed());
       prev = cur = world.snapshot();
     },
     togglePause() {
+      forgetPresses();
       game.togglePause();
+    },
+    face() {
+      return faceOnScreen;
     },
     press(action, isDown) {
       sound.unlock();

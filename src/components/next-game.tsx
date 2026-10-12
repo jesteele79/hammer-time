@@ -61,7 +61,21 @@ export function NextGame({
   const [back, setBack] = useState(false);
   const [best, setBest] = useState(0);
   const [muted, setMuted] = useState(false);
+  const [place, setPlace] = useState<"top" | "bottom">("bottom");
   const touch = useMedia(TOUCH_QUERY);
+  const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear";
+
+  // While a card shows, keep it in the half of the screen away from his face (he may lie low after a fall).
+  useEffect(() => {
+    if (!carded) return;
+    const update = () => {
+      const f = look.current?.face();
+      if (f) setPlace(f.y + f.h / 2 > innerHeight / 2 ? "top" : "bottom");
+    };
+    update();
+    const timer = setInterval(update, 200);
+    return () => clearInterval(timer);
+  }, [carded, mode]);
 
   useEffect(() => setBest(readBest()), []);
 
@@ -141,7 +155,13 @@ export function NextGame({
       {touch && !veiled && hud && (
         <NextTouch onPress={press} ready={{ fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }} />
       )}
-      <NextVeil mode={mode} info={info} onResume={() => look.current?.togglePause()} onNewRun={() => look.current?.newRun()} />
+      <NextVeil
+        mode={mode}
+        info={info}
+        place={place}
+        onResume={() => look.current?.togglePause()}
+        onNewRun={() => look.current?.newRun()}
+      />
     </>
   );
 }

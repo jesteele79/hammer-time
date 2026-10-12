@@ -1909,10 +1909,10 @@ button:focus-visible {
   pointer-events: auto;
 }
 .next-touch__pad--move {
-  grid-template-columns: repeat(2, 58px);
+  grid-template-columns: repeat(2, minmax(48px, 58px));
 }
 .next-touch__pad--act {
-  grid-template-columns: repeat(3, 62px);
+  grid-template-columns: repeat(3, minmax(52px, 62px));
 }
 .next-touch__button {
   height: 48px;
@@ -1965,6 +1965,14 @@ button:focus-visible {
 .next-veil--card {
   pointer-events: none;
   background: linear-gradient(to top, rgb(13 17 24 / 0.6) 0%, rgb(13 17 24 / 0) 45%);
+}
+.next-veil[data-place="top"] {
+  align-items: flex-start;
+  padding: max(16px, 3vh) 16px 0;
+  background: linear-gradient(to bottom, rgb(13 17 24 / 0.82) 0%, rgb(13 17 24 / 0.55) 38%, rgb(13 17 24 / 0) 58%);
+}
+.next-veil--card[data-place="top"] {
+  background: linear-gradient(to bottom, rgb(13 17 24 / 0.6) 0%, rgb(13 17 24 / 0) 45%);
 }
 .next-veil__card {
   width: min(460px, 100%);
@@ -2193,20 +2201,45 @@ button:focus-visible {
     bottom: 96px;
   }
   .next-veil {
-    padding-bottom: 12px;
-  }
-  .next-veil__card {
-    padding: 10px 18px 12px;
+    padding-bottom: 8px;
   }
   .next-veil__title {
-    font-size: 32px;
+    font-size: 30px;
   }
   .next-veil__keys {
-    margin-top: 8px;
     font-size: 11px;
   }
   .next-veil__button {
-    margin-top: 10px;
+    margin-top: 0;
     height: 38px;
+    min-width: 150px;
+  }
+  /* One compact row on a phone on its side, so the card fits above or below his face. */
+  .next-veil[data-place="top"] {
+    padding-top: 8px;
+  }
+  .next-veil__card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px 18px;
+    width: min(780px, 100%);
+    padding: 8px 16px;
+  }
+  .next-veil__eyebrow {
+    display: none;
+  }
+  .next-veil__line,
+  .next-veil__lives,
+  .next-veil__scores {
+    margin: 0;
+  }
+  .next-veil__scores dd {
+    font-size: 22px;
+  }
+  .next-veil__keys {
+    flex-basis: 100%;
+    margin: 0;
   }
 }

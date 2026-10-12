@@ -43,6 +43,29 @@ const touchWorks = async (name) => {
   await page.waitForFunction(() => window.__next.hero.state === "jump", {}, { timeout: 2000 });
   await jump.dispatchEvent("pointerup", { pointerId: 7, isPrimary: true, button: 0 });
 };
+/** A button held as the break card hides the pad lets go; a key tapped on the break does nothing after it. */
+const nothingCarriesOver = async (name) => {
+  // Left: earlier steps leave him against the desk on his right, where a held Right could not move him.
+  const held = page.locator('.next-touch button[aria-label="Left"]');
+  await held.dispatchEvent("pointerdown", { pointerId: 9, isPrimary: true, button: 0 });
+  await page.waitForTimeout(150);
+  await page.click(".next-hud__button[aria-label='Pause']");
+  await page.waitForSelector(".next-veil__card", { timeout: 2000 });
+  await page.keyboard.press("Space");
+  await page.click("text=Back to work");
+  await page.waitForFunction(() => window.__next.run.mode === "play", {}, { timeout: 2000 });
+  const x0 = (await hero()).x;
+  let jumped = false;
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(50);
+    if ((await hero()).state === "jump") jumped = true;
+  }
+  // What he was already doing slides out in a few px; a button still held would keep him walking.
+  const after = await hero();
+  const moved = Math.abs(after.x - x0);
+  assert.ok(Math.abs(after.vx) < 1 && after.state !== "walk" && moved < 150, `${name}: the held Left let go when the pad hid ${JSON.stringify({ moved, ...after })}`);
+  assert.ok(!jumped, `${name}: Space tapped on the break does not jump after it`);
+};
 /** The pause button brings the break card, clear of his face; Back to work takes it away. */
 const pauseWorks = async (name) => {
   await page.click(".next-hud__button[aria-label='Pause']");
@@ -166,6 +189,12 @@ try {
   await hudFits("390x844");
   await touchWorks("390x844");
   await pauseWorks("390x844");
+  await nothingCarriesOver("390x844");
+  // A narrower phone: everything still fits, Jump included.
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.waitForTimeout(500);
+  await hudFits("360x780");
+  await touchWorks("360x780");
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(600);
   await hudFits("844x390");

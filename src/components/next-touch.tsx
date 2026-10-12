@@ -1,4 +1,4 @@
-import type { PointerEvent } from "react";
+import { useEffect, useRef, type PointerEvent } from "react";
 import type { Action } from "@/sim/input";
 
 type Button = { action: Action; label: string; glyph: string };
@@ -27,6 +27,21 @@ export function NextTouch({
   onPress: (action: Action, down: boolean) => void;
   ready: Partial<Record<Action, boolean>>;
 }) {
+  // What the pad holds down now: when it goes away (a card covers the game), it lets go of all of it.
+  const held = useRef(new Set<Action>());
+  const press = useRef(onPress);
+  press.current = onPress;
+  useEffect(() => {
+    const holding = held.current;
+    return () => {
+      for (const a of holding) press.current(a, false);
+      holding.clear();
+    };
+  }, []);
+  const release = (action: Action) => {
+    held.current.delete(action);
+    onPress(action, false);
+  };
   const bind = (action: Action) => ({
     onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -35,11 +50,12 @@ export function NextTouch({
       } catch {
         // A pointer the browser no longer tracks cannot be captured; the press still counts.
       }
+      held.current.add(action);
       onPress(action, true);
     },
-    onPointerUp: () => onPress(action, false),
-    onPointerCancel: () => onPress(action, false),
-    onLostPointerCapture: () => onPress(action, false),
+    onPointerUp: () => release(action),
+    onPointerCancel: () => release(action),
+    onLostPointerCapture: () => release(action),
     onContextMenu: (e: { preventDefault(): void }) => e.preventDefault(),
   });
   const pad = (buttons: Button[], kind: string) => (

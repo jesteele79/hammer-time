@@ -52,22 +52,26 @@ function Scores({ info }: { info: VeilInfo }) {
 
 /**
  * The shell's cards in slate and gold: the venue card before play, the break, game over and the
- * clear. They sit in the lower half over a scrim that fades out before his face (spec §2.1).
+ * clear. They sit in the half of the screen his face is not in, over a scrim that fades out before
+ * it (spec §2.1); on a phone on its side they fold into one compact row.
  */
 export function NextVeil({
   mode,
   info,
+  place = "bottom",
   onResume,
   onNewRun,
 }: {
   mode: GameMode | null;
   info: VeilInfo;
+  /** The half of the screen away from his face. */
+  place?: "top" | "bottom";
   onResume: () => void;
   onNewRun: () => void;
 }) {
   if (mode === "card")
     return (
-      <div className="next-veil next-veil--card">
+      <div className="next-veil next-veil--card" data-place={place}>
         <section className="next-veil__card" aria-live="polite">
           <p className="next-veil__eyebrow">World {info.world}</p>
           <h2 className="next-veil__title">{info.venue}</h2>
@@ -78,7 +82,7 @@ export function NextVeil({
     );
   if (mode === "pause")
     return (
-      <div className="next-veil">
+      <div className="next-veil" data-place={place}>
         <section className="next-veil__card" role="dialog" aria-label="On break">
           <h2 className="next-veil__title">On break</h2>
           <p className="next-veil__keys">
@@ -97,7 +101,7 @@ export function NextVeil({
     );
   if (mode === "over")
     return (
-      <div className="next-veil next-veil--over">
+      <div className="next-veil next-veil--over" data-place={place}>
         <section className="next-veil__card" role="dialog" aria-label="Hammer down">
           <h2 className="next-veil__title">Hammer down</h2>
           <p className="next-veil__line">Absolute bullshit.</p>
@@ -110,7 +114,7 @@ export function NextVeil({
     );
   if (mode === "clear")
     return (
-      <div className="next-veil">
+      <div className="next-veil" data-place={place}>
         <section className="next-veil__card" role="dialog" aria-label="Lobby clear">
           <p className="next-veil__eyebrow">World {info.world}</p>
           <h2 className="next-veil__title">Lobby clear</h2>
