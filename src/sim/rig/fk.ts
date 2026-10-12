@@ -1,6 +1,7 @@
 import { HEAD_PLATE_DEFAULT, HEAD_PLATE_FACING, type HeadPlate } from "../../art/registry";
 import {
   HANDLE_REST_DEG,
+  BODY_SEAT_Y,
   HEAD_SEAT,
   HERO_HEIGHT,
   JOINTS,
@@ -76,9 +77,10 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 /** Standard 2D forward kinematics over the skeleton, then the head plate placed on the neck. */
 export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: HeadPlate = HEAD_PLATE_DEFAULT): Solved {
   const headPx = headScale * HERO_HEIGHT;
-  // The plate stands from its neck anchor to its crown; the body is scaled so that, seated, the crown is HERO_HEIGHT up.
+  // The plate stands from its neck anchor to its crown; the body is scaled so that, seated at
+  // BODY_SEAT_Y, the crown would be HERO_HEIGHT up. The head sits lower than that, in the collar.
   const above = (headPx * (plate.neck.y - plate.crown.y)) / plate.height;
-  const scale = (HERO_HEIGHT - above) / (NECK_REST_Y + HEAD_SEAT.y);
+  const scale = (HERO_HEIGHT - above) / (NECK_REST_Y + BODY_SEAT_Y);
   const rot = (name: JointName) => (pose.rot[name] ?? 0) * DEG;
   const leanMath = -pose.lean * DEG;
 

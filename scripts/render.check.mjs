@@ -137,7 +137,7 @@ test("the towel hand goes over his head only up at his face, and switches where 
       if (now) {
         over++;
         for (const p of [s.joints.wristFar, s.joints.handFar])
-          assert.ok(ahead(p) && p.y < s.joints.neck.y, `facing ${facing}, u ${(k / 400).toFixed(3)}: over his head but not up in front of his neck`);
+          assert.ok(ahead(p) && p.y < s.parts.head.y, `facing ${facing}, u ${(k / 400).toFixed(3)}: over his head but not up in front of his neck`);
       }
       if (now !== was) {
         // Drawn in front or behind, the hand looks the same here: it overlaps neither his head nor his shirt.

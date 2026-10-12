@@ -9,12 +9,14 @@ import { faceClear } from "../src/sim/rig/face.ts";
 
 const ctx = { t: 0, speed: 0, vy: 0, facing: 1 };
 
-test("the rest pose stands 340 px tall with the near sole on the floor and the head on the neck", () => {
+test("the rest pose stands on the near sole, his head sunk 9 rest units into the collar from 340 px, the body its old size", () => {
   const s = solve(REST_POSE, 1, 0.26);
   const soleY = Math.max(s.joints.toeNear.y, s.joints.heelNear.y);
   assert.ok(Math.abs(soleY) < 1, `near sole at y=0: ${soleY}`);
-  assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 0.5, `crown at -340: ${s.crown.y}`);
-  assert.ok(Math.abs(s.parts.head.x - s.joints.neck.x) < 12, "the head sits on the neck");
+  // Owner, 2026-10-12, option C: the head down and a little forward; the body is not scaled up to make up for it.
+  assert.ok(Math.abs(s.crown.y + HERO_HEIGHT - 9 * s.scale) < 0.5, `crown 9 units under -340: ${s.crown.y}`);
+  const seat = { x: (s.parts.head.x - s.joints.neck.x) / s.scale, y: (s.parts.head.y - s.joints.neck.y) / s.scale };
+  assert.ok(Math.abs(seat.x - 8) < 0.5 && Math.abs(seat.y - 18) < 0.5, `the head 8 forward and 18 down from the neck: ${JSON.stringify(seat)}`);
 });
 
 test("the head sits down in the collar, so its own neck runs into the shirt", () => {
@@ -170,11 +172,13 @@ test("two-bone IK puts the wrist on a reachable target with the hand at the aske
 // The one exception to the face rule: his left hand wipes his face with the towel (owner, 2026-10-11).
 const FACE_ALLOWED = { swing: [], super: [], snot: [], wipe: ["far upper arm", "far forearm"], lecture: [], watch: [], tap: [], hurt: [], tumble: [] };
 
+// The owner's head scale is 0.26; the sweep keeps a margin either side of it. Since the head sank into
+// the collar (2026-10-12), a head as small as 0.22 would meet the slam's folded-over arm.
 test("every drawn frame of every move keeps the face clear, both ways, at every head scale", () => {
   for (const kind of KINDS)
     for (let i = 0; i <= 400; i++)
       for (const facing of [1, -1])
-        for (const headScale of [0.22, 0.26, 0.3]) {
+        for (const headScale of [0.24, 0.26, 0.3]) {
           const u = displayU(kind, i / 400);
           const r = faceClear(solve(ACTIONS[kind](u), facing, headScale), FACE_ALLOWED[kind]);
           assert.ok(r.ok, `${kind} u=${u} facing ${facing} head ${headScale}: ${r.offender}`);

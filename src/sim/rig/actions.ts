@@ -76,7 +76,7 @@ const SWING = {
 // Super smash: the hop with the same windmill load, the cut over the top, then the slam:
 // folded forward 45 degrees, squatting, the arm long and the mallet head on the floor ahead.
 const SUPER = {
-  shoulderNear: [[0, HOLD.shoulderNear], [0.14, -91.31], [0.3, -165.31, out], [SUPER_CUT[0], -168.31, linear], [SUPER_CUT[1], -306.31, linear], [0.56, -306.31, out], [0.76, -306.31], [1, HOLD.shoulderNear - 360]] as K,
+  shoulderNear: [[0, HOLD.shoulderNear], [0.14, -91.31], [0.3, -165.31, out], [SUPER_CUT[0], -168.31, linear], [SUPER_CUT[1], -309.31, linear], [0.56, -309.31, out], [0.76, -309.31], [1, HOLD.shoulderNear - 360]] as K,
   elbowNear: [[0, HOLD.elbowNear], [0.14, 0.37], [0.3, 45.37, out], [SUPER_CUT[0], 50.37, linear], [SUPER_CUT[1], -19.63, linear], [0.56, -19.63, out], [0.76, -19.63], [1, HOLD.elbowNear]] as K,
   wristNear: [[0, HOLD.wristNear], [0.14, -36.61], [0.3, -43.61, out], [SUPER_CUT[0], -42.61, linear], [SUPER_CUT[1], -33.61, linear], [0.56, -33.61, out], [0.76, -33.61], [1, HOLD.wristNear]] as K,
   lean: [[0, 0], [0.34, -9, out], [SUPER_CUT[0], -10], [SUPER_CUT[1], 4, linear], [0.56, 45, out], [0.76, 45], [1, 0]] as K,
@@ -119,13 +119,15 @@ const HANG_DEG = angleOf(JOINTS.wristFar.rest, JOINTS.handFar.rest) + FREE;
  * his forehead, flicks the towel forward and down, and goes back to the hang as the mallet
  * comes back up (owner, 2026-10-11: "the most natural look").
  */
-const FACE_LOW: Point = { x: 44, y: 300 };
-const FACE_HIGH: Point = { x: 38, y: 328 };
+/** The head sat 8 units further forward and 9 lower from 2026-10-12; the towel's path at his face follows it. */
+const FACE_SHIFT: Point = { x: 8, y: -9 };
+const FACE_LOW: Point = { x: 44 + FACE_SHIFT.x, y: 300 + FACE_SHIFT.y };
+const FACE_HIGH: Point = { x: 38 + FACE_SHIFT.x, y: 328 + FACE_SHIFT.y };
 const HAND_LOW = 105;
 const HAND_HIGH = 95;
 const HAND_FLICK = 10;
 const FLICK_TURN = 0.08;
-const FLUNG: Point = { x: 100, y: 260 };
+const FLUNG: Point = { x: 100 + FACE_SHIFT.x, y: 260 + FACE_SHIFT.y };
 /** Where a stroke is: 0 low over his mouth, 1 high over his eyes. */
 const rub = (u: number) => 0.5 - 0.5 * Math.cos(((u - WIPE_SCRUB[0]) / (WIPE_SCRUB[1] - WIPE_SCRUB[0])) * Math.PI * 5);
 /** The hand reaches his face a little into the first stroke, so the long swing up has time to ease. */
@@ -139,7 +141,7 @@ const bez = (a: Point, c: Point, b: Point, t: number): Point => ({
 });
 export function wipeHand(u: number): Point {
   // Up from the hang and out in front of him, easing in and out, so the arm rises instead of appearing.
-  if (u < RISE_END) return bez(HANG, { x: 90, y: 330 }, scrubAt(RISE_END), smoother(u / RISE_END));
+  if (u < RISE_END) return bez(HANG, { x: 90 + FACE_SHIFT.x, y: 330 + FACE_SHIFT.y }, scrubAt(RISE_END), smoother(u / RISE_END));
   if (u < WIPE_FLICK[0]) return scrubAt(u);
   if (u < WIPE_FLICK[1]) return mix(FACE_HIGH, FLUNG, smooth((u - WIPE_FLICK[0]) / (WIPE_FLICK[1] - WIPE_FLICK[0])));
   return bez(FLUNG, { x: 60, y: 160 }, HANG, smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16)));

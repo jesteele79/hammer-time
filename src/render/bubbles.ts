@@ -28,7 +28,7 @@ export function bubbleLayout(size: { w: number; h: number }, crown: Point, facin
   if (overlaps(box, face, 2)) box = { ...box, y: fitY(face.y + face.h + GAP) };
   const below = box.y > face.y;
   const from = below
-    ? { x: face.x + face.w / 2 - facing * (face.w / 2 + 14), y: face.y + face.h + 10 }
+    ? { x: face.x + face.w / 2 - facing * (face.w / 2 + 14), y: face.y + face.h + 18 }
     : { x: crown.x - facing * 30, y: crown.y - 6 };
   const to = { x: Math.min(Math.max(from.x, box.x + 20), box.x + box.w - 20), y: below ? box.y : box.y + box.h };
   const puffs = [

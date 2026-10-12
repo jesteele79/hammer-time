@@ -9,10 +9,15 @@ export type Point = { x: number; y: number };
 export const HERO_HEIGHT = 340;
 /**
  * Where the head plate's neck anchor sits, from the neck joint (rest units, facing right,
- * y up): down into the collar, so the head's own neck runs into the shirt instead of
- * standing on the painting's neck.
+ * y up): down into the collar and a little forward, so the head's own neck runs into the
+ * shirt instead of standing on the painting's neck (owner, 2026-10-12: option C).
  */
-export const HEAD_SEAT = { x: 0, y: -9 };
+export const HEAD_SEAT = { x: 8, y: -18 };
+/**
+ * The seat the body's size is worked out from: where the head sat when the owner approved his
+ * build. Sinking the head below it shortens him rather than growing his body to make up for it.
+ */
+export const BODY_SEAT_Y = -9;
 
 export type JointName =
   | "root"

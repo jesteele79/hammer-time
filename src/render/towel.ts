@@ -33,7 +33,8 @@ export function towelChain(anchor: Point, prev: Point[], n: number, len: number)
 export function towelAtFace(solved: Solved): boolean {
   const w = solved.joints.wristFar;
   const n = solved.joints.neck;
-  return w.y < n.y && (w.x - n.x) * solved.facing > 0;
+  // Up past where his head sits on his neck (lower than the neck joint since 2026-10-12), and in front of it.
+  return w.y < solved.parts.head.y && (w.x - n.x) * solved.facing > 0;
 }
 
 /**
