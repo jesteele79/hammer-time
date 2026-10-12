@@ -1,4 +1,6 @@
 /** The registered game art written by `npm run art:sync` to public/art/registry.json. */
+import type { CastPerson } from "../sim/level";
+
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Expression = "neutral" | "angry" | "hurt" | "smug" | "bored" | "chomp";
@@ -26,6 +28,8 @@ export type Registry = {
     props: Record<string, Prop>;
     portrait: HeadPlate | null;
   };
+  /** The cast's paintings (R2b-2): each person's rig file, and the bellhops' hat. Missing from an older sync. */
+  cast?: { bodies: Partial<Record<CastPerson, Body>>; hat: Prop | null };
   backdrops: Record<string, { far?: string }>;
 };
 

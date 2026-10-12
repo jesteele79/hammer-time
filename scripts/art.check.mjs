@@ -15,6 +15,7 @@ import {
   skinWeights,
   LAYER_Z,
   layerZ,
+  castRig,
 } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
@@ -483,4 +484,31 @@ test("each cast body's joints lie on its painting, and its sole is its near shoe
     for (let y = H - 1; y >= 0 && lowest < 0; y--) for (let x = Math.min(tx, hx); x <= Math.max(tx, hx); x++) if (painted(x, y)) lowest = y;
     assert.ok(Math.abs(cuts.rig.sole - lowest) <= 3, `${person}: sole ${cuts.rig.sole}, near shoe's lowest row ${lowest}`);
   }
+});
+
+test("a cast body's rig: five skinned layers, a head plate turning on its neck joint, silhouettes, every file it names", async () => {
+  const { keyed, cuts } = await castOf("bellhop-1");
+  const { rig, images } = await castRig("bellhop-1", keyed, cuts);
+  assert.deepEqual(Object.keys(rig.layers).sort(), [...LAYER_Z].sort());
+  assert.deepEqual(rig.root, [cuts.rig.rootX, cuts.rig.sole]);
+  for (const [name, l] of Object.entries(rig.layers)) {
+    assert.ok(images.has(l.file) && images.has(l.sil), `${name}: its texture and its silhouette`);
+    assert.equal(l.bones.length, l.positions.length * 2, `${name}: four bones a vertex`);
+    for (let v = 0; v < l.positions.length / 2; v++) {
+      const sum = l.weights[v * 4] + l.weights[v * 4 + 1] + l.weights[v * 4 + 2] + l.weights[v * 4 + 3];
+      assert.ok(Math.abs(sum - 1) < 0.01, `${name} vertex ${v}: ${sum}`);
+    }
+  }
+  const sil = await sharp(images.get(rig.layers.torso.sil)).ensureAlpha().raw().toBuffer();
+  let lit = 0;
+  for (let i = 0; i < sil.length; i += 4) if (sil[i + 3] === 255) lit += sil[i] === 255 && sil[i + 1] === 255 && sil[i + 2] === 255 ? 1 : -1000;
+  assert.ok(lit > 1000, "the silhouette is white where the jacket is painted");
+  const h = rig.head;
+  const meta = await sharp(images.get(h.file)).metadata();
+  assert.deepEqual([meta.width, meta.height], [h.width, h.height]);
+  assert.ok(images.has(h.sil));
+  assert.ok(h.crown.y < 10, `the crown at the plate's top: ${h.crown.y}`);
+  assert.ok(h.nose.x < h.width * 0.3, `the face to the left: nose at ${h.nose.x} of ${h.width}`);
+  assert.ok(h.neck.y > h.height * 0.6 && h.neck.y < h.height, `the neck anchor low on the plate: ${h.neck.y} of ${h.height}`);
+  assert.ok(h.share > 0.14 && h.share < 0.24, `the painted head is ${h.share} of him`);
 });

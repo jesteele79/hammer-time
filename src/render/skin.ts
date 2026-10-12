@@ -1,3 +1,4 @@
+import type { HeadPlate } from "../art/registry";
 import type { Solved } from "../sim/rig/fk";
 import { NECK_REST_Y, type JointName } from "../sim/rig/skeleton";
 
@@ -18,6 +19,10 @@ export type RigLayer = {
   weights: ArrayLike<number>;
   /** Other textures over the same mesh, such as the near hand closed into a fist. */
   variants?: Record<string, string>;
+  /** White where it is painted: the rim light's edge (a cast body's). */
+  sil?: string;
+  /** The texture in each recolor, by its hex (a cast body's). */
+  recolors?: Record<string, string>;
 };
 
 /** One body's rig as written by art-sync: the painted joints and bones, and its layers. */
@@ -30,7 +35,28 @@ export type RigFile = {
   joints: Record<string, [number, number]>;
   bones: [JointName, JointName][];
   layers?: Partial<Record<LayerName, RigLayer>>;
+  /** The bones a painted cast body turns to Hammer's stance (ARM_BONES when missing). */
+  match?: [JointName, JointName][];
+  /** A cast body's head, cut from its painting (Hammer's heads are separate plates). */
+  head?: CastHead;
 };
+
+/** A cast body's head: a plate cut from its painting, turning on the painted neck joint. */
+export type CastHead = HeadPlate & {
+  /** The painted head's height, crown to neck joint, as a share of the whole figure. */
+  share: number;
+  /** White where the head is painted: the rim light's edge. */
+  sil: string;
+  /** The face edit, knocked silly, framed exactly like the plate. */
+  silly?: string;
+  recolors?: Record<string, string>;
+  /** Where the bellhops' hat sits (its base's middle) and how wide it is, plate pixels. */
+  hat?: { x: number; y: number; width: number };
+};
+
+/** A layer's or a head's texture in a recolor when it has one, its own otherwise. */
+export const layerTexture = (part: { file?: string; recolors?: Record<string, string> }, recolor: string | null): string =>
+  (recolor ? part.recolors?.[recolor] : undefined) ?? part.file ?? "";
 
 /**
  * The texture a layer draws with: the near hand always as the fist that holds the mallet,

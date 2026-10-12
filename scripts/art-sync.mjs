@@ -19,6 +19,12 @@ import {
   buildMesh,
   skinWeights,
   LAYER_Z,
+  layerZ,
+  castRig,
+  paddedLayer,
+  scaled,
+  MESH_CELL,
+  TEXTURE_SCALE,
 } from "./art-cut.mjs";
 import { ink } from "./ink.mjs";
 
@@ -27,10 +33,6 @@ const HAMMER_IN = "art/incoming/hammer";
 const MANIFEST = "art/manifest.json";
 const EXPRESSIONS = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const COSTUMES = ["affliction", "scrubs", "suit", "banquet"];
-// Mesh cells in crop pixels, and the size the layer textures are stored at (the game draws the
-// body at about a quarter of the crop's size, twice that on a high-density screen).
-const MESH_CELL = 14;
-const TEXTURE_SCALE = 0.5;
 const args = process.argv.slice(2);
 const overlay = args.includes("--overlay");
 const strict = args.includes("--strict");
@@ -161,43 +163,15 @@ async function bodies(registry) {
       const skin = { ...rig.skin, [name]: { ...rig.skin[name], ...(cuts.overrides?.[costume]?.skin?.[name] ?? {}) } };
       const { bones, weights } = skinWeights(mesh.positions, { ...rig, skin }, name);
       // The texture covers the mesh's cells exactly, padded with clear pixels past the crop.
-      const left = Math.max(0, mesh.x0),
-        top = Math.max(0, mesh.y0);
-      const right = Math.min(W, mesh.x0 + mesh.width),
-        bottom = Math.min(H, mesh.y0 + mesh.height);
-      const full = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } })
-        .extract({ left, top, width: right - left, height: bottom - top })
-        .extend({
-          left: left - mesh.x0,
-          top: top - mesh.y0,
-          right: mesh.x0 + mesh.width - right,
-          bottom: mesh.y0 + mesh.height - bottom,
-          background: { r: 0, g: 0, b: 0, alpha: 0 },
-        })
-        .png()
-        .toBuffer();
+      const full = await paddedLayer(rgba, W, H, mesh);
       if (overlay) sheet.push(full);
       const outFile = `hammer/${costume}-${name}.png`;
-      const store = (png, file) =>
-        sharp(png)
-          .resize({ width: Math.round(mesh.width * TEXTURE_SCALE), kernel: "lanczos3" })
-          .png()
-          .toFile(join(OUT, file));
+      const store = async (png, file) => writeFileSync(join(OUT, file), await scaled(png, mesh.width, TEXTURE_SCALE));
       await store(full, outFile);
       // Variants share the layer's mesh, so they cover the same rectangle.
       const variants = {};
       for (const [vname, vrgba] of Object.entries(layers[name].variants ?? {})) {
-        const vfull = await sharp(vrgba, { raw: { width: W, height: H, channels: 4 } })
-          .extract({ left, top, width: right - left, height: bottom - top })
-          .extend({
-            left: left - mesh.x0,
-            top: top - mesh.y0,
-            right: mesh.x0 + mesh.width - right,
-            bottom: mesh.y0 + mesh.height - bottom,
-            background: { r: 0, g: 0, b: 0, alpha: 0 },
-          })
-          .png()
-          .toBuffer();
+        const vfull = await paddedLayer(vrgba, W, H, mesh);
         variants[vname] = `hammer/${costume}-${name}-${vname}.png`;
         await store(vfull, variants[vname]);
         if (overlay) sheet.push(vfull);
@@ -221,6 +195,34 @@ async function bodies(registry) {
     const verts = Object.values(out.layers).reduce((n, l) => n + l.positions.length / 2, 0);
     console.log(`body ${costume}: ${LAYER_Z.length} layers, ${verts} vertices (crop ${keyed.width}x${keyed.height})`);
     if (overlay) await drawLayers(costume, sheet);
+  }
+}
+
+const CAST_IN = "art/incoming/cast";
+const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+
+/** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
+async function cast(registry) {
+  mkdirSync(join(OUT, "cast"), { recursive: true });
+  for (const person of CAST_PERSONS) {
+    const file = join(CAST_IN, `${person}.png`);
+    if (!existsSync(file)) continue;
+    const cutsFile = `art/cuts/cast-${person}.json`;
+    if (!existsSync(cutsFile)) {
+      console.warn(`cast ${person}: painted but not cut yet (no ${cutsFile}); the stand-in draws them`);
+      continue;
+    }
+    const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
+    const { rig, images, layers, W, H } = await castRig(person, await keyOut(readFileSync(file)), cuts);
+    for (const [name, png] of images) writeFileSync(join(OUT, name), png);
+    const rigFile = `cast/${person}-rig.json`;
+    writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
+    registry.cast.bodies[person] = { rig: rigFile, span: rig.span };
+    console.log(`cast ${person}: five layers and the head, the painted head ${rig.head.share} of the figure`);
+    if (overlay) {
+      const sheet = await Promise.all(layerZ(cuts).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer()));
+      await drawLayers(`cast-${person}`, sheet);
+    }
   }
 }
 
@@ -261,12 +263,13 @@ async function backdrops(registry) {
   }
 }
 
-const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, backdrops: {} };
+const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, cast: { bodies: {}, hat: null }, backdrops: {} };
 mkdirSync(join(OUT, "hammer"), { recursive: true });
 guard(ownerFiles());
 await heads(registry);
 await props(registry);
 await bodies(registry);
+await cast(registry);
 await backdrops(registry);
 writeFileSync(join(OUT, "registry.json"), JSON.stringify(registry, null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);

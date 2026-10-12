@@ -832,6 +832,142 @@ export function buildMesh(alpha, W, H, cell) {
   return { x0, y0, cell, width: cols * cell, height: rows * cell, positions, indices };
 }
 
+/** Mesh cells in crop pixels, and the size layer textures are stored at (the game draws a body at about a quarter of its crop, twice that on a high-density screen). */
+export const MESH_CELL = 14;
+export const TEXTURE_SCALE = 0.5;
+/** The rim light's silhouettes are only an edge: half the textures' size. */
+const SIL_SCALE = TEXTURE_SCALE / 2;
+
+/** A layer's pixels over its mesh's cells exactly, padded with clear pixels past the crop, at full size. */
+export async function paddedLayer(rgba, W, H, mesh) {
+  const left = Math.max(0, mesh.x0),
+    top = Math.max(0, mesh.y0);
+  const right = Math.min(W, mesh.x0 + mesh.width),
+    bottom = Math.min(H, mesh.y0 + mesh.height);
+  return sharp(rgba, { raw: { width: W, height: H, channels: 4 } })
+    .extract({ left, top, width: right - left, height: bottom - top })
+    .extend({
+      left: left - mesh.x0,
+      top: top - mesh.y0,
+      right: mesh.x0 + mesh.width - right,
+      bottom: mesh.y0 + mesh.height - bottom,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+}
+
+/** A PNG `width` wide stored at `scale`. */
+export const scaled = (png, width, scale) => sharp(png).resize({ width: Math.round(width * scale), kernel: "lanczos3" }).png().toBuffer();
+
+/** White wherever the layer is painted, with its alpha: tinted, it is the rim light's edge. */
+function whiteOf(rgba) {
+  const out = Buffer.from(rgba);
+  for (let i = 0; i < out.length; i += 4) out[i] = out[i + 1] = out[i + 2] = 255;
+  return out;
+}
+
+/**
+ * A cast body's head layer as a plate like Hammer's heads: its paint cropped to its bounds with a
+ * margin (or to `crop`, for a face edit or a silhouette that must frame exactly like it), stored at
+ * `scale`, its neck anchor on the painted neck joint, its crown, nose and face box registered as a
+ * profile's.
+ */
+export async function castHeadPlate(rgba, W, H, neck, scale, crop = null) {
+  let box = crop;
+  if (!box) {
+    let x0 = W,
+      y0 = H,
+      x1 = -1,
+      y1 = -1;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++)
+        if (rgba[(y * W + x) * 4 + 3] > 0) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+    if (x1 < 0) throw new Error("castHeadPlate: the head layer is empty");
+    const left = Math.max(0, x0 - MARGIN),
+      top = Math.max(0, y0 - MARGIN);
+    box = { x: left, y: top, w: Math.min(W, x1 + 1 + MARGIN) - left, h: Math.min(H, y1 + 1 + MARGIN) - top };
+  }
+  const full = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } })
+    .extract({ left: box.x, top: box.y, width: box.w, height: box.h })
+    .png()
+    .toBuffer();
+  const png = await scaled(full, box.w, scale);
+  const reg = await registerHead(png, "profile");
+  return { png, box, ...reg, neck: { x: Math.round((neck[0] - box.x) * scale), y: Math.round((neck[1] - box.y) * scale) } };
+}
+
+/**
+ * A cast body as the game loads it, from its keyed painting and its cut: the five skinned layers
+ * (meshes and weights in the crop's pixels, textures at TEXTURE_SCALE), the head as a plate turning
+ * on the painted neck joint, a white silhouette of each for the rim light, and `share`, the painted
+ * head's height (crown to neck joint) over the whole figure's. Returns the rig and the images to
+ * write, by their names under public/art.
+ */
+export async function castRig(person, keyed, cuts) {
+  const { W, H, layers } = await separateLayers(keyed, cuts);
+  const { rig } = cuts;
+  const images = new Map();
+  const out = {
+    version: 2,
+    span: rig.sole - rig.joints.neck[1],
+    root: [rig.rootX, rig.sole],
+    joints: rig.joints,
+    bones: rig.bones,
+    ...(rig.match ? { match: rig.match } : {}),
+    layers: {},
+  };
+  for (const name of LAYER_Z) {
+    const { rgba } = layers[name];
+    const alpha = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3] > 0 ? 1 : 0;
+    const mesh = buildMesh(alpha, W, H, MESH_CELL);
+    const { bones, weights } = skinWeights(mesh.positions, rig, name);
+    const file = `cast/${person}-${name}.png`;
+    const sil = `cast/${person}-${name}-sil.png`;
+    images.set(file, await scaled(await paddedLayer(rgba, W, H, mesh), mesh.width, TEXTURE_SCALE));
+    images.set(sil, await scaled(await paddedLayer(whiteOf(rgba), W, H, mesh), mesh.width, SIL_SCALE));
+    out.layers[name] = {
+      file,
+      sil,
+      x: mesh.x0,
+      y: mesh.y0,
+      width: mesh.width,
+      height: mesh.height,
+      positions: mesh.positions,
+      indices: mesh.indices,
+      bones: [...bones],
+      weights: [...weights].map((w) => Math.round(w * 1000) / 1000),
+    };
+  }
+  const head = await castHeadPlate(layers.head.rgba, W, H, rig.joints.neck, TEXTURE_SCALE);
+  const headSil = await castHeadPlate(whiteOf(layers.head.rgba), W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+  let crownRow = 0;
+  while (crownRow < H && !layers.head.rgba.subarray(crownRow * W * 4, (crownRow + 1) * W * 4).some((v, i) => i % 4 === 3 && v > 0)) crownRow++;
+  const file = `cast/${person}-head.png`;
+  const sil = `cast/${person}-head-sil.png`;
+  images.set(file, head.png);
+  images.set(sil, headSil.png);
+  const share = (rig.joints.neck[1] - crownRow) / (rig.sole - crownRow);
+  out.head = {
+    file,
+    sil,
+    width: head.width,
+    height: head.height,
+    neck: head.neck,
+    crown: head.crown,
+    face: head.face,
+    nose: head.nose,
+    share: Math.round(share * 1000) / 1000,
+  };
+  return { rig: out, images, layers, W, H, head };
+}
+
 const smoothstep = (t) => {
   const k = Math.max(0, Math.min(1, t));
   return k * k * (3 - 2 * k);
