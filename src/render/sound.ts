@@ -74,7 +74,9 @@ export function createSound(): Sound {
         e.type === "hit"
           ? e.by === "mallet"
             ? ["bonk"]
-            : e.by === "snot"
+            : e.by === "shield"
+              ? ["kick"]
+              : e.by === "snot"
               ? ["splat"]
               : []
           : e.type === "land"

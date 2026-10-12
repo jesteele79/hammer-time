@@ -1,6 +1,7 @@
 import { PATIENCE_MAX } from "../sim/damage";
 import type { Game } from "../sim/game";
 import { CHARGE_MAX, HEAT, SINUS_MAX } from "../sim/moves";
+import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
 /** What the shell's HUD shows (spec §10). */
@@ -58,7 +59,17 @@ export function hintOf(game: Game): string {
   return h.hot ? "Hot snot pierces · nuts charge Q super smash" : "Find a ! crate for hot pepper";
 }
 
-export function hudOf(game: Game, portrait: string | null, saved = false): HudPayload {
+/** What a pickup just did, for the hint line (owner, 2026-10-12: each power-up has one clear job). */
+export function pickupNote(kind: PickupKind, h: { charge: number }): string {
+  if (kind === "can") return "Coke Zero · cooled down";
+  if (kind === "bucees") return `Buc-ee's · shield for ${RUN.star} seconds`;
+  if (kind === "pepper") return "Pepper · extra hit and hot snot";
+  if (h.charge >= CHARGE_MAX) return "Mixed nuts · Super Smash ready · Q";
+  return `Mixed nuts · smash ${Math.min(2, Math.floor(h.charge / RUN.nutCharge))} of 3`;
+}
+
+/** `note` is a pickup's line, shown in place of the hint while it lasts. */
+export function hudOf(game: Game, portrait: string | null, saved = false, note: string | null = null): HudPayload {
   const h = game.world.hero;
   const clocked = game.level.time > 0;
   const time = clocked ? Math.ceil(game.run.time) : null;
@@ -82,7 +93,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false): HudPa
     hot: h.hot,
     lecture: h.lectureCd <= 0,
     saved,
-    hint: hintOf(game),
+    hint: note ?? hintOf(game),
   };
 }
 

@@ -8,10 +8,12 @@ export const RUN = {
   lives: 3,
   patience: 2,
   canPoints: 200,
-  canCool: 10,
+  /** A can is a cool-down: a big drop in heat, so he runs at full speed again (owner, 2026-10-12). */
+  canCool: 25,
   cansPerLife: 100,
   nutPoints: 500,
-  nutCharge: 3,
+  /** Nuts are smash fuel: three bags fill the Super Smash (10). */
+  nutCharge: 4,
   buceesPoints: 1000,
   star: 10,
   pepperPoints: 1000,

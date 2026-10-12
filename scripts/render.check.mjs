@@ -362,3 +362,17 @@ test("pickups bob 10 px either way, out of step with each other", () => {
   assert.ok(Math.abs(hi - 10) < 0.5 && Math.abs(lo + 10) < 0.5);
   assert.notEqual(bob(0.3, 1).toFixed(3), bob(0.3, 2).toFixed(3));
 });
+
+import { pickupNote } from "../src/render/hud.ts";
+
+test("for two seconds after a pickup the hint line says what it just did", () => {
+  assert.equal(pickupNote("can", { charge: 0 }), "Coke Zero · cooled down");
+  assert.equal(pickupNote("nuts", { charge: 4 }), "Mixed nuts · smash 1 of 3");
+  assert.equal(pickupNote("nuts", { charge: 8 }), "Mixed nuts · smash 2 of 3");
+  assert.equal(pickupNote("nuts", { charge: 10 }), "Mixed nuts · Super Smash ready · Q");
+  assert.equal(pickupNote("bucees", { charge: 0 }), "Buc-ee's · shield for 10 seconds");
+  assert.equal(pickupNote("pepper", { charge: 0 }), "Pepper · extra hit and hot snot");
+  const g = gameAt(12000);
+  assert.equal(hudOf(g, null, false, "Coke Zero · cooled down").hint, "Coke Zero · cooled down");
+  assert.equal(hudOf(g, null).hint, "Find a ! crate for hot pepper");
+});

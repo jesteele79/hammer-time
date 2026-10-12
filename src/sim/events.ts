@@ -10,7 +10,8 @@ export type GameEvent =
   | { type: "land"; x: number; y: number; speed: number }
   | { type: "slide" }
   | { type: "swing" }
-  | { type: "hit"; by: "mallet" | "snot" | "burst"; x: number; y: number; target: number }
+  /** `shield` is the Buc-ee's shield bowling over whatever he runs into. */
+  | { type: "hit"; by: "mallet" | "snot" | "burst" | "shield"; x: number; y: number; target: number }
   | { type: "superStart" }
   | { type: "burst"; x: number; y: number }
   | { type: "sniff" }

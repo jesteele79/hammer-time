@@ -10,7 +10,7 @@ import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { collectPickups, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
-import { createCart } from "./targets";
+import { createCart, knock } from "./targets";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
 
@@ -42,6 +42,8 @@ const FALL_MARGIN = 200;
 const DOOR_REACH = 136;
 /** How far above the slam a crate's bottom may hang and still be shaken open: a jump's bump and then some. */
 const SMASH_UP = 600;
+/** The shield's knock: the staff knockback (spec §9); a cart already flying faster than `flying` is left alone. */
+const SHIELD = { speed: 1100, lift: 600, flying: 300 } as const;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 
@@ -315,6 +317,18 @@ export function createGame(levels: Levels, seed: number): Game {
     }
   }
 
+  /** The Buc-ee's shield: whatever he runs into goes flying away from him, and he keeps going. */
+  function shieldBowl(ev: GameEvent[]) {
+    const h = world.hero;
+    for (const t of world.targets) {
+      const touching = Math.abs(t.x - h.x) < (t.w + h.w) / 2 && t.y - t.h < h.y && h.y - h.h < t.y;
+      if (!touching || Math.abs(t.vx) > SHIELD.flying) continue;
+      const dir: 1 | -1 = t.x === h.x ? h.facing : t.x > h.x ? 1 : -1;
+      knock(t, dir, SHIELD.speed, SHIELD.lift);
+      ev.push({ type: "hit", by: "shield", x: t.x, y: t.y - t.h / 2, target: t.id });
+    }
+  }
+
   function playStep(input: Input, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
@@ -342,6 +356,7 @@ export function createGame(levels: Levels, seed: number): Game {
     stepCrates(game.crates, STEP);
     stepPickups(game.pickups, world.stage, STEP);
     for (const kind of collectPickups(h, game.pickups, ev)) take(kind, ev);
+    if (run.star > 0) shieldBowl(ev);
     if (game.level.id === "lobby")
       for (const k of game.level.checkpoints)
         if (!run.punched.includes(k.id) && h.x >= k.x) {

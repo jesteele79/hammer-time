@@ -16,6 +16,7 @@ export function feelOf(e: GameEvent): Feel | null {
     case "hit":
       if (e.by === "mallet") return { hitstop: 0.06, trauma: 0.35 };
       if (e.by === "snot") return { hitstop: 0.03, trauma: 0.12 };
+      if (e.by === "shield") return { hitstop: 0.03, trauma: 0.2 };
       return null;
     case "burst":
       return { hitstop: 0.08, trauma: 0.8, slowmo: { scale: 0.25, seconds: 0.25 }, zoom: { amount: 1.12, seconds: 0.4 } };

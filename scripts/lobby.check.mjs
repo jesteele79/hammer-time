@@ -162,7 +162,7 @@ test("a run starts on a card with three lives, two pips, no cans and the full cl
   assert.ok(Math.abs(g.run.time - 418) < 0.05, `the clock runs: ${g.run.time}`);
 });
 
-test("cans score 200 and cool him 10; the 100th is a life; nuts charge 3; Buc-ee's is ten seconds of nothing touching him", () => {
+test("a can scores 200 and cools him 25; the 100th is a life; Buc-ee's is ten seconds of nothing touching him", () => {
   const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
   play(g);
   const h = g.world.hero;
@@ -172,10 +172,9 @@ test("cans score 200 and cool him 10; the 100th is a life; nuts charge 3; Buc-ee
   const evs = stepsG(g, STEP);
   assert.deepEqual([g.run.cans, g.run.lives], [0, 4]);
   assert.ok(evs.some((e) => e.type === "oneUp"));
-  assert.ok(Math.abs(h.heat - 40) < 0.2 && g.run.score >= 200);
-  g.pickups.push({ id: 901, kind: "nuts", x: h.x, y: h.y - 100, taken: false }, { id: 902, kind: "bucees", x: h.x, y: h.y - 100, taken: false });
+  assert.ok(Math.abs(h.heat - 25) < 0.2 && g.run.score >= 200, `cooled to ${h.heat}`);
+  g.pickups.push({ id: 902, kind: "bucees", x: h.x, y: h.y - 100, taken: false });
   stepsG(g, STEP);
-  assert.equal(h.charge, 3);
   assert.ok(g.run.star > 9.9);
   g.world.hit(h.x + 100);
   stepsG(g, STEP);
@@ -453,4 +452,36 @@ test("the smash breaks a delivery case and opens a crate hanging over the floor 
   assert.ok(evs.some((e) => e.type === "burst"), "the slam lands");
   assert.ok(g.crates.find((c) => c.id === "k").broken, "the case breaks");
   assert.ok(g.crates.find((c) => c.id === "p").used, "the crate opens");
+});
+
+test("three bags of nuts fill the Super Smash, two do not", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  const h = g.world.hero;
+  for (let i = 0; i < 2; i++) g.pickups.push({ id: 910 + i, kind: "nuts", x: h.x, y: h.y - 100, taken: false });
+  stepsG(g, STEP);
+  assert.ok(h.charge < 10, `two bags: ${h.charge}`);
+  g.pickups.push({ id: 912, kind: "nuts", x: h.x, y: h.y - 100, taken: false });
+  stepsG(g, STEP);
+  assert.equal(h.charge, 10, "three bags: the smash is ready");
+});
+
+test("the Buc-ee's shield sends a luggage cart he runs into flying, and he keeps going", () => {
+  const level = { ...mini(), solids: [], carts: [1100] };
+  const g = createGame({ lobby: level, stash: stashOf() }, 7);
+  play(g);
+  const h = g.world.hero;
+  h.x = 800;
+  g.pickups.push({ id: 920, kind: "bucees", x: h.x, y: h.y - 100, taken: false });
+  stepsG(g, STEP);
+  const evs = stepsG(g, 1, { right: true, run: true });
+  const cart = g.world.targets[0];
+  assert.ok(evs.some((e) => e.type === "hit" && e.by === "shield"), "the shield hits the cart");
+  assert.ok(cart.x > 1300 || Math.abs(cart.vx) > 300 || !cart.onGround, `the cart flies: ${cart.x} ${cart.vx}`);
+  assert.ok(h.x > 1200, `he keeps going: ${h.x}`);
+  const plain = createGame({ lobby: level, stash: stashOf() }, 7);
+  play(plain);
+  plain.world.hero.x = 800;
+  const quiet = stepsG(plain, 1, { right: true, run: true });
+  assert.ok(!quiet.some((e) => e.type === "hit"), "without the shield, running into a cart does nothing to it");
 });
