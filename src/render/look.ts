@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
-import { ASIDES, DAMAGE_LINE, LECTURES, TAUNT_LINES } from "../game/lines";
+import { ASIDES, CAST_LINES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
 import type { GameEvent } from "../sim/events";
@@ -27,12 +27,13 @@ import type { HeroState, Point, Rect } from "../sim/types";
 import type { RenderApp } from "./app";
 import { loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards } from "./boards";
-import { Bubbles } from "./bubbles";
+import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
+import type { CastRole } from "../sim/cast";
 import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
 import { attackers } from "../sim/cast-behavior";
@@ -152,6 +153,7 @@ export async function startLook(
   const sound = createSound();
   const layers = createLayers();
   const bubbles = new Bubbles(scene.layers.fx);
+  const speech = new Speech(scene.layers.fx);
   let lectures = 0;
   /** This frame's events, for the procedural layers. */
   const stepped: GameEvent[] = [];
@@ -302,6 +304,19 @@ export async function startLook(
     stepped.push(e);
   };
 
+  /** One of the owner's recordings for a besting, when the bus allows one; its caption is spoken. */
+  const taunt = (target: "staff" | "student") => {
+    const id = sound.taunt(target);
+    if (id) bubbles.say(TAUNT_LINES[id].text, 2);
+    return !!id;
+  };
+  /** Knocking out staff: a recording, or sometimes a written comeback as a thought, never over a recording. */
+  const comeback = (role: CastRole) => {
+    if (taunt("staff") || bubbles.text || Math.random() >= 0.45) return;
+    const lines = STAFF_COMEBACKS[role === "bellhop" ? "hotel" : role === "student" ? "office" : role];
+    bubbles.think(lines[Math.floor(Math.random() * lines.length)].text, 1.6);
+  };
+
   const show = (e: GameEvent, at: Frame) => {
     const { face, view, facing } = at;
     switch (e.type) {
@@ -399,6 +414,71 @@ export async function startLook(
         break;
       case "boiling":
         words.say("BOILING!", at.crown.x, at.crown.y - 90, true, face, view);
+        break;
+      case "castNotice":
+        particles.emit("glint", e.x, e.y - 40, 3);
+        break;
+      case "castLine":
+        speech.say(e.id, e.text, e.seconds);
+        break;
+      case "castWindup":
+        words.say("!", e.x, e.y - 60, true, face, view);
+        break;
+      case "castBump":
+        particles.emit("dust", e.x, e.y + 300, 4);
+        break;
+      case "stomp":
+        particles.emit("dust", e.x, e.y, 8);
+        if (e.landed) words.say("STOMP!", e.x, e.y - 60, false, face, view);
+        break;
+      case "castHit": {
+        if (e.by === "stomp" || e.by === "puddle") words.say(e.by === "puddle" ? "WHOA!" : "OOF!", e.x, e.y - 90, false, face, view);
+        else if (e.by !== "mallet" && e.by !== "snot") words.say("WHAM!", e.x, e.y - 90, false, face, view);
+        if (e.role === "bellhop") {
+          const n = world.cast.find((c) => c.id === e.id);
+          if (n && !n.hat && n.hits === 1) flyers.hat(e.x, e.y - 150, e.dir);
+        }
+        if (e.role === "server" && e.down) {
+          flyers.glasses(e.x + e.dir * 20, e.y - 60, e.dir);
+          particles.emit("water", e.x, e.y - 60, 12);
+        }
+        if (e.role === "office" && e.down) flyers.cup(e.x, e.y - 40, e.dir);
+        if (e.role !== "student" && e.down) comeback(e.role);
+        break;
+      }
+      case "castFreeze":
+        words.say("+50", e.x, e.y - 40, false, face, view);
+        break;
+      case "castSchooled":
+        words.say("SCHOOLED", e.x, e.y - 40, false, face, view);
+        break;
+      case "lectureLand":
+        words.say(e.schooled ? "SCHOOLED!" : "LISTEN UP!", e.x + facing * 120, e.y - 20, false, face, view);
+        taunt(e.schooled ? "student" : "staff");
+        break;
+      case "castFlee":
+        taunt("student");
+        break;
+      case "castFell":
+        words.say("OUT OF ORDER", e.x, e.y - 400, true, face, view);
+        speech.say(e.id, CAST_LINES.office.shaft, 1.2);
+        break;
+      case "chain":
+        words.say(e.oneUp ? "1UP!" : String(e.points), e.x, e.y - 60, e.count >= 4, face, view);
+        break;
+      case "swat":
+        particles.emit("paper", e.x, e.y, 14);
+        if (e.kind === "plane") {
+          words.say("SWAT!", e.x, e.y - 50, false, face, view);
+          taunt("student");
+        }
+        break;
+      case "missileHit":
+        if (e.kind === "coffee") particles.emit("coffee", e.x, e.y, 12);
+        else particles.emit("paper", e.x, e.y, 4);
+        break;
+      case "castSplash":
+        particles.emit("coffee", e.x + facing * 40, e.y, 16);
         break;
       default:
         break;
@@ -630,6 +710,7 @@ export async function startLook(
     venues[game.level.id].update(simDt);
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
+    speech.update(simDt, (id) => cast.crownOf(id), face, scene.view());
     particles.update(simDt, face);
     const hud = hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null);
     const key = hudKey(hud);

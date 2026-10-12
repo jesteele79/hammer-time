@@ -220,6 +220,33 @@ export class AudioBus {
   slip() {
     this.blip(920, 0.26, "sine", 0.12, 260);
   }
+  /** The ! burst over an attacker: a short rising sting. */
+  sting() {
+    this.blip(880, 0.08, "square", 0.12, 1320);
+    this.blip(1320, 0.06, "square", 0.08, undefined, 0.07);
+  }
+  /** Cart wheels squealing on marble. */
+  squeal() {
+    this.noise(0.25, 0.08, 3200, "bandpass", 2400);
+    this.blip(2600, 0.22, "sine", 0.05, 1900);
+  }
+  /** Glasses on the floor. */
+  shatter() {
+    this.noise(0.18, 0.14, 6000, "highpass", 3000);
+    [3136, 4186, 5274].forEach((f, i) => this.blip(f, 0.05, "sine", 0.06, undefined, i * 0.03));
+  }
+  splash() {
+    this.noise(0.14, 0.12, 900, "lowpass");
+    this.blip(240, 0.08, "sine", 0.1, 120);
+  }
+  /** A phone's two notes. */
+  chime() {
+    [1760, 2217].forEach((f, i) => this.blip(f, 0.09, "sine", 0.08, undefined, i * 0.1));
+  }
+  /** A paper plane leaving the hand. */
+  paper() {
+    this.noise(0.12, 0.08, 1800, "bandpass", 900);
+  }
   harrumph() {
     this.noise(0.12, 0.06, 420, "lowpass");
     this.blip(150, 0.09, "sawtooth", 0.05, 120);

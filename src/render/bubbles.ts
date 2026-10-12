@@ -1,7 +1,7 @@
 import { BitmapText, Container, Graphics } from "pixi.js";
 import type { Point, Rect } from "../sim/types";
 import { PALETTE } from "./palette";
-import { overlaps } from "./words";
+import { overlaps, placeWord } from "./words";
 
 const EDGE = 16;
 /** The shipped layout's offsets (src/game/thought.ts) at the new scale: above and behind his crown. */
@@ -36,6 +36,71 @@ export function bubbleLayout(size: { w: number; h: number }, crown: Point, facin
     { t: 0.7, r: 14 },
   ].map(({ t, r }) => ({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t, r }));
   return { box, puffs };
+}
+
+const SPEECH = { size: 22, wrap: 360, padX: 16, padY: 10, above: 24, tail: 14 } as const;
+
+/** A speech bubble's box over its speaker's crown, kept in view and off Hammer's face, and where its tail hangs from. */
+export function speechLayout(size: { w: number; h: number }, crown: Point, face: Rect, view: Rect): { box: Rect; tail: Point } {
+  const want: Rect = { x: crown.x - size.w / 2, y: crown.y - SPEECH.above - size.h, ...size };
+  const box = placeWord(want, face, view, 4);
+  const tail = { x: Math.min(Math.max(crown.x, box.x + 20), box.x + box.w - 20), y: box.y + box.h };
+  return { box, tail };
+}
+
+/** The cast's speech bubbles: a rounded box with a tail over each speaker's head, kept off Hammer's face. */
+export class Speech {
+  private readonly root = new Container({ label: "speech" });
+  private readonly live = new Map<number, { g: Graphics; t: BitmapText; life: number }>();
+
+  constructor(layer: Container) {
+    // Under the comic words: a BONK! or a SCHOOLED! is the bigger news.
+    this.root.zIndex = 5;
+    layer.addChild(this.root);
+  }
+
+  /** How many bubbles show. */
+  get count(): number {
+    return this.live.size;
+  }
+
+  say(id: number, text: string, seconds: number): void {
+    let b = this.live.get(id);
+    if (!b) {
+      const g = new Graphics();
+      const t = new BitmapText({ text, style: { fontFamily: "ui", fontSize: SPEECH.size, wordWrap: true, wordWrapWidth: SPEECH.wrap, align: "center" } });
+      t.tint = THOUGHT;
+      this.root.addChild(g, t);
+      b = { g, t, life: seconds };
+      this.live.set(id, b);
+    }
+    b.t.text = text;
+    b.life = seconds;
+  }
+
+  update(dt: number, crownOf: (id: number) => { x: number; y: number; facing: 1 | -1 } | null, face: Rect, view: Rect): void {
+    for (const [id, b] of this.live) {
+      b.life -= dt;
+      const crown = crownOf(id);
+      if (b.life <= 0 || !crown) {
+        b.g.destroy();
+        b.t.destroy();
+        this.live.delete(id);
+        continue;
+      }
+      const size = { w: b.t.width + 2 * SPEECH.padX, h: b.t.height + 2 * SPEECH.padY };
+      const { box, tail } = speechLayout(size, crown, face, view);
+      // A speaker off the screen keeps his bubble to himself: clamped to the edge it would read as someone else's.
+      const onScreen = crown.x > view.x - 60 && crown.x < view.x + view.w + 60 && crown.y > view.y - 60 && crown.y < view.y + view.h + 60;
+      const onFace = overlaps(box, face);
+      b.g.visible = b.t.visible = !onFace && onScreen;
+      b.g.clear().roundRect(box.x, box.y, box.w, box.h, 10).fill(PAPER).stroke({ width: 3, color: INK });
+      b.g.poly([tail.x - 8, tail.y - 1, tail.x + 8, tail.y - 1, crown.x, Math.min(crown.y - 4, tail.y + SPEECH.tail)]).fill(PAPER).stroke({ width: 3, color: INK, join: "round" });
+      b.g.rect(tail.x - 7, tail.y - 3, 14, 4).fill(PAPER);
+      b.t.position.set(box.x + SPEECH.padX, box.y + SPEECH.padY);
+      b.g.alpha = b.t.alpha = Math.min(1, b.life / FADE);
+    }
+  }
 }
 
 /** Hammer's thoughts (clouds) and the caption of a recording he speaks (a box), one at a time. */

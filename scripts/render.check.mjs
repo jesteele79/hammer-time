@@ -340,6 +340,8 @@ test("the hint says the most pressing thing, the shipped hint's order without th
 
 test("the drop hint shows on the balcony, not on the stairs or the landing, and the early hint edge is level data", () => {
   const g = gameAt(7000, -253);
+  // The lecture is cooling down: with students in reach and the lecture ready, that hint would come first.
+  g.world.hero.lectureCd = 5;
   assert.equal(hintOf(g), "Up to the mezzanine · keep climbing");
   Object.assign(g.world.hero, { x: 6700, y: -120 });
   assert.equal(hintOf(g), "Up to the mezzanine · keep climbing");
@@ -368,6 +370,45 @@ test("every person has a look, taller or shorter than Hammer by the design, and 
   assert.equal(r.bottom, LOOKS["server-1"].bottom);
   assert.equal(recolored(LOOKS["student-2"], "#2a8c8a").top, "#2a8c8a");
   assert.equal(recolored(LOOKS["student-2"], null), LOOKS["student-2"]);
+});
+
+import { speechLayout } from "../src/render/bubbles.ts";
+
+test("a speech bubble sits over its speaker's head and slides off Hammer's face", () => {
+  const view = { x: 0, y: -1000, w: 1920, h: 1400 };
+  const clear = speechLayout({ w: 300, h: 60 }, { x: 800, y: -500 }, { x: 100, y: -600, w: 80, h: 100 }, view);
+  assert.ok(Math.abs(clear.box.x + 150 - 800) < 1 && clear.box.y + clear.box.h < -500, "centred above the crown");
+  assert.ok(clear.tail.y > clear.box.y + clear.box.h - 1, "the tail hangs from the box");
+  const face = { x: 760, y: -620, w: 80, h: 100 };
+  const near = speechLayout({ w: 300, h: 60 }, { x: 800, y: -500 }, face, view);
+  assert.ok(!(near.box.x < face.x + face.w && near.box.x + near.box.w > face.x && near.box.y < face.y + face.h && near.box.y + near.box.h > face.y), "off the face");
+});
+
+test("the hints name the cast's threats in the shipped order", () => {
+  const g = gameAt(4100);
+  const h = g.world.hero;
+  h.facing = 1;
+  g.world.missiles.push({ id: 1, kind: "plane", x: 4300, y: -200, vx: -300, vy: 0, spin: 0, life: 2, phase: 0, from: 0 });
+  assert.equal(hintOf(g), "Paper incoming · duck, jump or swat with H");
+  g.world.missiles.length = 0;
+  g.world.targets[0] = { ...g.world.targets[0], x: 4500, vx: -650 };
+  assert.equal(hintOf(g), "Runaway cart · jump it, or bonk it back");
+  g.world.targets[0].vx = 0;
+  const k = g.world.cast.find((n) => n.spawn === "student-rail-1");
+  Object.assign(k, { x: 4400, y: 0, level: 0 });
+  h.lectureCd = 0;
+  assert.equal(hintOf(g), "E lectures them · schooled students stop throwing paper");
+  k.x = 9000;
+  g.world.puddles.push({ x: 4200, y: 0, w: 100, life: 5, max: 5, kind: "snot" });
+  const s = g.world.cast.find((n) => n.spawn === "server-buffet");
+  assert.equal(hintOf(g), "Staff slip on puddles · stomp or bonk them while they are down");
+  g.world.puddles.length = 0;
+  s.act = "windup";
+  s.x = 4500;
+  assert.equal(hintOf(g), "H swings the mallet · hit them with the head");
+  s.act = "idle";
+  s.x = 9000;
+  assert.equal(hintOf(g), "Find a ! crate for hot pepper");
 });
 
 import { escalatorSteps } from "../src/render/venue.ts";

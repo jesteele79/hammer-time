@@ -1,6 +1,8 @@
+import { ROLLING, npcRect, standing } from "../sim/cast";
 import { PATIENCE_MAX } from "../sim/damage";
+import { overlapsRect } from "../sim/geometry";
 import type { Game } from "../sim/game";
-import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA } from "../sim/moves";
+import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -52,6 +54,16 @@ export function hintOf(game: Game): string {
     const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
     return cleanedOut ? "Staff stash · cleaned out · ↓ at the cart to go back" : "Staff stash · ↓ at the cart to go back";
   }
+  // The cast's threats, in the shipped hint's order: paper, a runaway cart, students to lecture, puddles, staff to bonk.
+  const w = game.world;
+  const near = (x: number, r: number) => Math.abs(x - h.x) < r;
+  if (w.missiles.some((m) => near(m.x, 600))) return "Paper incoming · duck, jump or swat with H";
+  if (w.targets.some((t) => near(t.x, 900) && Math.abs(t.vx) >= ROLLING && (h.x - t.x) * t.vx > 0)) return "Runaway cart · jump it, or bonk it back";
+  const reach = lectureReach(h);
+  if (h.lectureCd <= 0 && w.cast.some((n) => n.alive && n.role === "student" && n.act !== "schooled" && overlapsRect(reach, npcRect(n))))
+    return "E lectures them · schooled students stop throwing paper";
+  if (w.puddles.length && w.cast.some((n) => n.alive && n.role !== "student" && standing(n) && near(n.x, 900))) return "Staff slip on puddles · stomp or bonk them while they are down";
+  if (w.cast.some((n) => n.alive && n.role !== "student" && (n.act === "windup" || n.act === "attack") && near(n.x, 900))) return "H swings the mallet · hit them with the head";
   if (game.run.star > 0) return "Buc-ee's boost · nothing can touch you";
   if (h.boiled) return "Too hot to run · T to towel off";
   if (h.heat >= HEAT.tired) return "Overheated · T to towel off";
