@@ -1,5 +1,6 @@
 import type { CastHitBy, CastRole } from "./cast";
 import type { GameMode } from "./game";
+import type { MissileKind } from "./missiles";
 import type { CrateKind, DoorKind } from "./level";
 import type { PickupKind } from "./rewards";
 import type { Rect } from "./types";
@@ -83,4 +84,10 @@ export type GameEvent =
   | { type: "chime"; x: number; y: number }
   /** A chain: the `count`th staffer bowled over by one moving thing; `oneUp` at eight. */
   | { type: "chain"; x: number; y: number; count: number; points: number; oneUp: boolean }
+  /** A missile launched. */
+  | { type: "missile"; kind: MissileKind; x: number; y: number }
+  /** A missile landed on the floor (`floor`), a wall, or him (`hero`). */
+  | { type: "missileHit"; kind: MissileKind; x: number; y: number; floor: boolean; hero: boolean }
+  /** A missile swatted by the mallet. */
+  | { type: "swat"; kind: MissileKind; x: number; y: number; points: number }
   | { type: "mode"; mode: GameMode };

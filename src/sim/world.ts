@@ -6,7 +6,7 @@ import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
 import type { Input } from "./input";
-import type { Missile } from "./missiles";
+import { stepMissiles, type Missile } from "./missiles";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
 import { stepTargets } from "./targets";
@@ -75,6 +75,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       deliverLecture(h, events);
       stepSnot(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP);
+      stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
       stepHeat(h, input, STEP, events);
       stepIdle(h, input, STEP, events);

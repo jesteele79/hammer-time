@@ -4,6 +4,7 @@ import { STEP } from "../src/sim/constants.ts";
 import { createWorld } from "../src/sim/world.ts";
 import { createCast, CAST, CAST_ID, hittable } from "../src/sim/cast.ts";
 import { attackers } from "../src/sim/cast-behavior.ts";
+import { launchPlane, stepMissiles, PLANE } from "../src/sim/missiles.ts";
 import { createCart } from "../src/sim/targets.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
@@ -357,4 +358,91 @@ test("a chain climbs 100, 200, 400 ... and the eighth is a life; two things reac
   const both = steps(twice, 1);
   assert.equal(of(both, "castHit").length, 1, "one knockdown");
   assert.equal(of(both, "chain").length, 1, "one chain entry");
+});
+
+test("a student folds a plane for 0.65 s, throws it toward him, rests 4 to 5.8 s, and never has more than three in the air", () => {
+  const stage = flat({ platforms: [{ x0: 1500, x1: 3000, y: -520 }] });
+  const w = worldWith([{ id: "k", person: "student-1", x: 2000, y: -520 }], { x: 1000, y: 0 }, {}, [], stage);
+  const k = npc(w, "k");
+  const evs = until(w, () => npc(w, "k").act === "windup", 8);
+  assert.equal(k.act, "windup");
+  assert.ok(of(evs, "castWindup").some((e) => e.role === "student") && of(evs, "castLine").some((e) => e.text === "Heads up!"));
+  const t0 = w.time;
+  const thrown = until(w, (x) => x.missiles.length > 0, 2);
+  assert.ok(w.time - t0 >= CAST.student.windup - 2 * STEP && of(thrown, "missile").length === 1);
+  const p = w.missiles[0];
+  assert.ok(p.kind === "plane" && p.vx < 0 && Math.abs(p.vx) === PLANE.speed, "toward him at launch speed");
+  assert.ok(k.rest >= CAST.student.restMin && k.rest <= CAST.student.restMin + 3 * CAST.student.restStep + 1e-9);
+  const three = worldWith(
+    [0, 1, 2, 3, 4].map((i) => ({ id: `k${i}`, person: "student-2", x: 2000 + i * 100, y: -520 })),
+    { x: 1000, y: 0 }, {}, [], stage,
+  );
+  let most = 0;
+  for (let i = 0; i < Math.round(12 / STEP); i++) { three.step(input()); most = Math.max(most, three.missiles.length); }
+  assert.ok(most <= CAST.student.planes && most >= 2, `at most three planes up: ${most}`);
+});
+
+test("a plane glides on a deterministic path: level at first, dipping as it slows, and it dies on the floor", () => {
+  const from = { id: 1001, x: 2000, y: -520, h: 310, facing: -1 };
+  const a = launchPlane(1, from, { x: 1000, y: -150 });
+  const b = launchPlane(1, from, { x: 1000, y: -150 });
+  assert.deepEqual(a, b);
+  const w = { stage: flat(), hero: { x: -1000, y: 0, w: 110, h: 300, invuln: 0, move: null }, missiles: [a], hits: [], puddles: [] };
+  const ys = [];
+  for (let i = 0; i < Math.round(2.4 / STEP) && w.missiles.length; i++) { stepMissiles(w, STEP, []); ys.push(a.y); }
+  assert.ok(ys[12] - ys[0] < 40, "nearly level over the first tenth of a second");
+  assert.ok(ys[ys.length - 1] > ys[0] + 300, `it came down: ${ys[0]} to ${ys[ys.length - 1]}`);
+  assert.ok(a.x < 1600, "it travelled");
+  const floorWorld = { ...w, missiles: [launchPlane(2, { ...from, y: 0 }, { x: 1000, y: 300 })] };
+  const evs = [];
+  for (let i = 0; i < 240 && floorWorld.missiles.length; i++) stepMissiles(floorWorld, STEP, evs);
+  assert.ok(evs.some((e) => e.type === "missileHit" && e.floor), "down on the floor, gone");
+});
+
+test("a plane costs a pip when it reaches him, passes through him in grace, and stops at a wall", () => {
+  const w = worldWith([], { x: 1000, y: 0 });
+  w.missiles.push(launchPlane(1, { id: 1001, x: 1500, y: -100, h: 310, facing: -1 }, { x: 1000, y: -150 }));
+  // The hit queues the damage; it lands the step after.
+  const evs = until(w, (x) => x.hero.patience < 3, 3);
+  assert.equal(w.hero.patience, 2);
+  assert.ok(of(evs, "missileHit").some((e) => e.hero));
+  const grace = worldWith([], { x: 1000, y: 0 });
+  grace.hero.invuln = 3;
+  grace.missiles.push(launchPlane(1, { id: 1001, x: 1500, y: -100, h: 310, facing: -1 }, { x: 1000, y: -150 }));
+  const through = until(grace, (x) => x.missiles.length === 0, 3);
+  assert.equal(grace.hero.patience, 3);
+  assert.ok(!of(through, "missileHit").some((e) => e.hero) && of(through, "missileHit").some((e) => e.floor), "it flew on through him and came down");
+  const walled = worldWith([], { x: -1000, y: 0 }, {}, [], flat({ solids: [{ x: 1200, y: -600, w: 100, h: 600 }] }));
+  walled.missiles.push(launchPlane(1, { id: 1001, x: 1500, y: -100, h: 310, facing: -1 }, { x: 800, y: -150 }));
+  const hit = until(walled, (x) => x.missiles.length === 0, 2);
+  assert.ok(of(hit, "missileHit").some((e) => !e.floor && !e.hero) && walled.missiles.length === 0, "stopped by the wall");
+});
+
+test("the mallet swats a plane into confetti for 50", () => {
+  const w = worldWith([], { x: 1000, y: 0 });
+  w.hero.facing = 1;
+  w.missiles.push({ id: 1, kind: "plane", x: 1230, y: -220, vx: -60, vy: 0, spin: 0, life: 3, phase: 0, from: 1001 });
+  press(w, "hammer");
+  const evs = steps(w, 0.5);
+  assert.deepEqual(of(evs, "swat").map((e) => [e.kind, e.points]), [["plane", 50]]);
+  assert.equal(w.missiles.length, 0);
+  assert.equal(w.hero.patience, 3);
+});
+
+test("the office worker behind the screen rears back for half a second, leaps out and flings his coffee, which leaves a puddle", () => {
+  const w = worldWith([{ id: "o", person: "office-2", x: 1400, y: 0, hide: true }], { x: 300, y: 0 });
+  const o = npc(w, "o");
+  assert.equal(o.act, "hide");
+  steps(w, 0.5);
+  assert.equal(o.act, "hide", "out of range, still hiding");
+  w.hero.x = 1000;
+  const evs = until(w, () => npc(w, "o").act === "windup", 1);
+  assert.ok(of(evs, "castWindup").length === 1 && of(evs, "castLine").some((e) => e.text === "Got a minute?" || e.text === "Can we take this offline?"));
+  const leapt = until(w, (x) => x.missiles.length > 0, 2);
+  assert.ok(of(leapt, "castAttack").length === 1 && w.missiles[0].kind === "coffee" && w.missiles[0].vx < 0);
+  assert.ok(!o.prop, "the cup left his hand");
+  until(w, (x) => x.missiles.length === 0, 3);
+  assert.ok(w.puddles.some((p) => p.kind === "coffee"), "coffee on the floor");
+  until(w, () => npc(w, "o").act === "walk", 2);
+  assert.equal(o.act, "walk", "then he marches like the other one");
 });

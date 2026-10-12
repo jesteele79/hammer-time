@@ -105,6 +105,8 @@ export type Npc = {
   bounced: boolean;
   /** A role's own marker: where a rush started, a hop's way picked, whether the coffee is thrown. */
   mark: number;
+  /** When a student last hopped back. */
+  hopAt: number;
   /** The phone chime sounded for this approach. */
   cue: boolean;
   /** His index in the cast: stable picks of lines and rests. */
@@ -154,6 +156,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       blocked: false,
       bounced: false,
       mark: 0,
+      hopAt: -9,
       cue: false,
       k,
     };

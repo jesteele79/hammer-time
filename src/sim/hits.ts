@@ -1,11 +1,11 @@
-import { hittable, npcRect, strikeNpc, type Npc } from "./cast";
+import { POINTS, hittable, npcRect, strikeNpc, type Npc } from "./cast";
 import { HEAD_SCALE } from "./constants";
 import type { GameEvent } from "./events";
 import { SWING_ACTIVE, moveU, type Move } from "./moves";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
 import { sweptHeadHits } from "./geometry";
-import type { Missile } from "./missiles";
+import { COFFEE, PLANE, type Missile } from "./missiles";
 import type { Puddle } from "./snot";
 import { knock } from "./targets";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
@@ -69,6 +69,18 @@ export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): 
       if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, r)) {
         m.victims.push(n.id);
         if (strikeNpc(n, "mallet", h.facing, w, events)) events.push({ type: "hit", by: "mallet", x: path[k].x, y: path[k].y, target: n.id });
+        break;
+      }
+  }
+  // A plane in the arc is swatted into confetti; a flung cup is batted down.
+  for (const m of w.missiles) {
+    if (m.life <= 0) continue;
+    const r = m.kind === "plane" ? PLANE.r : COFFEE.r;
+    const box = { x: m.x - r, y: m.y - r, w: 2 * r, h: 2 * r };
+    for (let k = 1; k < path.length; k++)
+      if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, box)) {
+        m.life = 0;
+        events.push({ type: "swat", kind: m.kind, x: m.x, y: m.y, points: m.kind === "plane" ? POINTS.swat : 0 });
         break;
       }
   }

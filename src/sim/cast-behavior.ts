@@ -24,7 +24,7 @@ import { GRAVITY_DOWN, STEP } from "./constants";
 import type { GameEvent } from "./events";
 import { bodyRect, overlapsRect } from "./geometry";
 import { BURST_R } from "./hits";
-import type { Missile } from "./missiles";
+import { launchCoffee, launchPlane, type Missile } from "./missiles";
 import { floorAt, moveBody } from "./physics";
 import type { Puddle } from "./snot";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
@@ -215,10 +215,79 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
   windup(n, w, events);
 }
 
-/** The office worker: a head-down march, with the phone's chime as its only warning. */
+/** The student: out of melee, a hop back when he closes in, and paper planes after a wind-up. */
+function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
+  const c = CAST.student;
+  const h = w.hero;
+  n.vx = 0;
+  if (n.act === "windup") {
+    if (n.actT >= c.windup) {
+      w.missiles.push(launchPlane(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }));
+      const m = w.missiles[w.missiles.length - 1];
+      events.push({ type: "missile", kind: "plane", x: m.x, y: m.y });
+      attack(n, events);
+      // The rest between throws counts from the throw.
+      n.rest = c.restMin + ((n.k + n.hits) % 4) * c.restStep;
+    }
+    return;
+  }
+  if (n.act === "attack") {
+    if (n.actT >= 0.3) setAct(n, "idle");
+    return;
+  }
+  // Out of melee: a hop back when he closes in on their floor, once every 1.5 s.
+  if (sameLevel(n, h) && Math.abs(h.x - n.x) < c.melee && w.time - n.hopAt > 1.5) {
+    n.dir = toward(n, h) === 1 ? -1 : 1;
+    n.hopAt = w.time;
+    n.mark = -1;
+    setAct(n, "hop");
+    return;
+  }
+  const planes = w.missiles.filter((m) => m.kind === "plane").length;
+  if (!n.noticed || n.rest > 0 || Math.abs(h.x - n.x) > c.notice || planes >= c.planes || !ticketFree(w.cast)) return;
+  windup(n, w, events);
+  say(n, CAST_LINES.student.heads, events);
+}
+
+/** The office worker: the ambush, for the one behind the screen; then the head-down march, for both, with the phone's chime as its only warning. */
 function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.office;
   const h = w.hero;
+  if (n.act === "hide") {
+    n.vx = 0;
+    if (!sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
+    windup(n, w, events);
+    say(n, pick(CAST_LINES.office.ambush, n.k), events);
+    return;
+  }
+  if (n.act === "windup") {
+    n.vx = 0;
+    if (n.actT >= c.windup) {
+      n.vx = n.facing * c.leap;
+      n.vy = -c.leapUp;
+      n.onGround = false;
+      n.mark = 0;
+      attack(n, events);
+    }
+    return;
+  }
+  if (n.act === "attack") {
+    // At the top of the leap the coffee flies; he lands and marches like the other one.
+    if (n.prop && n.vy >= 0 && !n.mark) {
+      n.mark = 1;
+      n.prop = false;
+      w.missiles.push(launchCoffee(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }));
+      const m = w.missiles[w.missiles.length - 1];
+      events.push({ type: "missile", kind: "coffee", x: m.x, y: m.y });
+    }
+    if (n.onGround && n.actT > 0.2) {
+      n.hide = false;
+      n.x0 = n.x - 400;
+      n.x1 = n.x + 400;
+      setAct(n, "walk");
+    }
+    return;
+  }
   patrol(n, w, c.march);
   // The phone chimes once each time he closes in.
   const near = sameLevel(n, h) && Math.abs(h.x - n.x) < c.chime;
@@ -304,7 +373,7 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   if (n.role === "server") stepServer(n, w, events);
   else if (n.role === "office") stepOffice(n, w, events);
   else if (n.role === "bellhop") stepBellhop(n, w, events);
-  else n.vx = 0;
+  else stepStudent(n, w, events);
 }
 
 /** Down on the floor after a flight: dazed, with the spill if the tray or the cup came down with him. */
