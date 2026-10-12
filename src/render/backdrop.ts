@@ -1,19 +1,12 @@
 import { Assets, Graphics, Sprite, Texture, TilingSprite } from "pixi.js";
 import { ART_BASE, type Registry } from "../art/registry";
-import type { Platform, Stage } from "../sim/types";
 import { PALETTE, shadowOf, highlightOf, tones } from "./palette";
-import type { Scene } from "./scene";
-import { label } from "./text";
+import { PARALLAX, type Scene } from "./scene";
 
 /** Where the floor meets the wall in the lobby's far plate, in plate px. */
 const FAR_FLOOR_LINE = 700;
 const FAR_SCALE = 1.4;
-const FLOOR_DEPTH = 120;
-const FLOOR_TOP = 26;
-/** The floor's top runs this far back toward the wall, so the far foot (a step back in the painting) stands on it. */
-const FLOOR_BACK = 34;
-const OUTLINE = 4;
-/** The floor, counters and passes sort behind everything that moves: Hammer, the carts and the snot. */
+/** The venue sorts behind everything that moves: Hammer, the carts and the snot. */
 export const SCENERY_Z = -1e6;
 const MID_OUTLINE = 3;
 
@@ -29,8 +22,8 @@ function gradientTexture(stops: [number, string][], vertical = true): Texture {
   return Texture.from(canvas);
 }
 
-/** The venue's planes: sky, the inked far plate, mid scenery, and the floors Hammer stands on. */
-export async function loadBackdrop(scene: Scene, venue: string, stage: Stage, registry: Registry): Promise<void> {
+/** The venue's planes behind the play: sky, the inked far plate and the mid scenery, wide enough for `length` px of level. */
+export async function loadBackdrop(scene: Scene, venue: string, length: number, registry: Registry): Promise<void> {
   const sky = new Sprite(gradientTexture([
     [0, "#1c1512"],
     [0.6, "#3a2a22"],
@@ -50,103 +43,16 @@ export async function loadBackdrop(scene: Scene, venue: string, stage: Stage, re
     scene.layers.far.addChild(tile);
   }
 
-  drawMid(scene);
-  const floor = new Graphics();
-  floor.zIndex = SCENERY_Z;
-  drawFloors(floor, stage);
-  drawPlatforms(floor, stage.platforms);
-  scene.layers.play.addChild(floor);
-  drawPasses(scene, stage);
+  drawMid(scene, length);
 }
 
-function drawFloors(g: Graphics, stage: Stage) {
-  const marble = tones(PALETTE.marbleFront);
-  for (const f of stage.floor) {
-    g.poly([f.x0, f.y0 + FLOOR_TOP, f.x1, f.y1 + FLOOR_TOP, f.x1, f.y1 + FLOOR_DEPTH, f.x0, f.y0 + FLOOR_DEPTH]).fill(
-      marble.base,
-    );
-    g.poly([f.x0, f.y0 - FLOOR_BACK, f.x1, f.y1 - FLOOR_BACK, f.x1, f.y1 + FLOOR_TOP, f.x0, f.y0 + FLOOR_TOP]).fill(
-      PALETTE.marbleTop,
-    );
-    // Hard-edged shadow under the lip, as if lit from the upper left.
-    g.poly([f.x0, f.y0 + FLOOR_TOP, f.x1, f.y1 + FLOOR_TOP, f.x1, f.y1 + FLOOR_TOP + 10, f.x0, f.y0 + FLOOR_TOP + 10]).fill(
-      marble.shadow,
-    );
-    g.poly([f.x0, f.y0 + 16, f.x1, f.y1 + 16, f.x1, f.y1 + 20, f.x0, f.y0 + 20]).fill({ color: "#ffffff", alpha: 0.4 });
-    g.poly([f.x0, f.y0 - FLOOR_BACK, f.x1, f.y1 - FLOOR_BACK, f.x1, f.y1 + FLOOR_DEPTH, f.x0, f.y0 + FLOOR_DEPTH]).stroke({
-      width: OUTLINE,
-      color: PALETTE.outline,
-      join: "round",
-    });
-    // Marble veins on the front face.
-    for (let x = f.x0 + 160; x < f.x1; x += 420) {
-      const y = f.y0 + FLOOR_TOP + 30;
-      g.moveTo(x, y)
-        .quadraticCurveTo(x + 90, y + 40, x + 200, y + 20)
-        .quadraticCurveTo(x + 260, y + 10, x + 320, y + 55)
-        .stroke({ width: 3, color: marble.shadow, cap: "round" });
-    }
-  }
-}
-
-function drawPlatforms(g: Graphics, platforms: Platform[]) {
-  const marble = tones(PALETTE.marbleFront);
-  const brass = tones(PALETTE.brass);
-  for (const p of platforms) {
-    const w = p.x1 - p.x0;
-    if (p.y > -300) {
-      // A counter: a marble body down to the floor with a brass trim.
-      g.rect(p.x0, p.y, w, -p.y).fill(marble.base);
-      g.rect(p.x0 + w - 60, p.y + 22, 60, -p.y - 22).fill(marble.shadow);
-      g.rect(p.x0, p.y, w, 22).fill(PALETTE.marbleTop);
-      g.rect(p.x0, p.y + 22, w, 8).fill(brass.base);
-      g.rect(p.x0 + 24, p.y + 5, w - 48, 4).fill({ color: "#ffffff", alpha: 0.45 });
-      g.rect(p.x0, p.y, w, -p.y).stroke({ width: OUTLINE, color: PALETTE.outline, join: "round" });
-      // Panel lines on the front.
-      for (let x = p.x0 + 90; x < p.x1 - 60; x += 160)
-        g.roundRect(x, p.y + 60, 110, -p.y - 100, 8).stroke({ width: 3, color: marble.shadow });
-    } else {
-      // A balcony slab with a brass railing.
-      g.rect(p.x0, p.y, w, 44).fill(marble.base);
-      g.rect(p.x0, p.y, w, 14).fill(PALETTE.marbleTop);
-      g.rect(p.x0, p.y + 30, w, 14).fill(marble.shadow);
-      g.rect(p.x0, p.y, w, 44).stroke({ width: OUTLINE, color: PALETTE.outline, join: "round" });
-      for (let x = p.x0 + 20; x <= p.x1 - 20; x += 140) {
-        g.rect(x - 5, p.y - 100, 10, 100).fill(brass.base);
-        g.rect(x - 5, p.y - 100, 10, 100).stroke({ width: 3, color: PALETTE.outline });
-      }
-      g.roundRect(p.x0, p.y - 112, w, 14, 6).fill(brass.highlight);
-      g.roundRect(p.x0, p.y - 112, w, 14, 6).stroke({ width: 3, color: PALETTE.outline });
-    }
-  }
-}
-
-function drawPasses(scene: Scene, stage: Stage) {
-  const wood = tones(PALETTE.wallWood);
-  for (const p of stage.passes) {
-    const g = new Graphics();
-    g.zIndex = SCENERY_Z;
-    g.rect(p.x, p.y, p.w, p.h).fill(wood.base);
-    g.rect(p.x + 24, p.y + 24, p.w - 48, p.h - 48).fill(wood.highlight);
-    g.rect(p.x + 24, p.y + p.h - 70, p.w - 48, 46).fill(wood.shadow);
-    g.rect(p.x, p.y, p.w, p.h).stroke({ width: OUTLINE, color: PALETTE.outline, join: "round" });
-    g.roundRect(p.x + p.w / 2 - 110, p.y + p.h - 120, 220, 44, 8).fill(PALETTE.brass);
-    g.roundRect(p.x + p.w / 2 - 110, p.y + p.h - 120, 220, 44, 8).stroke({ width: 3, color: PALETTE.outline });
-    const sign = label("SERVICE", "ui", 28);
-    sign.tint = PALETTE.outline;
-    sign.anchor.set(0.5);
-    sign.position.set(p.x + p.w / 2, p.y + p.h - 98);
-    scene.layers.play.addChild(g, sign);
-    sign.zIndex = SCENERY_Z;
-  }
-}
-
-/** Columns and palms against the wall, in a muted palette with thinner lines. */
-function drawMid(scene: Scene) {
+/** Columns and palms against the wall, in a muted palette with thinner lines, spread over the mid plane's share of the level. */
+function drawMid(scene: Scene, length: number) {
   const g = new Graphics();
+  const span = length * PARALLAX.mid + 2400;
   const stone = tones("#cfc6b8");
   const line = { width: MID_OUTLINE, color: PALETTE.outline, alpha: 0.75, join: "round" as const };
-  for (const x of [1400, 4200, 7000, 9800, 12600]) {
+  for (let x = 1400; x < span; x += 2800) {
     g.rect(x - 45, -980, 90, 980).fill(stone.base);
     g.rect(x + 15, -980, 30, 980).fill(stone.shadow);
     g.rect(x - 45, -980, 12, 980).fill(stone.highlight);
@@ -158,7 +64,7 @@ function drawMid(scene: Scene) {
   }
   const brass = tones(PALETTE.brass);
   const leaf = tones(PALETTE.leaf);
-  for (const x of [2600, 5600, 8600, 11600]) {
+  for (let x = 2800; x < span; x += 2800) {
     g.poly([x - 70, -150, x + 70, -150, x + 52, 0, x - 52, 0]).fill(brass.base);
     g.poly([x + 20, -150, x + 70, -150, x + 52, 0, x + 14, 0]).fill(brass.shadow);
     g.rect(x - 78, -170, 156, 24).fill(brass.highlight);

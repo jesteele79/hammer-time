@@ -279,3 +279,19 @@ test("the HUD payload carries the meters, clamped, and changes only when what it
   assert.notEqual(hudKey(a), hudKey(hudOf({ heat: 42.6, sinus: 2.04, charge: 3, patience: 3 }, a.portrait)));
   assert.equal(hudOf({ heat: 140, sinus: -1, charge: 12, patience: 5 }, null).heat, 100);
 });
+
+import { escalatorSteps } from "../src/render/venue.ts";
+
+test("the escalator's steps slide down at the belt's speed and wrap round", () => {
+  const seg = { x0: 1000, x1: 1900, y0: -520, y1: 0, belt: 200, kind: "escalator" };
+  const a = escalatorSteps(seg, 0);
+  const b = escalatorSteps(seg, 0.5);
+  assert.ok(Math.abs(a.length - b.length) <= 1);
+  assert.ok(Math.abs(b[0].x - (a[0].x + 100 - 60)) < 1e-6 || Math.abs(b[0].x - (a[0].x + 100)) < 1e-6, `moved ${b[0].x - a[0].x}`);
+  for (const p of [...a, ...b]) {
+    assert.ok(p.x >= seg.x0 - 1e-9 && p.x <= seg.x1 + 1e-9, "on the escalator");
+    assert.ok(Math.abs(p.y - (seg.y0 + ((seg.y1 - seg.y0) * (p.x - seg.x0)) / (seg.x1 - seg.x0))) < 1e-9, "on its slope");
+  }
+  const c = escalatorSteps(seg, 0.3);
+  assert.ok(Math.abs(c[0].x - a[0].x) < 1e-6, "0.3 s at 200 px/s moves a whole step: the same picture");
+});

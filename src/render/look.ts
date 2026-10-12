@@ -19,6 +19,8 @@ import { addBody, addLean, createLayers, stepLayers } from "../sim/rig/layers";
 import { createPlayback, playAction } from "../sim/rig/playback";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
+import { stageOf } from "../sim/level";
+import { LOBBY } from "../sim/levels/lobby";
 import { createCart } from "../sim/targets";
 import type { HeroState, Point, Rect, Stage } from "../sim/types";
 import { createWorld } from "../sim/world";
@@ -36,35 +38,12 @@ import { createSound } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, type HudPayload } from "./hud";
 import { installFonts } from "./text";
+import { drawVenue } from "./venue";
 import { Words } from "./words";
 
-/** The lobby's first stretch: the floor, two counters, a balcony, a service pass and a ramp. */
-export const LOBBY_STAGE: Stage = {
-  floor: [
-    { x0: -1000, x1: 7000, y0: 0, y1: 0 },
-    // A 30-degree ramp up to a landing and a 15-degree one down: the look test's stand-in for R2's grand staircase.
-    { x0: 7000, x1: 7600, y0: 0, y1: -346 },
-    { x0: 7600, x1: 8400, y0: -346, y1: -346 },
-    { x0: 8400, x1: 9700, y0: -346, y1: 0 },
-    { x0: 9700, x1: 14000, y0: 0, y1: 0 },
-  ],
-  platforms: [
-    { x0: 1500, x1: 2000, y: -180 },
-    { x0: 3200, x1: 3700, y: -180 },
-    { x0: 4400, x1: 5600, y: -520 },
-  ],
-  solids: [],
-  passes: [{ x: 2200, y: -1000, w: 500, h: 780 }],
-  bounds: { x: -1000, y: -2200, w: 15000, h: 3000 },
-};
-const LOBBY_LIGHTS: Light[] = [800, 3400, 6000, 8600, 11200].map((x) => ({
-  x,
-  y: -560,
-  radius: 560,
-  color: PALETTE.lampGlow,
-  intensity: 0.55,
-  flicker: 0.04,
-}));
+/** The lobby the look scene stands him in (R2a); the run itself arrives with the Game. */
+export const LOBBY_STAGE: Stage = stageOf(LOBBY);
+const LOBBY_LIGHTS: Light[] = LOBBY.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04 }));
 /** World px one walk or run cycle covers, so the feet don't skate. */
 const STRIDE = 280;
 const BLEND_T = 0.1;
@@ -101,8 +80,8 @@ export async function startLook(
   const scene = createScene(render);
   const world = createWorld(
     LOBBY_STAGE,
-    { x: 400, y: 0 },
-    { charge: CHARGE_MAX, targets: [createCart(1, 1100), createCart(2, 3000)] },
+    LOBBY.spawn,
+    { charge: CHARGE_MAX, targets: LOBBY.carts.map((x, i) => createCart(i + 1, x)) },
   );
   const clock = createClock();
   scene.camera.bounds = LOBBY_STAGE.bounds;
@@ -112,7 +91,8 @@ export async function startLook(
   await installFonts();
   let registry = await loadRegistry();
   if (opts.noart) registry = stripped(registry);
-  await loadBackdrop(scene, "lobby", LOBBY_STAGE, registry);
+  await loadBackdrop(scene, "lobby", LOBBY.length, registry);
+  const venue = drawVenue(scene, LOBBY);
   const lighting = createLighting(scene, render.quality, LOBBY_LIGHTS);
   render.onQuality = (q) => lighting.setQuality(q);
   const reduced = scene.reducedMotion;
@@ -440,6 +420,7 @@ export async function startLook(
     cam.falling = h.vy > 900;
     scene.update(dt);
     lighting.update(dt);
+    venue.update(simDt);
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     particles.update(simDt, face);
@@ -488,9 +469,8 @@ export async function startLook(
   app.ticker.add(tick);
   if (opts.board) {
     // The boards move Hammer without stepping the sim; the next tick re-places him from the world.
-    const placeHero = (x: number) => {
-      // The boards stand him on the top floor there: the ramp, not the lobby floor beneath it.
-      const y = floorAt(LOBBY_STAGE, x) ?? 0;
+    const placeHero = (x: number, at?: number) => {
+      const y = at ?? floorAt(LOBBY_STAGE, x, -1) ?? 0;
       world.hero.x = x;
       world.hero.y = y;
       world.hero.vx = 0;
@@ -511,6 +491,7 @@ export async function startLook(
       window.removeEventListener("keyup", onKey);
       window.removeEventListener("blur", onBlur);
       sound.destroy();
+      venue.destroy();
       scene.destroy();
     },
   };

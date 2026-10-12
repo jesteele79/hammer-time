@@ -34,6 +34,19 @@ const MOVES: MoveKind[] = ["swing", "super", "snot", "wipe", "lecture"];
 /** What he does when he is not attacking: the idle acts and taking a hit. */
 const ACTS: MoveKind[] = ["watch", "tap", "hurt", "tumble"];
 const MOVE_FRAMES = 10;
+/**
+ * The lobby frames: where he stands, where the camera looks and how wide. The desk, the sofas, the
+ * shaft and the landing, the mezzanine over the floor route (its 0.88 zone), the tables, and the
+ * corridor and the exit.
+ */
+const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [
+  { x: 1100, y: 0, cx: 1700 },
+  { x: 3250, y: -110, cx: 3700 },
+  { x: 5650, y: 0, cx: 6250 },
+  { x: 8300, y: -520, cx: 8700, cy: -420, zoom: 0.88 },
+  { x: 12500, y: -160, cx: 13000 },
+  { x: 15560, y: 0, cx: 15400 },
+];
 /** The moves board draws Hammer this much bigger, for a closer look. */
 const MOVE_SCALE = 1.5;
 /** Floors the slopes board stands him on, degrees: negative rises to the right. */
@@ -90,8 +103,8 @@ export function createBoards(
   scene: Scene,
   registry: Registry,
   particles: Particles,
-  /** Stands him at x on the floor there and returns the floor's y. */
-  placeHero: (x: number) => number,
+  /** Stands him at x, on the floor there or at `y`, and returns where his feet are. */
+  placeHero: (x: number, y?: number) => number,
 ): Boards {
   const { app } = render;
 
@@ -189,18 +202,18 @@ export function createBoards(
   };
 
   const lobby = async () => {
-    const positions = [400, 1750, 5000, 7300];
-    const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target };
+    const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target, zoom: scene.camera.zoom };
     const frames: string[] = [];
     scene.camera.target = null;
     scene.width = 1920;
     scene.height = 1080;
-    for (const x of positions) {
-      const y = placeHero(x);
-      particles.emit("dust", x - 40, y, 12);
+    for (const f of LOBBY_FRAMES) {
+      const y = placeHero(f.x, f.y);
+      particles.emit("dust", f.x - 40, y, 12);
       particles.update(0.12);
-      scene.camera.x = x + 200;
-      scene.camera.y = y - 187;
+      scene.camera.x = f.cx;
+      scene.camera.y = f.cy ?? y - 187;
+      scene.camera.zoom = f.zoom ?? 1;
       scene.fit();
       const target = RenderTexture.create({ width: 1920, height: 1080, resolution });
       app.renderer.render({ container: app.stage, target });
@@ -212,6 +225,7 @@ export function createBoards(
     scene.camera.x = saved.x;
     scene.camera.y = saved.y;
     scene.camera.target = saved.target;
+    scene.camera.zoom = saved.zoom;
     scene.fit();
     return frames.join("\n");
   };

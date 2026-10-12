@@ -28,16 +28,22 @@ try {
   await page.waitForFunction(() => window.__nextBoard && window.__next?.hero, {}, { timeout: 30000 });
   await page.waitForTimeout(800);
   const render = (kind) => page.evaluate((k) => window.__nextBoard.render({ kind: k }), kind);
-  save("hammer-clips.png", await render("clips"));
-  save("hammer-heads.png", await render("heads"));
-  save("hammer-costumes.png", await render("costumes"));
-  save("hammer-moves.png", await render("moves"));
-  save("hammer-acts.png", await render("acts"));
-  save("hammer-slopes.png", await render("slopes"));
-  const frames = (await render("lobby")).split("\n");
-  frames.forEach((f, i) => save(`lobby-look-${i + 1}.png`, f));
+  // A third argument names the boards to render, comma separated; the rest are skipped.
+  const only = process.argv[3]?.split(",");
+  const want = (kind) => !only || only.includes(kind);
+  let count = 0;
+  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes"])
+    if (want(kind)) {
+      save(`hammer-${kind}.png`, await render(kind));
+      count++;
+    }
+  if (want("lobby")) {
+    const frames = (await render("lobby")).split("\n");
+    frames.forEach((f, i) => save(`lobby-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
-  console.log(`PASS: ${6 + frames.length} boards rendered.`);
+  console.log(`PASS: ${count} boards rendered.`);
 } catch (err) {
   console.error("Look boards failure", errors);
   await page?.screenshot({ path: resolve(out, "boards-failure.png") });
