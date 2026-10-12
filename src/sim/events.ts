@@ -1,3 +1,5 @@
+import type { CrateKind } from "./level";
+import type { PickupKind } from "./rewards";
 import type { Rect } from "./types";
 
 /** What happened in one sim step, for the renderer, the sound and the feel. Positions are world px. */
@@ -29,4 +31,12 @@ export type GameEvent =
   | { type: "tumble"; x: number; y: number; dir: 1 | -1 }
   | { type: "getUp" }
   /** His head met the underside of a solid; the point is inside the solid's bottom edge. */
-  | { type: "bump"; x: number; y: number };
+  | { type: "bump"; x: number; y: number }
+  /** A single-use crate opened; `x` is its middle, `y` its bottom. */
+  | { type: "crate"; id: string; kind: CrateKind; x: number; y: number }
+  /** A can pops out of a crate straight to him. */
+  | { type: "canPop"; x: number; y: number }
+  | { type: "caseBreak"; x: number; y: number }
+  | { type: "pickup"; kind: PickupKind; x: number; y: number }
+  /** The mallet rang the front desk's bell. */
+  | { type: "bell"; x: number; y: number };

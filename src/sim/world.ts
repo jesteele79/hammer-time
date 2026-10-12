@@ -22,6 +22,8 @@ export type World = {
   time: number;
   /** What happened in the last step. */
   events: GameEvent[];
+  /** The mallet head's path in front of him this step (empty unless a swing is landing). */
+  swing: Point[];
   /** Hits waiting for the next step: where each came from. */
   hits: number[];
   /** A hit from something at `fromX`, applied at the start of the next step. */
@@ -41,6 +43,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     puddles: [],
     time: 0,
     events: [],
+    swing: [],
     hits: [],
     hit(fromX) {
       world.hits.push(fromX);
@@ -53,7 +56,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       steerMove(h);
       stepHero(h, world.stage, input, STEP, events);
       advanceMove(h, STEP, events);
-      swingContact(h, world.targets, events);
+      world.swing = swingContact(h, world.targets, events);
       superBurst(h, world.targets, events);
       fireSnot(h, world, events);
       deliverLecture(h, events);

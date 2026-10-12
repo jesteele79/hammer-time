@@ -47,15 +47,18 @@ export function malletAt(
 
 const rectOf = (t: Target): Rect => ({ x: t.x - t.w / 2, y: t.y - t.h, w: t.w, h: t.h });
 
-/** The swing's contact: the arc since the last check, sampled finely, against every cart not yet hit. */
-export function swingContact(h: HeroState, targets: Target[], events: GameEvent[]): void {
+/**
+ * The swing's contact: the arc since the last check, sampled finely, against every cart not yet hit.
+ * Returns the part of this step's arc in front of him, for whatever else the mallet can meet.
+ */
+export function swingContact(h: HeroState, targets: Target[], events: GameEvent[]): Point[] {
   const m = h.move;
-  if (m?.kind !== "swing") return;
+  if (m?.kind !== "swing") return [];
   const u = moveU(m);
   const last = m.lastU < 0 || m.lastU > u ? u : m.lastU;
   m.lastU = u;
   const [lo, hi] = SWING_ACTIVE;
-  if (u < lo || last > hi) return;
+  if (u < lo || last > hi) return [];
   const from = Math.max(last, lo);
   const to = Math.min(u, hi);
   const n = Math.max(1, Math.ceil((to - from) / 0.008));
@@ -71,10 +74,10 @@ export function swingContact(h: HeroState, targets: Target[], events: GameEvent[
         m.victims.push(t.id);
         knock(t, h.facing, 1100, 600);
         events.push({ type: "hit", by: "mallet", x: path[k].x, y: path[k].y, target: t.id });
-        h.charge = Math.min(10, h.charge + 1);
         break;
       }
   }
+  return path.filter(ahead);
 }
 
 /** The slam: once, where the mallet meets the floor; every cart within the radius flies away from him, as in the shipped game. */

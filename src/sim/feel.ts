@@ -33,6 +33,10 @@ export function feelOf(e: GameEvent): Feel | null {
       return { hitstop: 0.06, trauma: 0.55 };
     case "lectureStart":
       return { hitstop: 0, trauma: 0.06 };
+    case "caseBreak":
+      return { hitstop: 0.03, trauma: 0.15 };
+    case "bump":
+      return { hitstop: 0, trauma: 0.05 };
     default:
       return null;
   }

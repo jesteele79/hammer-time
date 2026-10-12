@@ -412,3 +412,13 @@ test("the smash throws carts away from Hammer, even one between him and the mall
     assert.ok((behind.x - x(100 - 60)) * facing < -150, `facing ${facing}: the cart behind flies back`);
   }
 });
+
+test("bonking a luggage cart rolls it but adds no smash charge", () => {
+  const cart = createCart(1, 330);
+  const w = createWorld(flat(), { x: 100, y: 0 }, { targets: [cart] });
+  settle(w);
+  press(w, "hammer");
+  steps(w, MOVE_SECONDS.swing);
+  assert.ok(cart.x > 330 + 40, "it rolls");
+  assert.equal(w.hero.charge, 0, "no charge from a cart");
+});

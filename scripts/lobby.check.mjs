@@ -64,3 +64,79 @@ test("every route gets a can, nuts and a Buc-ee's, whatever the seed", () => {
     assert.deepEqual([kinds("bucees"), kinds("nuts"), kinds("can")], [3, 7, 2], "the totals still hold");
   }
 });
+
+import { CRATE, cratesOf, crateSolids, hitCrate } from "../src/sim/crates.ts";
+import { collectPickups, stepPickups } from "../src/sim/rewards.ts";
+import { createWorld } from "../src/sim/world.ts";
+import { STEP } from "../src/sim/constants.ts";
+
+const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
+const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
+const ctxOf = (o = {}) => ({ patience: 2, star: false, hot: false, ...o });
+const out = () => { let n = 100; return { pickups: [], events: [], nextId: () => ++n }; };
+
+test("a pepper crate opens once and lets out a pepper, or nuts when he is already hot", () => {
+  const [c] = cratesOf(mini());
+  const o = out();
+  hitCrate(c, "bump", ctxOf(), o);
+  hitCrate(c, "mallet", ctxOf(), o);
+  assert.equal(o.pickups.length, 1, "once, however it is hit");
+  assert.equal(o.pickups[0].kind, "pepper");
+  assert.ok(c.used && !c.broken);
+  const [h] = cratesOf(mini());
+  const p = out();
+  hitCrate(h, "bump", ctxOf({ hot: true, patience: 3 }), p);
+  assert.equal(p.pickups[0].kind, "nuts");
+});
+
+test("a delivery case pays a can per hit, one per 0.16 s, five at most, and breaks under the mallet", () => {
+  const level = { ...mini(), crates: [{ id: "k", kind: "case", x: 900, y: 0 }] };
+  const [c] = cratesOf(level);
+  const o = out();
+  hitCrate(c, "bump", ctxOf({ patience: 1 }), o);
+  hitCrate(c, "bump", ctxOf({ patience: 1 }), o);
+  assert.equal(o.events.filter((e) => e.type === "canPop").length, 1, "locked for 0.16 s");
+  for (let i = 0; i < 10; i++) {
+    c.lock = 0;
+    hitCrate(c, "bump", ctxOf({ patience: 1 }), o);
+  }
+  assert.equal(o.events.filter((e) => e.type === "canPop").length, CRATE.caseCans);
+  assert.ok(c.broken, "spent after five");
+  const [m] = cratesOf(level);
+  const q = out();
+  hitCrate(m, "mallet", ctxOf({ patience: 1 }), q);
+  assert.ok(m.broken && q.events.some((e) => e.type === "caseBreak"));
+});
+
+test("an emerging pepper rises, slides off and is his when he touches it", () => {
+  const open = { ...mini(), solids: [] };
+  const crates = cratesOf(open);
+  const [c] = crates;
+  const o = out();
+  hitCrate(c, "bump", ctxOf(), o);
+  const stage = stageOf(open, crateSolids(crates));
+  const p = o.pickups[0];
+  const y0 = p.y;
+  for (let i = 0; i < 30; i++) stepPickups(o.pickups, stage, 1 / 120);
+  assert.ok(p.y < y0 - 30, "rising out of the crate");
+  for (let i = 0; i < 240; i++) stepPickups(o.pickups, stage, 1 / 120);
+  assert.ok(Math.abs(p.x - c.x) > 300 && p.body.onGround, `slid off and landed: ${p.x}`);
+  const hero = { x: p.x, y: p.y + 40, w: 110, h: 300 };
+  const evs = [];
+  assert.deepEqual(collectPickups(hero, o.pickups, evs), ["pepper"]);
+  assert.ok(p.taken && evs.some((e) => e.type === "pickup" && e.kind === "pepper"));
+  assert.deepEqual(collectPickups(hero, o.pickups, []), [], "taken once");
+});
+
+test("the world reports this step's mallet path in front of him, for crates and the bell", () => {
+  const w = createWorld(stageOf(mini()), { x: 100, y: 0 });
+  for (let i = 0; i < 6; i++) w.step(input());
+  w.step(input({ hammer: true }, { hammer: true }));
+  let seen = 0;
+  for (let i = 0; i < 60; i++) {
+    w.step(input());
+    if (w.swing.length) seen++;
+    for (const p of w.swing) assert.ok(p.x > w.hero.x, "only in front");
+  }
+  assert.ok(seen > 5, `the path shows through the strike: ${seen} steps`);
+});

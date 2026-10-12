@@ -1,6 +1,9 @@
+import { GRAVITY_DOWN } from "./constants";
+import { CRATE } from "./crates";
+import type { GameEvent } from "./events";
 import { rewardAnchors, type Level, type RewardRoute } from "./level";
-import type { Body } from "./physics";
-import type { Point } from "./types";
+import { moveBody, type Body } from "./physics";
+import type { HeroState, Point, Stage } from "./types";
 
 export type PickupKind = "can" | "nuts" | "bucees" | "pepper";
 /** A pickup: seeded ones stand still; one that came out of a crate has a body and moves. */
@@ -55,4 +58,37 @@ export function seedRewards(level: Level, seed: number): Pickup[] {
   for (const kind of ["bucees", "nuts", "can"] as const)
     while (left[kind] > 0 && anchors.length) place(kind, anchors.shift()!);
   return out;
+}
+
+/** An item out of a crate rises clear of it, then slides away under gravity and turns back off walls. */
+export function stepPickups(pickups: Pickup[], stage: Stage, dt: number): void {
+  for (const p of pickups) {
+    const b = p.body;
+    if (!b || p.taken) continue;
+    if (b.emerge > 0) {
+      b.emerge = Math.max(0, b.emerge - dt);
+      b.y -= (CRATE.size / CRATE.emerge) * dt;
+    } else {
+      b.vx = CRATE.slide * b.dir;
+      b.vy += GRAVITY_DOWN * dt;
+      moveBody(b, stage, dt);
+      if (b.vx === 0) b.dir = -b.dir;
+    }
+    p.x = b.x;
+    p.y = b.y - b.h / 2;
+  }
+}
+
+/** Everything his body overlaps is his, once an item is fully out of its crate. Returns the kinds taken. */
+export function collectPickups(h: Pick<HeroState, "x" | "y" | "w" | "h">, pickups: Pickup[], events: GameEvent[]): PickupKind[] {
+  const got: PickupKind[] = [];
+  const half = 35;
+  for (const p of pickups) {
+    if (p.taken || (p.body && p.body.emerge > 0)) continue;
+    if (p.x + half < h.x - h.w / 2 || p.x - half > h.x + h.w / 2 || p.y + half < h.y - h.h || p.y - half > h.y) continue;
+    p.taken = true;
+    got.push(p.kind);
+    events.push({ type: "pickup", kind: p.kind, x: p.x, y: p.y });
+  }
+  return got;
 }
