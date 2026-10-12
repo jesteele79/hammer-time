@@ -81,4 +81,6 @@ export type GameEvent =
   | { type: "castSplash"; x: number; y: number }
   /** A marching office worker's phone, as he closes in. */
   | { type: "chime"; x: number; y: number }
+  /** A chain: the `count`th staffer bowled over by one moving thing; `oneUp` at eight. */
+  | { type: "chain"; x: number; y: number; count: number; points: number; oneUp: boolean }
   | { type: "mode"; mode: GameMode };

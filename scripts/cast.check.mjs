@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { STEP } from "../src/sim/constants.ts";
 import { createWorld } from "../src/sim/world.ts";
-import { createCast, CAST, CAST_ID } from "../src/sim/cast.ts";
+import { createCast, CAST, CAST_ID, hittable } from "../src/sim/cast.ts";
 import { attackers } from "../src/sim/cast-behavior.ts";
 import { createCart } from "../src/sim/targets.ts";
 
@@ -124,7 +124,8 @@ test("snot knocks staff down and slimes them; hot snot goes through one; student
   w.hero.facing = 1;
   press(w, "fire");
   const evs = steps(w, 1.2);
-  const hits = of(evs, "castHit");
+  // (The office worker, flying, may bowl the student on his way: a hit of its own.)
+  const hits = of(evs, "castHit").filter((e) => e.by === "snot");
   assert.deepEqual(hits.map((e) => [e.id, e.by]), [[npc(w, "a").id, "snot"], [npc(w, "b").id, "snot"]], "through the first, into the second");
   assert.ok(npc(w, "a").slimed && npc(w, "b").slimed);
   const cold = worldWith([{ id: "k", person: "student-1", x: 700, y: 0 }], { x: 300, y: 0 });
@@ -261,4 +262,99 @@ test("her rush landing on him in the step his mallet lands on her: one pip, one 
   assert.ok(w.hero.patience >= 2, `at most one pip: ${w.hero.patience}`);
   assert.ok(["fly", "down"].includes(s.act));
   assert.equal(attackers(w.cast), 0, "the ticket is back");
+});
+
+test("a bellhop grips his cart, winds up 0.7 s, shoves it at 650 toward him, follows it, and wheels it home", () => {
+  const w = worldWith([{ id: "b", person: "bellhop-1", x: 1400, y: 0, cart: 1250 }], { x: -1500, y: 0 }, {}, [1250]);
+  Object.assign(w.hero, { x: 600, invuln: 99 });
+  const b = npc(w, "b");
+  const cart = w.targets[0];
+  const evs = until(w, () => npc(w, "b").act === "windup", 3);
+  assert.ok(of(evs, "castNotice").length === 1 && b.act === "windup", "the double-take, then the wind-up");
+  assert.ok(Math.abs(cart.x - (b.x - CAST.bellhop.hold)) < 2, "the cart in his hands, on Hammer's side");
+  const t0 = w.time;
+  const shoved = until(w, () => npc(w, "b").act === "chase", 2);
+  assert.ok(w.time - t0 >= CAST.bellhop.windup - 2 * STEP && of(shoved, "castAttack").length === 1);
+  assert.equal(cart.vx, -CAST.bellhop.shove);
+  assert.equal(cart.owner, b.id);
+  // Hammer out of the way: the cart rolls, he fetches it and wheels it home in peace.
+  w.hero.x = -1500;
+  until(w, () => Math.abs(w.targets[0].vx) < 10, 6);
+  assert.ok(cart.x < 1250 - 600, `it rolled a long way: ${cart.x}`);
+  until(w, () => npc(w, "b").act === "return", 6);
+  assert.equal(b.act, "return");
+  until(w, () => npc(w, "b").act === "idle" && Math.abs(npc(w, "b").x - 1400) < 10, 12);
+  assert.ok(Math.abs(b.x - 1400) < 10 && Math.abs(cart.x - (b.x - CAST.bellhop.hold)) < 2, "home with the cart");
+  assert.ok(b.rest > 0, "a rest before the next shove");
+});
+
+test("a cart rolling at him costs a pip; one rolling away or standing still does not", () => {
+  const w = worldWith([], { x: 300, y: 0 }, {}, [700]);
+  w.targets[0].vx = -650;
+  const evs = until(w, (x) => x.hero.patience < 3, 2);
+  assert.equal(w.hero.patience, 2);
+  assert.equal(of(evs, "hurt").length, 1);
+  const still = worldWith([], { x: 300, y: 0 }, {}, [320]);
+  steps(still, 0.5);
+  assert.equal(still.hero.patience, 3, "standing in a parked cart is harmless");
+});
+
+test("a bonked cart reverses and bowls over the bellhop behind it, for the chain's first 100", () => {
+  const w = worldWith([{ id: "b", person: "bellhop-1", x: 1400, y: 0, cart: 1250 }], { x: 300, y: 0 }, {}, [1250]);
+  const b = npc(w, "b");
+  b.noticed = true;
+  b.rest = 99;
+  w.hero.x = 1020;
+  w.hero.facing = 1;
+  press(w, "hammer");
+  const evs = steps(w, 1.5);
+  assert.ok(of(evs, "hit").some((e) => e.by === "mallet" && e.target === 1), "the cart is bonked");
+  const hits = of(evs, "castHit");
+  assert.deepEqual(hits.map((e) => [e.id, e.by]), [[b.id, "cart"]]);
+  assert.deepEqual(of(evs, "chain").map((e) => [e.count, e.points, e.oneUp]), [[1, 100, false]]);
+  assert.ok(b.hat === false && b.hits === 1 && !b.out, "hat off, down but not out");
+});
+
+test("a bellhop takes two: dazed four seconds and up again after the first; sliding along the floor when hit while down, bowling what he meets", () => {
+  const w = worldWith([{ id: "b", person: "bellhop-1", x: 530, y: 0 }], { x: 300, y: 0 });
+  const b = npc(w, "b");
+  w.hero.facing = 1;
+  press(w, "hammer");
+  until(w, (x) => x.events.some((e) => e.type === "castHit"), 1);
+  assert.ok(b.act === "fly" && b.hits === 1 && !b.out);
+  until(w, () => npc(w, "b").act === "down", 3);
+  const t0 = w.time;
+  until(w, () => npc(w, "b").act === "getup", 6);
+  assert.ok(w.time - t0 >= CAST.bellhop.daze - STEP, "dazed the full four seconds");
+  until(w, () => npc(w, "b").act === "idle", 2);
+  assert.ok(b.act === "idle" && hittable(b), "up and back in the fight");
+  // Hit while he is down: the slide, through whoever stands in its way.
+  const s = worldWith([{ id: "b", person: "bellhop-1", x: 530, y: 0 }, { id: "o", person: "office-1", x: 1300, y: 0 }], { x: 300, y: 0 });
+  const sb = npc(s, "b");
+  s.hero.facing = 1;
+  press(s, "hammer");
+  until(s, () => npc(s, "b").act === "down", 3);
+  sb.x = 530;
+  press(s, "hammer");
+  const evs = steps(s, 2.5);
+  assert.ok(of(evs, "castHit").some((e) => e.id === sb.id) && sb.out, "out after the second");
+  const bowled = of(evs, "castHit").find((e) => e.id === npc(s, "o").id);
+  assert.ok(bowled && bowled.by === "slide", "the office worker in his path went down");
+  assert.ok(of(evs, "chain").some((e) => e.count === 1 && e.points === 100));
+});
+
+test("a chain climbs 100, 200, 400 ... and the eighth is a life; two things reaching one staffer in a step count once", () => {
+  const spawns = Array.from({ length: 8 }, (_, i) => ({ id: `o${i}`, person: "office-1", x: 900 + i * 120, y: 0 }));
+  const w = worldWith(spawns, { x: 300, y: 0 }, {}, [700]);
+  w.targets[0].vx = 1100;
+  const evs = steps(w, 3);
+  const chain = of(evs, "chain");
+  assert.deepEqual(chain.map((e) => e.points), [100, 200, 400, 800, 1000, 2000, 4000, 8000]);
+  assert.ok(chain[7].oneUp && !chain[6].oneUp);
+  const twice = worldWith([{ id: "o", person: "office-1", x: 900, y: 0 }], { x: 300, y: 0 }, {}, [700, 1100]);
+  twice.targets[0].vx = 1100;
+  twice.targets[1].vx = -1100;
+  const both = steps(twice, 1);
+  assert.equal(of(both, "castHit").length, 1, "one knockdown");
+  assert.equal(of(both, "chain").length, 1, "one chain entry");
 });

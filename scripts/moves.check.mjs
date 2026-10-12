@@ -298,7 +298,8 @@ test("a knocked cart rolls to a stop on the floor", () => {
   cart.vx = 1100;
   cart.vy = -600;
   cart.onGround = false;
-  steps(w, 4);
+  // A runaway rolls far on the marble now: six seconds to come to rest.
+  steps(w, 6);
   assert.equal(cart.vx, 0);
   assert.ok(cart.onGround && cart.y === 0);
   assert.ok(cart.x > 300, `rolled ${cart.x}`);

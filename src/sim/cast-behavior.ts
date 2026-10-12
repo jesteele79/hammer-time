@@ -1,9 +1,11 @@
 import { CAST_LINES, pick } from "../game/lines";
 import {
   CAST,
+  CHAIN,
   FALL_MARGIN,
   KNOCK,
   POINTS,
+  ROLLING,
   STOMP,
   T,
   TICKETS,
@@ -25,7 +27,7 @@ import { BURST_R } from "./hits";
 import type { Missile } from "./missiles";
 import { floorAt, moveBody } from "./physics";
 import type { Puddle } from "./snot";
-import type { HeroState, Point, Stage, Target } from "./types";
+import type { HeroState, Point, Rect, Stage, Target } from "./types";
 
 export type CastWorld = {
   stage: Stage;
@@ -138,6 +140,81 @@ function stepServer(n: Npc, w: CastWorld, events: GameEvent[]): void {
   say(n, pick(CAST_LINES.server.warn, n.k + n.hits), events);
 }
 
+/** The bellhop: grips his cart, winds up, shoves it at him, follows it where it stops and wheels it home. */
+function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
+  const c = CAST.bellhop;
+  const h = w.hero;
+  const cart = w.targets.find((t) => t.id === n.cart);
+  if (n.act === "windup") {
+    n.vx = 0;
+    if (cart) {
+      cart.x = n.x + n.facing * c.hold;
+      cart.vx = 0;
+    }
+    if (n.actT >= (n.hits ? c.windup2 : c.windup)) {
+      if (cart) {
+        cart.vx = n.facing * c.shove;
+        cart.vy = 0;
+        cart.onGround = true;
+        cart.chain = 0;
+        cart.owner = n.id;
+      }
+      attack(n, events, cart?.x, cart ? cart.y - cart.h / 2 : undefined);
+      setAct(n, "chase");
+      say(n, pick(CAST_LINES.bellhop.shove, n.k + n.hits), events);
+    }
+    return;
+  }
+  if (n.act === "chase") {
+    if (!cart) {
+      setAct(n, "idle");
+      return;
+    }
+    const stopped = cart.onGround && Math.abs(cart.vx) < 10;
+    const want = cart.x - n.facing * c.hold;
+    const dx = want - n.x;
+    n.vx = Math.abs(dx) < 8 ? 0 : Math.sign(dx) * c.walk;
+    if (stopped && Math.abs(dx) < 8) setAct(n, "return");
+    return;
+  }
+  if (n.act === "return") {
+    const dx = n.home - n.x;
+    if (Math.abs(dx) < 8) {
+      n.vx = 0;
+      n.facing = toward(n, h);
+      if (cart) {
+        cart.x = n.x + n.facing * c.hold;
+        cart.vx = 0;
+      }
+      setAct(n, "idle");
+      n.rest = c.rest;
+      return;
+    }
+    n.facing = dx > 0 ? 1 : -1;
+    n.vx = n.facing * c.walk;
+    if (cart) {
+      cart.x = n.x + n.facing * c.hold;
+      cart.vx = 0;
+      cart.vy = 0;
+      cart.y = n.y;
+      cart.onGround = true;
+    }
+    return;
+  }
+  n.vx = 0;
+  if (!cart) return;
+  // A cart out of his hands (bonked away, or he was staggered chasing it) is fetched first.
+  if (Math.abs(cart.x - n.x) > c.hold + 40) {
+    setAct(n, "chase");
+    return;
+  }
+  if (!n.noticed || n.rest > 0 || !sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
+  // The cart goes between him and Hammer before the shove.
+  n.facing = toward(n, h);
+  cart.x = n.x + n.facing * c.hold;
+  windup(n, w, events);
+}
+
 /** The office worker: a head-down march, with the phone's chime as its only warning. */
 function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.office;
@@ -226,6 +303,7 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   if (notice(n, w, events)) return;
   if (n.role === "server") stepServer(n, w, events);
   else if (n.role === "office") stepOffice(n, w, events);
+  else if (n.role === "bellhop") stepBellhop(n, w, events);
   else n.vx = 0;
 }
 
@@ -313,6 +391,38 @@ function puddle(n: Npc, w: CastWorld, events: GameEvent[]): void {
   strikeNpc(n, "puddle", n.vx > 0 ? 1 : -1, w, events);
 }
 
+const chainEvent = (events: GameEvent[], n: Npc, count: number) => {
+  const points = CHAIN[Math.min(count, CHAIN.length) - 1];
+  events.push({ type: "chain", x: n.x, y: n.y - n.h, count, points, oneUp: count >= CHAIN.length });
+};
+
+/** Runaway carts, sliding bellhops and flying bodies bowl over the staff in their way (the chain), and a cart rolling at him costs a pip. */
+function bowl(w: CastWorld, events: GameEvent[]): void {
+  const h = w.hero;
+  const mover = (x: number, vx: number, rect: Rect, holder: { chain: number }, by: "cart" | "slide" | "body", self: Npc | null) => {
+    const dir: 1 | -1 = vx > 0 ? 1 : -1;
+    for (const n of w.cast) {
+      // Only people on their feet are bowled: hitting a downed bellhop again is Hammer's own move.
+      if (n === self || !hittable(n) || n.act === "down" || (n.x - x) * dir <= 0 || !overlapsRect(rect, npcRect(n))) continue;
+      if (!strikeNpc(n, by, dir, w, events, holder.chain + 1)) continue;
+      holder.chain++;
+      chainEvent(events, n, holder.chain);
+      if (holder.chain >= CHAIN.length) holder.chain = 0;
+    }
+  };
+  for (const t of w.targets) {
+    if (Math.abs(t.vx) < ROLLING) continue;
+    const r = bodyRect(t);
+    mover(t.x, t.vx, r, t, "cart", null);
+    if ((h.x - t.x) * Math.sign(t.vx) > 0 && overlapsRect(r, bodyRect(h))) w.hits.push(t.x);
+  }
+  for (const s of w.cast) {
+    if (!s.alive || Math.abs(s.vx) < ROLLING) continue;
+    if (s.act === "slide") mover(s.x, s.vx, npcRect(s), s, "slide", s);
+    else if (s.act === "fly") mover(s.x, s.vx, npcRect(s), s, "body", s);
+  }
+}
+
 /** One step of the cast, after Hammer and the carts have moved. */
 export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: boolean, events: GameEvent[]): void {
   const burst = events.find((e) => e.type === "burst") as Extract<GameEvent, { type: "burst" }> | undefined;
@@ -328,4 +438,5 @@ export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: 
     contact(n, w, prevHeroY, jumpHeld, events);
     puddle(n, w, events);
   }
+  bowl(w, events);
 }

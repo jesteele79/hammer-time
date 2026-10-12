@@ -375,8 +375,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     }
     world.step(input);
     ev.push(...world.events);
-    // The cast's points ride their events.
-    for (const e of world.events) if ("points" in e && e.points) addScore(run, e.points);
+    // The cast's points ride their events; the eighth bowl of a chain is a life.
+    for (const e of world.events) {
+      if ("points" in e && e.points) addScore(run, e.points);
+      if (e.type === "chain" && e.oneUp) {
+        run.lives++;
+        ev.push({ type: "oneUp" });
+      }
+    }
     strikeCrates(ev);
     if (tryDoors(input, ev)) return;
     stepCrates(game.crates, STEP);
