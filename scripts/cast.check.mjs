@@ -6,6 +6,9 @@ import { createCast, CAST, CAST_ID, hittable } from "../src/sim/cast.ts";
 import { attackers } from "../src/sim/cast-behavior.ts";
 import { launchPlane, stepMissiles, PLANE } from "../src/sim/missiles.ts";
 import { createCart } from "../src/sim/targets.ts";
+import { createGame } from "../src/sim/game.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -496,4 +499,80 @@ test("a student hops back out of his reach when there is floor behind, ducks oth
   const edge = worldWith([{ id: "k", person: "student-1", x: 2250, y: -520 }], { x: 2000, y: -520 }, {}, [], stage);
   steps(edge, 0.5);
   assert.ok(Math.abs(npc(edge, "k").x - 2250) < 30, "no floor behind: stays");
+});
+
+const play = (g) => { while (g.mode === "card") g.step(input()); };
+const stepsG = (g, seconds, held = {}) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP); i++) { g.step(input(held)); evs.push(...g.events); } return evs; };
+const untilG = (g, done, seconds = 10, held = {}) => { for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) g.step(input(held)); };
+
+test("the lobby's cast stands where the design puts them, every bellhop with his cart, nobody in the stash", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 3);
+  const by = (id) => g.world.cast.find((n) => n.spawn === id);
+  assert.equal(g.world.cast.length, 11);
+  assert.ok(by("bellhop-desk").cart !== null && by("bellhop-floor").cart !== null);
+  assert.deepEqual(LOBBY.cast.filter((s) => s.y === -520).map((s) => s.person.split("-")[0]), ["student", "student", "student"]);
+  assert.ok(by("office-screen").hide && by("student-table").sit);
+  assert.deepEqual(STASH.cast ?? [], []);
+  const off = createGame({ lobby: LOBBY, stash: STASH }, 3, { cast: false });
+  assert.equal(off.world.cast.length, 0);
+});
+
+test("a lost life brings the cast back as the run placed it, with no missile, ticket or line left over", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 3);
+  play(g);
+  const s = g.world.cast.find((n) => n.spawn === "server-buffet");
+  Object.assign(g.world.hero, { x: 4700, y: 0 });
+  untilG(g, (x) => x.world.cast.find((n) => n.spawn === "server-buffet").act === "attack", 4);
+  assert.equal(s.act, "attack");
+  g.world.missiles.push({ id: 9, kind: "plane", x: 4000, y: -200, vx: 100, vy: 0, spin: 0, life: 5, phase: 0, from: 0 });
+  g.world.hero.patience = 1;
+  g.world.hit(g.world.hero.x + 100);
+  untilG(g, (x) => x.mode === "play" && x.run.lives === 2, 6);
+  const fresh = g.world.cast.find((n) => n.spawn === "server-buffet");
+  assert.notEqual(fresh, s, "a fresh cast");
+  assert.deepEqual([fresh.act, fresh.x, fresh.noticed, fresh.hits], ["idle", 4900, false, 0]);
+  assert.equal(g.world.missiles.length, 0);
+  assert.equal(attackers(g.world.cast), 0);
+});
+
+test("the stash has no cast, and the lobby's cast is exactly as he left it when he comes back", () => {
+  // A twin run that never goes through the door: the same seed, the same steps, so its cast is what the lobby's should be.
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 3);
+  const twin = createGame({ lobby: LOBBY, stash: STASH }, 3);
+  for (const x of [g, twin]) {
+    play(x);
+    Object.assign(x.world.hero, { x: 9700, y: 0 });
+    Object.assign(x.world.cast.find((n) => n.spawn === "bellhop-floor"), { act: "down", actT: 1, hits: 1, hat: false });
+  }
+  g.step(input({ down: true }, { down: true }));
+  twin.step(input());
+  assert.equal(g.level.id, "stash");
+  assert.equal(g.world.cast.length, 0);
+  stepsG(g, 2);
+  Object.assign(g.world.hero, { x: 320, y: 0 });
+  g.step(input());
+  g.step(input({ down: true }, { down: true }));
+  untilG(g, (x) => x.level.id === "lobby", 2, { down: true });
+  assert.equal(g.level.id, "lobby");
+  assert.equal(JSON.stringify(g.world.cast), JSON.stringify(twin.world.cast), "untouched while he was away");
+});
+
+test("the Game scores the cast: a knockdown 100, a chain's points, and the eighth bowl is a life", () => {
+  const none = { count: 0, bucees: 0, nuts: 0 };
+  const one = { ...LOBBY, cast: [{ id: "o", person: "office-1", x: 2930, y: 0 }], carts: [], crates: [], checkpoints: [], rewards: none };
+  const g = createGame({ lobby: one, stash: STASH }, 3);
+  play(g);
+  Object.assign(g.world.hero, { x: 2700, y: 0, facing: 1 });
+  g.step(input({ hammer: true }, { hammer: true }));
+  stepsG(g, 0.5);
+  assert.equal(g.run.score, 100, "the office worker went down");
+  const row = { ...LOBBY, cast: Array.from({ length: 8 }, (_, i) => ({ id: `o${i}`, person: "office-1", x: 3000 + i * 120, y: 0 })), carts: [2700], crates: [], checkpoints: [], rewards: none };
+  const c = createGame({ lobby: row, stash: STASH }, 3);
+  play(c);
+  Object.assign(c.world.hero, { x: 300, y: 0 });
+  c.world.targets[0].vx = 1100;
+  const lives = c.run.lives;
+  stepsG(c, 3);
+  assert.equal(c.run.score, 100 + 200 + 400 + 800 + 1000 + 2000 + 4000 + 8000, "one chain through the row");
+  assert.equal(c.run.lives, lives + 1, "the eighth is a life");
 });

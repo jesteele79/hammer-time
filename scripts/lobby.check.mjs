@@ -396,7 +396,7 @@ test("a scripted player gets through the lobby by either route, alive, inside th
     play(g);
     let topY = 0, t = 0, last = g.world.hero.x, stuck = 0;
     while (g.mode === "play" && t < 120) {
-      g.step(drive(g.level, g.world.hero, route));
+      g.step(drive(g.level, g.world.hero, route, g.world));
       t += STEP;
       topY = Math.min(topY, g.world.hero.y);
       if (Math.floor(t * 2) !== Math.floor((t - STEP) * 2)) {
@@ -407,6 +407,7 @@ test("a scripted player gets through the lobby by either route, alive, inside th
     }
     assert.equal(g.run.lives, 3, `${route}: no life lost`);
     assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `${route}: reached the exit (${g.mode} at ${g.world.hero.x})`);
+    assert.ok(g.run.score > 0, `${route}: scored on the cast`);
     if (route === "balcony") assert.ok(topY <= -520, "went up on the balcony");
     else assert.ok(topY > -400, "stayed on the floor");
   }
