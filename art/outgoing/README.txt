@@ -8,7 +8,8 @@ references/ folder.
 Order of batches (do them in this order; batch 1 unblocks the most):
   batch-1-hammer.txt      attach: hammer-profile.png, hammer-three-quarter.png
   batch-2-backdrops.txt   attach: hammer-profile.png plus the venue photo named in each item
-  batch-3-cast.txt        attach: hammer-profile.png plus the NPC photo named in each item
+  batch-3-cast.txt        attach: art/incoming/hammer/body-affliction.png, hammer-profile.png,
+                          plus the NPC photo named in each item (item 1 first, then wait)
   batch-4-pig.txt         attach: hammer-profile.png, pig-toy.jpg
   batch-5-quests.txt      attach: hammer-profile.png plus the pickup photos named
   batch-6-later.txt       attach: hammer-profile.png (and the photo named in each item)

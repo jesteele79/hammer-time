@@ -1,37 +1,63 @@
-HAMMER TIME — ART BATCH 3: THE CAST
-Attach first: hammer-profile.png (for the style). For each item also attach the photo it names.
+HAMMER TIME — ART BATCH 3: THE LOBBY CAST
+Attach first, for every item:
+  Image 1: art/incoming/hammer/body-affliction.png (Hammer's full body: THE POSE, FRAMING AND DRAWING STYLE TO COPY)
+  Image 2: art/outgoing/references/hammer-profile.png (the drawing style)
+For each person also attach the costume photo the item names (for the kind of uniform only; the colors are written in the item).
 
-You are producing the other characters of the game in the same drawn style as the attached portrait. They are rigged and animated from these images, so the pose is strict and must be identical for everyone:
+Make ITEM 1 first and stop. I check it fits the game before you make the rest.
 
-POSE (every character): full body in strict LEFT-facing profile, standing straight, feet flat and slightly apart. Near arm held out and down at about 30 degrees from the body, hand open unless the item gives it something to hold; far arm visible behind the body in the same position. A clear gap between the near arm and the torso. Both shoes fully visible. Nothing behind the back.
+You are producing the people who work in a hotel lobby in a game about the man in Images 1 and 2. They are NOT that man: each item is a different person. They will be cut into parts and animated exactly like Image 1, so every body must copy Image 1's pose, camera, framing and drawing style precisely, while having their own face, build, height and clothes. Produce one image per item when I ask for it, and label it with the file name given.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and the same placement in the frame as Image 1: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the bellhops' hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
 
 STYLE (apply to every image):
-Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference portrait. Use the attached photo for the costume and the kind of person only.
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image.
 
 RULES (every image):
-- One character per image, whole body in frame with margin, feet included.
-- Flat bright green background like a green screen.
-- No text, logos or watermarks.
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name badges and lanyard cards are blank).
+- The whole subject inside the frame with margin all round. Feet included.
 - Largest size available. PNG or WebP.
+- "Profile" means facing LEFT, exactly like Image 1.
 
 ITEMS
 
-1. server.png (attach npc-server.png)
-A young woman server, dark hair tied back, white shirt, black vest and black apron, black trousers, holding a round serving tray at shoulder height in the near hand.
+1. bellhop-1.png (also attach npc-bellhop.png for the cut of the uniform)
+A hotel bellhop: an older gentleman in his late fifties, tall, very upright, chest out, proud of his job. Short neat grey hair, a trim grey mustache, a small eager smile. A fitted RED bellhop jacket with a standing collar, two rows of gold buttons, gold braid at the collar and cuffs, black trousers with a thin gold stripe down the side, white gloves, polished black shoes. Bareheaded. Hands open and empty as in Image 1.
+STOP after this item and wait.
 
-2. bellhop.png (attach npc-bellhop.png)
-A bellhop in a red jacket with gold buttons and braid, black trousers, a red pillbox hat, white gloves.
+2. bellhop-2.png (also attach npc-bellhop.png)
+A hotel bellhop: a young woman in her early twenties, a little shorter than Image 1, eager to please. Dark hair in a low neat bun, freckles, a wide keen grin with lips closed. The same uniform as item 1: the RED jacket with gold buttons and braid, black trousers with a gold stripe, white gloves, black shoes. Bareheaded.
 
-3. office.png (attach npc-office.png)
-An office worker, light blue shirt with the sleeves rolled, loosened tie, lanyard badge with no text, pleated khakis, brown shoes, holding a paper coffee cup in the near hand.
+3. server-1.png (also attach npc-server.png)
+A restaurant server: a young woman in her mid twenties, slim, average height, with an aggressively cheerful customer-service smile (lips closed). Dark hair pulled back in a high ponytail. White shirt with the sleeves rolled to the elbow, a black vest, a long black waist apron to below the knee, black trousers, black shoes.
 
-4. student.png (attach npc-student.png)
-A college student in a grey hoodie and jeans with a backpack over one shoulder, white earbuds, sneakers, one hand holding a folded paper airplane.
+4. server-2.png (also attach npc-server.png)
+A restaurant server: a lanky young man in his early twenties, tall and thin, curly brown hair, a too-wide customer-service smile (lips closed). The same uniform as item 3: white shirt with rolled sleeves, black vest, long black waist apron, black trousers, black shoes.
 
-5. nurse.png (attach nurse-scrubs.png)
-A nurse in teal scrubs with a badge reel, white clogs, hair in a bun, holding a clipboard in the near hand.
+5. office-1.png (also attach npc-office.png)
+An office worker at a conference: a man in his mid forties, average height, a little soft around the middle, balding with short dark hair at the sides, rectangular glasses, white wireless earbuds, a flat distracted expression. A light blue dress shirt with the sleeves rolled, a loosened burgundy tie, a lanyard with a blank white badge, pleated khaki trousers, brown shoes.
 
-6. gate-agent.png
-A Southwest-style airline gate agent: dark blue polo shirt, grey trousers, lanyard, holding a clipboard in the near hand and a handheld boarding-pass scanner clipped to the belt.
+6. office-2.png (also attach npc-office.png)
+An office worker at a conference: a woman in her late thirties, average height, a sharp chin-length bob, white wireless earbuds, a tight-lipped "per my last email" expression. A grey blazer over a white blouse, a lanyard with a blank white badge, slim black trousers, black flats.
+
+7. student-1.png (also attach npc-student.png)
+A college student: early twenties, a little shorter than Image 1, slouchy posture but keeping the pose, curly dark hair, round glasses, white wireless earbuds, an unbothered smirk (lips closed). An olive green overshirt open over a white t-shirt, blue jeans, white sneakers, a maroon backpack worn on both shoulders (the straps over the shoulders, the pack on the back).
+
+8. student-2.png (also attach npc-student.png)
+A college student: early twenties, about the height of Image 1, a deadpan bored face, white wireless earbuds. A grey hoodie with the hood down, a dark knit beanie, black joggers, chunky white sneakers, a black backpack worn on both shoulders.
+
+9. bellhop-hat.png (also attach npc-bellhop.png)
+The bellhops' hat on its own: a RED pillbox hat (a short flat-topped cylinder) with a gold band round it and a short black chin strap hanging loose, seen exactly from the side, the front of the hat to the left. Large in the frame, flat green background.
+
+OPTIONAL, LATER (only after items 1 to 8 are kept): one face edit per person.
+For each person P above, P-silly.png: EDIT the kept P.png. Change ONLY the face to "knocked silly": eyes crossed, eyebrows up, mouth hanging open. Keep everything else identical: the same pose, framing, size, clothes, hair and colors, pixel for pixel where possible.
 
 Save all of these to: art/incoming/cast/

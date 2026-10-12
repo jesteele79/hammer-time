@@ -355,6 +355,10 @@ idle. All numbers in `src/sim/constants.ts`; timing constants from
 
 ### 7.1 NPC rigs
 
+For the lobby's four roles this section is replaced by the R2b design,
+`2026-10-12-r2b-lobby-cast-design.md` (painted cast pose-locked to Hammer's body, two people per
+role, a slapstick ensemble); the later venues' cast follows the same route.
+
 The same skeleton with proportion presets (`tall`, `stocky`, `slight`) and
 costume part sets: server (vest, apron, tray in the near hand), bellhop (red
 jacket, pillbox hat), office worker (shirt, tie, lanyard, coffee), student

@@ -191,35 +191,37 @@ green: a plant, a pillar, a luggage cart). Name them `backdrops/<venue>-far.png`
 
 ## 5. The cast
 
-Full-body, strict left-facing profile, A-pose exactly as in 2.3 (near arm out
-30 degrees, far arm visible behind, feet apart), on green. Each is cut and
-rigged like Hammer. Reference for style: the Hammer portraits. Reference for
-each costume: the photo listed.
+**The lobby's four roles (R2b, 2026-10-12): the brief is `art/outgoing/batch-3-cast.txt`.**
+The design is `docs/superpowers/specs/2026-10-12-r2b-lobby-cast-design.md` §6. Each person
+copies Hammer's own body image (`art/incoming/hammer/body-affliction.png`) for pose, framing
+and style ("pose-locked": strict left profile, both arms forward and down about 30 degrees
+with open empty hands and a gap at the belly, feet flat with the same small stagger), so they
+cut and rig like him; each keeps their own face, build, height and clothes. Hands empty, no
+props (the game draws the tray, glasses, coffee, phone, planes and cart), the bellhops
+bareheaded.
 
-- `cast/server.png` (reference `public/npc-server.webp`): "A young woman
-  server, dark hair tied back, white shirt, black vest and apron, holding a
-  round tray at shoulder height in the near hand."
-- `cast/bellhop.png` (reference `public/npc-hotel.webp`): "A bellhop in a red
-  jacket with gold buttons, black trousers, a pillbox hat, white gloves."
-- `cast/office.png` (reference `public/npc-office.webp`): "An office worker,
-  blue shirt, loosened tie, lanyard badge, pleated khakis, holding a coffee."
-- `cast/student.png` (reference `public/npc-student.webp`): "A college student
-  in a hoodie and jeans with a backpack over one shoulder, earbuds, sneakers."
-- `cast/nurse.png` (reference `public/scrubs.png`): "A nurse in teal scrubs
-  with a badge reel, clogs, hair in a bun, holding a clipboard."
-- `cast/gate-agent.png`: "A Southwest-style gate agent: dark blue polo, grey
-  trousers, lanyard, holding a clipboard and a boarding-pass scanner."
-- `cast/tech.png`: "A surgical tech in navy scrubs and a scrub cap, mask
-  pulled down under the chin."
-- `cast/resident.png`: "A young resident doctor in a short white coat over
-  scrubs, stethoscope, holding a tablet."
-- `cast/administrator.png`: "A hospital administrator in a grey suit, ID badge,
-  carrying a leather folder."
-- `cast/titanium.png`: "A smug business traveler in a navy suit with a
-  rolling carry-on and a phone to his ear, mid-sixties, silver hair."
+- `cast/bellhop-1.png` first, as a test; then `bellhop-2`, `server-1`, `server-2`,
+  `office-1`, `office-2`, `student-1`, `student-2` (two different people per role).
+- `cast/bellhop-hat.png`: the red pillbox hat on its own, side view.
+- Optional, later: `cast/<person>-silly.png`, each body edited with only the face changed
+  (eyes crossed, mouth slack).
 
-Checks: all the same pose and height as `hammer/body-affliction.png` (they are
-scaled in the game, but the arm angle and foot spacing must match).
+The later venues' cast (nurse, gate agent, tech, resident, administrator, Lifetime Titanium
+guy) will follow the same pose-locked brief when their phases come:
+
+- `cast/nurse.png` (reference `public/scrubs.png`): "A nurse in teal scrubs with a badge reel,
+  clogs, hair in a bun."
+- `cast/gate-agent.png`: "A Southwest-style gate agent: dark blue polo, grey trousers,
+  lanyard."
+- `cast/tech.png`: "A surgical tech in navy scrubs and a scrub cap, mask pulled down under the
+  chin."
+- `cast/resident.png`: "A young resident doctor in a short white coat over scrubs,
+  stethoscope."
+- `cast/administrator.png`: "A hospital administrator in a grey suit, ID badge."
+- `cast/titanium.png`: "A smug business traveler in a navy suit, mid-sixties, silver hair."
+
+Checks: the same pose and framing as `hammer/body-affliction.png` (the arm angle, the gap at
+the belly, the foot stagger, the soles' height in the frame); nothing in the hands.
 
 ## 6. Pickups and props
 
@@ -285,7 +287,7 @@ Checks: sixteen cells, equal size, nothing touching a neighbor.
 1. Section 2 (Hammer): 2.1, 2.3 `body-affliction`, 2.4 `mallet`, then 2.2.
 2. Section 4 `lobby`, `restaurant`, `campus`, `arena`; section 6
    `coke-zero`, `nuts`, `buccees`, `pepper-crate`, `time-clock`.
-3. Section 5 `server`, `bellhop`, `office`, `student`.
+3. Section 5: `bellhop-1` (the test), then the other seven lobby bodies and the hat.
 4. Section 3 (the pig).
 5. Section 4 `ballroom`, `gate`; sections 6 and 7 for the quests.
 6. Everything else, in the order the later venues are built: `hospital`,
