@@ -1,4 +1,4 @@
-// Plays the lobby at /?next=1&dev=1: the early pepper crate, the desk's punch clock, a life lost in
+// Plays the lobby at /?next=1&nocast=1&dev=1: the early pepper crate, the desk's punch clock, a life lost in
 // the shaft and back at the clock, pause, the stash and back, and the exit's tally to the clear.
 // Usage: node scripts/run-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
@@ -52,7 +52,7 @@ try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await page.goto(`${base}?next=1&dev=1`);
+  await page.goto(`${base}?next=1&nocast=1&dev=1`);
   await page.waitForFunction(() => window.__next?.run && window.__next?.dev, {}, { timeout: 30000 });
   let r = await waitFor((x) => x.mode === "play", 5000);
   assert.equal(r.mode, "play", "the start card gives way to play");

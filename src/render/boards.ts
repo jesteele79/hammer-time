@@ -1,21 +1,28 @@
 import { Container, Graphics, Matrix, RenderTexture } from "pixi.js";
-import type { Costume, Expression, Registry } from "../art/registry";
+import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
+import type { CastAct } from "../sim/cast";
+import { HEAD_SCALE } from "../sim/constants";
+import type { CastPerson } from "../sim/level";
+import { ACT_SECONDS, castGround, castPose } from "../sim/rig/cast";
 import { SUPER_CUT, type MoveKind } from "../sim/moves";
 import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
 import { plantFeet } from "../sim/rig/feet";
 import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
-import { FAR_FLOOR } from "../sim/rig/skeleton";
+import { FAR_FLOOR, HERO_HEIGHT } from "../sim/rig/skeleton";
+import { LOOKS, drawFigure, star } from "./cast";
+import { drawMissile, drawPuddle } from "./props";
+import { Particles } from "./particles";
+import { wordStar } from "./words";
 import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
 import { crateLogo, drawCrate, pickupView } from "./objects";
-import type { Particles } from "./particles";
 import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash"; resolution?: number };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -50,6 +57,18 @@ const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: num
 ];
 /** The moves board draws Hammer this much bigger, for a closer look. */
 const MOVE_SCALE = 1.5;
+/** The cast frames: the bellhop and the cart, the server at BUFFET, the office worker by the elevators, the rail, the tables, the screen. */
+const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [
+  { x: 700, y: 0, cx: 1300 },
+  { x: 4300, y: 0, cx: 4800 },
+  { x: 5100, y: 0, cx: 5600 },
+  { x: 8300, y: -520, cx: 8700, cy: -420, zoom: 0.88 },
+  { x: 12500, y: -160, cx: 13200 },
+  { x: 13800, y: 0, cx: 14300 },
+];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
+const STUDENT_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "flee", "hop", "schooled", "duck"];
 /** Floors the slopes board stands him on, degrees: negative rises to the right. */
 const SLOPES = [-30, -15, 0, 15, 30];
 /** The slopes board's cells are this much taller, room for him and a 30-degree floor; his feet stand this far up. */
@@ -240,6 +259,95 @@ export function createBoards(
     return snapshot(board, width, height);
   };
 
+  /** Every person in every act, a third of the way in (loops at 0.4 s), facing left as the paintings will. */
+  const castSheet = async () => {
+    const cols = STAFF_ACTS.length;
+    const rows = PERSONS.length;
+    const width = cols * CELL_W + 150;
+    const height = rows * CELL_H + 50;
+    const board = new Container();
+    const bg = new Graphics().rect(0, 0, width, height).fill("#20242b");
+    for (let r = 0; r <= rows; r++) bg.rect(150, 50 + r * CELL_H, cols * CELL_W, 2).fill("#343a44");
+    for (let c = 0; c <= cols; c++) bg.rect(150 + c * CELL_W, 50, 2, rows * CELL_H).fill("#343a44");
+    board.addChild(bg);
+    PERSONS.forEach((person, row) => {
+      const t = label(person, "display", 30);
+      t.position.set(16, 50 + row * CELL_H + 12);
+      board.addChild(t);
+      const role = person.slice(0, -2) as CastAct extends never ? never : "bellhop" | "server" | "office" | "student";
+      const acts = role === "student" ? STUDENT_ACTS : STAFF_ACTS;
+      acts.forEach((act, col) => {
+        if (row === 0 || row === 6) {
+          const head = label(act, "ui", 22);
+          head.position.set(150 + col * CELL_W + 12, row === 0 ? 14 : 50 + row * CELL_H - 30);
+          board.addChild(head);
+        }
+        const tt = ACT_SECONDS[act] ? ACT_SECONDS[act] / 3 : 0.4;
+        const pose = castPose({ role, act, t: tt, speed: 300, onGround: act !== "fly" && act !== "hop", sit: false, spin: act === "fly" ? 120 : 0, hits: 0 });
+        const solved = solve(pose, -1, HEAD_SCALE, HEAD_PLATE_DEFAULT);
+        const look = LOOKS[person];
+        const k = look.height / HERO_HEIGHT;
+        const dy = groundShift(solved, castGround(act, act !== "fly" && act !== "hop", false));
+        const cell = new Container();
+        const g = new Graphics();
+        drawFigure(g, solved, look, { role, act, hat: role === "bellhop", prop: true, slimed: false, silhouette: false });
+        cell.addChild(g);
+        cell.scale.set(k);
+        cell.position.set(150 + col * CELL_W + CELL_W * 0.55, 50 + row * CELL_H + CELL_H - 32 + dy * k);
+        board.addChild(cell);
+      });
+    });
+    return snapshot(board, width, height);
+  };
+
+  /** The cast's effects at rest: the ! burst, the stars, the hat, a glass, the cup, a plane, the puddles, confetti. */
+  const castFx = async () => {
+    const cell = 260;
+    const items: [string, (c: Container) => void][] = [
+      [
+        "! burst",
+        (c) => {
+          const t = label("!", "comic", 64);
+          t.anchor.set(0.5);
+          t.tint = 0xffe14a;
+          c.addChild(new Graphics().poly(wordStar(t.width, true)).fill(0xff5a36).stroke({ width: 4, color: 0x101010, join: "round" }), t);
+        },
+      ],
+      ["stars", (c) => [0, 1, 2].forEach((i) => star(c.addChild(new Graphics()), Math.cos((i * Math.PI * 2) / 3) * 40, Math.sin((i * Math.PI * 2) / 3) * 14, 9))],
+      ["hat", (c) => c.addChild(new Graphics().roundRect(-28, -14, 56, 28, 4).fill("#b8282e").stroke({ width: 3, color: 0x101010 }).rect(-28, 8, 56, 6).fill("#c9a24a"))],
+      ["glass", (c) => c.addChild(new Graphics().roundRect(-7, -14, 14, 28, 3).fill({ color: "#dff3ff", alpha: 0.9 }).stroke({ width: 2, color: 0x101010 }))],
+      ["cup", (c) => c.addChild(new Graphics().roundRect(-11, -30, 22, 28, 4).fill("#f4f3ee").stroke({ width: 3, color: 0x101010 }).rect(-11, -30, 22, 6).fill("#6b3a1e"))],
+      ["plane", (c) => drawMissile(c.addChild(new Graphics()), { id: 1, kind: "plane", x: 0, y: 0, vx: -500, vy: 40, spin: 0.08, life: 1, phase: 0, from: 0 })],
+      ["coffee", (c) => drawPuddle(c.addChild(new Graphics()), { x: 0, y: 0, w: 150, life: 7, max: 7, kind: "coffee" })],
+      ["water", (c) => drawPuddle(c.addChild(new Graphics()), { x: 0, y: 0, w: 260, life: 8, max: 8, kind: "water" })],
+      [
+        "confetti",
+        (c) => {
+          const p = new Particles(c, 200);
+          p.emit("paper", 0, 0, 24);
+          p.update(0.2);
+        },
+      ],
+    ];
+    const width = 150 + items.length * cell;
+    const height = 50 + cell;
+    const board = new Container();
+    board.addChild(new Graphics().rect(0, 0, width, height).fill("#20242b"));
+    const t = label("cast fx", "display", 30);
+    t.position.set(16, 62);
+    board.addChild(t);
+    items.forEach(([name, draw], i) => {
+      const c = new Container();
+      draw(c);
+      c.scale.set(1.7);
+      c.position.set(150 + i * cell + cell / 2, 50 + cell / 2 + 20);
+      const caption = label(name, "ui", 20);
+      caption.position.set(150 + i * cell + 12, 58);
+      board.addChild(c, caption);
+    });
+    return snapshot(board, width, height);
+  };
+
   const lobby = async (frameList = LOBBY_FRAMES, level: "lobby" | "stash" = "lobby") => {
     const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target, zoom: scene.camera.zoom };
     const frames: string[] = [];
@@ -337,6 +445,12 @@ export function createBoards(
           return objects();
         case "stash":
           return lobby([{ x: 1300, y: -330, cx: 1500, cy: -420 }], "stash");
+        case "cast":
+          return castSheet();
+        case "cast-lobby":
+          return lobby(CAST_FRAMES);
+        case "cast-fx":
+          return castFx();
       }
     },
   };

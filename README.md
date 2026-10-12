@@ -342,6 +342,49 @@ is stocked once a run: what he takes stays gone, across visits and lost
 lives, and its clock never runs. Walking into it cleaned out, he thinks
 "Can't keep one shelf stocked." and then says "They need to get fired."
 
+### The lobby's cast
+
+Eleven people work the lobby (`src/sim/cast.ts`, `cast-behavior.ts`,
+`missiles.ts`; placed in `levels/lobby.ts`; the design is
+`docs/superpowers/specs/2026-10-12-r2b-lobby-cast-design.md`). Until their
+paintings arrive they are inked stand-ins drawn on Hammer's own skeleton
+(`src/sim/rig/cast.ts`, `src/render/cast.ts`). Each does a double-take when he
+comes near, says a line in a speech bubble, and goes about the job:
+
+- **Two bellhops** (the desk, the floor route under the balcony), each gripping
+  a luggage cart. He squares up with a ! burst, the wheels squeal and he shoves
+  the cart at Hammer: jump it (the cases are what hurts), or bonk it back,
+  which knocks it out of his hands and bowls him over with it. He follows the
+  cart where it stops and wheels it home. Two hits put a bellhop out; a second
+  bonk while he is down sends him sliding into whoever is next.
+- **Three servers** (the BUFFET door, the STAFF ONLY door, between the banquet
+  tables) carrying trays of water. A warning crouch, then a two-second rush;
+  the mallet meets her and the glasses shatter into a puddle of water.
+- **Two office workers.** One marches the elevator bank on his phone (it chimes
+  as he closes) and knocks over whoever he walks into. The other hides behind
+  the projector screen, his silhouette on the sheet, and leaps out when Hammer
+  is near, flinging his coffee: a puddle that staff slip on.
+- **Four students** (three at the mezzanine rail, one sitting on the far
+  table). They keep out of mallet reach, hopping back, and throw paper planes
+  at his chest every four to six seconds, three in the air at most; they duck
+  the mallet, hop over a stomp and run from the snot.
+
+At most two of them attack at once; the rest hold their ground until a slot
+opens. Whatever hurts him (a cart's cases, a rush, a shoulder, a plane, the
+coffee) costs a pip, and nothing touches him in grace or down. The mallet and
+the stomp knock staff down (the bellhop twice), the lecture freezes staff for a
+breath and schools students for nine seconds, a puddle trips staff, a big hit
+(the smash, the shield, a thrown body) sends them flying, and a flying body
+bowls whoever it lands on: the chain pays 100, 200, 400, 800, 1000, 2000, 4000
+and 8000, the eighth a life. Points otherwise: a knockdown 100, a slip 150, a
+schooling 150, a freeze 50, a swatted plane 50, a shield bowl 200, a student
+run off 100, a fall down the shaft 500. Hammer's six recordings answer the cast
+as they did the shipped game's. `/?next=1&nocast=1` plays the lobby without
+them (the older checks use it). `scripts/cast-browser.check.mjs` plays the
+fights in the browser and the boards `cast.png`, `cast-fx.png` and
+`cast-lobby-1..6.png` show every person in every act, the effects and the
+six scenes.
+
 ### The run
 
 - **A run** starts on the venue card with three lives, two patience pips and
@@ -391,6 +434,7 @@ node scripts/next-browser.check.mjs http://127.0.0.1:8090/
 node scripts/run-browser.check.mjs http://127.0.0.1:8090/
 node scripts/moves-browser.check.mjs http://127.0.0.1:8090/
 node scripts/acts-browser.check.mjs http://127.0.0.1:8090/
+node scripts/cast-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
@@ -417,7 +461,13 @@ the hurt, the tumble off a ledge, a hit mid-move) and the lobby checks in
 crates and what comes out of them, the run's pickups, deaths counted once
 whether in grace, in the stash or with the clock out mid-knockdown, respawn,
 pause, doors and the stash, the exit's tally, the lobby's shape, and a
-scripted player through both routes). The rig checks also sweep
+scripted player through both routes) and the cast checks in `cast.check.mjs`
+(the spawns and patrols, the double-take, every hit and what it does to each
+role, the shove and the jump over it, the reversed cart, the rush, the march
+and the bump, the planes and the swat, the hop and the duck, the ambush, the
+lecture on staff and students, the chain through a thrown body, puddles and
+slips, the two-attackers rule, respawn and the stash, the scoring, and the
+scripted player fighting through both routes). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks
@@ -432,15 +482,22 @@ clear, then plays again and loses all three lives; the moves browser check
 swings, bonks a cart, fires and splats snot, towels off and smashes, and
 checks the sounds; the acts browser check waits for the watch check, the tap
 and the harrumph, lectures, takes the two pips' hits and the lost life, and
-stands on the grand staircase. The boards land under `artifacts/`:
+stands on the grand staircase; the cast browser check jumps the first
+bellhop's cart and bonks it back into him, knocks a rushing server down with
+the shatter, freezes a staffer and schools a student with the lecture, swats a
+plane, draws the projector ambush and its coffee, and bowls a bellhop with the
+shield. The boards land under `artifacts/`:
 `hammer-clips.png` (the clips, then every move and act), `hammer-moves.png`
 and `hammer-acts.png` (each in ten frames, half again as large),
 `hammer-slopes.png` (standing and walking on five slopes, both ways),
 `hammer-heads.png`, `hammer-costumes.png`, `objects.png` (the pickups and the
 crates, fresh and spent), `lobby-look-1..6.png` (the desk, the sofas, the
 shaft and the stairs, the mezzanine over the floor route, the tables, the
-corridor and the exit) and `stash.png`; the checks also save `run-*.png`,
-`moves-*.png`, `acts-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
+corridor and the exit), `stash.png`, `cast.png` (every person in every act),
+`cast-fx.png` (the burst, the stars, the hat, the glass, the cup, the plane,
+the puddles and the confetti) and `cast-lobby-1..6.png` (the cast in its six
+scenes); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
+`cast-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
 argument to `look-boards.mjs` names the boards to render, comma separated.
 
 ## Validation

@@ -1,4 +1,4 @@
-// Drives the lobby look test at /?next=1 through the idle acts, the lecture, hurt, tumble and the ramp.
+// Drives the lobby look test at /?next=1&nocast=1 through the idle acts, the lecture, hurt, tumble and the ramp.
 // Usage: node scripts/acts-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -45,7 +45,7 @@ try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await page.goto(`${base}?next=1&dev=1`);
+  await page.goto(`${base}?next=1&nocast=1&dev=1`);
   await page.waitForFunction(() => window.__next?.moves && window.__next?.run?.mode === "play", {}, { timeout: 30000 });
 
   let m = await waitFor((x) => x.move === "watch", 4000);

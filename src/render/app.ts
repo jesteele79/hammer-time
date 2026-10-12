@@ -46,6 +46,7 @@ export type NextProbe = {
     puddles: number;
     heroX: number;
     heroY: number;
+    facing: 1 | -1;
     patience: number;
     bored: boolean;
     /** The head plate on screen. */
@@ -77,7 +78,7 @@ export type NextProbe = {
     events: Record<string, number>;
   };
   /** The cast: each live member's act by spawn id, how many hold attack tickets, the missiles in the air, how many are out. */
-  cast?: { acts: Record<string, string>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
+  cast?: { acts: Record<string, string>; positions: Record<string, { x: number; y: number }>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
   dev?: {
     teleport(x: number, y?: number): void;
@@ -88,6 +89,8 @@ export type NextProbe = {
     clearShelves(): void;
     /** Sets his heat. */
     heat(n: number): void;
+    /** Restores his patience, so a check's later steps do not inherit the earlier ones' pips. */
+    heal(): void;
   };
 };
 declare global {

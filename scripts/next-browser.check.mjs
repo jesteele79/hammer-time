@@ -126,7 +126,7 @@ try {
   await page.waitForLoadState("networkidle");
   assert.equal(new URL(page.url()).search, "", `the plain address keeps no search: ${page.url()}`);
 
-  await booted(`${base}?next=1`);
+  await booted(`${base}?next=1&nocast=1`);
   verdict.renderer = await page.evaluate(() => window.__next.renderer);
   await page.waitForTimeout(1500);
   verdict.content = await hasContent();
@@ -202,13 +202,13 @@ try {
   await pauseWorks("844x390");
   await page.waitForTimeout(600);
 
-  await booted(`${base}?next=1&gl=1`);
+  await booted(`${base}?next=1&nocast=1&gl=1`);
   verdict.fallback = await page.evaluate(() => window.__next.renderer);
   assert.equal(verdict.fallback, "webgl", "forced WebGL still boots");
   await page.waitForTimeout(800);
   assert.ok(await hasContent(), "WebGL frame shows a scene");
 
-  await booted(`${base}?next=1&noart=1`);
+  await booted(`${base}?next=1&nocast=1&noart=1`);
   await page.waitForTimeout(800);
   assert.ok(await hasContent(), "the scene renders with fallback art");
   const fallbacks = warnings.filter((w) => w.includes("art fallback"));
@@ -219,7 +219,7 @@ try {
   verdict.ok = true;
   writeFileSync(resolve(out, "next-check.json"), JSON.stringify({ ...verdict, errors, warnings }, null, 2));
   console.log(
-    `PASS: /?next=1 boots on ${verdict.renderer}, runs, jumps, idles, fits ${JSON.stringify(verdict.fit)}, falls back to webgl, no errors.`,
+    `PASS: /?next=1&nocast=1 boots on ${verdict.renderer}, runs, jumps, idles, fits ${JSON.stringify(verdict.fit)}, falls back to webgl, no errors.`,
   );
 } catch (err) {
   console.error("Next check failure", errors, await page?.locator("body").innerText());

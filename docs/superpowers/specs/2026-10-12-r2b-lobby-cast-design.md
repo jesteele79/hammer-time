@@ -232,6 +232,12 @@ World x at the floor (y 0) unless noted; the lobby layout is unchanged.
 | 3 | Student 4 (student-2, recolored) | 13900, y −160 | sits on the far table |
 | 3 | Office worker 2 (office-2) | 14450, behind the screen at 14250 | the projector ambush |
 
+As built in R2b-1 (2026-10-12, `src/sim/levels/lobby.ts`): every spawn stands where the table puts
+it; the bellhops stand 150 px behind their carts (1400 and 8050) and a cart knocked out of a bellhop's
+hands is let go of, so a reversed cart bowls him rather than wheeling with him. The spawn ids in the
+code are `bellhop-desk`, `server-buffet`, `office-elevators`, `bellhop-floor`, `server-staff`,
+`student-rail-1..3`, `server-tables`, `student-table` and `office-screen`.
+
 Floor route against balcony route: the floor route meets Bellhop 2, Server 2 and planes from above;
 the balcony route meets the three students up close. Recolors: Server 3 a burgundy vest, Student 3
 a mustard overshirt, Student 4 a teal hoodie, each within ±4 percent of the original's height.

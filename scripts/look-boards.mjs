@@ -32,9 +32,9 @@ try {
   const only = process.argv[3]?.split(",");
   const want = (kind) => !only || only.includes(kind);
   let count = 0;
-  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "objects"])
+  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "objects", "cast", "cast-fx"])
     if (want(kind)) {
-      save(kind === "objects" ? "objects.png" : `hammer-${kind}.png`, await render(kind));
+      save(kind === "objects" || kind.startsWith("cast") ? `${kind}.png` : `hammer-${kind}.png`, await render(kind));
       count++;
     }
   if (want("lobby")) {
@@ -45,6 +45,11 @@ try {
   if (want("stash")) {
     save("stash.png", await render("stash"));
     count++;
+  }
+  if (want("cast-lobby")) {
+    const frames = (await render("cast-lobby")).split("\n");
+    frames.forEach((f, i) => save(`cast-lobby-${i + 1}.png`, f));
+    count += frames.length;
   }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log(`PASS: ${count} boards rendered.`);

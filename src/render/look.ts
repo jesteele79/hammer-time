@@ -3,6 +3,7 @@ import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/r
 import { ASIDES, CAST_LINES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
+import { PATIENCE_MAX } from "../sim/damage";
 import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
@@ -761,6 +762,7 @@ export async function startLook(
         puddles: cur.puddles.length,
         heroX: h.x,
         heroY: h.y,
+        facing: h.facing,
         patience: h.patience,
         bored: h.bored,
         expression,
@@ -770,6 +772,7 @@ export async function startLook(
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
       window.__next.cast = {
         acts: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, n.act])),
+        positions: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, { x: n.x, y: n.y }])),
         attackers: attackers(world.cast),
         missiles: cur.missiles.length,
         planes: cur.missiles.map((mm) => ({ kind: mm.kind, x: mm.x, y: mm.y })),
@@ -837,6 +840,9 @@ export async function startLook(
       },
       heat(n: number) {
         world.hero.heat = n;
+      },
+      heal() {
+        world.hero.patience = PATIENCE_MAX;
       },
       clearShelves() {
         for (const p of game.pickups) p.taken = true;

@@ -631,3 +631,32 @@ test("a flying body turns with its spin and lies flat when down from a slide; a 
   const s = solve(castPose(ctx("server", "idle", 0.4)), 1, 0.26);
   assert.ok(s.joints.wristNear.y < s.joints.shoulderNear.y + 30 && s.joints.wristNear.x > s.joints.shoulderNear.x, `the tray hand up in front: ${JSON.stringify(s.joints.wristNear)}`);
 });
+
+test("a full jump from the floor clears a cart shoved at him: the cases pass under him, the frame hurts nobody", () => {
+  const w = worldWith([], { x: 300, y: 0 }, {}, [700]);
+  w.targets[0].vx = -650;
+  // Jump late, as a player learns to: when the cart is 230 px off.
+  until(w, (x) => x.targets[0].x - x.hero.x < 230, 2);
+  w.step(input({ jump: true }, { jump: true }));
+  const evs = steps(w, 1.2, { jump: true });
+  assert.equal(w.hero.patience, 3, "cleared it");
+  assert.equal(of(evs, "hurt").length, 0);
+  assert.ok(w.targets[0].x < 300, "the cart passed under him");
+});
+
+test("a bonk on a cart in the bellhop's hands knocks it out of them: it flies back into him", () => {
+  // Wheeling it home leftward, the cart ahead of him on Hammer's side.
+  const w = worldWith([{ id: "b", person: "bellhop-1", x: 1400, y: 0, cart: 1250 }], { x: 1020, y: 0 }, {}, [1250]);
+  const b = npc(w, "b");
+  Object.assign(b, { noticed: true, rest: 99, act: "return", actT: 0, home: 1000, facing: -1 });
+  w.hero.facing = 1;
+  steps(w, 0.1);
+  assert.ok(Math.abs(w.targets[0].x - (b.x - CAST.bellhop.hold)) < 2, "the cart in his hands as he wheels it");
+  const x0 = w.targets[0].x;
+  press(w, "hammer");
+  const evs = until(w, (x) => x.events.some((e) => e.type === "hit"), 1);
+  assert.ok(of(evs, "hit").some((e) => e.by === "mallet" && e.target === 1), "the swing meets the cart");
+  const after = steps(w, 0.3);
+  assert.ok(w.targets[0].x > x0 + 80, `the cart flew out of his hands: ${w.targets[0].x - x0}`);
+  assert.ok(["chase", "fly", "down"].includes(b.act) && (b.act !== "chase" || of(after, "castHit").length === 0), `he let go, or it bowled him: ${b.act}`);
+});

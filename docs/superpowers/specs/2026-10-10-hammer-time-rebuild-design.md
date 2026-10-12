@@ -474,6 +474,22 @@ speed falls steadily to two-thirds, and boiled over he cannot run until he
 cools below 70. The staff stash is stocked once a run, and walking into it
 cleaned out he says "They need to get fired."
 
+The cast arrived in R2b-1 (2026-10-12): eleven people on the lobby's floor,
+played by the sim and drawn as inked stand-ins on Hammer's skeleton until their
+paintings come in R2b-2. Act 1: a bellhop behind the first cart at the desk,
+who shoves it at him; a server at the BUFFET door, who warns and rushes; an
+office worker at the elevators, who marches with his phone and knocks whoever
+he walks into. Act 2: a second bellhop and cart under the balcony, a second
+server at the STAFF ONLY door, and three students at the mezzanine rail who
+throw paper planes down the floor route. Act 3: a third server between the
+banquet tables, a fourth student sitting on the far table, and a second office
+worker hiding behind the projector screen, whose silhouette shows on the sheet
+before he leaps out with his coffee. Their rules (two attackers at a time, the
+mallet, the stomp, the lecture, the shield, puddles, the chain), their points
+and their placement are the R2b design
+(`docs/superpowers/specs/2026-10-12-r2b-lobby-cast-design.md`); `?nocast=1`
+plays the lobby without them.
+
 **Restaurant (1-2).** Dining room (tables and booths as platforms, a host
 stand), the kitchen pass (a counter with heat lamps, the service pass to slide
 under, a swinging door that knocks), the line (steel counters, a flat-top that

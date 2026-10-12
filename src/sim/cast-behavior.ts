@@ -48,6 +48,8 @@ export const attackers = (cast: Npc[]): number => cast.filter((n) => n.alive && 
 export const ticketFree = (cast: Npc[]): boolean => attackers(cast) < TICKETS;
 /** On the attack now: what costs a pip on contact. */
 export const attacking = (n: Npc): boolean => n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0);
+/** How much of a rolling cart hurts him: the stacked cases, from the floor up; the brass frame and arch hurt nobody. */
+const CART_HURT = { w: 140, h: 220 } as const;
 /** Going about their business: what a touch from him staggers. */
 const BUMPABLE: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice", "chase", "return"]);
 
@@ -145,6 +147,11 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.bellhop;
   const h = w.hero;
   const cart = w.targets.find((t) => t.id === n.cart);
+  // A cart knocked out of his hands (the hit's flash is this instant's) is let go of: he goes after it.
+  if (cart && cart.flash > 0 && (n.act === "windup" || n.act === "return")) {
+    setAct(n, "chase");
+    return;
+  }
   if (n.act === "windup") {
     n.vx = 0;
     if (cart) {
@@ -492,7 +499,9 @@ function bowl(w: CastWorld, events: GameEvent[]): void {
     if (Math.abs(t.vx) < ROLLING) continue;
     const r = bodyRect(t);
     mover(t.x, t.vx, r, t, "cart", null);
-    if ((h.x - t.x) * Math.sign(t.vx) > 0 && overlapsRect(r, bodyRect(h))) w.hits.push(t.x);
+    // What hurts him is the stack of cases, not the brass arch: a full jump, timed late, clears a runaway.
+    const hurt: Rect = { x: t.x - CART_HURT.w / 2, y: t.y - CART_HURT.h, w: CART_HURT.w, h: CART_HURT.h };
+    if ((h.x - t.x) * Math.sign(t.vx) > 0 && overlapsRect(hurt, bodyRect(h))) w.hits.push(t.x);
   }
   for (const s of w.cast) {
     if (!s.alive || Math.abs(s.vx) < ROLLING) continue;

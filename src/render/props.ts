@@ -190,7 +190,7 @@ function drawSnot(g: Graphics, b: Snot) {
 }
 
 /** A paper plane, a folded dart pointing along its flight, or the office worker's cup tumbling. */
-function drawMissile(g: Graphics, m: Missile) {
+export function drawMissile(g: Graphics, m: Missile) {
   g.clear();
   if (m.kind === "plane") {
     g.poly([-36, 0, 32, -5, 12, 6, 32, 9]).fill("#fbf7ee").stroke({ width: 3, color: INK, join: "round" });
@@ -210,7 +210,7 @@ function drawMissile(g: Graphics, m: Missile) {
 const PUDDLE_COLORS = { snot: "#9cc24a", water: "#7cc8f0", coffee: "#6b3a1e" } as const;
 
 /** A flat glossy puddle on the floor, in what was spilled, that fades over its last second. */
-function drawPuddle(g: Graphics, p: Puddle) {
+export function drawPuddle(g: Graphics, p: Puddle) {
   const h = p.w * 0.18;
   const c = tones(PUDDLE_COLORS[p.kind]);
   g.clear();
