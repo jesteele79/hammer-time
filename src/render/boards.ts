@@ -9,12 +9,13 @@ import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { FAR_FLOOR } from "../sim/rig/skeleton";
 import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
+import { drawCrate, drawPickup } from "./objects";
 import type { Particles } from "./particles";
 import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
-export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes"; resolution?: number };
+export type BoardSpec = { kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects"; resolution?: number };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
 declare global {
   interface Window {
@@ -201,6 +202,35 @@ export function createBoards(
     return canvas.toDataURL("image/png");
   };
 
+  /** Every pickup, every crate fresh, and every crate spent, twice their size on the dark board. */
+  const objects = async () => {
+    const cell = 260;
+    const rows: [string, (g: Graphics, i: number) => void, string[]][] = [
+      ["pickups", (g, i) => drawPickup(g, (["can", "nuts", "bucees", "pepper"] as const)[i]), ["Coke Zero", "Mixed nuts", "Buc-ee's", "Pepper"]],
+      ["crates", (g, i) => drawCrate(g, (["pepper", "can", "bucees", "case"] as const)[i], false), ["! pepper", "? can", "Buc-ee's", "Delivery case"]],
+      ["spent", (g, i) => drawCrate(g, (["pepper", "can", "bucees", "case"] as const)[i], true, 3), ["opened", "opened", "opened", "3 cans out"]],
+    ];
+    const width = 150 + 4 * cell;
+    const height = 50 + rows.length * cell;
+    const board = new Container();
+    board.addChild(new Graphics().rect(0, 0, width, height).fill("#20242b"));
+    rows.forEach(([name, draw, names], r) => {
+      const t = label(name, "display", 30);
+      t.position.set(16, 50 + r * cell + 12);
+      board.addChild(t);
+      names.forEach((n, c) => {
+        const g = new Graphics();
+        draw(g, c);
+        g.scale.set(r === 0 ? 2 : 1.7);
+        g.position.set(150 + c * cell + cell / 2, 50 + r * cell + (r === 0 ? cell / 2 + 16 : cell - 24));
+        const caption = label(n, "ui", 20);
+        caption.position.set(150 + c * cell + 12, 50 + r * cell + 8);
+        board.addChild(g, caption);
+      });
+    });
+    return snapshot(board, width, height);
+  };
+
   const lobby = async () => {
     const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target, zoom: scene.camera.zoom };
     const frames: string[] = [];
@@ -292,6 +322,8 @@ export function createBoards(
         }
         case "lobby":
           return lobby();
+        case "objects":
+          return objects();
       }
     },
   };

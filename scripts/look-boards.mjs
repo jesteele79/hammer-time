@@ -32,9 +32,9 @@ try {
   const only = process.argv[3]?.split(",");
   const want = (kind) => !only || only.includes(kind);
   let count = 0;
-  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes"])
+  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "objects"])
     if (want(kind)) {
-      save(`hammer-${kind}.png`, await render(kind));
+      save(kind === "objects" ? "objects.png" : `hammer-${kind}.png`, await render(kind));
       count++;
     }
   if (want("lobby")) {

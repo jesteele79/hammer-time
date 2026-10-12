@@ -295,3 +295,12 @@ test("the escalator's steps slide down at the belt's speed and wrap round", () =
   const c = escalatorSteps(seg, 0.3);
   assert.ok(Math.abs(c[0].x - a[0].x) < 1e-6, "0.3 s at 200 px/s moves a whole step: the same picture");
 });
+
+import { bob } from "../src/render/objects.ts";
+
+test("pickups bob 10 px either way, out of step with each other", () => {
+  let lo = 0, hi = 0;
+  for (let t = 0; t < 3; t += 0.01) { lo = Math.min(lo, bob(t, 1)); hi = Math.max(hi, bob(t, 1)); }
+  assert.ok(Math.abs(hi - 10) < 0.5 && Math.abs(lo + 10) < 0.5);
+  assert.notEqual(bob(0.3, 1).toFixed(3), bob(0.3, 2).toFixed(3));
+});

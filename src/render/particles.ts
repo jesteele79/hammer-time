@@ -44,6 +44,13 @@ export const RECIPES = {
   steam: { speed: [40, 110], angle: [250, 290], gravity: -220, drag: 1.4, life: [0.6, 1.1], size: [10, 24], colors: ["#f2f2f2", "#9aa3ad"], additive: false },
   glint: { speed: [0, 30], angle: [0, 360], gravity: 0, drag: 2, life: [0.25, 0.4], size: [14, 2], colors: ["#ffffff", "#fff2a8"], additive: true },
   ring: { speed: [700, 900], angle: [180, 360], gravity: 0, drag: 2.4, life: [0.35, 0.45], size: [12, 26], colors: ["#fff3d0", "#e9b866"], additive: true },
+  // Pickups taken, in their own colours: the can's red and silver, the nuts' crumbs, Buc-ee's gold.
+  fizz: { speed: [180, 420], angle: [200, 340], gravity: 900, drag: 1.6, life: [0.3, 0.5], size: [8, 3], colors: ["#ff5a4f", "#c9ccd1"], additive: false },
+  crumbs: { speed: [140, 360], angle: [200, 340], gravity: 1500, drag: 1, life: [0.3, 0.55], size: [6, 3], colors: ["#d9a86a", "#8a5a2c"], additive: false },
+  gold: { speed: [200, 480], angle: [0, 360], gravity: 300, drag: 2, life: [0.35, 0.6], size: [9, 3], colors: ["#fff1a0", "#f2c230"], additive: true },
+  // The pepper crate's steam, a slow wisp rising off its top.
+  steamPuff: { speed: [20, 60], angle: [250, 290], gravity: -120, drag: 1.2, life: [0.8, 1.3], size: [8, 20], colors: ["#ffffff", "#c9c2b8"], additive: false },
+  splinters: { speed: [260, 640], angle: [190, 350], gravity: 2000, drag: 0.6, life: [0.45, 0.8], size: [8, 4], colors: ["#b9c0c5", "#5d4630"], additive: false },
 } satisfies Record<string, Recipe>;
 export type RecipeName = keyof typeof RECIPES;
 
