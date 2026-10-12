@@ -525,3 +525,60 @@ test("the stash is stocked once a run: what he takes stays gone, and walking int
   const fresh = enter();
   assert.ok(!fresh.some((e) => e.type === "stashEmpty") && g.pickups.some((p) => !p.taken), "a new run, a stocked stash");
 });
+
+test("a door crossed while crouched leaves him standing-height on the other side", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5);
+  play(g);
+  Object.assign(g.world.hero, { x: 9700, y: 0 });
+  // Down crouches him and takes him through the door in the same step; then it is released.
+  until(g, (x) => x.level.id === "stash", 2, { down: true });
+  assert.equal(g.level.id, "stash");
+  stepsG(g, 0.05);
+  assert.equal(g.world.hero.h, 300, "standing in the stash once down is released");
+});
+
+test("nothing is collected and no clock is punched during the lethal tumble", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5);
+  play(g);
+  Object.assign(g.world.hero, { x: 2500, y: 0 });
+  g.pickups.push({ id: 777, kind: "can", x: 2560, y: -70, taken: false });
+  g.world.hero.patience = 1;
+  g.world.hit(g.world.hero.x - 100);
+  const evs = until(g, (x) => x.mode !== "play", 3);
+  assert.ok(g.world.hero.move?.kind === "tumble" || g.mode === "dying");
+  assert.ok(!g.pickups.find((p) => p.id === 777).taken, "the can stays");
+  assert.ok(!g.run.punched.includes("desk"), "the desk clock is not punched while he tumbles past it");
+  assert.equal(evs.filter((e) => e.type === "checkpoint").length, 0);
+});
+
+test("a swing during a crate bump lock is not spent: it lands once the lock ends", () => {
+  const level = { ...mini(), crates: [{ id: "k", kind: "case", x: 900, y: -300 }] };
+  const [c] = cratesOf(level);
+  const o = out();
+  assert.equal(hitCrate(c, "bump", ctxOf({ patience: 1 }), o), true);
+  assert.equal(hitCrate(c, "mallet", ctxOf(), o), false, "locked: nothing happened");
+  c.lock = 0;
+  assert.equal(hitCrate(c, "mallet", ctxOf(), o), true);
+});
+
+test("no reward anchor sits on the escalator lowest steps", () => {
+  const esc = LOBBY.floor.find((f) => f.kind === "escalator");
+  for (const a of rewardAnchors(LOBBY)) assert.ok(Math.abs(a.x - esc.x1) > 150 && Math.abs(a.x - esc.x0) > 150, `anchor at ${a.x}`);
+});
+
+test("dying clears the door he stood at, and a pause sends a mode event", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5);
+  play(g);
+  Object.assign(g.world.hero, { x: 9700, y: 0 });
+  g.step(input());
+  assert.equal(g.door?.id, "staff");
+  knockOut(g);
+  until(g, (x) => x.mode === "dying", 3);
+  assert.equal(g.door, null, "no door glow while dying");
+  const h = createGame({ lobby: LOBBY, stash: STASH }, 5);
+  play(h);
+  h.togglePause();
+  assert.deepEqual(h.events, [{ type: "mode", mode: "pause" }]);
+  h.togglePause();
+  assert.deepEqual(h.events, [{ type: "mode", mode: "play" }]);
+});

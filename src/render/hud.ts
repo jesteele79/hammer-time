@@ -36,10 +36,6 @@ export type HudPayload = {
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-/** Up on the mezzanine side: the landing, the stairs and the balcony. */
-const MEZZANINE = { x0: 6560, x1: 10200, below: -100 } as const;
-/** The early stretch where the first hint teaches the snot and the ! crate. */
-const EARLY_X = 1500;
 
 /** The shipped game's hint (src/game/engine.ts hint()), first match wins, without the cast's lines. */
 export function hintOf(game: Game): string {
@@ -60,8 +56,14 @@ export function hintOf(game: Game): string {
   if (h.boiled) return "Too hot to run · T to towel off";
   if (h.heat >= HEAT.tired) return "Overheated · T to towel off";
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
-  if (h.x < EARLY_X) return "F snot rocket · jump into the ! crate for hot pepper";
-  if (h.x >= MEZZANINE.x0 && h.x <= MEZZANINE.x1 && h.y <= MEZZANINE.below) return "Up to the mezzanine · ↓ + jump drops you back down";
+  if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";
+  // The drop works only on the balcony itself; on the landing and the stairs he is still on his way up.
+  const onBalcony = game.level.platforms.some((p) => p.kind === "balcony" && h.x >= p.x0 && h.x <= p.x1 && Math.abs(h.y - p.y) < 2);
+  if (onBalcony) return "Up on the mezzanine · ↓ + jump drops you back down";
+  const climbing =
+    game.level.platforms.some((p) => p.kind === "landing" && h.x >= p.x0 - 40 && h.x <= p.x1 + 40 && h.y <= p.y + 2) ||
+    game.level.floor.some((f) => f.kind === "stairs" && h.x >= f.x0 && h.x <= f.x1);
+  if (climbing) return "Up to the mezzanine · keep climbing";
   return h.hot ? "Hot snot pierces · nuts charge Q super smash" : "Find a ! crate for hot pepper";
 }
 

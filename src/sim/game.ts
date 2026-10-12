@@ -1,4 +1,4 @@
-import { SNAP, STEP } from "./constants";
+import { HERO_H, SNAP, STEP } from "./constants";
 import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
 import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
@@ -138,12 +138,16 @@ export function createGame(levels: Levels, seed: number): Game {
     begin(0, (game.events = []));
   }
 
+  /** A break, or back from one: the mode event goes into a fresh events list for the caller to drain. */
   function togglePause() {
-    if (game.mode === "play") game.mode = "pause";
-    else if (game.mode === "pause") game.mode = "play";
+    if (game.mode !== "play" && game.mode !== "pause") return;
+    game.events = [];
+    setMode(game.mode === "play" ? "pause" : "play", game.events);
   }
 
   function die(ev: GameEvent[]) {
+    // No door glows over a man going down.
+    game.door = null;
     setMode("dying", ev, RUN.dieT);
   }
 
@@ -203,10 +207,8 @@ export function createGame(levels: Levels, seed: number): Game {
     const bell = game.level.furniture.find((f) => f.kind === "bell");
     for (const p of world.swing) {
       for (const c of live)
-        if (!swingHit.has(c.id) && near(p, crateRect(c), MALLET_R)) {
-          swingHit.add(c.id);
-          hit(c, "mallet");
-        }
+        // A crate still locked from a bump does not spend the swing: it keeps trying until the lock ends.
+        if (!swingHit.has(c.id) && near(p, crateRect(c), MALLET_R) && hit(c, "mallet")) swingHit.add(c.id);
       if (bell && !bellRung && near(p, bell, MALLET_R)) {
         bellRung = true;
         ev.push({ type: "bell", x: bell.x + bell.w / 2, y: bell.y });
@@ -236,6 +238,7 @@ export function createGame(levels: Levels, seed: number): Game {
     h.move = null;
     h.crouch = false;
     h.slideT = 0;
+    h.h = HERO_H;
     standAt(at);
   }
 
@@ -361,9 +364,11 @@ export function createGame(levels: Levels, seed: number): Game {
     if (tryDoors(input, ev)) return;
     stepCrates(game.crates, STEP);
     stepPickups(game.pickups, world.stage, STEP);
-    for (const kind of collectPickups(h, game.pickups, ev)) take(kind, ev);
+    // Knocked flat on his last pip he is on his way out: nothing he tumbles past is his, no clock punches.
+    const lethal = h.move?.kind === "tumble";
+    if (!lethal) for (const kind of collectPickups(h, game.pickups, ev)) take(kind, ev);
     if (run.star > 0) shieldBowl(ev);
-    if (game.level.id === "lobby")
+    if (!lethal && game.level.id === "lobby")
       for (const k of game.level.checkpoints)
         if (!run.punched.includes(k.id) && h.x >= k.x) {
           run.punched.push(k.id);

@@ -154,6 +154,11 @@ export async function startLook(
   const down = new Set<string>();
   // A tap shorter than a frame still counts for the frame's steps.
   const tapped = new Set<string>();
+  /** A break or back from one: the Game's mode event goes through the feel like any other. */
+  const pause = () => {
+    game.togglePause();
+    for (const e of game.events) feel(e);
+  };
   const onKey = (e: KeyboardEvent) => {
     if (e.code in KEY_BINDINGS) e.preventDefault();
     if (e.type === "keydown") {
@@ -167,7 +172,7 @@ export async function startLook(
       if ((e.code === "KeyP" || e.code === "Escape") && !e.repeat) {
         e.preventDefault();
         forgetPresses();
-        game.togglePause();
+        pause();
         return;
       }
       down.add(e.code);
@@ -464,6 +469,9 @@ export async function startLook(
     shownPickups = game.pickups;
     if (level.id === "lobby") venues.lobby.setPunched(game.run.punched);
     snapCamera(x, y);
+    // The zoom lands with him: no easing across a door.
+    const zone = level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
+    scene.camera.zoom = zone?.zoom ?? 1;
   }
 
   const tick = (t: Ticker) => {
@@ -588,7 +596,7 @@ export async function startLook(
       snapCamera(x, y);
     }
     objects.sync(game.pickups, game.crates, simDt);
-    const door = game.door && (game.door.kind === "stash" || game.door.kind === "return") ? game.door.id : null;
+    const door = game.mode === "play" && game.door && (game.door.kind === "stash" || game.door.kind === "return") ? game.door.id : null;
     venues[game.level.id].setDoorGlow(door);
     // The level's theme while he plays (the stash has its own), silence otherwise; a repeat changes nothing.
     sound.music(game.mode === "play" ? game.level.music : null);
@@ -763,7 +771,7 @@ export async function startLook(
     },
     togglePause() {
       forgetPresses();
-      game.togglePause();
+      pause();
     },
     face() {
       return faceOnScreen;

@@ -54,6 +54,8 @@ export type Level = Omit<Stage, "floor" | "platforms"> & {
   rewards: { count: number; bucees: number; nuts: number };
   routes: RewardRoute[];
   music: "day" | "cellar";
+  /** The x before which the first hint teaches the snot and the ! crate. */
+  hints?: { early: number };
 };
 
 export const PICKUP_SIZE = 70;
@@ -71,12 +73,13 @@ export function stageOf(level: Level, extraSolids: Rect[] = []): Stage {
   };
 }
 
-const CLEAR = { door: 150, cart: 200, crate: 120, checkpoint: 120 } as const;
+const CLEAR = { door: 150, cart: 200, crate: 120, checkpoint: 120, belt: 150 } as const;
 
 /**
  * Where pickups may go (the shipped rule, scaled): on level floor and on platforms, one anchor per
  * ANCHOR_STEP, never over a gap or a slope or a belt, inside a solid, in a doorway, on a cart, under
- * a crate or on a punch clock. A pickup's middle sits PICKUP_SIZE above the surface.
+ * a crate, on a punch clock or on the steps at either end of a belt. A pickup's middle sits PICKUP_SIZE
+ * above the surface.
  */
 export function rewardAnchors(level: Level): Point[] {
   const out: Point[] = [];
@@ -85,7 +88,8 @@ export function rewardAnchors(level: Level): Point[] {
     level.doors.some((d) => Math.abs(x - d.x) < CLEAR.door) ||
     level.carts.some((c) => Math.abs(x - c) < CLEAR.cart) ||
     level.crates.some((c) => Math.abs(x - c.x) < CLEAR.crate && y > c.y) ||
-    level.checkpoints.some((k) => Math.abs(x - k.x) < CLEAR.checkpoint);
+    level.checkpoints.some((k) => Math.abs(x - k.x) < CLEAR.checkpoint) ||
+    level.floor.some((b) => !!b.belt && (Math.abs(x - b.x0) < CLEAR.belt || Math.abs(x - b.x1) < CLEAR.belt));
   for (const f of level.floor) {
     if (f.y0 !== f.y1 || f.belt) continue;
     for (let x = f.x0 + ANCHOR_STEP; x < f.x1 - ANCHOR_STEP / 2; x += ANCHOR_STEP) {

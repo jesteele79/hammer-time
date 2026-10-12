@@ -152,7 +152,7 @@ export function NextGame({
           });
         }}
       />
-      {touch && !veiled && hud && (
+      {touch && !veiled && mode !== "card" && hud && (
         <NextTouch onPress={press} ready={{ fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }} />
       )}
       <NextVeil

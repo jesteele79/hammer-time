@@ -26,9 +26,9 @@ export const crateRect = (c: Crate): Rect => ({ x: c.x - CRATE.size / 2, y: c.y 
 /** Every crate stays solid once spent; a broken case is gone. */
 export const crateSolids = (crates: Crate[]): Rect[] => crates.filter((c) => !c.broken).map(crateRect);
 
-/** One hit on a crate (the shipped hitBlock): what comes out, whether it is spent, whether a case breaks. */
-export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateOut): void {
-  if (c.broken || c.lock > 0) return;
+/** One hit on a crate (the shipped hitBlock): what comes out, whether it is spent, whether a case breaks. Returns whether it acted at all. */
+export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateOut): boolean {
+  if (c.broken || c.lock > 0) return false;
   const top = { x: c.x, y: c.y - CRATE.size };
   if (c.kind === "case") {
     c.lock = CRATE.bumpLock;
@@ -38,15 +38,15 @@ export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateO
       c.broken = true;
       out.events.push({ type: "caseBreak", x: c.x, y: c.y - CRATE.size / 2 });
     }
-    return;
+    return true;
   }
-  if (c.used) return;
+  if (c.used) return false;
   c.used = true;
   c.lock = CRATE.bumpLock;
   out.events.push({ type: "crate", id: c.id, kind: c.kind, x: c.x, y: c.y });
   if (c.kind === "can") {
     out.events.push({ type: "canPop", x: top.x, y: top.y });
-    return;
+    return true;
   }
   const kind = c.kind === "bucees" ? "bucees" : ctx.hot ? "nuts" : "pepper";
   // It starts inside the crate (bottoms level) and rises out of the top.
@@ -58,6 +58,7 @@ export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateO
     taken: false,
     body: { x: c.x, y: c.y, w: 60, h: 70, vx: 0, vy: 0, onGround: false, emerge: CRATE.emerge, dir: 1, top: c.y - CRATE.size },
   });
+  return true;
 }
 
 /** A hit crate's lock runs down, so mashing jump under a case pays at most one can per lock. */

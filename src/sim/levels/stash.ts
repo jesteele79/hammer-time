@@ -34,4 +34,5 @@ export const STASH: Level = {
   rewards: { count: 8, bucees: 1, nuts: 2 },
   routes: [],
   music: "cellar",
+  hints: { early: 0 },
 };

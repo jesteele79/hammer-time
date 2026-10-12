@@ -316,7 +316,7 @@ test("the hint says the most pressing thing, the shipped hint's order without th
   h.hot = true;
   assert.equal(hintOf(g), "Hot snot pierces · nuts charge Q super smash");
   Object.assign(h, { x: 7000, y: -253 });
-  assert.equal(hintOf(g), "Up to the mezzanine · ↓ + jump drops you back down");
+  assert.equal(hintOf(g), "Up to the mezzanine · keep climbing");
   Object.assign(h, { x: 900, y: 0 });
   assert.equal(hintOf(g), "F snot rocket · jump into the ! crate for hot pepper");
   h.charge = 10;
@@ -336,6 +336,17 @@ test("the hint says the most pressing thing, the shipped hint's order without th
   assert.equal(hintOf(g), "BUFFET · Opens with Hungry Hungry Hammer");
   g.door = LOBBY.doors.find((d) => d.id === "out");
   assert.equal(hintOf(g), "CLOCK OUT · walk in to finish your shift");
+});
+
+test("the drop hint shows on the balcony, not on the stairs or the landing, and the early hint edge is level data", () => {
+  const g = gameAt(7000, -253);
+  assert.equal(hintOf(g), "Up to the mezzanine · keep climbing");
+  Object.assign(g.world.hero, { x: 6700, y: -120 });
+  assert.equal(hintOf(g), "Up to the mezzanine · keep climbing");
+  Object.assign(g.world.hero, { x: 8000, y: -520 });
+  assert.equal(hintOf(g), "Up on the mezzanine · ↓ + jump drops you back down");
+  Object.assign(g.world.hero, { x: LOBBY.hints.early - 1, y: 0 });
+  assert.equal(hintOf(g), "F snot rocket · jump into the ! crate for hot pepper");
 });
 
 import { escalatorSteps } from "../src/render/venue.ts";

@@ -93,4 +93,5 @@ export const LOBBY: Level = {
     { id: "balcony", x0: 7493, x1: 10200, y0: -600, y1: -560 },
   ],
   music: "day",
+  hints: { early: 1500 },
 };
