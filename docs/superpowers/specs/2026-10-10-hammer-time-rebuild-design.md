@@ -444,6 +444,20 @@ door at the porte-cochere, the M CLUB door (locked until Platinum). Act 3: the
 conference wing (long tables, a projector screen that staff hide behind, a
 service corridor pass) to the exit.
 
+As built in R2a (2026-10-11), 16,400 px: the early ! crate at 760; the desk at
+1500 to 2400 (180 high) with its bell; the first punch clock at 2650; sofas at
+3000 and 3800 (110 high) with can crates over them; the BUFFET door at 4600; the
+open elevator shaft from 5900 to 6230, the only pit; a landing at 6560 (120
+high) and the staircase from 6800 to 7493 up to the mezzanine (520 high) to
+10200, with the M CLUB door on it at 8800; under it the floor route with the
+AIRPORT SHUTTLE door at 9100 and the STAFF ONLY door at 9700; the escalator
+from 10200 down to 11100; the second ! crate at 11400 and the second punch
+clock at 11700; tables at 12100 and 13300 (160 high); the projector screen at
+14250; the service corridor from 14800 to 15300; the CLOCK OUT door at 15950.
+His jump (about 398 px) cannot reach the mezzanine from the floor or the
+landing. Both routes get a can, nuts and a Buc-ee's every run. The bellhop and
+the rest of the cast arrive in R2b.
+
 **Restaurant (1-2).** Dining room (tables and booths as platforms, a host
 stand), the kitchen pass (a counter with heat lamps, the service pass to slide
 under, a swinging door that knocks), the line (steel counters, a flat-top that

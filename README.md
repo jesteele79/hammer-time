@@ -223,9 +223,11 @@ The game is being rebuilt as a modern renderer over a fixed-step sim (the
 design is `docs/superpowers/specs/2026-10-10-hammer-time-rebuild-design.md`).
 Until it replaces the shipped game it lives behind `/?next=1`: a PixiJS 8
 scene on WebGPU (WebGL 2 when WebGPU is missing, or with `&gl=1`) showing
-Hammer in the hotel lobby under the keyboard (arrows or WASD, Space or Z to
-jump, Shift to run, Down to crouch and, at speed, slide). `&noart=1` runs the
-art fallback path; `&board=1` exposes the look-board renderer.
+the hotel lobby as a playable level under the keyboard (arrows or WASD, Space
+or Z to jump, Shift to run, Down to crouch and, at speed, slide, P or Escape
+for a break) or the touch pad. `&noart=1` runs the art fallback path;
+`&board=1` exposes the look-board renderer; `&dev=1` adds a practice hit on G
+and a teleport, a hit and a full smash on `window.__next.dev`, for the checks.
 
 - `src/sim` steps the world at 120 Hz over plain objects: the spec's game-feel
   constants, floors with slopes, one-way platforms, solids and passes,
@@ -304,24 +306,73 @@ running move is never restarted.
   stops from a run in 0.14 s, and a jump clears 1.16 times his height.
   Landings shake the camera in proportion to the fall and never freeze it;
   falls harder than a jump thud.
-- **The HUD** is the React shell's (`src/components/next-hud.tsx`): the venue,
-  his portrait, patience, heat, snot and smash, and the keys along the bottom,
-  in slate and gold. It fits phones both ways and never covers his face.
-  Score, Coke Zero, lives, the clock and the touch pad come with R2.
+Comic words, thoughts and captions are placed off his face every frame, and
+particles that reach his face are dropped. Sound is the shipped game's effects
+and music through its `AudioBus`, silent until the first key or tap.
 
-The look scene is a practice room: two luggage carts, and a ramp past the
-balcony (30 degrees up, a landing, 15 degrees down) standing in for R2's grand
-staircase. G is a practice hit, since nothing in the lobby can hit him yet;
-his patience comes back when he gets up, and the smash starts full and refills
-two seconds after each slam. The game itself will do neither. Comic words,
-thoughts and captions are placed off his face every frame, and particles that
-reach his face are dropped. Sound is the shipped game's effects through its
-`AudioBus`, silent until the first key.
+### The lobby (1-1)
+
+The lobby (`src/sim/levels/lobby.ts`) runs 16,400 px in three acts:
+
+- **The entrance and the front desk:** a ! crate over the start with the
+  first pepper, the long marble desk to jump (its bell rings under the
+  mallet), the time clock behind it, two sofas with Coke Zero crates over
+  them, a luggage cart, and the BUFFET door.
+- **The elevator bank:** an open shaft, "OUT OF ORDER", the only pit. Then two
+  routes. Hop onto the landing and climb the 30-degree grand staircase to the
+  mezzanine (the M CLUB door is up there), or run on under it past the AIRPORT
+  SHUTTLE doors and the STAFF ONLY door to the stash. His jump never reaches
+  the mezzanine from the floor. The escalator carries the balcony route back
+  down where the two meet.
+- **The conference wing:** the second time clock, a second ! crate, banquet
+  tables with their chairs, the projector screen, the service corridor to
+  slide under, a delivery case and the CLOCK OUT door.
+
+The camera eases out to 0.88 over the mezzanine and never shows past the
+level's edges. The staff stash (`src/sim/levels/stash.ts`) has a shelf whose
+jump bumps the Buc-ee's case, a ! crate and the cart back to the lobby; it
+restocks on every visit and its clock never runs.
+
+### The run
+
+- **A run** starts on the venue card with three lives, two patience pips and
+  420 seconds. The clock runs only in the lobby; under 80 seconds it turns red
+  and the music hurries.
+- **Pickups** are laid out fresh each run by the shipped seeded rule (anchors
+  on floors and platforms, Buc-ee's and nuts first, the rest cans), and each
+  route always gets a can, nuts and a Buc-ee's. A Coke Zero is 200 points and
+  10 heat off, and every hundred is a life; nuts are 500 and three smash
+  charges; a Buc-ee's is 1000 and ten seconds nothing can touch him; the
+  pepper is 1000, three pips and hot snot.
+- **Crates** open to a head bump from below or the mallet: the ! crate lets
+  out a pepper (nuts if he is already hot) that rises, slides off and turns at
+  walls; the Coke Zero crate pops a can; a delivery case pays a can a hit and
+  breaks after five, under the mallet or the smash, or at once when he has two
+  pips. Carts still roll when bonked but add no smash charge.
+- **Punch clocks** save where he comes back: walking past one punches its
+  BREAK card gold and the HUD says "Checkpoint saved".
+- **Losing a life:** the last pip's knockdown once he lies still, a fall down
+  the shaft, or the clock running out. He comes back at the last punch clock
+  with two pips, the full clock and the lobby's pickups and crates as the run
+  laid them out. At no lives it is "Hammer down".
+- **Doors:** Down in front of the staff door goes to the stash and Down at its
+  cart comes back, with the lobby just as he left it. The BUFFET, AIRPORT
+  SHUTTLE and M CLUB doors carry cards saying what opens them. Walking into
+  CLOCK OUT ends the lobby: the leftover clock counts into 50 points a second,
+  then "Lobby clear".
+- **The shell:** the HUD's top bar carries the score, the Coke Zero count,
+  lives as small portraits, the Buc-ee's boost, the clock, and pause and mute
+  buttons; the panel keeps patience, heat, snot and smash; the bottom line is
+  the shipped game's contextual hint. The cards (the venue card, "On break"
+  with the keys, "Hammer down", "Lobby clear" with the score and the best,
+  kept in this browser) sit in the lower half, clear of his face. On phones
+  and touch screens a ten-button pad runs along the bottom.
 
 ```powershell
 npm run test:next
 $env:BROWSER_SMOKE_CHANNEL='chrome'
 node scripts/next-browser.check.mjs http://127.0.0.1:8090/
+node scripts/run-browser.check.mjs http://127.0.0.1:8090/
 node scripts/moves-browser.check.mjs http://127.0.0.1:8090/
 node scripts/acts-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
@@ -345,23 +396,36 @@ timing and priority, mashing, moves in the air, crouched or sliding, heat and
 the towel, snot charges and puddles, the swept mallet and once-per-swing hits,
 the smash's burst, an in-air smash, facing left) and the act checks in
 `acts.check.mjs` (the lecture, the idle beats and what ends them, patience,
-the hurt, the tumble off a ledge, a hit mid-move). The rig checks also sweep
+the hurt, the tumble off a ledge, a hit mid-move) and the lobby checks in
+`lobby.check.mjs` (reward anchors and the seeded layout on every route,
+crates and what comes out of them, the run's pickups, deaths counted once
+whether in grace, in the stash or with the clock out mid-knockdown, respawn,
+pause, doors and the stash, the exit's tally, the lobby's shape, and a
+scripted player through both routes). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks
 place thoughts off his face, draw props between steps and throw sweat away
 from it. The browser check boots the scene, runs, jumps and idles under the
 keyboard, confirms Hammer's screen height at two aspect ratios, fits the HUD
-at 1280 by 800, 390 by 844 and 844 by 390, forces WebGL and the no-art
-fallback; the moves browser check swings, bonks a cart, fires and splats
-snot, towels off and smashes in the lobby, and checks the sounds; the acts
-browser check waits for the watch check, the tap and the harrumph, lectures,
-takes three practice hits, gets up and stands on the ramp. The boards land
-under `artifacts/`: `hammer-clips.png` (the clips, then every move and act),
-`hammer-moves.png` and `hammer-acts.png` (each in ten frames, half again as
-large), `hammer-slopes.png` (standing and walking on five slopes, both ways),
-`hammer-heads.png`, `hammer-costumes.png` and `lobby-look-1..4.png`; the
-checks also save `moves-*.png`, `acts-*.png` and `hud-*.png`.
+at 1280 by 800, 390 by 844 and 844 by 390 with the touch pad on the phones
+and the break card clear of his face, forces WebGL and the no-art fallback;
+the run check plays the lobby from the start card through the pepper, a punch
+clock, a life lost in the shaft, a break, the stash, the exit's tally and the
+clear, then plays again and loses all three lives; the moves browser check
+swings, bonks a cart, fires and splats snot, towels off and smashes, and
+checks the sounds; the acts browser check waits for the watch check, the tap
+and the harrumph, lectures, takes the two pips' hits and the lost life, and
+stands on the grand staircase. The boards land under `artifacts/`:
+`hammer-clips.png` (the clips, then every move and act), `hammer-moves.png`
+and `hammer-acts.png` (each in ten frames, half again as large),
+`hammer-slopes.png` (standing and walking on five slopes, both ways),
+`hammer-heads.png`, `hammer-costumes.png`, `objects.png` (the pickups and the
+crates, fresh and spent), `lobby-look-1..6.png` (the desk, the sofas, the
+shaft and the stairs, the mezzanine over the floor route, the tables, the
+corridor and the exit) and `stash.png`; the checks also save `run-*.png`,
+`moves-*.png`, `acts-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
+argument to `look-boards.mjs` names the boards to render, comma separated.
 
 ## Validation
 

@@ -8,7 +8,7 @@ import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
 import { KEY_BINDINGS, emptyInput, inputFrom, type Action } from "../sim/input";
 import { createGame, type GameMode } from "../sim/game";
-import { moveU, type Move } from "../sim/moves";
+import { CHARGE_MAX, moveU, type Move } from "../sim/moves";
 import { floorAt } from "../sim/physics";
 import { ACTIONS, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
@@ -636,6 +636,9 @@ export async function startLook(
       },
       hit() {
         world.hit(world.hero.x + world.hero.facing * PRACTICE_HIT);
+      },
+      charge() {
+        world.hero.charge = CHARGE_MAX;
       },
     };
   return {

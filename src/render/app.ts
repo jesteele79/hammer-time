@@ -74,7 +74,7 @@ export type NextProbe = {
     events: Record<string, number>;
   };
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
-  dev?: { teleport(x: number, y?: number): void; hit(): void };
+  dev?: { teleport(x: number, y?: number): void; hit(): void; charge(): void };
 };
 declare global {
   interface Window {

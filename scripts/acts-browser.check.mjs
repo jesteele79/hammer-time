@@ -45,8 +45,8 @@ try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await page.goto(`${base}?next=1`);
-  await page.waitForFunction(() => window.__next?.moves, {}, { timeout: 30000 });
+  await page.goto(`${base}?next=1&dev=1`);
+  await page.waitForFunction(() => window.__next?.moves && window.__next?.run?.mode === "play", {}, { timeout: 30000 });
 
   let m = await waitFor((x) => x.move === "watch", 4000);
   assert.equal(m.move, "watch", "the watch check after 2.5 s");
@@ -68,45 +68,45 @@ try {
   await shot("acts-lecture.png");
   await waitFor((x) => x.move === null, 1500);
 
+  // A run starts with two pips: one hit hurts, the next knocks him flat and costs a life.
   await tap("KeyG");
   m = await waitFor((x) => x.move === "hurt", 600);
   assert.equal(m.expression, "hurt");
-  assert.equal(m.patience, 2);
+  assert.equal(m.patience, 1);
   assert.equal(m.bubble, "ABSOLUTE BULLSHIT", "the damage line's caption");
   await shot("acts-hurt.png");
   const sound = await page.evaluate(() => window.__next.sound);
   assert.ok((sound.played.curse ?? 0) >= 1, "the damage recording plays");
   await page.waitForTimeout(1600);
   await tap("KeyG");
-  await waitFor((x) => x.patience === 1, 600);
-  await page.waitForTimeout(1600);
-  await tap("KeyG");
   m = await waitFor((x) => x.move === "tumble", 600);
   assert.equal(m.move, "tumble", "the last pip knocks him flat");
   await page.waitForTimeout(700);
   await shot("acts-tumble.png");
-  m = await waitFor((x) => (x.events.getUp ?? 0) >= 1, 2500);
-  assert.equal(m.patience, 3, "up again, patience refilled for practice");
+  const run = await page.evaluate(async () => {
+    const end = Date.now() + 6000;
+    while (Date.now() < end && window.__next.run.mode !== "play") await new Promise((r) => setTimeout(r, 30));
+    while (Date.now() < end && window.__next.run.mode === "play" && !window.__next.run.events.lifeLost) await new Promise((r) => setTimeout(r, 30));
+    while (Date.now() < end && window.__next.run.mode !== "play") await new Promise((r) => setTimeout(r, 30));
+    return window.__next.run;
+  });
+  assert.deepEqual([run.events.lifeLost, run.lives, run.patience, run.mode], [1, 2, 2, "play"], "a life lost, back with two pips");
 
-  // To the ramp, sliding under the service pass at x 2200 on the way.
-  await page.keyboard.down("ShiftLeft");
+  // Up the grand staircase from its landing: his soles lie along the 30-degree steps.
+  await page.evaluate(() => window.__next.dev.teleport(6650, -140));
+  await page.waitForTimeout(400);
   await page.keyboard.down("ArrowRight");
-  await waitFor((x) => x.heroX > 1950, 6000);
-  await page.keyboard.down("ArrowDown");
-  await waitFor((x) => x.heroX > 2760, 6000);
-  await page.keyboard.up("ArrowDown");
-  await waitFor((x) => x.heroX > 7250, 15000);
+  await waitFor((x) => x.heroX > 7050, 4000);
   await page.keyboard.up("ArrowRight");
-  await page.keyboard.up("ShiftLeft");
   await page.waitForTimeout(700);
   m = await moves();
-  assert.ok(m.heroY < -100 && m.heroX < 7600, `on the ramp: ${m.heroX}, ${m.heroY}`);
-  assert.ok(m.feetGap <= 2, `both soles on the slope: ${m.feetGap}`);
-  await shot("acts-ramp.png");
+  assert.ok(m.heroY < -200 && m.heroX < 7493, `on the stairs: ${m.heroX}, ${m.heroY}`);
+  assert.ok(m.feetGap <= 2, `both soles on the stairs: ${m.feetGap}`);
+  await shot("acts-stairs.png");
 
   assert.deepEqual(errors, []);
   writeFileSync(resolve(out, "acts-check.json"), JSON.stringify({ moves: await moves(), errors }, null, 2));
-  console.log("PASS: watch, tap, harrumph, lecture, hurt, tumble and the ramp in the lobby, no errors.");
+  console.log("PASS: watch, tap, harrumph, lecture, hurt, the knockdown's lost life and the grand staircase in the lobby, no errors.");
 } catch (err) {
   console.error("Acts check failure", errors);
   await page?.screenshot({ path: resolve(out, "acts-failure.png") });

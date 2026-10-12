@@ -1,4 +1,4 @@
-// Plays the moves in the lobby look scene and asserts on them through window.__next.moves.
+// Plays the moves in the lobby at /?next=1&dev=1 and asserts on them through window.__next.moves.
 // Usage: node scripts/moves-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -35,9 +35,9 @@ try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
-  await page.goto(`${base}?next=1`);
-  await page.waitForFunction(() => window.__next?.moves, {}, { timeout: 30000 });
-  await page.waitForTimeout(800);
+  await page.goto(`${base}?next=1&dev=1`);
+  await page.waitForFunction(() => window.__next?.moves && window.__next?.run?.mode === "play", {}, { timeout: 30000 });
+  await page.waitForTimeout(300);
 
   await tap("KeyH");
   let m = await waitFor((x) => x.move === "swing", 600);
@@ -46,10 +46,12 @@ try {
   await page.screenshot({ path: resolve(out, "moves-swing.png") });
   await page.waitForTimeout(500);
 
-  await page.keyboard.down("ArrowRight");
-  await waitFor((x) => x.carts[0] - x.heroX < 330, 3000);
-  await page.keyboard.up("ArrowRight");
+  // Beside the first luggage cart, facing it.
+  const cart = (await moves()).carts[0];
+  await page.evaluate((x) => window.__next.dev.teleport(x), cart - 300);
   await page.waitForTimeout(300);
+  await tap("ArrowRight", 30);
+  await page.waitForTimeout(200);
   const before = (await moves()).carts[0];
   await tap("KeyH");
   m = await waitFor((x) => (x.events.hit ?? 0) >= 1, 1200);
@@ -76,6 +78,8 @@ try {
   m = await waitFor((x) => x.move === null, 1500);
   assert.ok(m.heat < hot, "the towel cools him");
 
+  // A run starts with an empty smash; the dev switch fills it for the test.
+  await page.evaluate(() => window.__next.dev.charge());
   await tap("KeyQ");
   m = await waitFor((x) => (x.events.burst ?? 0) >= 1, 2500);
   assert.ok((m.events.burst ?? 0) >= 1, "the smash bursts");
