@@ -1,4 +1,5 @@
 import { Container, Graphics } from "pixi.js";
+import type { Missile } from "../sim/missiles";
 import type { Puddle, Snot } from "../sim/snot";
 import type { Snapshot, Target } from "../sim/types";
 import { between } from "./interp";
@@ -107,6 +108,7 @@ export class Props {
   private readonly carts = new Map<number, CartView>();
   private readonly blobs: Graphics[] = [];
   private readonly puddles: Graphics[] = [];
+  private readonly missiles: Graphics[] = [];
   private trailT = 0;
 
   constructor(
@@ -134,6 +136,11 @@ export class Props {
     });
     this.pool(this.puddles, s.puddles.length, 0);
     s.puddles.forEach((p, i) => drawPuddle(this.puddles[i], p));
+    this.pool(this.missiles, s.missiles.length, 3);
+    s.missiles.forEach((m, i) => {
+      drawMissile(this.missiles[i], m);
+      if (trail && m.kind === "coffee") this.particles.emit("coffee", m.x, m.y, 1);
+    });
   }
 
   private cart(t: Target, dt: number) {
@@ -182,10 +189,30 @@ function drawSnot(g: Graphics, b: Snot) {
   g.rotation = Math.atan2(b.vy, b.vx);
 }
 
-/** A flat glossy puddle on the floor that fades over its last second. */
+/** A paper plane, a folded dart pointing along its flight, or the office worker's cup tumbling. */
+function drawMissile(g: Graphics, m: Missile) {
+  g.clear();
+  if (m.kind === "plane") {
+    g.poly([-36, 0, 32, -5, 12, 6, 32, 9]).fill("#fbf7ee").stroke({ width: 3, color: INK, join: "round" });
+    g.moveTo(-36, 0).lineTo(32, -5).stroke({ width: 2, color: "#b8b0a2" });
+    g.position.set(m.x, m.y);
+    g.scale.set(m.vx < 0 ? -1 : 1, 1);
+    g.rotation = m.vx < 0 ? -m.spin : m.spin;
+    return;
+  }
+  g.roundRect(-11, -14, 22, 28, 4).fill("#f4f3ee").stroke({ width: 3, color: INK });
+  g.rect(-11, -14, 22, 6).fill("#6b3a1e");
+  g.position.set(m.x, m.y);
+  g.scale.set(1, 1);
+  g.rotation = m.spin;
+}
+
+const PUDDLE_COLORS = { snot: "#9cc24a", water: "#7cc8f0", coffee: "#6b3a1e" } as const;
+
+/** A flat glossy puddle on the floor, in what was spilled, that fades over its last second. */
 function drawPuddle(g: Graphics, p: Puddle) {
   const h = p.w * 0.18;
-  const c = tones("#9cc24a");
+  const c = tones(PUDDLE_COLORS[p.kind]);
   g.clear();
   g.ellipse(0, 0, p.w / 2, h / 2).fill(c.shadow).stroke({ width: 3, color: INK });
   g.ellipse(-p.w * 0.04, -h * 0.08, p.w * 0.38, h * 0.3).fill(c.base);

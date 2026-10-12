@@ -33,6 +33,9 @@ import { createLighting, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
+import { Cast } from "./cast";
+import { Flyers } from "./cast-fx";
+import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { createScene } from "./scene";
 import { createSound } from "./sound";
@@ -99,11 +102,11 @@ type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point
  */
 export async function startLook(
   render: RenderApp,
-  opts: { noart?: boolean; board?: boolean; dev?: boolean; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
+  opts: { noart?: boolean; board?: boolean; dev?: boolean; nocast?: boolean; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
-  const game = createGame(LEVELS, newSeed());
+  const game = createGame(LEVELS, newSeed(), { cast: !opts.nocast });
   const world = game.world;
   const clock = createClock();
   scene.camera.bounds = LOBBY.bounds;
@@ -134,6 +137,8 @@ export async function startLook(
   const lighting = createLighting(scene, render.quality, [...lightsOf(LOBBY), ...lightsOf(STASH)]);
   render.onQuality = (q) => lighting.setQuality(q);
   const props = new Props(scene.layers.play, particles, scene.ambient);
+  const cast = new Cast(scene.layers.play, scene.ambient);
+  const flyers = new Flyers(scene.layers.fx, particles);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   await character.ready;
@@ -532,6 +537,10 @@ export async function startLook(
     // The carts, the snot and the puddles sort just behind him: none of them ever covers his face.
     props.container.zIndex = y - 0.5;
     props.sync(prev, cur, alpha, simDt);
+    // The cast draws just behind him too: nothing of them is ever over his face.
+    cast.container.zIndex = y - 0.6;
+    cast.sync(prev, cur, alpha, time, game.level.furniture);
+    flyers.update(simDt, (fx, fy) => topUnder(fx, fy));
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -678,6 +687,13 @@ export async function startLook(
         feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.cast = {
+        acts: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, n.act])),
+        attackers: attackers(world.cast),
+        missiles: cur.missiles.length,
+        planes: cur.missiles.map((mm) => ({ kind: mm.kind, x: mm.x, y: mm.y })),
+        out: world.cast.filter((n) => n.out || !n.alive).length,
+      };
     }
   };
   app.ticker.add(tick);
@@ -759,6 +775,7 @@ export async function startLook(
       window.removeEventListener("blur", onBlur);
       sound.destroy();
       objects.destroy();
+      cast.destroy();
       venues.lobby.destroy();
       venues.stash.destroy();
       if (window.__next) delete window.__next.dev;

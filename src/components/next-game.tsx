@@ -45,12 +45,15 @@ export function NextGame({
   noart = false,
   board = false,
   dev = false,
+  nocast = false,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
   board?: boolean;
   /** The checks' switch: a practice hit on G and a teleport on the probe. */
   dev?: boolean;
+  /** A lobby with nobody in it: the older checks' switch. */
+  nocast?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -108,7 +111,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, onHud, onMode });
+      const started = await startLook(render, { noart, board, dev, nocast, onHud, onMode });
       if (cancelled) {
         started.stop();
         return render.destroy();
@@ -124,7 +127,7 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, onHud, onMode]);
+  }, [forceWebgl, noart, board, dev, nocast, onHud, onMode]);
 
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
   const veiled = mode === "pause" || mode === "over" || mode === "clear";

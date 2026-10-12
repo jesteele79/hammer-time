@@ -57,6 +57,12 @@ export const RECIPES = {
   // The pepper crate's steam, a slow wisp rising off its top.
   steamPuff: { speed: [20, 60], angle: [250, 290], gravity: -120, drag: 1.2, life: [0.8, 1.3], size: [8, 20], colors: ["#ffffff", "#c9c2b8"], additive: false },
   splinters: { speed: [260, 640], angle: [190, 350], gravity: 2000, drag: 0.6, life: [0.45, 0.8], size: [8, 4], colors: ["#b9c0c5", "#5d4630"], additive: false },
+  // The cast's leftovers: a shattered glass, its ice, coffee, the tray's water and a swatted plane's confetti.
+  glass: { speed: [200, 600], angle: [200, 340], gravity: 2200, drag: 0.5, life: [0.4, 0.7], size: [6, 3], colors: ["#ffffff", "#9fd6ff"], additive: false },
+  ice: { speed: [100, 400], angle: [160, 380], gravity: 1600, drag: 1.2, life: [0.5, 0.9], size: [6, 4], colors: ["#e8f8ff", "#bfe6ff"], additive: false },
+  coffee: { speed: [160, 520], angle: [190, 350], gravity: 1900, drag: 0.8, life: [0.3, 0.55], size: [8, 3], colors: ["#7a4a24", "#3d2412"], additive: false },
+  water: { speed: [200, 520], angle: [200, 340], gravity: 1600, drag: 0.8, life: [0.3, 0.5], size: [7, 3], colors: ["#dff3ff", "#7cc8f0"], additive: false },
+  paper: { speed: [80, 320], angle: [0, 360], gravity: 260, drag: 2.4, life: [0.7, 1.2], size: [9, 6], colors: ["#fbf7ee", "#d9d2c4"], additive: false },
 } satisfies Record<string, Recipe>;
 export type RecipeName = keyof typeof RECIPES;
 

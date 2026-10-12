@@ -76,6 +76,8 @@ export type NextProbe = {
     shield: boolean;
     events: Record<string, number>;
   };
+  /** The cast: each live member's act by spawn id, how many hold attack tickets, the missiles in the air, how many are out. */
+  cast?: { acts: Record<string, string>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
   dev?: {
     teleport(x: number, y?: number): void;
