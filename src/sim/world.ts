@@ -69,7 +69,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       const prevY = h.y;
       stepHero(h, world.stage, input, STEP, events);
       advanceMove(h, STEP, events);
-      world.swing = swingContact(h, world.targets, events);
+      world.swing = swingContact(h, world, events);
       superBurst(h, world.targets, events);
       fireSnot(h, world, events);
       deliverLecture(h, events);

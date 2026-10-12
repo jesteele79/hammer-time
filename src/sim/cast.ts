@@ -2,7 +2,9 @@ import { CAST_LINES, STAFF_LINES, pick } from "../game/lines";
 import type { GameEvent } from "./events";
 import { bodyRect } from "./geometry";
 import type { CastPerson, Level } from "./level";
-import type { Rect, Target } from "./types";
+import { floorAt } from "./physics";
+import { SNOT, type Puddle } from "./snot";
+import type { Rect, Stage, Target } from "./types";
 
 export type CastRole = "bellhop" | "server" | "office" | "student";
 export type CastAct =
@@ -53,6 +55,8 @@ export const T = { notice: 0.6, getup: 0.6, bump: 0.3, bumpGap: 1.5, slip: 0.4, 
 export const STOMP = { tolerance: 24, bounce: 900, held: 1300 } as const;
 /** Cast ids start here: a swing's victims list holds carts and cast alike, so they never meet. */
 export const CAST_ID = 1001;
+/** A fall this far above the level's bottom edge is gone: off the screen by then (the Game's rule for him too). */
+export const FALL_MARGIN = 200;
 
 export type Npc = {
   id: number;
@@ -171,6 +175,98 @@ export const standing = (n: Npc): boolean => n.alive && STANDING.has(n.act);
 const UNHITTABLE: ReadonlySet<CastAct> = new Set<CastAct>(["fly", "slide", "leave", "flee", "getup", "slip", "hide"]);
 /** Can be hit now: alive, not flying, sliding, leaving, fleeing, getting up, slipping or hidden; a downed one only while he will get up again (the bellhop's first hit). */
 export const hittable = (n: Npc): boolean => n.alive && !UNHITTABLE.has(n.act) && !(n.out && n.act === "down");
+
+export type StrikeWorld = { puddles: Puddle[]; stage: Stage };
+/** The hits that throw hard: the spec's staff knockback. */
+const BIG: ReadonlySet<CastHitBy> = new Set<CastHitBy>(["burst", "shield", "cart", "slide", "body"]);
+
+/** A spill on the floor under him: the server's water, the office worker's coffee. */
+export function spill(w: StrikeWorld, n: Npc, kind: "water" | "coffee"): void {
+  const s = SPILL[kind];
+  const y = floorAt(w.stage, n.x, n.y - 24) ?? n.y;
+  w.puddles.push({ x: n.x, y, w: s.w, life: s.life, max: s.life, kind });
+  if (w.puddles.length > SNOT.puddles) w.puddles.shift();
+}
+
+function hitEvent(n: Npc, by: CastHitBy, dir: 1 | -1, down: boolean, points: number, events: GameEvent[]) {
+  events.push({ type: "castHit", id: n.id, role: n.role, by, x: n.x, y: n.y - n.h / 2, dir, down, points });
+}
+
+/** Thrown: off his feet, flying `dir`, turning over. */
+export function throwNpc(n: Npc, dir: 1 | -1, big: boolean): void {
+  const k = big ? KNOCK.big : KNOCK.small;
+  n.dir = dir;
+  n.vx = dir * k.back;
+  n.vy = -k.up;
+  n.onGround = false;
+  n.spin = 0;
+  n.chain = 0;
+  n.bounced = false;
+  setAct(n, "fly");
+}
+
+/**
+ * A hit on a cast member; true when it landed (students duck the mallet and sidestep a stomp). `chain` > 0 is a
+ * bowl's count: its points ride the chain event instead, and the thrown body carries the count on.
+ */
+export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, events: GameEvent[], chain = 0): boolean {
+  if (!hittable(n)) return false;
+  const big = BIG.has(by);
+  if (n.role === "student") {
+    if (by === "puddle") return false;
+    if (by === "mallet" && n.act !== "schooled") {
+      setAct(n, "duck");
+      say(n, CAST_LINES.student.duck, events);
+      return false;
+    }
+    if (by === "stomp") {
+      setAct(n, "hop");
+      n.dir = dir;
+      n.mark = -1;
+      return false;
+    }
+    n.out = true;
+    n.prop = false;
+    if (by === "snot") {
+      n.slimed = true;
+      n.facing = dir;
+      setAct(n, "flee");
+      say(n, CAST_LINES.student.snot, events);
+      hitEvent(n, by, dir, true, 0, events);
+      events.push({ type: "castFlee", id: n.id, x: n.x, y: n.y - n.h, points: POINTS.fled });
+      return true;
+    }
+    throwNpc(n, dir, big);
+    n.chain = chain;
+    hitEvent(n, by, dir, true, by === "shield" ? POINTS.shield : chain ? 0 : POINTS.down, events);
+    return true;
+  }
+  if (by === "snot") n.slimed = true;
+  n.hits++;
+  n.prop = false;
+  if (n.role === "bellhop") n.hat = false;
+  const again = n.role === "bellhop" && n.hits < CAST.bellhop.hits;
+  n.out = !again;
+  const points = by === "shield" ? POINTS.shield : by === "puddle" ? POINTS.slip : chain ? 0 : POINTS.down;
+  if (n.role === "bellhop" && n.act === "down") {
+    // The second hit while he is down: along the marble on his back.
+    n.dir = dir;
+    n.vx = dir * KNOCK.slide.speed;
+    n.vy = 0;
+    n.chain = 0;
+    n.spin = 0;
+    setAct(n, "slide");
+  } else if (by === "puddle") {
+    n.dir = dir;
+    n.vx = 0;
+    setAct(n, "slip");
+  } else {
+    throwNpc(n, dir, big);
+    n.chain = chain;
+  }
+  hitEvent(n, by, dir, n.out, points, events);
+  return true;
+}
 
 /** The line a cast member opens with when he sees Hammer. */
 export function noticeLine(n: Npc): string {

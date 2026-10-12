@@ -1,11 +1,14 @@
+import { hittable, npcRect, strikeNpc, type Npc } from "./cast";
 import { HEAD_SCALE } from "./constants";
 import type { GameEvent } from "./events";
 import { SWING_ACTIVE, moveU, type Move } from "./moves";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
 import { sweptHeadHits } from "./geometry";
+import type { Missile } from "./missiles";
+import type { Puddle } from "./snot";
 import { knock } from "./targets";
-import type { HeroState, Point, Rect, Target } from "./types";
+import type { HeroState, Point, Rect, Stage, Target } from "./types";
 
 /** The mallet head's reach for contact, world px. */
 export const MALLET_R = 36;
@@ -26,11 +29,13 @@ export function malletAt(
 
 const rectOf = (t: Target): Rect => ({ x: t.x - t.w / 2, y: t.y - t.h, w: t.w, h: t.h });
 
+export type SwingWorld = { targets: Target[]; cast: Npc[]; missiles: Missile[]; puddles: Puddle[]; stage: Stage };
+
 /**
- * The swing's contact: the arc since the last check, sampled finely, against every cart not yet hit.
- * Returns the part of this step's arc in front of him, for whatever else the mallet can meet.
+ * The swing's contact: the arc since the last check, sampled finely, against every cart and cast member
+ * not yet hit. Returns the part of this step's arc in front of him, for whatever else the mallet can meet.
  */
-export function swingContact(h: HeroState, targets: Target[], events: GameEvent[]): Point[] {
+export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): Point[] {
   const m = h.move;
   if (m?.kind !== "swing") return [];
   const u = moveU(m);
@@ -45,7 +50,7 @@ export function swingContact(h: HeroState, targets: Target[], events: GameEvent[
   for (let k = 0; k <= n; k++) path.push(malletAt(h, from + ((to - from) * k) / n));
   // Only the arc in front of him lands: the windmill passes over his head and behind him on the way.
   const ahead = (p: Point) => (p.x - h.x) * h.facing > 0;
-  for (const t of targets) {
+  for (const t of w.targets) {
     if (m.victims.includes(t.id)) continue;
     const r = rectOf(t);
     for (let k = 1; k < path.length; k++)
@@ -53,6 +58,17 @@ export function swingContact(h: HeroState, targets: Target[], events: GameEvent[
         m.victims.push(t.id);
         knock(t, h.facing, 1100, 600);
         events.push({ type: "hit", by: "mallet", x: path[k].x, y: path[k].y, target: t.id });
+        break;
+      }
+  }
+  // Staff go down; a student ducks it, and the swing is done with him either way.
+  for (const n of w.cast) {
+    if (m.victims.includes(n.id) || !hittable(n)) continue;
+    const r = npcRect(n);
+    for (let k = 1; k < path.length; k++)
+      if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, r)) {
+        m.victims.push(n.id);
+        if (strikeNpc(n, "mallet", h.facing, w, events)) events.push({ type: "hit", by: "mallet", x: path[k].x, y: path[k].y, target: n.id });
         break;
       }
   }

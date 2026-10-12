@@ -23,8 +23,6 @@ const press = (w, key, held = {}) => { w.step(input({ ...held, [key]: true }, { 
 const until = (w, done, seconds = 10, held = {}) => { const out = []; for (let i = 0; i < Math.round(seconds / STEP) && !done(w); i++) { w.step(input(held)); out.push(...w.events); } return out; };
 const of = (evs, type) => evs.filter((e) => e.type === type);
 const npc = (w, spawn) => w.cast.find((n) => n.spawn === spawn);
-void press;
-void until;
 
 test("the cast spawns from the level data with the role's size, a bellhop tied to his cart, ids past the carts", () => {
   const w = worldWith(
@@ -84,4 +82,109 @@ test("stepping the cast is deterministic", () => {
   steps(a, 3, { right: true });
   steps(b, 3, { right: true });
   assert.deepEqual(a.snapshot().cast, b.snapshot().cast);
+});
+
+test("the mallet knocks a server down in one: she flies, lands, lies dazed, gets up and walks off, and the tray leaves a wet floor", () => {
+  for (const facing of [1, -1]) {
+    const w = worldWith([{ id: "s", person: "server-1", x: 300 + facing * 230, y: 0 }], { x: 300, y: 0 });
+    w.hero.facing = facing;
+    press(w, "hammer");
+    const evs = steps(w, 0.4);
+    const hit = of(evs, "castHit");
+    assert.equal(hit.length, 1, `one hit (facing ${facing})`);
+    assert.deepEqual([hit[0].by, hit[0].down, hit[0].points, hit[0].dir], ["mallet", true, 100, facing]);
+    assert.ok(of(evs, "hit").some((e) => e.by === "mallet" && e.target === npc(w, "s").id), "the bonk event for the feel");
+    const s = npc(w, "s");
+    assert.ok(s.act === "fly" && s.vx * facing > 0 && !s.prop && s.out, `flying away without her tray: ${s.act}`);
+    until(w, () => npc(w, "s").act === "down", 3);
+    assert.equal(s.act, "down");
+    assert.ok(w.puddles.some((p) => p.kind === "water" && Math.abs(p.x - s.x) < 60), "a wet floor where she landed");
+    until(w, () => npc(w, "s").act === "leave", 5);
+    assert.ok(s.act === "leave" && s.vx * facing > 0, "leaving, away from him");
+    until(w, () => !npc(w, "s").alive, 12);
+    assert.equal(s.alive, false, "gone once far away");
+  }
+});
+
+test("a swing hits each cast member once, never one behind him, and a knocked-out one cannot be hit again", () => {
+  const w = worldWith([{ id: "a", person: "office-1", x: 520, y: 0 }, { id: "b", person: "office-2", x: 80, y: 0 }], { x: 300, y: 0 });
+  w.hero.facing = 1;
+  press(w, "hammer");
+  const evs = steps(w, 0.5);
+  assert.deepEqual(of(evs, "castHit").map((e) => e.id), [npc(w, "a").id]);
+  until(w, () => npc(w, "a").act === "down", 3);
+  npc(w, "a").x = 520;
+  press(w, "hammer");
+  assert.equal(of(steps(w, 0.5), "castHit").length, 0, "down and out: unhittable");
+});
+
+test("snot knocks staff down and slimes them; hot snot goes through one; students run off gagging", () => {
+  const w = worldWith([{ id: "a", person: "server-1", x: 700, y: 0 }, { id: "b", person: "office-1", x: 1000, y: 0 }, { id: "k", person: "student-1", x: 1300, y: 0 }], { x: 300, y: 0 }, { hot: true });
+  w.hero.facing = 1;
+  press(w, "fire");
+  const evs = steps(w, 1.2);
+  const hits = of(evs, "castHit");
+  assert.deepEqual(hits.map((e) => [e.id, e.by]), [[npc(w, "a").id, "snot"], [npc(w, "b").id, "snot"]], "through the first, into the second");
+  assert.ok(npc(w, "a").slimed && npc(w, "b").slimed);
+  const cold = worldWith([{ id: "k", person: "student-1", x: 700, y: 0 }], { x: 300, y: 0 });
+  cold.hero.facing = 1;
+  press(cold, "fire");
+  const fled = steps(cold, 1);
+  assert.ok(of(fled, "castFlee").length === 1 && of(fled, "castFlee")[0].points === 100);
+  assert.equal(npc(cold, "k").act, "flee");
+  assert.equal(cold.snot.length, 0, "the blob is spent on him");
+});
+
+test("landing on a staffer from above stomps him and bounces Hammer; a student sidesteps", () => {
+  const w = worldWith([{ id: "o", person: "office-1", x: 500, y: 0 }], { x: 500, y: -600 });
+  w.hero.onGround = false;
+  const evs = until(w, (x) => x.hero.vy < 0 || x.hero.onGround, 2);
+  const st = of(evs, "stomp");
+  assert.equal(st.length, 1);
+  assert.ok(st[0].landed && w.hero.vy < -800 && w.hero.vy > -1000, `bounced: ${w.hero.vy}`);
+  assert.equal(of(evs, "castHit")[0].by, "stomp");
+  const k = worldWith([{ id: "k", person: "student-2", x: 500, y: 0 }], { x: 500, y: -600 });
+  k.hero.onGround = false;
+  const ke = until(k, (x) => x.events.some((e) => e.type === "stomp"), 2);
+  assert.equal(of(ke, "castHit").length, 0);
+  assert.ok(of(ke, "stomp").some((e) => !e.landed) && npc(k, "k").act === "hop", "sidestepped");
+});
+
+test("students duck the mallet", () => {
+  const w = worldWith([{ id: "k", person: "student-1", x: 520, y: 0 }], { x: 300, y: 0 });
+  w.hero.facing = 1;
+  press(w, "hammer");
+  const evs = steps(w, 0.5);
+  assert.equal(of(evs, "castHit").length, 0);
+  assert.ok(of(evs, "castLine").some((e) => e.text === "lol"));
+  assert.ok(["duck", "idle"].includes(npc(w, "k").act));
+});
+
+test("the super burst and the Buc-ee's shield send everyone they touch flying, students included", () => {
+  const w = worldWith([{ id: "a", person: "server-1", x: 500, y: 0 }, { id: "k", person: "student-1", x: 600, y: 0 }, { id: "far", person: "office-1", x: 1500, y: 0 }], { x: 300, y: 0 }, { charge: 10 });
+  w.hero.facing = 1;
+  press(w, "super");
+  // Right at the slam: a big knock lands and bounces within half a second.
+  const evs = until(w, (x) => x.events.some((e) => e.type === "burst"), 1);
+  assert.deepEqual(of(evs, "castHit").map((e) => [e.id, e.by]).sort(), [[npc(w, "a").id, "burst"], [npc(w, "k").id, "burst"]].sort());
+  assert.ok(npc(w, "a").act === "fly" && npc(w, "k").act === "fly" && npc(w, "far").act !== "fly");
+});
+
+test("a staffer walking into a puddle slips, feet out, and goes down for 150; students do not slip", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 1200, y: 0, x0: 600, x1: 1400 }, { id: "k", person: "student-1", x: 1000, y: 0, x0: 600, x1: 1400 }], { x: -1500, y: 0 });
+  w.puddles.push({ x: 1000, y: 0, w: 120, life: 7, max: 7, kind: "snot" });
+  const evs = until(w, (x) => x.events.some((e) => e.type === "castHit"), 4);
+  assert.ok(w.puddles[0].life <= 1.2, "the puddle is used up");
+  evs.push(...steps(w, 2));
+  const slips = of(evs, "castHit").filter((e) => e.by === "puddle");
+  assert.deepEqual(slips.map((e) => [e.id, e.points]), [[npc(w, "s").id, 150]]);
+});
+
+test("knocked below the level, a cast member is gone: OUT OF ORDER, 500", () => {
+  const w = worldWith([{ id: "o", person: "office-1", x: 500, y: 0 }], { x: 300, y: 0 });
+  const o = npc(w, "o");
+  Object.assign(o, { act: "fly", actT: 0, vx: 0, vy: 900, onGround: false, y: 3000 });
+  const evs = steps(w, 0.5);
+  assert.deepEqual(of(evs, "castFell").map((e) => [e.id, e.points]), [[o.id, 500]]);
+  assert.equal(o.alive, false);
 });

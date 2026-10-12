@@ -1,3 +1,4 @@
+import { hittable, npcRect, strikeNpc, type Npc } from "./cast";
 import { HEAD_SCALE } from "./constants";
 import type { GameEvent } from "./events";
 import { sweptHeadHits } from "./hits";
@@ -10,7 +11,8 @@ import type { HeroState, Stage, Target } from "./types";
 
 /** `id` is unique in the world, so the renderer can match a blob across two steps. */
 export type Snot = { id: number; x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
-export type Puddle = { x: number; y: number; w: number; life: number; max: number };
+/** Snot, the tray's water or coffee on the floor: staff slip on any of them. */
+export type Puddle = { x: number; y: number; w: number; life: number; max: number; kind: "snot" | "water" | "coffee" };
 
 /** The shipped embers (280/330 px/s, −40/−30 up, 1.15 s, puddles 15/22 wide for 7/9 s) at the new scale. */
 export const SNOT = {
@@ -57,7 +59,7 @@ export function fireSnot(h: HeroState, w: { snot: Snot[]; nextSnot: number }, ev
 
 /** Flight, hits on carts (hot snot goes through one), and puddles where it lands. */
 export function stepSnot(
-  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[] },
+  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[] },
   dt: number,
   events: GameEvent[],
 ): void {
@@ -78,11 +80,21 @@ export function stepSnot(
       if (b.pierce > 0) b.pierce--;
       else b.life = 0;
     }
+    for (const n of w.cast) {
+      if (b.life <= 0 || b.hit.includes(n.id) || !hittable(n)) continue;
+      if (!sweptHeadHits(a, b, r, npcRect(n))) continue;
+      b.hit.push(n.id);
+      if (!strikeNpc(n, "snot", b.vx > 0 ? 1 : -1, w, events)) continue;
+      events.push({ type: "hit", by: "snot", x: b.x, y: b.y, target: n.id });
+      events.push({ type: "splat", x: b.x, y: b.y, floor: false, hot: b.hot });
+      if (b.pierce > 0) b.pierce--;
+      else b.life = 0;
+    }
     const floor = floorAt(w.stage, b.x, a.y);
     if (b.life > 0 && floor !== null && b.y >= floor) {
       b.life = 0;
       const life = b.hot ? SNOT.hotPuddleLife : SNOT.puddleLife;
-      w.puddles.push({ x: b.x, y: floor, w: b.hot ? SNOT.hotPuddle : SNOT.puddle, life, max: life });
+      w.puddles.push({ x: b.x, y: floor, w: b.hot ? SNOT.hotPuddle : SNOT.puddle, life, max: life, kind: "snot" });
       if (w.puddles.length > SNOT.puddles) w.puddles.shift();
       events.push({ type: "splat", x: b.x, y: floor, floor: true, hot: b.hot });
     }

@@ -1,10 +1,11 @@
 import { HERO_H, SNAP, STEP } from "./constants";
-import { createCast, type Npc } from "./cast";
+import { FALL_MARGIN, createCast, hittable, npcRect, strikeNpc, type Npc } from "./cast";
 import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
 import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
+import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
 import { stageOf, type DoorSpec, type Level } from "./level";
 import type { Missile } from "./missiles";
@@ -38,8 +39,6 @@ export type Game = {
   togglePause(): void;
 };
 
-/** A fall this far above the level's bottom edge is a lost life: he is off the screen by then. */
-const FALL_MARGIN = 200;
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
 const STASH_SEED = 7919;
 /** The shipped 20 px door reach at the new scale. */
@@ -337,12 +336,17 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     }
   }
 
-  /** The Buc-ee's shield: whatever he runs into goes flying away from him, and he keeps going. */
+  /** The Buc-ee's shield: whatever he runs into goes flying away from him, cast included, and he keeps going. */
   function shieldBowl(ev: GameEvent[]) {
     const h = world.hero;
+    for (const n of world.cast) {
+      if (!hittable(n) || !overlapsRect(bodyRect(h), npcRect(n))) continue;
+      strikeNpc(n, "shield", n.x >= h.x ? 1 : -1, world, ev);
+    }
     for (const t of world.targets) {
       const touching = Math.abs(t.x - h.x) < (t.w + h.w) / 2 && t.y - t.h < h.y && h.y - h.h < t.y;
-      if (!touching || Math.abs(t.vx) > SHIELD.flying) continue;
+      // A cart already flying away is left alone; one rolling at him is bowled.
+      if (!touching || (Math.abs(t.vx) > SHIELD.flying && (t.x - h.x) * t.vx > 0)) continue;
       const dir: 1 | -1 = t.x === h.x ? h.facing : t.x > h.x ? 1 : -1;
       knock(t, dir, SHIELD.speed, SHIELD.lift);
       ev.push({ type: "hit", by: "shield", x: t.x, y: t.y - t.h / 2, target: t.id });
@@ -371,6 +375,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     }
     world.step(input);
     ev.push(...world.events);
+    // The cast's points ride their events.
+    for (const e of world.events) if ("points" in e && e.points) addScore(run, e.points);
     strikeCrates(ev);
     if (tryDoors(input, ev)) return;
     stepCrates(game.crates, STEP);

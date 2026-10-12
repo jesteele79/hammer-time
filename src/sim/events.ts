@@ -1,3 +1,4 @@
+import type { CastHitBy, CastRole } from "./cast";
 import type { GameMode } from "./game";
 import type { CrateKind, DoorKind } from "./level";
 import type { PickupKind } from "./rewards";
@@ -62,4 +63,12 @@ export type GameEvent =
   | { type: "castNotice"; id: number; x: number; y: number }
   /** A cast member says a line (a speech bubble). */
   | { type: "castLine"; id: number; text: string; seconds: number }
+  /** A hit landed on a cast member. `down`: knocked out by it. `points` go to the score. */
+  | { type: "castHit"; id: number; role: CastRole; by: CastHitBy; x: number; y: number; dir: 1 | -1; down: boolean; points: number }
+  /** He landed on someone from above; `landed` is false when a student sidestepped. */
+  | { type: "stomp"; x: number; y: number; landed: boolean }
+  /** A student runs off (snot, or after a knock). */
+  | { type: "castFlee"; id: number; x: number; y: number; points: number }
+  /** Someone went down the open shaft. */
+  | { type: "castFell"; id: number; x: number; y: number; points: number }
   | { type: "mode"; mode: GameMode };
