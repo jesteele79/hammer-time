@@ -47,9 +47,10 @@ export const KEY_BINDINGS: Record<string, Action> = {
   KeyL: "lecture",
 };
 
-/** The input for one step from the keys down now and the actions held last step. */
-export function inputFromKeys(
+/** The input for one step from the keys and the touch buttons down now, and the actions held last step. */
+export function inputFrom(
   down: ReadonlySet<string>,
+  touched: ReadonlySet<Action>,
   prevHeld: Record<Action, boolean>,
   bindings: Record<string, Action> = KEY_BINDINGS,
 ): Input {
@@ -58,7 +59,17 @@ export function inputFromKeys(
     const action = bindings[code];
     if (action) held[action] = true;
   }
+  for (const a of touched) held[a] = true;
   const pressed = none();
   for (const a of ACTIONS) pressed[a] = held[a] && !prevHeld[a];
   return { held, pressed };
+}
+
+/** The input for one step from the keys down now and the actions held last step. */
+export function inputFromKeys(
+  down: ReadonlySet<string>,
+  prevHeld: Record<Action, boolean>,
+  bindings: Record<string, Action> = KEY_BINDINGS,
+): Input {
+  return inputFrom(down, new Set(), prevHeld, bindings);
 }

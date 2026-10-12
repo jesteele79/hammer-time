@@ -44,6 +44,7 @@ export type Sound = {
   /** The level's theme, or silence; the same theme again carries on where it was. */
   music(theme: "day" | "cellar" | null): void;
   setHurry(on: boolean): void;
+  setMuted(on: boolean): void;
   /** Schedules the music's next notes: once a frame. */
   tick(): void;
   destroy(): void;
@@ -107,6 +108,9 @@ export function createSound(): Sound {
     },
     setHurry(on) {
       bus.hurry = on;
+    },
+    setMuted(on) {
+      bus.setMuted(on);
     },
     tick() {
       // Music asked for before the first key starts once the key unlocks sound.

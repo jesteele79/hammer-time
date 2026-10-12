@@ -6,7 +6,7 @@ import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
 import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
-import { KEY_BINDINGS, emptyInput, inputFromKeys, type Action } from "../sim/input";
+import { KEY_BINDINGS, emptyInput, inputFrom, type Action } from "../sim/input";
 import { createGame, type GameMode } from "../sim/game";
 import { moveU, type Move } from "../sim/moves";
 import { floorAt } from "../sim/physics";
@@ -71,6 +71,9 @@ export type Look = {
   /** A fresh run from the start card. */
   newRun(): void;
   togglePause(): void;
+  /** A touch button went down or came up. */
+  press(action: Action, down: boolean): void;
+  setMuted(on: boolean): void;
 };
 
 /** Where things are this frame, in world px, for the effects. */
@@ -151,9 +154,14 @@ export async function startLook(
       tapped.add(e.code);
     } else down.delete(e.code);
   };
+  // The touch pad's buttons, held and tapped, the same way as the keys.
+  const touchDown = new Set<Action>();
+  const touchTapped = new Set<Action>();
   const onBlur = () => {
     down.clear();
     tapped.clear();
+    touchDown.clear();
+    touchTapped.clear();
   };
   window.addEventListener("keydown", onKey);
   window.addEventListener("keyup", onKey);
@@ -394,7 +402,7 @@ export async function startLook(
     // Hit-stop and slow motion: the sim and everything it drives run on the clock's seconds,
     // and a hit freezes the world on the step it lands.
     const { simDt, steps } = runFrame(clock, frame, dt, () => {
-      const input = inputFromKeys(keys, prevHeld);
+      const input = inputFrom(keys, touchTapped.size ? new Set([...touchDown, ...touchTapped]) : touchDown, prevHeld);
       prevHeld = input.held;
       prev = cur;
       game.step(input);
@@ -404,7 +412,10 @@ export async function startLook(
       if (game.events.some((e) => e.type === "respawn" || e.type === "door")) prev = cur;
     });
     time += simDt;
-    if (steps > 0) tapped.clear();
+    if (steps > 0) {
+      tapped.clear();
+      touchTapped.clear();
+    }
     const alpha = Math.min(1, frame.acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
@@ -647,6 +658,16 @@ export async function startLook(
     },
     togglePause() {
       game.togglePause();
+    },
+    press(action, isDown) {
+      sound.unlock();
+      if (isDown) {
+        touchDown.add(action);
+        touchTapped.add(action);
+      } else touchDown.delete(action);
+    },
+    setMuted(on) {
+      sound.setMuted(on);
     },
   };
 }

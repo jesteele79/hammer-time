@@ -24,6 +24,8 @@ export type HudPayload = {
   /** Whole seconds left of a Buc-ee's boost. */
   star: number;
   hot: boolean;
+  /** The lecture is off its cooldown: the touch pad lights its button. */
+  lecture: boolean;
   /** "Checkpoint saved" shows for two seconds after a punch clock. */
   saved: boolean;
   /** The most pressing thing to know, one line. */
@@ -78,6 +80,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false): HudPa
     hurry: clocked && game.run.time < RUN.hurry,
     star: Math.ceil(game.run.star),
     hot: h.hot,
+    lecture: h.lectureCd <= 0,
     saved,
     hint: hintOf(game),
   };
@@ -97,6 +100,7 @@ export const hudKey = (p: HudPayload) =>
     p.time,
     p.star,
     p.hot,
+    p.lecture,
     p.saved,
     p.hint,
     p.venue,

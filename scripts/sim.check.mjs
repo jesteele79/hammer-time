@@ -253,3 +253,15 @@ test("jumping into the underside of a solid bumps it once, at the point he hit",
   assert.equal(bumps.length, 1);
   assert.ok(Math.abs(bumps[0].y + 435) < 1 && bumps[0].x > 400 && bumps[0].x < 510, JSON.stringify(bumps[0]));
 });
+
+import { inputFrom } from "../src/sim/input.ts";
+
+test("touch buttons and keys make one input: either holds an action, and a press is the step it first goes down", () => {
+  const none = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
+  const a = inputFrom(new Set(["ArrowRight"]), new Set(["jump"]), none);
+  assert.ok(a.held.right && a.held.jump && a.pressed.right && a.pressed.jump);
+  const b = inputFrom(new Set(), new Set(["jump", "right"]), a.held);
+  assert.ok(b.held.right && b.held.jump && !b.pressed.right && !b.pressed.jump, "held from either source, pressed once");
+  const c = inputFrom(new Set(["Space"]), new Set(), { ...b.held, jump: false });
+  assert.ok(c.pressed.jump, "a key after the touch let go presses again");
+});

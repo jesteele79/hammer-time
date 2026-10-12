@@ -104,11 +104,31 @@ try {
   r = await waitFor((x) => x.mode === "clear", 14000);
   assert.equal(r.mode, "clear", "the lobby is cleared");
   assert.equal(r.time, 0);
+  await page.waitForSelector(".next-veil__card", { timeout: 2000 });
   await shot("run-clear.png");
+
+  // Play again: a fresh run from its card.
+  await page.click("text=Play again");
+  r = await waitFor((x) => x.mode === "play", 5000);
+  assert.deepEqual([r.mode, r.lives, r.score, r.level], ["play", 3, 0, "lobby"], "a fresh run");
+
+  // Three falls down the shaft: game over, and Try again starts over.
+  for (let i = 0; i < 3; i++) {
+    await tp(6060, -40);
+    await waitFor((x) => x.mode !== "play", 3000);
+    if (i < 2) await waitFor((x) => x.mode === "play", 6000);
+  }
+  r = await waitFor((x) => x.mode === "over", 6000);
+  assert.deepEqual([r.mode, r.lives], ["over", 0], "hammer down");
+  await page.waitForSelector("text=Hammer down", { timeout: 2000 });
+  await shot("run-over.png");
+  await page.click("text=Try again");
+  r = await waitFor((x) => x.mode === "play", 5000);
+  assert.deepEqual([r.mode, r.lives], ["play", 3], "tried again");
 
   assert.deepEqual(errors, []);
   writeFileSync(resolve(out, "run-check.json"), JSON.stringify({ run: await run(), errors }, null, 2));
-  console.log("PASS: start, the pepper, a punch clock, a life in the shaft, a break, the stash, the exit and the clear; no errors.");
+  console.log("PASS: start, the pepper, a punch clock, a life in the shaft, a break, the stash, the exit, the clear, play again, game over and try again; no errors.");
 } catch (err) {
   console.error("Run check failure", errors);
   await page?.screenshot({ path: resolve(out, "run-failure.png") });

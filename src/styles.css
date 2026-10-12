@@ -1613,7 +1613,10 @@ button:focus-visible {
 }
 
 /* The rebuild's HUD (spec §10): slate panels, Affliction gold, Barlow Condensed display type. */
-.next-hud {
+/* The shell's colours, shared by the HUD, the cards and the touch pad. */
+.next-hud,
+.next-veil,
+.next-touch {
   --hud-slate: rgb(20 25 32 / 0.86);
   --hud-edge: rgb(233 184 102 / 0.38);
   --hud-gold: #e9b866;
@@ -1622,6 +1625,8 @@ button:focus-visible {
   --hud-dim: rgb(243 234 216 / 0.64);
   --hud-well: rgb(0 0 0 / 0.5);
   --hud-ink: #0d1118;
+}
+.next-hud {
   position: fixed;
   inset: 0;
   z-index: 2;
@@ -1853,6 +1858,217 @@ button:focus-visible {
   color: #ff6a5c;
   animation: next-hud-pulse 0.5s ease-in-out infinite alternate;
 }
+.next-hud__button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -4px -6px -4px 0;
+  padding: 0;
+  border: 1px solid var(--hud-edge);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.25);
+  color: var(--hud-gold);
+  pointer-events: auto;
+}
+.next-hud__button svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.next-hud__button:focus-visible {
+  outline: 2px solid var(--hud-gold);
+  outline-offset: 2px;
+}
+.next-hud--touch .next-hud__hint {
+  bottom: 132px;
+}
+.next-hud--touch .next-hud__saved {
+  bottom: 178px;
+}
+
+/* The touch pad (spec §10): moving bottom left, acting bottom right, slate keys with gold edges. */
+.next-touch {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.next-touch__pad {
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+}
+.next-touch__pad--move {
+  grid-template-columns: repeat(2, 58px);
+}
+.next-touch__pad--act {
+  grid-template-columns: repeat(3, 62px);
+}
+.next-touch__button {
+  height: 48px;
+  padding: 0;
+  border: 1px solid rgb(233 184 102 / 0.38);
+  border-bottom-width: 3px;
+  border-radius: 10px;
+  background: rgb(20 25 32 / 0.82);
+  color: #f3ead8;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  touch-action: none;
+}
+.next-touch__button:active {
+  transform: translateY(2px);
+  border-bottom-width: 1px;
+  background: rgb(233 184 102 / 0.28);
+}
+.next-touch__button[data-action="left"],
+.next-touch__button[data-action="right"],
+.next-touch__button[data-action="down"] {
+  font-size: 22px;
+}
+.next-touch__button[data-action="jump"],
+.next-touch__button[data-action="hammer"] {
+  background: rgb(201 162 74 / 0.32);
+}
+.next-touch__button[data-ready="true"] {
+  border-color: #e9b866;
+  color: #e9b866;
+  box-shadow: 0 0 10px rgb(233 184 102 / 0.35);
+}
+
+/* The cards: in the lower half over a scrim that fades out before his face. */
+.next-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px max(28px, 7vh);
+  background: linear-gradient(to top, rgb(13 17 24 / 0.82) 0%, rgb(13 17 24 / 0.55) 38%, rgb(13 17 24 / 0) 58%);
+  font-family: "Inter", system-ui, sans-serif;
+  color: #f3ead8;
+}
+.next-veil--card {
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(13 17 24 / 0.6) 0%, rgb(13 17 24 / 0) 45%);
+}
+.next-veil__card {
+  width: min(460px, 100%);
+  padding: 18px 22px 20px;
+  text-align: center;
+  background: rgb(20 25 32 / 0.92);
+  border: 1px solid rgb(233 184 102 / 0.5);
+  border-top: 3px solid #e9b866;
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.45);
+}
+.next-veil__eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #e9b866;
+}
+.next-veil__title {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.next-veil__line {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: rgb(243 234 216 / 0.78);
+}
+.next-veil__lives {
+  display: inline-flex;
+  margin-top: 12px;
+}
+.next-veil__lives img,
+.next-veil__lives i {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 58%;
+  border: 2px solid #e9b866;
+  background: #0d1118;
+}
+.next-veil__lives > :not(:first-child) {
+  margin-left: -8px;
+}
+.next-veil__lives b {
+  margin-left: 6px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 22px;
+  color: #e9b866;
+}
+.next-veil__keys {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: rgb(243 234 216 / 0.72);
+}
+.next-veil__scores {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  margin: 14px 0 0;
+}
+.next-veil__scores dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e9b866;
+}
+.next-veil__scores dd {
+  margin: 2px 0 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.next-veil__button {
+  margin-top: 16px;
+  min-width: 180px;
+  height: 46px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 10px;
+  background: #e9b866;
+  color: #0d1118;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.next-veil__button:focus-visible {
+  outline: 3px solid #f3ead8;
+  outline-offset: 3px;
+}
 /* Hot: the pepper's pips burn orange. */
 .next-hud__row dd[data-hot="true"] .next-hud__pip--patience {
   --pip: #ff7a3c;
@@ -1949,5 +2165,48 @@ button:focus-visible {
   .next-hud__saved {
     bottom: 42px;
     font-size: 15px;
+  }
+  .next-hud__button {
+    width: 28px;
+    height: 28px;
+  }
+  /* A phone on its side: one row of keys along the bottom, the hint just above them. */
+  .next-touch {
+    left: 10px;
+    right: 10px;
+    bottom: 8px;
+  }
+  .next-touch__pad--move {
+    grid-template-columns: repeat(4, 50px);
+  }
+  .next-touch__pad--act {
+    grid-template-columns: repeat(6, 56px);
+  }
+  .next-touch__button {
+    height: 44px;
+    font-size: 13px;
+  }
+  .next-hud--touch .next-hud__hint {
+    bottom: 60px;
+  }
+  .next-hud--touch .next-hud__saved {
+    bottom: 96px;
+  }
+  .next-veil {
+    padding-bottom: 12px;
+  }
+  .next-veil__card {
+    padding: 10px 18px 12px;
+  }
+  .next-veil__title {
+    font-size: 32px;
+  }
+  .next-veil__keys {
+    margin-top: 8px;
+    font-size: 11px;
+  }
+  .next-veil__button {
+    margin-top: 10px;
+    height: 38px;
   }
 }

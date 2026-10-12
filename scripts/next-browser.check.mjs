@@ -19,6 +19,45 @@ let page;
 /** True when the stage shows a real scene, not a flat fill (the renderer reads its own pixels back). */
 const hasContent = async () => (await page.evaluate(() => window.__next.sample())) > 12;
 const hero = () => page.evaluate(() => window.__next.hero);
+const hitBox = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+/** The touch pad: ten buttons on the screen, none over his face, and Jump makes him jump. */
+const touchWorks = async (name) => {
+  await page.waitForSelector(".next-touch", { timeout: 5000 });
+  const r = await page.evaluate(() => ({
+    buttons: [...document.querySelectorAll(".next-touch button")].map((b) => {
+      const r = b.getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width, h: r.height, label: b.getAttribute("aria-label") };
+    }),
+    face: window.__next.faceScreen,
+    vw: innerWidth,
+    vh: innerHeight,
+  }));
+  assert.equal(r.buttons.length, 10, `${name}: ten touch buttons`);
+  for (const b of r.buttons) {
+    assert.ok(b.x >= 0 && b.y >= 0 && b.x + b.w <= r.vw && b.y + b.h <= r.vh, `${name}: ${b.label} on screen ${JSON.stringify(b)}`);
+    assert.ok(!hitBox(b, r.face), `${name}: ${b.label} covers his face`);
+    assert.ok(b.h >= 40 && b.w >= 40, `${name}: ${b.label} big enough to tap ${JSON.stringify(b)}`);
+  }
+  const jump = page.locator('.next-touch button[aria-label="Jump"]');
+  await jump.dispatchEvent("pointerdown", { pointerId: 7, isPrimary: true, button: 0 });
+  await page.waitForFunction(() => window.__next.hero.state === "jump", {}, { timeout: 2000 });
+  await jump.dispatchEvent("pointerup", { pointerId: 7, isPrimary: true, button: 0 });
+};
+/** The pause button brings the break card, clear of his face; Back to work takes it away. */
+const pauseWorks = async (name) => {
+  await page.click(".next-hud__button[aria-label='Pause']");
+  await page.waitForSelector(".next-veil__card", { timeout: 2000 });
+  const r = await page.evaluate(() => {
+    const b = document.querySelector(".next-veil__card").getBoundingClientRect();
+    return { card: { x: b.x, y: b.y, w: b.width, h: b.height }, face: window.__next.faceScreen, mode: window.__next.run.mode, title: document.querySelector(".next-veil__title").textContent };
+  });
+  assert.equal(r.mode, "pause");
+  assert.equal(r.title, "On break");
+  assert.ok(!hitBox(r.card, r.face), `${name}: the break card covers his face ${JSON.stringify(r)}`);
+  await page.screenshot({ path: resolve(out, `veil-pause-${name}.png`) });
+  await page.click("text=Back to work");
+  await page.waitForFunction(() => window.__next.run.mode === "play", {}, { timeout: 2000 });
+};
 /** The HUD fits the screen without sideways scrolling and never covers his face; a screenshot per size. */
 const hudFits = async (name) => {
   await page.waitForSelector(".next-hud__panel", { timeout: 5000 });
@@ -110,6 +149,8 @@ try {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.waitForTimeout(400);
   await hudFits("1280x800");
+  assert.equal(await page.locator(".next-touch").count(), 0, "no touch pad with a mouse on a wide screen");
+  await pauseWorks("1280x800");
   // A phone in portrait: he runs and stays on the screen.
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
@@ -123,9 +164,13 @@ try {
   assert.ok(portrait.x > 40 && portrait.x < portrait.w - 40, `on screen in portrait: ${portrait.x} of ${portrait.w}`);
   await page.screenshot({ path: resolve(out, "next-portrait.png") });
   await hudFits("390x844");
+  await touchWorks("390x844");
+  await pauseWorks("390x844");
   await page.setViewportSize({ width: 844, height: 390 });
   await page.waitForTimeout(600);
   await hudFits("844x390");
+  await touchWorks("844x390");
+  await pauseWorks("844x390");
   await page.waitForTimeout(600);
 
   await booted(`${base}?next=1&gl=1`);

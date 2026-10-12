@@ -19,13 +19,50 @@ function CanIcon() {
   );
 }
 
+/** Pause and sound, drawn: two bars, and a speaker with its waves or a cross. */
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <rect x="4" y="3" width="4" height="14" rx="1" />
+      <rect x="12" y="3" width="4" height="14" rx="1" />
+    </svg>
+  );
+}
+function SoundIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true">
+      <path d="M3 8h3l4-4v12l-4-4H3z" />
+      {muted ? (
+        <path d="M13 7l5 6M18 7l-5 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      ) : (
+        <path d="M13 7c1.5 1.6 1.5 4.4 0 6M15.5 5c2.8 2.8 2.8 7.2 0 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      )}
+    </svg>
+  );
+}
+
 /** The rebuild's HUD (spec §10): slate, Affliction gold, Barlow Condensed. Nothing here sits over his face. */
-export function NextHud({ hud }: { hud: HudPayload | null }) {
+export function NextHud({
+  hud,
+  touch = false,
+  muted = false,
+  onPause,
+  onMute,
+}: {
+  hud: HudPayload | null;
+  /** The touch pad is showing: the hint and the checkpoint note move up above it. */
+  touch?: boolean;
+  muted?: boolean;
+  onPause?: () => void;
+  onMute?: () => void;
+}) {
   if (!hud) return null;
   const full = hud.charge >= hud.chargeMax;
   const lives = Math.max(0, hud.lives);
+  // A mouse press must not leave a button focused: Space would then press it instead of jumping.
+  const noFocus = (e: { preventDefault(): void }) => e.preventDefault();
   return (
-    <div className="next-hud">
+    <div className={touch ? "next-hud next-hud--touch" : "next-hud"}>
       <section className="next-hud__bar-top" aria-label="Run">
         <span className="next-hud__score" aria-label={`Score ${hud.score}`}>
           {String(hud.score).padStart(6, "0")}
@@ -48,6 +85,12 @@ export function NextHud({ hud }: { hud: HudPayload | null }) {
         <span className="next-hud__clock" data-hurry={hud.hurry} aria-label={hud.time === null ? "No clock" : `${hud.time} seconds left`}>
           {hud.time === null ? "–" : clock(hud.time)}
         </span>
+        <button type="button" className="next-hud__button" aria-label="Pause" onPointerDown={noFocus} onClick={onPause}>
+          <PauseIcon />
+        </button>
+        <button type="button" className="next-hud__button" aria-label={muted ? "Sound on" : "Mute"} onPointerDown={noFocus} onClick={onMute}>
+          <SoundIcon muted={muted} />
+        </button>
       </section>
       <section className="next-hud__panel" aria-label="Hammer">
         <header className="next-hud__head">
