@@ -85,12 +85,12 @@ const SUPER = {
   shoulderFar: [[0, FREE], [0.3, FREE + 30, out], [SUPER_CUT[1], FREE - 10, linear], [0.76, FREE - 20], [1, FREE]] as K,
 };
 
-// Snot: rear back to load the sinuses, then snap the whole upper body forward. No hand comes up.
+// Snot: his left hand comes up and presses one nostril shut, he rears back to load the sinuses,
+// then snaps the whole upper body forward and blows; the hand drops after.
 const SNOT = {
   lean: [[0, 0], [0.3, -11], [0.42, -12], [0.5, 15, out], [0.62, 11], [1, 0]] as K,
   headTilt: [[0, 0], [0.3, -6], [0.42, -7], [0.5, 8, out], [0.7, 4], [1, 0]] as K,
   chest: [[0, 0], [0.3, -5], [0.5, 6, out], [1, 0]] as K,
-  shoulderFar: [[0, FREE], [0.3, FREE - 14], [0.5, FREE + 24, out], [1, FREE]] as K,
   // The mallet arm turns against the rear-back so the mallet stays out in front, and dips a
   // little further on the snap so the mallet head gives way as his face comes forward.
   shoulderNear: [[0, HOLD.shoulderNear], [0.3, HOLD.shoulderNear - 16], [0.42, HOLD.shoulderNear - 19], [0.5, HOLD.shoulderNear - 8, out], [0.62, HOLD.shoulderNear - 6], [1, HOLD.shoulderNear]] as K,
@@ -158,6 +158,30 @@ export function wipeHandDeg(u: number): number {
   if (u < WIPE_FLICK[0] + FLICK_TURN) return HAND_HIGH + (HAND_FLICK - HAND_HIGH) * smooth((u - WIPE_FLICK[0]) / FLICK_TURN);
   if (u < WIPE_FLICK[1]) return HAND_FLICK;
   return HAND_FLICK + (HANG_DEG - HAND_FLICK) * smooth(Math.min(1, (u - WIPE_FLICK[1]) / 0.16));
+}
+
+/**
+ * The snot rocket's left hand (owner, 2026-10-12: "his left hand needs to go to his nose"): up
+ * from the hang to press one nostril shut, held through the blow, then back down. The wrist sits
+ * so the fingers land just behind the tip of his nose, the hand pointing up.
+ */
+const NOSE_WRIST: Point = { x: 47, y: 297 };
+const NOSE_DEG = 85;
+/** At his nose from here, until here, and back at the hang by here (fractions of the move). */
+const NOSE_ON = 0.25;
+const NOSE_OFF = 0.62;
+const NOSE_BACK = 0.88;
+export function snotHand(u: number): Point {
+  // Up from below and in front of his chin, and off with a little flick forward before it drops,
+  // so the hand comes over his face and leaves it only where it covers nothing else.
+  if (u < NOSE_ON) return bez(HANG, { x: 110, y: 260 }, NOSE_WRIST, smoother(u / NOSE_ON));
+  if (u < NOSE_OFF) return NOSE_WRIST;
+  return bez(NOSE_WRIST, { x: 140, y: 300 }, HANG, smooth(Math.min(1, (u - NOSE_OFF) / (NOSE_BACK - NOSE_OFF))));
+}
+export function snotHandDeg(u: number): number {
+  if (u < NOSE_ON) return HANG_DEG + (NOSE_DEG - HANG_DEG) * smoother(u / NOSE_ON);
+  if (u < NOSE_OFF) return NOSE_DEG;
+  return NOSE_DEG + (HANG_DEG - NOSE_DEG) * smooth(Math.min(1, (u - NOSE_OFF) / (NOSE_BACK - NOSE_OFF)));
 }
 
 /** His right arm through the wipe: down from the hold so the mallet hangs in front of his legs, and back. */
@@ -362,12 +386,21 @@ export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
       lean: at(SUPER.lean, u),
     });
   },
-  snot: (u) =>
-    pose({
-      rot: { ...HOLD, shoulderNear: at(SNOT.shoulderNear, u), chest: at(SNOT.chest, u), shoulderFar: at(SNOT.shoulderFar, u) },
+  snot: (u) => {
+    const far = armTo("far", snotHand(u), snotHandDeg(u), -1);
+    return pose({
+      rot: {
+        ...HOLD,
+        shoulderNear: at(SNOT.shoulderNear, u),
+        chest: at(SNOT.chest, u),
+        shoulderFar: far.shoulder,
+        elbowFar: far.elbow,
+        wristFar: far.wrist,
+      },
       lean: at(SNOT.lean, u),
       headTilt: at(SNOT.headTilt, u),
-    }),
+    });
+  },
   wipe: (u) => {
     const lean = at(WIPE_LEAN, u);
     // The far arm follows the towel's path the whole clip, from the hang and back, its elbow down.

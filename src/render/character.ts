@@ -22,10 +22,19 @@ export type Character = {
   /**
    * `ambient` tints the body, the mallet and the towel; the head plate is never tinted.
    * `towel` hangs the towel from the far hand (the wipe). While that hand is up at his face, it
-   * and the towel are drawn over the head: the one time anything covers his face (owner's call).
+   * and the towel are drawn over the head. `nose` brings the same hand over his face to press
+   * his nose for the snot rocket. Those two are the only times anything covers his face (owner).
    * `watch` shows the wristwatch on his left wrist (the watch check).
    */
-  apply(solved: Solved, expression: Expression, heightAboveFloor: number, ambient?: number, towel?: boolean, watch?: boolean): void;
+  apply(
+    solved: Solved,
+    expression: Expression,
+    heightAboveFloor: number,
+    ambient?: number,
+    towel?: boolean,
+    watch?: boolean,
+    nose?: boolean,
+  ): void;
   /** The product of every tint from the head sprite up to the stage: 0xffffff when nothing colors it. */
   headTintChain(): number;
 };
@@ -235,8 +244,9 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     container,
     shadow,
     ready,
-    apply(solved, expression, heightAboveFloor, ambient = 0xffffff, holdTowel = false, showWatch = false) {
-      const over = holdTowel && towelAtFace(solved);
+    apply(solved, expression, heightAboveFloor, ambient = 0xffffff, holdTowel = false, showWatch = false, nose = false) {
+      const handUp = holdTowel || nose;
+      const over = handUp && towelAtFace(solved);
       if (rig) {
         for (const s of skinned) {
           skinLayer(s.positions, s.layer, rig, solved);
@@ -246,8 +256,8 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
           s.mesh.tint = FAR_LAYERS.has(s.name) ? multiplyTint(ambient, FAR_SHADE) : ambient;
           s.mesh.visible = true;
           if (s.hand) {
-            // Wiping his face the palm turns in toward it, and the hand goes over his head.
-            const turn = holdTowel ? palmTurn(solved) : 1;
+            // Wiping his face or pressing his nose the palm turns in toward it, and the hand goes over his head.
+            const turn = handUp ? palmTurn(solved) : 1;
             turnAbout(s.hand.positions, s.positions, s.hand.verts, solved.joints.wristFar, solved.joints.handFar, turn);
             s.hand.geometry.getBuffer("aPosition").update();
             s.hand.mesh.zIndex = over ? HAND_OVER_Z : s.hand.z;

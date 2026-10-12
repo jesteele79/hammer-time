@@ -459,7 +459,8 @@ export async function startLook(
     const watchUp = m?.kind === "watch" && playback.kind === "watch" && moveU(m) > WATCH_SHOWN[0] && moveU(m) < WATCH_SHOWN[1];
     character.container.position.set(x, drawY);
     character.container.zIndex = y;
-    character.apply(solved, expression, floorY - drawY, scene.ambient, towel, watchUp);
+    const nose = m?.kind === "snot" && playback.kind === "snot";
+    character.apply(solved, expression, floorY - drawY, scene.ambient, towel, watchUp, nose);
     // The carts, the snot and the puddles sort just behind him: none of them ever covers his face.
     props.container.zIndex = y - 0.5;
     props.sync(prev, cur, alpha, simDt);

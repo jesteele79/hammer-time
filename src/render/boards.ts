@@ -177,7 +177,7 @@ export function createBoards(
       ch.container.scale.set(scale);
       ch.container.position.set(fx, fy + dy * scale);
       // A fresh towel hangs at its chain's rest shape: straight down from the hand.
-      ch.apply(solved, cell.expression, -dy, undefined, towel, watch);
+      ch.apply(solved, cell.expression, -dy, undefined, towel, watch, cell.move === "snot");
     }
     return snapshot(board, width, height);
   };

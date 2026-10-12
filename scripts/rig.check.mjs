@@ -169,8 +169,9 @@ test("two-bone IK puts the wrist on a reachable target with the hand at the aske
   }
 });
 
-// The one exception to the face rule: his left hand wipes his face with the towel (owner, 2026-10-11).
-const FACE_ALLOWED = { swing: [], super: [], snot: [], wipe: ["far upper arm", "far forearm"], lecture: [], watch: [], tap: [], hurt: [], tumble: [] };
+// The exceptions to the face rule, his left arm only: it wipes his face with the towel (owner,
+// 2026-10-11) and presses his nose for the snot rocket (owner, 2026-10-12).
+const FACE_ALLOWED = { swing: [], super: [], snot: ["far upper arm", "far forearm"], wipe: ["far upper arm", "far forearm"], lecture: [], watch: [], tap: [], hurt: [], tumble: [] };
 
 // The owner's head scale is 0.26; the sweep keeps a margin either side of it. Since the head sank into
 // the collar (2026-10-12), a head as small as 0.22 would meet the slam's folded-over arm.
@@ -278,6 +279,20 @@ test("every act moves smoothly: no step jumps a hand, the mallet or his head", (
       assert.ok(fastest < 40, `${kind}: the ${part} covers ${fastest.toFixed(0)} px in one step`);
     }
   }
+});
+
+test("for the snot rocket his left hand comes up and presses his nose through the blow, then drops back to the hang", () => {
+  const hang = solve(pose({ rot: { ...HOLD, shoulderFar: FREE } }), 1, 0.26).joints.handFar;
+  for (const u of [0, 1]) {
+    const h = solve(ACTIONS.snot(u), 1, 0.26).joints.handFar;
+    assert.ok(Math.hypot(h.x - hang.x, h.y - hang.y) < 3, `at u ${u} the left hand hangs at his side`);
+  }
+  for (const facing of [1, -1])
+    for (let i = 25; i <= 62; i++) {
+      const s = solve(ACTIONS.snot(i / 100), facing, 0.26);
+      const d = Math.hypot(s.joints.handFar.x - s.nose.x, s.joints.handFar.y - s.nose.y);
+      assert.ok(d < 16, `facing ${facing}, u ${i / 100}: the left hand is ${d.toFixed(0)} px from his nose`);
+    }
 });
 
 test("the wipe starts and ends with the far arm hanging as it does at rest", () => {

@@ -376,3 +376,25 @@ test("for two seconds after a pickup the hint line says what it just did", () =>
   assert.equal(hudOf(g, null, false, "Coke Zero · cooled down").hint, "Coke Zero · cooled down");
   assert.equal(hudOf(g, null).hint, "Find a ! crate for hot pepper");
 });
+
+test("the snot hand goes over his head only up at his nose, and switches where it covers nothing", () => {
+  for (const facing of [-1, 1]) {
+    let was = false,
+      over = 0;
+    for (let k = 0; k <= 400; k++) {
+      const s = solve(ACTIONS.snot(k / 400), facing, 0.26);
+      const now = towelAtFace(s);
+      if (now) over++;
+      if (now !== was) {
+        const b = s.headBox;
+        for (const p of [s.joints.wristFar, s.joints.handFar])
+          assert.ok(
+            p.x < b.x - 8 || p.x > b.x + b.w + 8 || p.y < b.y - 8 || p.y > b.y + b.h + 8,
+            `facing ${facing}, u ${(k / 400).toFixed(3)}: the hand switches layers on top of his head`,
+          );
+      }
+      was = now;
+    }
+    assert.ok(over > 120, `facing ${facing}: the hand is up at his nose through the blow (${over} of 401 frames)`);
+  }
+});
