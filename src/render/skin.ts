@@ -89,7 +89,8 @@ export function skinLayer(out: Float32Array, layer: RigLayer, rig: RigFile, solv
   const m = new Float64Array(nb * 6);
   for (let b = 0; b < nb; b++) {
     const [p, c] = rig.bones[b];
-    const a = -f * solved.links[c];
+    // A bone a painted body's skeleton turned to Hammer's stance turns its paint by as much first.
+    const a = -f * (solved.links[c] + (solved.turns[c] ?? 0));
     const cos = Math.cos(a),
       sin = Math.sin(a);
     const [bx, by] = rig.joints[p];

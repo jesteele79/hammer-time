@@ -147,3 +147,89 @@ export const REST_POSE: Pose = {
   spin: 0,
   torso: 1,
 };
+
+/** A body the solver bends: its joints at rest, and how it stands and wears its head. */
+export type Skeleton = {
+  joints: Record<JointName, Joint>;
+  /**
+   * How far each joint's offset from its parent was turned away from its painting, radians
+   * counter-clockwise facing right: the skin turns the paint of the bone ending there by as much.
+   */
+  turns: Partial<Record<JointName, number>>;
+  /** How far above the floor the far sole stands at rest: the painting's perspective. */
+  farFloor: number;
+  /** Where the head's neck anchor sits from the neck joint, rest units. */
+  headSeat: Point;
+  /** The seat the body's size is worked out from. */
+  bodySeatY: number;
+};
+
+export const HAMMER: Skeleton = { joints: JOINTS, turns: {}, farFloor: FAR_FLOOR, headSeat: HEAD_SEAT, bodySeatY: BODY_SEAT_Y };
+
+/**
+ * The bones a painted cast body takes Hammer's rest directions for. Each painting reaches its arms
+ * a little differently, and every clip and every reach for a rail, a tray or a phone was posed on
+ * his; turned to his stance, they land where they land on him.
+ */
+export const ARM_BONES: readonly (readonly [JointName, JointName])[] = [
+  ["shoulderNear", "elbowNear"],
+  ["elbowNear", "wristNear"],
+  ["wristNear", "knuckleNear"],
+  ["knuckleNear", "handNear"],
+  ["shoulderFar", "elbowFar"],
+  ["elbowFar", "wristFar"],
+  ["wristFar", "handFar"],
+];
+
+/** A painting's marks: joints in its keyed crop's pixels (facing left, y down), its sole's row and its feet point's x. */
+export type PaintedJoints = { joints: Partial<Record<string, readonly [number, number]>>; sole: number; rootX: number };
+
+const turnBy = (p: Point, a: number): Point => ({ x: p.x * Math.cos(a) - p.y * Math.sin(a), y: p.x * Math.sin(a) + p.y * Math.cos(a) });
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/**
+ * A skeleton from a painting, in rest units with its neck at NECK_REST_Y: every joint where it is
+ * painted, except that a `match` bone takes Hammer's rest direction at its own painted length and
+ * what hangs below it turns with it. A joint the painting has no mark for keeps Hammer's offset
+ * from its parent. The head turns on the painted neck joint itself: a painting's head is its own,
+ * already in its collar.
+ */
+export function skeletonFrom(p: PaintedJoints, match: readonly (readonly [JointName, JointName])[] = ARM_BONES): Skeleton {
+  const neck = p.joints.neck;
+  if (!neck) throw new Error("skeletonFrom: the painting has no neck joint");
+  const k = NECK_REST_Y / (p.sole - neck[1]);
+  const mark = (n: JointName): Point | null => {
+    const q = p.joints[n];
+    return q ? { x: (p.rootX - q[0]) * k, y: (p.sole - q[1]) * k } : null;
+  };
+  const rest = { root: { x: 0, y: 0 } } as Record<JointName, Point>;
+  const turns: Partial<Record<JointName, number>> = { root: 0 };
+  for (const name of JOINT_NAMES) {
+    const parent = TABLE[name].parent;
+    if (!parent) continue;
+    const his = { x: TABLE[name].rest.x - TABLE[parent].rest.x, y: TABLE[name].rest.y - TABLE[parent].rest.y };
+    const a = mark(parent);
+    const b = mark(name);
+    let off = his;
+    let turn = turns[parent] ?? 0;
+    if (a && b) {
+      const painted = { x: b.x - a.x, y: b.y - a.y };
+      if (match.some(([x, y]) => x === parent && y === name)) {
+        const len = Math.hypot(painted.x, painted.y);
+        const hl = Math.hypot(his.x, his.y) || 1;
+        turn = wrap(Math.atan2(his.y, his.x) - Math.atan2(painted.y, painted.x));
+        off = { x: (his.x / hl) * len, y: (his.y / hl) * len };
+      } else off = turnBy(painted, turn);
+    }
+    rest[name] = { x: rest[parent].x + off.x, y: rest[parent].y + off.y };
+    turns[name] = turn;
+  }
+  const joints = Object.fromEntries(
+    JOINT_NAMES.map((name) => {
+      const parent = TABLE[name].parent;
+      const length = parent ? Math.hypot(rest[name].x - rest[parent].x, rest[name].y - rest[parent].y) : undefined;
+      return [name, { parent, rest: rest[name], length }];
+    }),
+  ) as Record<JointName, Joint>;
+  return { joints, turns, farFloor: rest.toeFar.y, headSeat: { x: 0, y: 0 }, bodySeatY: 0 };
+}

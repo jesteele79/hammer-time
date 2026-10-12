@@ -1,16 +1,5 @@
 import { HEAD_PLATE_DEFAULT, HEAD_PLATE_FACING, type HeadPlate } from "../../art/registry";
-import {
-  HANDLE_REST_DEG,
-  BODY_SEAT_Y,
-  HEAD_SEAT,
-  HERO_HEIGHT,
-  JOINTS,
-  JOINT_NAMES,
-  NECK_REST_Y,
-  type JointName,
-  type Point,
-  type Pose,
-} from "./skeleton";
+import { HAMMER, HANDLE_REST_DEG, HERO_HEIGHT, JOINT_NAMES, type JointName, type Point, type Pose, type Skeleton } from "./skeleton";
 
 export type Rect = { x: number; y: number; w: number; h: number };
 
@@ -56,6 +45,10 @@ export type Solved = {
   spin: number;
   /** The torso's front-to-back scale (the pose's). */
   torso: number;
+  /** The skeleton's turns away from its painting (what the skin turns each bone's paint by). */
+  turns: Partial<Record<JointName, number>>;
+  /** How far above the floor its far sole stands at rest, rest units. */
+  farFloor: number;
 };
 
 const DEG = Math.PI / 180;
@@ -74,13 +67,17 @@ const rotate = (p: Point, a: number): Point => ({
 });
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** Standard 2D forward kinematics over the skeleton, then the head plate placed on the neck. */
-export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: HeadPlate = HEAD_PLATE_DEFAULT): Solved {
+/**
+ * Standard 2D forward kinematics over the skeleton, then the head plate placed on the neck. `skel` is
+ * Hammer's unless a painted cast body is bent (R2b-2): its own joints, its head on its own neck joint.
+ */
+export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: HeadPlate = HEAD_PLATE_DEFAULT, skel: Skeleton = HAMMER): Solved {
+  const J = skel.joints;
   const headPx = headScale * HERO_HEIGHT;
   // The plate stands from its neck anchor to its crown; the body is scaled so that, seated at
-  // BODY_SEAT_Y, the crown would be HERO_HEIGHT up. The head sits lower than that, in the collar.
+  // the skeleton's body seat (Hammer's BODY_SEAT_Y), the crown would be HERO_HEIGHT up. The head sits lower than that, in the collar.
   const above = (headPx * (plate.neck.y - plate.crown.y)) / plate.height;
-  const scale = (HERO_HEIGHT - above) / (NECK_REST_Y + BODY_SEAT_Y);
+  const scale = (HERO_HEIGHT - above) / (J.neck.rest.y + skel.bodySeatY);
   const rot = (name: JointName) => (pose.rot[name] ?? 0) * DEG;
   const leanMath = -pose.lean * DEG;
 
@@ -91,11 +88,11 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
   pos.root = { x: pose.root.x, y: pose.root.y };
   frame.root = spin;
   for (const name of JOINT_NAMES) {
-    const j = JOINTS[name];
+    const j = J[name];
     if (!j.parent) continue;
     // The lean turns the torso at the pelvis; the legs keep their own frame.
     const link = frame[j.parent] + (name === "chest" ? leanMath : 0);
-    const off = { x: j.rest.x - JOINTS[j.parent].rest.x, y: j.rest.y - JOINTS[j.parent].rest.y };
+    const off = { x: j.rest.x - J[j.parent].rest.x, y: j.rest.y - J[j.parent].rest.y };
     const d = rotate(off, link);
     pos[name] = { x: pos[j.parent].x + d.x, y: pos[j.parent].y + d.y };
     links[name] = link;
@@ -103,8 +100,8 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
   }
   // The spin turned everything about the feet point; slide it back so the pelvis holds still.
   if (spin !== 0) {
-    const px = pose.root.x + JOINTS.pelvis.rest.x - pos.pelvis.x;
-    const py = pose.root.y + JOINTS.pelvis.rest.y - pos.pelvis.y;
+    const px = pose.root.x + J.pelvis.rest.x - pos.pelvis.x;
+    const py = pose.root.y + J.pelvis.rest.y - pos.pelvis.y;
     for (const name of JOINT_NAMES) pos[name] = { x: pos[name].x + px, y: pos[name].y + py };
   }
   // The head counter-rotates so it never tilts more than 8 degrees from his body's own level.
@@ -118,7 +115,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
   const screenRot = (a: number) => -a * facing;
 
   // The head's seat turns with the neck.
-  const seatOff = rotate(HEAD_SEAT, frame.neck);
+  const seatOff = rotate(skel.headSeat, frame.neck);
   const seat = {
     x: (pos.neck.x + seatOff.x) * scale * facing * sx,
     y: -(pos.neck.y + seatOff.y) * scale * sy,
@@ -135,7 +132,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
       scaleX: facing * sx,
       scaleY: sy,
       z,
-      length: part === "head" ? headPx : JOINTS.malletHead.length! * scale,
+      length: part === "head" ? headPx : J.malletHead.length! * scale,
     };
   }
 
@@ -171,5 +168,7 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     squash: { x: sx, y: sy },
     spin: pose.spin,
     torso: pose.torso,
+    turns: skel.turns,
+    farFloor: skel.farFloor,
   };
 }

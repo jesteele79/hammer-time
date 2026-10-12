@@ -629,3 +629,61 @@ test("a hit mid-move takes over from where his limbs were: nothing pops, and the
     }
   }
 });
+
+import { ARM_BONES, HAMMER, skeletonFrom } from "../src/sim/rig/skeleton.ts";
+import { HEAD_PLATE_DEFAULT } from "../src/art/registry.ts";
+
+const HAMMER_CUT = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8")).rig;
+const paintedOf = (rig) => ({ joints: rig.joints, sole: rig.sole, rootX: rig.rootX });
+/** Hammer's painting with both arms swung `a` radians about their shoulders, in the crop's pixels. */
+const swung = (rig, a) => {
+  const joints = structuredClone(rig.joints);
+  const turn = (about, names) => {
+    const [cx, cy] = rig.joints[about];
+    for (const n of names) {
+      const [x, y] = rig.joints[n];
+      joints[n] = [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
+    }
+  };
+  turn("shoulderNear", ["elbowNear", "wristNear", "knuckleNear", "handNear", "grip"]);
+  turn("shoulderFar", ["elbowFar", "wristFar", "handFar"]);
+  return { ...paintedOf(rig), joints };
+};
+const close = (a, b, tol) => Math.abs(a - b) < tol;
+
+test("a skeleton from Hammer's own painting is his skeleton, nothing turned", () => {
+  const s = skeletonFrom(paintedOf(HAMMER_CUT));
+  for (const [name, j] of Object.entries(JOINTS)) {
+    const r = s.joints[name].rest;
+    assert.ok(close(r.x, j.rest.x, 0.06) && close(r.y, j.rest.y, 0.06), `${name}: ${r.x},${r.y}`);
+    assert.ok(Math.abs(s.turns[name] ?? 0) < 0.003, `${name} turned ${s.turns[name]}`);
+  }
+  assert.ok(close(s.farFloor, FAR_FLOOR, 0.06));
+  assert.equal(HAMMER.joints, JOINTS);
+  assert.equal(HAMMER.farFloor, FAR_FLOOR);
+});
+
+test("a body painted with its arms swung takes Hammer's arm directions at its own lengths, its paint turned back by the swing", () => {
+  const s = skeletonFrom(swung(HAMMER_CUT, 0.2));
+  for (const [name, j] of Object.entries(JOINTS)) {
+    const r = s.joints[name].rest;
+    assert.ok(close(r.x, j.rest.x, 0.1) && close(r.y, j.rest.y, 0.1), `${name} back on Hammer's stance: ${r.x},${r.y}`);
+  }
+  const arm = ARM_BONES.map(([, c]) => s.turns[c]);
+  assert.ok(arm.every((t) => close(Math.abs(t), 0.2, 0.002)), `each arm bone turned 0.2: ${arm}`);
+  assert.ok(arm.every((t) => Math.sign(t) === Math.sign(arm[0])), "all the same way");
+  for (const n of ["chest", "neck", "hipNear", "kneeFar", "toeFar", "heelNear"]) assert.ok(Math.abs(s.turns[n] ?? 0) < 0.003, `${n} as painted`);
+});
+
+test("a painted body's solve turns its head on its own neck joint, crown at the top, and carries its far floor and turns", () => {
+  const skel = skeletonFrom(swung(HAMMER_CUT, 0.2));
+  const s = solve(REST_POSE, -1, 0.2, HEAD_PLATE_DEFAULT, skel);
+  assert.ok(Math.hypot(s.parts.head.x - s.joints.neck.x, s.parts.head.y - s.joints.neck.y) < 1e-9, "the head turns on the neck joint");
+  assert.ok(close(s.crown.y, -HERO_HEIGHT, 0.5), `crown at ${s.crown.y}`);
+  assert.equal(s.farFloor, skel.farFloor);
+  assert.equal(s.turns, skel.turns);
+  const h = solve(REST_POSE, -1, 0.26);
+  assert.ok(h.parts.head.y > h.joints.neck.y, "Hammer's plate still sits down in his collar");
+  assert.deepEqual(h.turns, {});
+  assert.equal(h.farFloor, FAR_FLOOR);
+});

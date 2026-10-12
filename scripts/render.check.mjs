@@ -500,3 +500,31 @@ test("the server's order-up ding rings with her warning, not with her rush", () 
   assert.deepEqual(cuesFor({ type: "castWindup", id: 1, role: "bellhop", x: 0, y: 0 }), ["sting"]);
   assert.ok(!cuesFor({ type: "castAttack", id: 1, role: "server", x: 0, y: 0 }).includes("ding"));
 });
+
+import { skeletonFrom } from "../src/sim/rig/skeleton.ts";
+
+test("a body painted with its arms swung still carries every bone's end onto its solved joint, in every clip, both ways", () => {
+  const a = 0.2;
+  const joints = structuredClone(cuts.rig.joints);
+  for (const [about, names] of [["shoulderNear", ["elbowNear", "wristNear", "knuckleNear", "handNear", "grip"]], ["shoulderFar", ["elbowFar", "wristFar", "handFar"]]]) {
+    const [cx, cy] = cuts.rig.joints[about];
+    for (const n of names) {
+      const [x, y] = cuts.rig.joints[n];
+      joints[n] = [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
+    }
+  }
+  const turned = { ...rig, joints };
+  const probe2 = { positions: cuts.rig.bones.flatMap(([, c]) => joints[c]), bones: probe.bones, weights: probe.weights };
+  const skel = skeletonFrom({ joints, sole: rig.root[1], rootX: rig.root[0] });
+  for (const [name, clip] of Object.entries(CLIPS))
+    for (const u of [0, 0.3, 0.7])
+      for (const facing of [-1, 1]) {
+        const solved = solve(clip(u, { t: 0, speed: 640, vy: 0, facing }), facing, 0.26, undefined, skel);
+        const out = new Float32Array(probe2.positions.length);
+        skinLayer(out, probe2, turned, solved);
+        cuts.rig.bones.forEach(([, c], b) => {
+          const d = Math.hypot(out[b * 2] - solved.joints[c].x, out[b * 2 + 1] - solved.joints[c].y);
+          assert.ok(d < 0.5, `${name} u=${u} facing ${facing}: ${c} is ${d.toFixed(2)} px off`);
+        });
+      }
+});

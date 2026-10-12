@@ -3,7 +3,7 @@ import { solve } from "./fk";
 import { groundShift, type Ground } from "./ground";
 import { legTo } from "./ik";
 import type { Pose } from "./pose";
-import { FAR_FLOOR, type JointName, type Point } from "./skeleton";
+import type { JointName, Point } from "./skeleton";
 
 /** The floor's y (world px, y down) at `dx` from the feet point, relative to the floor under it; null over a gap. */
 export type FloorProbe = (dx: number) => number | null;
@@ -42,7 +42,7 @@ export function plantFeet(
   const dy0 = groundShift(s0, mode);
   if (mode !== "planted" && mode !== "push") return { pose, dy: dy0, gap: 0 };
   const j = s0.joints;
-  const lift = FAR_FLOOR * s0.scale * s0.squash.y;
+  const lift = s0.farFloor * s0.scale * s0.squash.y;
   const at = (n: JointName): Point => ({ x: j[n].x, y: j[n].y + dy0 });
   const feet = (["near", "far"] as Leg[]).flatMap((leg) => {
     const n = PARTS[leg];
