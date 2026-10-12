@@ -446,3 +446,54 @@ test("the office worker behind the screen rears back for half a second, leaps ou
   until(w, () => npc(w, "o").act === "walk", 2);
   assert.equal(o.act, "walk", "then he marches like the other one");
 });
+
+test("a lecture freezes staff in reach for 1.8 s with a sigh (50) and sits students down to sulk for 9 s with a retort (150), no planes", () => {
+  const w = worldWith(
+    [{ id: "s", person: "server-1", x: 700, y: 0 }, { id: "k", person: "student-1", x: 900, y: 0 }, { id: "far", person: "office-1", x: 1800, y: 0 }],
+    { x: 300, y: 0 },
+  );
+  w.hero.facing = 1;
+  press(w, "lecture");
+  const evs = until(w, (x) => x.events.some((e) => e.type === "lectureLand"), 1);
+  const t0 = w.time;
+  const land = of(evs, "lectureLand");
+  assert.deepEqual(land.map((e) => [e.schooled, e.frozen]), [[1, 1]]);
+  assert.deepEqual(of(evs, "castFreeze").map((e) => [e.id, e.points]), [[npc(w, "s").id, 50]]);
+  assert.deepEqual(of(evs, "castSchooled").map((e) => [e.id, e.points]), [[npc(w, "k").id, 150]]);
+  assert.ok(npc(w, "s").act === "frozen" && npc(w, "k").act === "schooled" && npc(w, "far").act !== "frozen");
+  assert.ok(of(evs, "castLine").some((e) => e.id === npc(w, "s").id) && of(evs, "castLine").some((e) => e.id === npc(w, "k").id));
+  until(w, () => npc(w, "s").act !== "frozen", 3);
+  assert.ok(w.time - t0 >= 1.8 - 2 * STEP, "frozen the full 1.8 s");
+  assert.equal(npc(w, "k").act, "schooled");
+  assert.ok(npc(w, "k").rest >= CAST.student.schooled - (w.time - t0) - 2 * STEP, "no planes while schooled: the rest runs the whole sulk");
+  const lonely = worldWith([], { x: 300, y: 0 });
+  press(lonely, "lecture");
+  assert.equal(of(steps(lonely, 0.3), "lectureLand").length, 0, "nothing to land on");
+});
+
+test("a lecture stops a rush and a wind-up where they stand, and the tickets come back", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 760, y: 0 }, { id: "b", person: "bellhop-1", x: 1000, y: 0, cart: 850 }], { x: 300, y: 0 }, {}, [850]);
+  until(w, () => npc(w, "s").act === "attack" && npc(w, "b").act === "windup", 4);
+  assert.ok(npc(w, "s").act === "attack" && npc(w, "b").act === "windup", "both on the attack");
+  w.hero.facing = 1;
+  w.hero.lectureCd = 0;
+  press(w, "lecture");
+  const evs = steps(w, 0.3);
+  assert.equal(of(evs, "castFreeze").length, 2);
+  assert.ok(npc(w, "s").act === "frozen" && npc(w, "b").act === "frozen" && npc(w, "s").vx === 0);
+  assert.equal(attackers(w.cast), 0);
+  assert.equal(w.targets[0].vx, 0, "the cart was never shoved");
+});
+
+test("a student hops back out of his reach when there is floor behind, ducks otherwise", () => {
+  const stage = flat({ platforms: [{ x0: 1500, x1: 2300, y: -520 }] });
+  const w = worldWith([{ id: "k", person: "student-1", x: 2000, y: -520 }], { x: 1750, y: -520 }, {}, [], stage);
+  const k = npc(w, "k");
+  steps(w, 0.75);
+  assert.equal(k.act, "hop", "after the double-take");
+  until(w, () => npc(w, "k").act === "idle", 1);
+  assert.ok(k.x > 2150, `hopped back: ${k.x}`);
+  const edge = worldWith([{ id: "k", person: "student-1", x: 2250, y: -520 }], { x: 2000, y: -520 }, {}, [], stage);
+  steps(edge, 0.5);
+  assert.ok(Math.abs(npc(edge, "k").x - 2250) < 30, "no floor behind: stays");
+});

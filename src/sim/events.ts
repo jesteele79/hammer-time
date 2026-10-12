@@ -90,4 +90,10 @@ export type GameEvent =
   | { type: "missileHit"; kind: MissileKind; x: number; y: number; floor: boolean; hero: boolean }
   /** A missile swatted by the mallet. */
   | { type: "swat"; kind: MissileKind; x: number; y: number; points: number }
+  /** The lecture froze a staffer where he stood. */
+  | { type: "castFreeze"; id: number; x: number; y: number; points: number }
+  /** The lecture sat a student down to sulk. */
+  | { type: "castSchooled"; id: number; x: number; y: number; points: number }
+  /** The lecture landed on `schooled` students and `frozen` staff (once per lecture that lands on anyone). */
+  | { type: "lectureLand"; x: number; y: number; schooled: number; frozen: number }
   | { type: "mode"; mode: GameMode };

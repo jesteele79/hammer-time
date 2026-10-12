@@ -1,4 +1,4 @@
-import { CAST_LINES, pick } from "../game/lines";
+import { CAST_LINES, RETORTS, STAFF_SIGHS, pick } from "../game/lines";
 import {
   CAST,
   CHAIN,
@@ -366,6 +366,14 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
         setAct(n, "idle");
       }
       return;
+    case "frozen":
+      n.vx = 0;
+      if (n.actT >= T.freeze) setAct(n, "idle");
+      return;
+    case "schooled":
+      n.vx = 0;
+      if (n.actT >= CAST.student.schooled) setAct(n, "idle");
+      return;
     default:
       break;
   }
@@ -492,8 +500,38 @@ function bowl(w: CastWorld, events: GameEvent[]): void {
   }
 }
 
+/** The lecture lands: staff in reach freeze where they stand with a sigh; students sit down to sulk with a retort, no planes. */
+function lectureOn(w: CastWorld, reach: Rect, events: GameEvent[]): void {
+  let schooled = 0;
+  let frozen = 0;
+  const upright: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice", "windup", "attack", "duck", "hop"]);
+  for (const n of w.cast) {
+    if (!n.alive || !overlapsRect(reach, npcRect(n))) continue;
+    if (n.role === "student") {
+      if (n.out || !upright.has(n.act)) continue;
+      n.vx = 0;
+      n.facing = toward(n, w.hero);
+      setAct(n, "schooled");
+      n.rest = Math.max(n.rest, CAST.student.schooled);
+      say(n, pick(RETORTS, n.k + schooled), events);
+      events.push({ type: "castSchooled", id: n.id, x: n.x, y: n.y - n.h, points: POINTS.schooled });
+      schooled++;
+    } else if (standing(n)) {
+      n.vx = 0;
+      n.facing = toward(n, w.hero);
+      setAct(n, "frozen");
+      say(n, n.role === "office" ? CAST_LINES.office.frozen : pick(STAFF_SIGHS, n.k + frozen), events);
+      events.push({ type: "castFreeze", id: n.id, x: n.x, y: n.y - n.h, points: POINTS.frozen });
+      frozen++;
+    }
+  }
+  if (schooled || frozen) events.push({ type: "lectureLand", x: w.hero.x, y: w.hero.y - w.hero.h, schooled, frozen });
+}
+
 /** One step of the cast, after Hammer and the carts have moved. */
 export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: boolean, events: GameEvent[]): void {
+  const lecture = events.find((e) => e.type === "lecture") as Extract<GameEvent, { type: "lecture" }> | undefined;
+  if (lecture) lectureOn(w, lecture.reach, events);
   const burst = events.find((e) => e.type === "burst") as Extract<GameEvent, { type: "burst" }> | undefined;
   for (const n of w.cast) {
     if (!n.alive) continue;
