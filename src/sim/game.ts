@@ -4,8 +4,8 @@ import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
-import type { Input } from "./input";
-import { stageOf, type Level } from "./level";
+import { emptyInput, type Input } from "./input";
+import { stageOf, type DoorSpec, type Level } from "./level";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { collectPickups, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
@@ -27,6 +27,8 @@ export type Game = {
   mode: GameMode;
   /** Seconds left of a card, a death or the tally's hold. */
   modeT: number;
+  /** The door he stands in front of, if any: it glows and the hint names it. */
+  door: DoorSpec | null;
   /** This step's events: the world's and the game's. */
   events: GameEvent[];
   step(input: Input): void;
@@ -36,6 +38,10 @@ export type Game = {
 
 /** A fall this far above the level's bottom edge is a lost life: he is off the screen by then. */
 const FALL_MARGIN = 200;
+/** The shipped 20 px door reach at the new scale. */
+const DOOR_REACH = 136;
+/** How close to the exit's middle he walks before the lobby ends. */
+const EXIT_REACH = 60;
 
 const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad;
 
@@ -46,6 +52,12 @@ const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x 
 export function createGame(levels: Levels, seed: number): Game {
   const world = createWorld(stageOf(levels.lobby), levels.lobby.spawn, { patience: RUN.patience });
   let timedOut = false;
+  /** Down must come up between doors, so arriving with it held never sends him straight back. */
+  let armed = true;
+  let stashVisits = 0;
+  /** The lobby as he left it for the stash. */
+  let lobbySave: { pickups: Pickup[]; crates: Crate[]; targets: World["targets"]; facing: 1 | -1; door: DoorSpec } | null = null;
+  let exitDoor: DoorSpec | null = null;
   let nextPickup = 1000;
   let swingMove: Move | null = null;
   const swingHit = new Set<string>();
@@ -60,6 +72,7 @@ export function createGame(levels: Levels, seed: number): Game {
     crates: [],
     mode: "card",
     modeT: RUN.cardT,
+    door: null,
     events: [],
     step,
     newRun,
@@ -106,6 +119,9 @@ export function createGame(levels: Levels, seed: number): Game {
     game.run.star = 0;
     timedOut = false;
     swingMove = null;
+    lobbySave = null;
+    exitDoor = null;
+    game.door = null;
     setMode("card", ev, RUN.cardT);
   }
 
@@ -199,6 +215,99 @@ export function createGame(levels: Levels, seed: number): Game {
     if (broke) restage();
   }
 
+  /** Moves him into another level: the stash, or back to the lobby as it was. */
+  function enter(level: Level, at: Point) {
+    game.level = level;
+    restage();
+    world.snot = [];
+    world.puddles = [];
+    world.hits = [];
+    world.swing = [];
+    const h = world.hero;
+    h.move = null;
+    h.crouch = false;
+    h.slideT = 0;
+    standAt(at);
+  }
+
+  /**
+   * The shipped doors: down, on the ground, doing nothing else, within reach of the door's middle.
+   * The staff door goes to the stash (restocked each visit, its clock stopped); the cart there
+   * comes back. The exit needs no key: walking into it ends the lobby. Returns true if he left.
+   */
+  function tryDoors(input: Input, ev: GameEvent[]): boolean {
+    const h = world.hero;
+    if (!input.held.down) armed = true;
+    game.door = game.level.doors.find((d) => Math.abs(h.x - d.x) <= DOOR_REACH && Math.abs(h.y - d.y) < 60) ?? null;
+    const exit = game.level.doors.find((d) => d.kind === "exit" && Math.abs(h.x - d.x) <= EXIT_REACH && h.onGround);
+    if (exit) {
+      exitDoor = exit;
+      world.hits = [];
+      ev.push({ type: "exit" });
+      setMode("walkoff", ev, RUN.walkoffT);
+      return true;
+    }
+    const d = game.door;
+    if (!d || !armed || !input.held.down || !h.onGround || h.move) return false;
+    armed = false;
+    ev.push({ type: "door", kind: d.kind, id: d.id });
+    if (d.kind === "stash") {
+      lobbySave = { pickups: game.pickups, crates: game.crates, targets: world.targets, facing: h.facing, door: d };
+      const stash = levels.stash;
+      stashVisits++;
+      game.crates = cratesOf(stash);
+      game.pickups = seedRewards(stash, game.run.seed + stashVisits * 7919);
+      world.targets = stash.carts.map((x, i) => createCart(i + 1, x));
+      enter(stash, stash.spawn);
+      game.door = null;
+      return true;
+    }
+    if (d.kind === "return" && lobbySave) {
+      const save = lobbySave;
+      lobbySave = null;
+      game.pickups = save.pickups;
+      game.crates = save.crates;
+      world.targets = save.targets;
+      enter(levels.lobby, { x: save.door.x, y: save.door.y });
+      h.facing = save.facing;
+      game.door = save.door;
+      return true;
+    }
+    return false;
+  }
+
+  /** He walks into the exit door, nothing touching him. */
+  function walkoff(ev: GameEvent[]) {
+    const h = world.hero;
+    const to = exitDoor?.x ?? h.x;
+    const walk = emptyInput();
+    if (Math.abs(to - h.x) > 8) walk.held[to > h.x ? "right" : "left"] = true;
+    world.step(walk);
+    ev.push(...world.events.filter((e) => e.type === "land"));
+    game.modeT -= STEP;
+    if (game.modeT <= 1e-9) setMode("tally", ev, RUN.clearHold);
+  }
+
+  /** The leftover clock drains into points, fifty a second; then a beat, then the lobby is clear. */
+  function tally(ev: GameEvent[]) {
+    const run = game.run;
+    if (run.time > 0) {
+      const before = Math.floor(run.time);
+      run.time = Math.max(0, run.time - RUN.tallyRate * STEP);
+      const after = Math.floor(run.time);
+      for (let s = before; s > after; s--) {
+        addScore(run, RUN.tallyPoints);
+        ev.push({ type: "tallyTick", seconds: s - 1 });
+      }
+      return;
+    }
+    game.modeT -= STEP;
+    if (game.modeT <= 1e-9) {
+      ev.push({ type: "clear" });
+      setMode("clear", ev);
+    }
+  }
+
   function playStep(input: Input, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
@@ -222,6 +331,7 @@ export function createGame(levels: Levels, seed: number): Game {
     world.step(input);
     ev.push(...world.events);
     strikeCrates(ev);
+    if (tryDoors(input, ev)) return;
     stepCrates(game.crates, STEP);
     stepPickups(game.pickups, world.stage, STEP);
     for (const kind of collectPickups(h, game.pickups, ev)) take(kind, ev);
@@ -249,6 +359,8 @@ export function createGame(levels: Levels, seed: number): Game {
       game.modeT -= STEP;
       if (game.modeT <= 1e-9) loseLife(ev);
     } else if (game.mode === "play") playStep(input, ev);
+    else if (game.mode === "walkoff") walkoff(ev);
+    else if (game.mode === "tally") tally(ev);
   }
 
   begin(0, game.events);

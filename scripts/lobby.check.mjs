@@ -285,3 +285,72 @@ test("a head bump opens the crate above him once, and its pepper is his to catch
   const got = until(g, (x) => x.world.hero.hot, 4, { right: true });
   assert.ok(got.some((e) => e.type === "pickup" && e.kind === "pepper"), "he catches the pepper");
 });
+
+test("↓ at the staff door goes to the stash; ↓ at its cart comes back to the lobby as he left it", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  g.pickups[0].taken = true;
+  const takenId = g.pickups[0].id;
+  g.crates[0].used = true;
+  g.world.hero.x = 5200;
+  stepsG(g, 0.1);
+  const t = g.run.time;
+  const into = stepsG(g, 0.1, { down: true });
+  assert.ok(into.some((e) => e.type === "door" && e.kind === "stash"));
+  assert.equal(g.level.id, "stash");
+  assert.equal(g.pickups.length, 4, "the stash's own pickups");
+  stepsG(g, 3);
+  assert.ok(Math.abs(g.run.time - t) < 0.02, "the stash's clock never ticks");
+  g.world.hero.x = 300;
+  stepsG(g, 0.1);
+  stepsG(g, 0.1, { down: true });
+  assert.equal(g.level.id, "lobby");
+  assert.ok(Math.abs(g.world.hero.x - 5200) < 1, "standing at the staff door");
+  assert.ok(g.pickups.find((p) => p.id === takenId).taken, "what he took stays taken");
+  assert.ok(g.crates[0].used, "an opened crate stays open");
+  g.world.hero.x = 5200;
+  stepsG(g, 0.5);
+  stepsG(g, 0.1, { down: true });
+  assert.equal(g.pickups.filter((p) => !p.taken).length, 4, "the stash restocks every visit");
+});
+
+test("a closed door does nothing; the exit walks him in, counts the clock into points and clears the lobby", () => {
+  const level = { ...mini(), doors: [{ id: "buffet", kind: "closed", x: 1800, y: 0, label: "BUFFET", opens: "Hungry Hungry Hammer" }, { id: "out", kind: "exit", x: 5900, y: 0, label: "CLOCK OUT" }] };
+  const g = createGame({ lobby: level, stash: stashOf() }, 7);
+  play(g);
+  g.world.hero.x = 1800;
+  stepsG(g, 0.1);
+  stepsG(g, 0.2, { down: true });
+  assert.equal(g.level.id, "lobby");
+  g.world.hero.x = 5700;
+  g.run.time = 100.5;
+  const before = g.run.score;
+  const evs = until(g, (x) => x.mode === "walkoff", 3, { right: true });
+  assert.ok(evs.some((e) => e.type === "exit"));
+  const [cans, lives] = [g.run.cans, g.run.lives];
+  g.pickups.push({ id: 905, kind: "can", x: g.world.hero.x, y: g.world.hero.y - 100, taken: false });
+  const rest = until(g, (x) => x.mode === "clear", 8, { right: true });
+  assert.ok(rest.some((e) => e.type === "clear"));
+  assert.equal(g.mode, "clear");
+  assert.deepEqual([g.run.cans, g.run.lives], [cans, lives], "nothing is picked up after the exit");
+  assert.equal(g.run.score - before, 100 * 50, "fifty a second");
+  assert.equal(g.run.time, 0);
+});
+
+test("dying in the stash brings him back to the lobby at his last punch clock", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  g.world.hero.x = 3050;
+  stepsG(g, 0.1);
+  g.world.hero.x = 5200;
+  stepsG(g, 0.5);
+  stepsG(g, 0.1, { down: true });
+  assert.equal(g.level.id, "stash");
+  knockOut(g);
+  const evs = until(g, (x) => x.mode === "card");
+  assert.equal(evs.filter((e) => e.type === "lifeLost").length, 1);
+  play(g);
+  assert.equal(g.level.id, "lobby");
+  assert.ok(Math.abs(g.world.hero.x - 3000) < 1, `at the clock: ${g.world.hero.x}`);
+  assert.ok(Math.abs(g.run.time - 420) < 1e-9);
+});
