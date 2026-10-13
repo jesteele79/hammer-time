@@ -14,7 +14,10 @@ export class Flyers {
   constructor(
     layer: Container,
     private readonly particles: Particles,
+    ambient = 0xffffff,
   ) {
+    // Lit like the cast they fly off, so a hat does not brighten the moment it leaves a head.
+    this.root.tint = ambient;
     layer.addChild(this.root);
   }
 

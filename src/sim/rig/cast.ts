@@ -177,7 +177,8 @@ const windup = (role: CastRole, t: number): Pose => {
     });
   }
   if (role === "server") {
-    const near = armTo("near", { x: 24, y: 300 }, 0, -1);
+    // The tray held high and forward, clear of her face.
+    const near = armTo("near", { x: 104, y: 326 }, 0, -1);
     return pose({
       rot: flatFeet(
         { shoulderNear: near.shoulder, elbowNear: near.elbow, wristNear: near.wrist, shoulderFar: HANG.shoulderFar - 40 * k, elbowFar: 30 * k, hipNear: 62 * k, kneeNear: -92 * k, hipFar: -26 * k, kneeFar: -16 * k },
@@ -240,7 +241,7 @@ const attack = (role: CastRole, t: number, speed: number): Pose => {
   }
   if (role === "server") {
     const p = walk(role, t, speed, true, 0);
-    const near = armTo("near", { x: 20, y: 300 }, 0, -1);
+    const near = armTo("near", { x: 104, y: 322 }, 0, -1);
     return pose({ rot: { ...p.rot, shoulderNear: near.shoulder, elbowNear: near.elbow, wristNear: near.wrist }, lean: 20, headTilt: -2 });
   }
   if (role === "office") {

@@ -506,6 +506,7 @@ export class Cast {
     for (const [id, v] of this.views)
       if (!seen.has(id)) {
         v.mask?.destroy();
+        v.painted?.destroy();
         v.root.destroy({ children: true });
         this.views.delete(id);
         this.crowns.delete(id);
@@ -518,6 +519,8 @@ export class Cast {
   }
 
   destroy(): void {
+    for (const v of this.views.values()) v.painted?.destroy();
+    this.views.clear();
     this.container.destroy({ children: true });
   }
 }

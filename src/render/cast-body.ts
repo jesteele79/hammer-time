@@ -61,10 +61,14 @@ export function loadCastArt(registry: Registry, person: CastPerson): Promise<Cas
         await Promise.all(filesOf(rig).map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS }).then((t) => textures.set(f, t))));
         const plate = registry.cast?.hat;
         let hat: CastArt["hat"] = null;
-        if (rig.head.hat && plate?.span && plate.pivot) {
-          const [worn, whole] = await Promise.all([plate.worn ?? plate.file, plate.file].map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS })));
-          hat = { worn, whole, plate };
-        }
+        // The hat on its own: one that does not load leaves them painted and bareheaded.
+        if (rig.head.hat && plate?.span && plate.pivot)
+          try {
+            const [worn, whole] = await Promise.all([plate.worn ?? plate.file, plate.file].map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS })));
+            hat = { worn, whole, plate };
+          } catch (err) {
+            console.warn(`cast art: ${person} goes bareheaded (${plate.file}: ${(err as Error).message})`);
+          }
         return { person, rig, skeleton: castSkeleton(rig), head: rig.head, textures, hat };
       } catch (err) {
         console.warn(`cast art fallback: ${person} draws as the stand-in (${body.rig}: ${(err as Error).message})`);
@@ -106,6 +110,8 @@ function plateGrid(w: number, h: number, cell = 8) {
  * grown above the jaw to the size the owner picked while the neck keeps fitting the collar.
  */
 export class PaintedFigure {
+  /** How many figures are alive: the checks see that none is kept after its cast member is gone. */
+  static live = 0;
   readonly container = new Container({ label: "painted" });
   protected readonly parts: Part[] = [];
   protected readonly head = new Container({ label: "head" });
@@ -122,6 +128,7 @@ export class PaintedFigure {
   protected readonly hat: Sprite | null = null;
 
   constructor(protected readonly art: CastArt) {
+    PaintedFigure.live++;
     this.container.sortableChildren = true;
     this.rim.zIndex = -1;
     this.rim.visible = false;
@@ -162,6 +169,14 @@ export class PaintedFigure {
     edgeHead.tint = RIM.color;
     this.rimHead.addChild(edgeHead);
     this.rim.addChild(this.rimHead);
+  }
+
+  /** Lets go of the figure and its meshes' buffers: a Mesh does not destroy the geometry it draws. */
+  destroy(): void {
+    PaintedFigure.live--;
+    for (const p of this.parts) p.geometry.destroy();
+    this.headGeometry.destroy();
+    this.container.destroy({ children: true });
   }
 
   apply(solved: Solved, o: PaintOpts, rim: Rim | null = null): void {

@@ -197,6 +197,8 @@ export function skeletonFrom(p: PaintedJoints, match: readonly (readonly [JointN
   if (!neck) throw new Error("skeletonFrom: the painting has no neck joint");
   const k = NECK_REST_Y / (p.sole - neck[1]);
   const mark = (n: JointName): Point | null => {
+    // The feet point is the painting's soles at rootX: every chain hangs off it.
+    if (n === "root") return { x: 0, y: 0 };
     const q = p.joints[n];
     return q ? { x: (p.rootX - q[0]) * k, y: (p.sole - q[1]) * k } : null;
   };
@@ -229,5 +231,7 @@ export function skeletonFrom(p: PaintedJoints, match: readonly (readonly [JointN
       return [name, { parent, rest: rest[name], length }];
     }),
   ) as Record<JointName, Joint>;
-  return { joints, turns, farFloor: rest.toeFar.y, headSeat: { x: 0, y: 0 }, bodySeatY: 0 };
+  // The far sole's floor line: its lowest point's height above the near sole's lowest point, so both stand at rest.
+  const farFloor = Math.min(rest.toeFar.y, rest.heelFar.y) - Math.min(rest.toeNear.y, rest.heelNear.y);
+  return { joints, turns, farFloor, headSeat: { x: 0, y: 0 }, bodySeatY: 0 };
 }

@@ -54,7 +54,7 @@ export const SPILL = { water: { w: 260, life: 8 }, coffee: { w: 150, life: 7 } }
  * The beats' seconds: the double-take, getting up, a stagger and the gap between bump lines, a slip, a freeze, a line; the leaving
  * walk's px/s; how far off he is gone; how far off, walking off against a wall, he is out of Hammer's view and gone at once.
  */
-export const T = { notice: 0.6, getup: 0.6, bump: 0.3, bumpGap: 1.5, slip: 0.4, freeze: 1.8, line: 2, leave: 200, gone: 1500, offView: 1000 } as const;
+export const T = { notice: 0.6, getup: 0.6, bump: 0.3, bumpGap: 1.5, slip: 0.4, freeze: 1.8, line: 2, leave: 200, gone: 1500, offView: 1300 } as const;
 export const STOMP = { tolerance: 24, bounce: 900, held: 1300 } as const;
 /** Cast ids start here: a swing's victims list holds carts and cast alike, so they never meet. */
 export const CAST_ID = 1001;

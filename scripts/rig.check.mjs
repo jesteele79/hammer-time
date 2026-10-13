@@ -658,7 +658,8 @@ test("a skeleton from Hammer's own painting is his skeleton, nothing turned", ()
     assert.ok(close(r.x, j.rest.x, 0.06) && close(r.y, j.rest.y, 0.06), `${name}: ${r.x},${r.y}`);
     assert.ok(Math.abs(s.turns[name] ?? 0) < 0.003, `${name} turned ${s.turns[name]}`);
   }
-  assert.ok(close(s.farFloor, FAR_FLOOR, 0.06));
+  // His far floor is his far toe's height; from the painting it is the far sole's lowest point, his heel, half a unit lower.
+  assert.ok(close(s.farFloor, Math.min(JOINTS.toeFar.rest.y, JOINTS.heelFar.rest.y) - Math.min(JOINTS.toeNear.rest.y, JOINTS.heelNear.rest.y), 0.06));
   assert.equal(HAMMER.joints, JOINTS);
   assert.equal(HAMMER.farFloor, FAR_FLOOR);
 });
@@ -711,4 +712,18 @@ test("each cut cast body is pose-locked to Hammer's painting: legs and spine wit
       assert.ok(Math.abs(off) < (hand ? 25 : 15), `${person}: ${p}->${c} is ${off.toFixed(1)} degrees off Hammer's`);
     }
   }
+});
+
+test("a painting's pelvis stays where it is painted, and its far floor is the far sole's height above the near one", () => {
+  // Hammer's painting with the whole body below the neck dropped 20 px nearer the soles' row... the pelvis moved down 20 px alone.
+  const joints = structuredClone(HAMMER_CUT.joints);
+  joints.pelvis = [joints.pelvis[0], joints.pelvis[1] + 20];
+  const s = skeletonFrom({ joints, sole: HAMMER_CUT.sole, rootX: HAMMER_CUT.rootX });
+  const k = 296 / (HAMMER_CUT.sole - HAMMER_CUT.joints.neck[1]);
+  assert.ok(close(s.joints.pelvis.rest.y, (HAMMER_CUT.sole - joints.pelvis[1]) * k, 0.06), `pelvis at ${s.joints.pelvis.rest.y}`);
+  // Feet painted 10 px above the soles' row: the far floor is still the gap between the two soles' lowest points.
+  const raised = { joints: HAMMER_CUT.joints, sole: HAMMER_CUT.sole + 10, rootX: HAMMER_CUT.rootX };
+  const j = HAMMER_CUT.joints;
+  const gap = (Math.max(j.toeNear[1], j.heelNear[1]) - Math.max(j.toeFar[1], j.heelFar[1])) * (296 / (raised.sole - j.neck[1]));
+  assert.ok(close(skeletonFrom(raised).farFloor, gap, 0.06), `far floor ${skeletonFrom(raised).farFloor} against ${gap}`);
 });

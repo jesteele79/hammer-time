@@ -697,3 +697,44 @@ test("two people in one painting keep their own colors, and a recolor the art la
   assert.equal(layerTexture(layer, "#7a1f2b"), "cast/server-1-7a1f2b-torso.png");
   assert.equal(layerTexture(layer, "#123456"), "cast/server-1-torso.png");
 });
+
+import { groundShift } from "../src/sim/rig/ground.ts";
+
+test("every painting stands its near sole on the floor at rest, and in its walk the near foot both plants and lifts", async () => {
+  for (const person of CAST_PEOPLE) {
+    const rig = await rigOf(person);
+    const skel = castSkeleton(rig);
+    const near = (s) => Math.max(s.joints.toeNear.y, s.joints.heelNear.y);
+    const rest = solve(REST_POSE, -1, castHeadScale(0.22, rig.head), rig.head, skel);
+    assert.ok(Math.abs(near(rest) + groundShift(rest, "planted")) < 1, `${person}: the near sole ${(near(rest) + groundShift(rest, "planted")).toFixed(2)} px off the floor at rest`);
+    let lowest = -Infinity,
+      highest = Infinity;
+    for (let i = 0; i < 40; i++) {
+      const s = solve(castPose({ role: roleOf(person), act: "walk", t: i * 0.025, speed: 200, onGround: true, sit: false, spin: 0, hits: 0 }), -1, castHeadScale(0.22, rig.head), rig.head, skel);
+      const y = near(s) + groundShift(s, "planted");
+      lowest = Math.max(lowest, y);
+      highest = Math.min(highest, y);
+    }
+    assert.ok(lowest >= -0.5, `${person}: the near foot never plants in the walk (closest ${lowest.toFixed(2)} px)`);
+    assert.ok(highest <= -2, `${person}: the near foot never lifts in the walk (highest ${highest.toFixed(2)} px)`);
+  }
+});
+
+test("a server's tray, held up for the warning and the rush, stays clear of her own face", async () => {
+  for (const person of CAST_PEOPLE.filter((p) => roleOf(p) === "server")) {
+    const rig = await rigOf(person);
+    const skel = castSkeleton(rig);
+    for (const act of ["windup", "attack"])
+      for (const t of [0.1, 0.3, 0.6]) {
+        const s = solve(poseOf(person, act, t), -1, castHeadScale(0.22, rig.head), rig.head, skel);
+        // The tray as drawn: an ellipse 46 rest units either side of a point 10 ahead of the hand, glasses 36 up.
+        const h = s.joints.handNear;
+        const k = s.scale;
+        const cx = h.x + s.facing * 10 * k;
+        const tray = { x: cx - 46 * k, y: h.y - 36 * k, w: 92 * k, h: 36 * k };
+        const f = s.faceBox;
+        const hit = tray.x < f.x + f.w && tray.x + tray.w > f.x && tray.y < f.y + f.h && tray.y + tray.h > f.y;
+        assert.ok(!hit, `${person} ${act} t=${t}: the tray covers her face`);
+      }
+  }
+});

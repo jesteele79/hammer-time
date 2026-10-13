@@ -37,6 +37,7 @@ import { Particles } from "./particles";
 import type { CastRole } from "../sim/cast";
 import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
+import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { createScene } from "./scene";
@@ -144,7 +145,7 @@ export async function startLook(
     lighting.setQuality(q);
     cast.setQuality(q);
   };
-  const flyers = new Flyers(scene.layers.play, particles);
+  const flyers = new Flyers(scene.layers.play, particles, scene.ambient);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   await character.ready;
@@ -778,7 +779,7 @@ export async function startLook(
         feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
-      window.__next.castArt = cast.artState();
+      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live, tints: { cast: cast.container.tint, flyers: flyers.container.tint } };
       window.__next.cast = {
         acts: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, n.act])),
         positions: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, { x: n.x, y: n.y }])),

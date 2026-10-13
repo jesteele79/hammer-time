@@ -778,8 +778,8 @@ test("a knocked-out staffer walking off into a wall turns back on screen, and is
   Object.assign(s, { out: true, facing: 1, act: "leave", actT: 0, noticed: true });
   steps(w, 1.2);
   assert.ok(s.alive && s.facing === -1, "in view of him, she turns back from the wall");
-  // 1250 px off at the wall: past his view, short of the 1500 px that removes anyone walking off.
-  const far = worldWith([{ id: "s", person: "server-1", x: 1300, y: 0 }], { x: 200, y: 0 }, {}, [], wall);
+  // 1450 px off at the wall: past his view, short of the 1500 px that removes anyone walking off.
+  const far = worldWith([{ id: "s", person: "server-1", x: 1300, y: 0 }], { x: 0, y: 0 }, {}, [], wall);
   const f = npc(far, "s");
   Object.assign(f, { out: true, facing: 1, act: "leave", actT: 0, noticed: true });
   steps(far, 1.2);
@@ -855,4 +855,13 @@ test("the recolored repeats are drawn within 4 percent of their painting's heigh
     assert.ok(Math.abs(n.size - 1) <= 0.04, `${n.spawn}: ${n.size}`);
     assert.ok(spawn.recolor ? n.size !== 1 : n.size === 1, `${n.spawn}: only the repeats are resized`);
   }
+});
+
+test("a knocked-out staffer blocked 1250 px off, in view on a wide screen with the camera's lead, turns back rather than vanishing", () => {
+  const wall = flat({ solids: [{ x: 1500, y: -400, w: 100, h: 400 }] });
+  const w = worldWith([{ id: "s", person: "server-1", x: 1300, y: 0 }], { x: 200, y: 0 }, {}, [], wall);
+  const s = npc(w, "s");
+  Object.assign(s, { out: true, facing: 1, act: "leave", actT: 0, noticed: true });
+  steps(w, 1.2);
+  assert.ok(s.alive && s.facing === -1, "still there, walking the other way");
 });
