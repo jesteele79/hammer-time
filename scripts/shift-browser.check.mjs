@@ -58,6 +58,20 @@ const cardClearNow = async (name) => {
   assert.ok(!hit(r.card, r.face), `${name}: the card covers his face ${JSON.stringify(r)}`);
   await shot(`${name}-${r.size[0]}x${r.size[1]}.png`);
 };
+/**
+ * Whoever is drawn is who the venue has: every cast view draws its id's person in its colors, and every cart view is a
+ * cart the venue has, carrying its load. Waits a few frames for views of the newly seen to be made.
+ */
+const drawnAsTheyAre = async (where) => {
+  await page.waitForTimeout(400);
+  const r = await page.evaluate(() => ({ drawn: window.__next.castArt.drawn, carts: window.__next.castArt.carts, people: window.__next.cast.people, targets: window.__next.cast.targets }));
+  for (const [id, d] of Object.entries(r.drawn)) {
+    const n = r.people[id];
+    if (n) assert.deepEqual(d, n, `${where}: cast view ${id} draws ${JSON.stringify(d)} for ${JSON.stringify(n)}`);
+  }
+  const loads = Object.fromEntries(r.targets.map((t) => [t.id, t.load]));
+  for (const c of r.carts) assert.equal(c.load, loads[c.id], `${where}: cart view ${c.id} (${c.load}) is not one of this venue's carts ${JSON.stringify(r.targets)}`);
+};
 /** From just before a venue's exit, walks in and waits for the next venue's card, or the clear. */
 const clockOut = async (x, y, next) => {
   await tp(x, y);
@@ -82,9 +96,17 @@ try {
   assert.deepEqual([r.mode, r.level, r.lives, r.hot], ["card", "restaurant", 3, true], "the restaurant's card; the pepper came along");
   assert.ok(r.score > 0, "the lobby's tally paid");
   await page.waitForSelector("text=Your shift goes on", { timeout: 2000 });
+  // The camera is put on him where he arrives, not somewhere between the last venue's exit and here.
+  r = await waitFor((x) => x.level === "restaurant" && x.shownX !== undefined, 4000);
+  assert.ok(Math.abs(r.shownX - 300) < 1, `the restaurant comes on screen with him at its door: ${r.shownX}`);
   await cardClearNow("veil-restaurant");
   await waitFor((x) => x.mode === "play", 6000);
   await page.setViewportSize({ width: 1280, height: 800 });
+  // The lobby's people and luggage carts stay in the lobby: the busser by his dish cart is the restaurant's.
+  await tp(3500, 0);
+  await drawnAsTheyAre("the restaurant's dining room");
+  await tp(7900, -180);
+  await drawnAsTheyAre("the restaurant's line");
 
   // A flat-top heats him; the walk-in cools him. The line cook marches the line and would knock him off either, so he
   // goes on his break first.
@@ -118,6 +140,7 @@ try {
   r = await waitFor((x) => x.y < -500, 8000);
   assert.ok(r.y < -500, `carried up the conveyor: ${r.y}`);
   await shot("shift-conveyor.png");
+  await drawnAsTheyAre("the campus's deck");
 
   // The library's doors end the shift.
   r = await clockOut(15880, -900, "clear");
@@ -128,6 +151,9 @@ try {
   await page.click("text=Play again");
   r = await waitFor((x) => x.mode === "play", 6000);
   assert.deepEqual([r.level, r.lives, r.score], ["lobby", 3, 0], "a fresh shift from the lobby");
+  await drawnAsTheyAre("the lobby after Play again");
+  await tp(2000, 0);
+  await drawnAsTheyAre("the lobby's desk after Play again");
 
   assert.deepEqual(errors, []);
   writeFileSync(resolve(out, "shift-check.json"), JSON.stringify({ run: await run(), errors }, null, 2));

@@ -70,6 +70,18 @@ export type Sound = {
 };
 
 /** The cues an event asks for: the table, with the events whose cue depends on what they carry. */
+/** How far past the view an off-screen swing of the kitchen door is still heard (world px). */
+const EARSHOT = 300;
+
+/**
+ * Whether an event is heard where the camera is. The kitchen server crosses her door every few seconds wherever he is:
+ * its soft swing is heard only near the view; its bang, which only ever comes at him, always.
+ */
+export function heard(e: GameEvent, view: { x: number; w: number }): boolean {
+  if (e.type !== "doorSwing" || e.hard) return true;
+  return e.x > view.x - EARSHOT && e.x < view.x + view.w + EARSHOT;
+}
+
 export function cuesFor(e: GameEvent): Cue[] {
   switch (e.type) {
     case "hit":

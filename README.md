@@ -351,7 +351,7 @@ acts, and its enemy is heat as much as the staff:
   ("Opens later"), two booths and a table to hop, the first punch clock, and
   the bar to jump. A busser pushes his bus cart of dirty dishes at Hammer.
 - **The kitchen:** the swinging door. When the kitchen server comes through
-  it while he is near, she winds up with "Behind!" and the door bangs open
+  it while he is near, she winds up (the ! burst) and the door bangs open
   toward the dining room: standing in its swing costs a pip; a mallet hit on
   the door during her wind-up slams it back on her. Then the pass, where a
   line cook crouches behind the counter with only his toque showing and
@@ -588,7 +588,8 @@ scripted player fighting through both routes) and the venue checks in
 and punch clocks, the heat zones, the swinging door, carts on their floor
 and down pits, footing on stairs, the new people's fights, each venue's
 shape and reach, the seeded rewards on every route, and a scripted player
-clearing each venue by both routes). The rig checks also sweep
+clearing the restaurant by its floor route, its counters and pot rack checked
+for reach, and the campus by both routes). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks

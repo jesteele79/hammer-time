@@ -44,7 +44,7 @@ import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { createScene } from "./scene";
-import { createSound } from "./sound";
+import { createSound, heard } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
@@ -269,6 +269,7 @@ export async function startLook(
   /** A spoken line waiting for its thought to finish: when it is due, on the scene's clock. */
   let lineDue: number | null = null;
   let faceOnScreen: Rect | null = null;
+  let shownX = 0;
   let steamT = 0;
   /** The flat-top's steam or the walk-in's frost at his feet, and the walk-in's own breath. */
   let zoneT = 0;
@@ -332,7 +333,7 @@ export async function startLook(
   /** Time and the camera answer each event at once; its look waits for this frame's pose. */
   const feel = (e: GameEvent) => {
     counts[e.type] = (counts[e.type] ?? 0) + 1;
-    sound.play(e);
+    if (heard(e, scene.view())) sound.play(e);
     const f = feelOf(e);
     if (f) {
       applyFeel(clock, f);
@@ -583,6 +584,14 @@ export async function startLook(
     }
   }
 
+  /** Lets the drawn people, carts, flyers and bubbles go, for a new venue or a new shift. */
+  function clearActors() {
+    cast.clear();
+    props.clear();
+    flyers.clear();
+    speech.clear();
+  }
+
   /** Puts the camera on him at once: after a door, a respawn or a teleport. */
   function snapCamera(x: number, y: number) {
     scene.camera.x = x;
@@ -593,6 +602,7 @@ export async function startLook(
   /** The level he is in now: its venue, backdrop, lamps, bounds and camera. */
   function showLevel(level: Level, x: number, y: number) {
     shown = level.id;
+    shownX = x;
     for (const [id, v] of views) {
       v.venue.setVisible(id === level.id);
       v.backdrop.setVisible(id === level.id);
@@ -624,8 +634,10 @@ export async function startLook(
       game.step(input);
       cur = world.snapshot();
       for (const e of game.events) feel(e);
-      // A door or a respawn moves him: no sliding across the gap between frames.
-      if (game.events.some((e) => e.type === "respawn" || e.type === "door")) prev = cur;
+      // A door, a respawn or a new venue moves him: no sliding across the gap between frames.
+      if (game.events.some((e) => e.type === "respawn" || e.type === "door" || e.type === "venue")) prev = cur;
+      // A new venue's people, carts and what flies are its own: nothing of the last one's is drawn there.
+      if (game.events.some((e) => e.type === "venue")) clearActors();
     });
     time += simDt;
     if (steps > 0) {
@@ -808,6 +820,7 @@ export async function startLook(
         checkpoint: game.run.checkpoint,
         saved: savedT > 0,
         shield: shieldShown,
+        shownX,
         events: { ...counts },
       };
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
@@ -840,8 +853,10 @@ export async function startLook(
         feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
-      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live, tints: { cast: cast.container.tint, flyers: flyers.container.tint } };
+      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live, tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
       window.__next.cast = {
+        people: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.id, { person: n.person, recolor: n.recolor }])),
+        targets: cur.targets.map((t) => ({ id: t.id, load: t.load })),
         acts: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, n.act])),
         positions: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.spawn, { x: n.x, y: n.y }])),
         attackers: attackers(world.cast),
@@ -947,6 +962,7 @@ export async function startLook(
       forgetPresses();
       game.newRun(newSeed());
       prev = cur = world.snapshot();
+      clearActors();
     },
     togglePause() {
       forgetPresses();

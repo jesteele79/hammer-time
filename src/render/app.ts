@@ -75,12 +75,14 @@ export type NextProbe = {
     saved: boolean;
     /** The Buc-ee's shield is drawn this frame. */
     shield: boolean;
+    /** Where he was drawn when the level he is in was put on screen: the camera snapped there. */
+    shownX: number;
     events: Record<string, number>;
   };
   /** The cast: each live member's act by spawn id, how many hold attack tickets, the missiles in the air, how many are out. */
   /** Which cast paintings drew and which fell back to the stand-in. */
-  castArt?: { painted: string[]; standIn: string[]; live: number; tints: { cast: number; flyers: number } };
-  cast?: { acts: Record<string, string>; positions: Record<string, { x: number; y: number }>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
+  castArt?: { painted: string[]; standIn: string[]; live: number; tints: { cast: number; flyers: number }; drawn: Record<number, { person: string; recolor: string | null }>; carts: { id: number; load: string }[] };
+  cast?: { people: Record<number, { person: string; recolor: string | null }>; targets: { id: number; load: string }[]; acts: Record<string, string>; positions: Record<string, { x: number; y: number }>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
   dev?: {
     teleport(x: number, y?: number): void;

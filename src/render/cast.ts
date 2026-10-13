@@ -401,6 +401,9 @@ export function star(g: Graphics, x: number, y: number, r: number) {
 }
 
 type View = {
+  /** Who this view draws: a view is only ever reused for the same person in the same colors. */
+  person: CastPerson;
+  recolor: string | null;
   root: Container;
   body: Graphics;
   /** The person's painting, when it loaded; the stand-in (`body`) otherwise. */
@@ -439,9 +442,15 @@ export function coverOf(x: number, level: Pick<Level, "furniture" | "platforms">
   return counter ? { kind: "counter", top: counter.y } : null;
 }
 
-/** How far a cook behind a counter sinks: his crown just under its top, so only his toque shows; `risen` 1 is stood up. */
-export function counterSink(crown: number, top: number, risen: number): number {
-  return Math.max(0, top + 12 - crown) * (1 - risen);
+/** How much of a hatless cook's head shows over the counter he hides behind (world px): his tell when there is no toque to show. */
+export const HEAD_PEEK = 64;
+
+/**
+ * How far a cook behind a counter sinks: his crown just under its top, so only his toque shows, or `peek` px of his
+ * head when he has no hat to show; `risen` 1 is stood up.
+ */
+export function counterSink(crown: number, top: number, risen: number, peek = 0): number {
+  return Math.max(0, top + 12 - peek - crown) * (1 - risen);
 }
 
 /**
@@ -485,6 +494,11 @@ export class Cast {
     this.rimOn = q !== "low";
   }
 
+  /** Whom each view draws, by cast id, for the checks. */
+  drawn(): Record<number, { person: CastPerson; recolor: string | null }> {
+    return Object.fromEntries([...this.views].map(([id, v]) => [id, { person: v.person, recolor: v.recolor }]));
+  }
+
   /** Who draws from their painting and who as the stand-in, for the checks. */
   artState(): { painted: CastPerson[]; standIn: CastPerson[] } {
     const all = [...this.arts];
@@ -505,6 +519,11 @@ export class Cast {
       if (!n.alive) continue;
       seen.add(n.id);
       let v = this.views.get(n.id);
+      // Ids start over in every venue: a view drawn for someone else is let go, never repainted.
+      if (v && (v.person !== n.person || v.recolor !== n.recolor)) {
+        this.drop(n.id, v);
+        v = undefined;
+      }
       if (!v) {
         const root = new Container({ label: n.spawn });
         const shadow = new Graphics();
@@ -515,7 +534,7 @@ export class Cast {
         const carried = new Graphics();
         root.addChild(shadow, body, ...(painted ? [painted.container] : []), carried, stars);
         this.container.addChild(root);
-        v = { root, body, painted, carried, shadow, stars, look: recolored(LOOKS[n.person], n.recolor), mask: null, air: !n.onGround, squashT: 0 };
+        v = { person: n.person, recolor: n.recolor, root, body, painted, carried, shadow, stars, look: recolored(LOOKS[n.person], n.recolor), mask: null, air: !n.onGround, squashT: 0 };
         this.views.set(n.id, v);
       }
       // Far off the view he is neither posed nor drawn; his view is kept for when he comes back.
@@ -547,7 +566,9 @@ export class Cast {
         if (cover.kind === "counter") {
           // Crouched behind the pass, only his toque over the counter in the lamps' glow; winding up, he rears up out of it.
           const crown = n.y + (dy + solved.crown.y) * k;
-          const sink = counterSink(crown, cover.top, n.act === "windup" ? Math.min(1, t / REAR_T) : 0);
+          // The stand-in draws its own toque; a painting whose hat has not come peeks its head over instead.
+          const bare = !!v.painted && !this.arts.get(n.person)?.hat;
+          const sink = counterSink(crown, cover.top, n.act === "windup" ? Math.min(1, t / REAR_T) : 0, bare ? HEAD_PEEK : 0);
           v.root.position.set(n.x, n.y + dy * k + sink);
           v.root.scale.set(k);
           v.root.alpha = 1;
@@ -598,14 +619,20 @@ export class Cast {
       }
       this.crowns.set(n.id, { x: n.x + solved.crown.x * k, y: n.y + (dy + solved.crown.y) * k, facing: n.facing });
     }
-    for (const [id, v] of this.views)
-      if (!seen.has(id)) {
-        v.mask?.destroy();
-        v.painted?.destroy();
-        v.root.destroy({ children: true });
-        this.views.delete(id);
-        this.crowns.delete(id);
-      }
+    for (const [id, v] of this.views) if (!seen.has(id)) this.drop(id, v);
+  }
+
+  private drop(id: number, v: View): void {
+    v.mask?.destroy();
+    v.painted?.destroy();
+    v.root.destroy({ children: true });
+    this.views.delete(id);
+    this.crowns.delete(id);
+  }
+
+  /** Lets every view go: a new venue's people are drawn fresh. */
+  clear(): void {
+    for (const [id, v] of this.views) this.drop(id, v);
   }
 
   /** Where a cast member's head is, for his speech bubble; null once he is gone. */

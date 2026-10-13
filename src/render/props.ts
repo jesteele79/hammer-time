@@ -154,7 +154,7 @@ function drawBin(g: Graphics, t: Pick<Target, "w">, flash: boolean): void {
   ink(g, f, 3);
 }
 
-type CartView = { root: Container; body: Graphics; flash: Graphics; lean: number; spilled: boolean };
+type CartView = { root: Container; body: Graphics; flash: Graphics; lean: number; spilled: boolean; load: string };
 
 /** Draws the carts, the snot in flight and the puddles from each snapshot. */
 export class Props {
@@ -180,6 +180,8 @@ export class Props {
   sync(prev: Snapshot, cur: Snapshot, alpha: number, dt: number): void {
     const s = between(prev, cur, alpha);
     for (const t of s.targets) this.cart(t, dt);
+    // A cart gone down a pit, or one left in the last venue, is let go.
+    for (const [id, v] of this.carts) if (!s.targets.some((t) => t.id === id)) this.dropCart(id, v);
     this.trailT += dt;
     const trail = this.trailT >= TRAIL_EVERY;
     if (trail) this.trailT = 0;
@@ -197,8 +199,28 @@ export class Props {
     });
   }
 
+  /** Each cart view's id and what it was drawn carrying, for the checks. */
+  drawnCarts(): { id: number; load: string }[] {
+    return [...this.carts].map(([id, v]) => ({ id, load: v.load }));
+  }
+
+  private dropCart(id: number, v: CartView): void {
+    v.root.destroy({ children: true });
+    this.carts.delete(id);
+  }
+
+  /** Lets every cart view go: a new venue's carts are drawn fresh. */
+  clear(): void {
+    for (const [id, v] of this.carts) this.dropCart(id, v);
+  }
+
   private cart(t: Target, dt: number) {
     let v = this.carts.get(t.id);
+    // Ids start over in every venue: a luggage cart's view is never a bus cart's.
+    if (v && v.load !== t.load) {
+      this.dropCart(t.id, v);
+      v = undefined;
+    }
     if (!v) {
       const root = new Container({ label: `cart ${t.id}` });
       const body = new Graphics();
@@ -209,7 +231,7 @@ export class Props {
       root.addChild(body, flash);
       root.zIndex = 1;
       this.container.addChild(root);
-      v = { root, body, flash, lean: 0, spilled: t.spilled };
+      v = { root, body, flash, lean: 0, spilled: t.spilled, load: t.load };
       this.carts.set(t.id, v);
     }
     // A dish cart's dishes are gone once they crash.

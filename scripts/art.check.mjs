@@ -728,3 +728,22 @@ test("a wall notes its bottom row's color too, which carries its painted floor o
   const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
   assert.equal((await wallCrop(png, { floor: 200, seams: [0, 400] })).bottom, "#1e3c5a");
 });
+
+import { syncHats } from "./art-cut.mjs";
+import { mkdtempSync, mkdirSync as mkdirHat, copyFileSync, writeFileSync as writeHat } from "node:fs";
+import { tmpdir } from "node:os";
+import { join as joinHat } from "node:path";
+
+test("a hat painting that cannot be cut is skipped with a warning: the other hats are registered and the sync goes on", async () => {
+  const inDir = mkdtempSync(joinHat(tmpdir(), "hats-in-"));
+  const outDir = mkdtempSync(joinHat(tmpdir(), "hats-out-"));
+  mkdirHat(joinHat(outDir, "cast"));
+  copyFileSync("art/incoming/cast/bellhop-hat.png", joinHat(inDir, "bellhop-hat.png"));
+  // The cook's hat as nothing but green: nothing to key, no base to find.
+  writeHat(joinHat(inDir, "cook-hat.png"), await sharp({ create: { width: 400, height: 300, channels: 3, background: "#00ff00" } }).png().toBuffer());
+  const registry = { cast: { bodies: {}, hats: {} } };
+  await syncHats(registry, { inDir, outDir, strict: false });
+  assert.ok(registry.cast.hats.bellhop?.span > 0, "the bellhops' hat is registered");
+  assert.equal(registry.cast.hats.cook, undefined, "the cook's is skipped: he plays bareheaded");
+  await assert.rejects(syncHats({ cast: { bodies: {}, hats: {} } }, { inDir, outDir, strict: true }), "a strict sync still stops on it");
+});

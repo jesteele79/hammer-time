@@ -171,6 +171,12 @@ export class Flyers {
     );
   }
 
+  /** Lets everything in the air or on the floor go: nothing follows him into the next venue. */
+  clear(): void {
+    for (const f of this.live) f.g.destroy();
+    this.live.length = 0;
+  }
+
   update(dt: number, floorUnder: (x: number, y: number) => number | null): void {
     for (let i = this.live.length - 1; i >= 0; i--) {
       const f = this.live[i];

@@ -371,3 +371,41 @@ test("the shift runs lobby, restaurant, campus, then it is over", () => {
   }
   assert.deepEqual(seen, ["lobby", "restaurant", "campus", "clear"]);
 });
+
+test("the professor on the library stairs turns his page before he walks into Hammer on the landing below", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT, CAMPUS] }, 7, { start: 2 });
+  while (g.mode === "card") g.step(input());
+  // Only the professor: the students on the steps would throw.
+  for (const n of g.world.cast) if (n.spawn !== "prof-steps") n.alive = false;
+  Object.assign(g.world.hero, { x: 12700, y: -300, vx: 0, vy: 0 });
+  const seen = [];
+  for (let i = 0; i < Math.round(14 / STEP) && !seen.some((e) => e.type === "hurt"); i++) {
+    g.world.hero.invuln = 0;
+    g.step(input());
+    seen.push(...g.events.filter((e) => (e.type === "chime" && e.job === "prof") || e.type === "hurt"));
+  }
+  const chime = seen.findIndex((e) => e.type === "chime");
+  const hurt = seen.findIndex((e) => e.type === "hurt");
+  assert.ok(hurt >= 0, "he marches into him");
+  assert.ok(chime >= 0 && chime < hurt, `a page turns first: ${JSON.stringify(seen.map((e) => e.type))}`);
+});
+
+test("a hit that lands while he walks out of a venue is not carried into the next: he arrives with the pips he clocked out with", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT] }, 7);
+  while (g.mode === "card") g.step(input());
+  const exit = g.level.doors.find((d) => d.kind === "exit");
+  Object.assign(g.world.hero, { x: exit.x - 120, y: exit.y, vx: 0, vy: 0 });
+  for (let i = 0; i < Math.round(3 / STEP) && g.mode !== "walkoff"; i++) g.step(input({ right: true }));
+  assert.equal(g.mode, "walkoff");
+  const pips = g.world.hero.patience;
+  const hurt = [];
+  // A plane, a pan or a shoulder that reaches him as he goes: each queues a hit for the next step.
+  for (let i = 0; i < Math.round(20 / STEP) && g.mode !== "card"; i++) {
+    if (g.mode === "walkoff") g.world.hit(g.world.hero.x + 60);
+    g.step(input());
+    hurt.push(...g.events.filter((e) => e.type === "hurt" || e.type === "lifeLost"));
+  }
+  assert.deepEqual([g.mode, g.level.id], ["card", "restaurant"]);
+  assert.deepEqual(hurt, [], "nothing hurts him on his way out");
+  assert.equal(g.world.hero.patience, pips, "he arrives with the pips he clocked out with");
+});

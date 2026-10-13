@@ -78,6 +78,15 @@ export class Speech {
     b.life = seconds;
   }
 
+  /** Lets every bubble go: the last venue's people stop talking. */
+  clear(): void {
+    for (const b of this.live.values()) {
+      b.g.destroy();
+      b.t.destroy();
+    }
+    this.live.clear();
+  }
+
   update(dt: number, crownOf: (id: number) => { x: number; y: number; facing: 1 | -1 } | null, face: Rect, view: Rect): void {
     for (const [id, b] of this.live) {
       b.life -= dt;

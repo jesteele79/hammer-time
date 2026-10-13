@@ -130,10 +130,10 @@ Its enemy is heat as much as the staff: eight people, against the lobby's eleven
 | 3 | Busser 2 (`busser-dock`) and a trash bin | busser-1, recolored | bin 13080, him behind it, on the dock | the cart again |
 | 3 | Server on break (`server-break`) | server-2 | 14650 on the truck bed, patrols 14100 to 14950 | "I'm on my ten." |
 
-As built in R3a (2026-10-13): as above. The steel counters break where the walk-in's door stands (8700
-to 9000 on the counters is open), so the freezer is reached from the floor. The swinging door's warning
-is the kitchen server's own wind-up ("Behind!" and the ! burst), so its pip is her attack and takes her
-ticket. The cook behind the pass is drawn crouched behind the counter, only his toque over it, and rears
+As built in R3a (2026-10-13): as above. The steel counters break where the walk-in's door stands (no
+counter from 9000 to 9500), so the freezer is reached from the floor. The swinging door's warning is the
+kitchen server's own wind-up (the ! burst and her line, 0.45 s, not "Behind!"), so its pip is her attack
+and takes her ticket. The cook behind the pass is drawn crouched behind the counter, only his toque over it, and rears
 up out of it as he winds up. The far plane is the owner's three walls (dining room, kitchen, dock),
 scaled to span the venue; the mid pieces stand against them and the two fore pieces in front of the play.
 
@@ -185,7 +185,8 @@ The busiest venue before the pig: twelve people, paper the main threat (planes s
 | 3 | Student (`student-steps-2`) | student-1, recolored | 13850 on the second landing | |
 | 3 | Student (`student-terrace`) | student-2 | 14800 on the terrace | |
 
-As built in R3a (2026-10-13): as above. Under the deck the table and the bench stand 110 high, so nothing
+As built in R3a (2026-10-13): as above, but the conveyor starts 120 up, at the top of the tray-return
+counter (7150 to 7400), a hop from the floor. Under the deck the table and the bench stand 110 high, so nothing
 under the deck reaches it. The deck's stair is drawn open on its stringer, since the floor route walks on
 under it; every other flight and landing stands on the ground. The far plane is the owner's three walls
 (the quad, the commons, the library), rising with the ground he stands on up the library steps; the mid

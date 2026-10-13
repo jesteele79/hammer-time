@@ -331,6 +331,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const to = exitDoor?.x ?? h.x;
     const walk = emptyInput();
     if (Math.abs(to - h.x) > 8) walk.held[to > h.x ? "right" : "left"] = true;
+    // A plane or a shoulder that reaches him on his way out queues a hit; he has clocked out, and it is let go.
+    world.hits = [];
     world.step(walk);
     ev.push(...world.events.filter((e) => e.type === "land"));
     game.modeT -= STEP;

@@ -57,6 +57,11 @@ const CART_HURT = { w: 140, h: 220 } as const;
 const BUMPABLE: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice", "chase", "return"]);
 
 const sameLevel = (n: Npc, h: HeroState) => Math.abs(h.y - n.level) < 60;
+/**
+ * Within earshot of someone marching head-down, who may be on a stair: from where he stands now, the farther off the
+ * more a step up or down still counts (a 30-degree flight rises 0.58 a px).
+ */
+const marchLevel = (n: Npc, h: HeroState) => Math.abs(h.y - n.y) < 60 + Math.abs(h.x - n.x) * 0.6;
 
 /** Something to stand on at `x` within a step of `y`: a floor or a platform. */
 /** How far up or down the floor a step ahead may be and still be footing: a 30-degree stair, not a drop. */
@@ -72,7 +77,8 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   const h = w.hero;
   if (n.noticed || (n.act !== "idle" && n.act !== "walk")) return false;
   const c = CAST[n.role];
-  if (Math.abs(h.x - n.x) > c.notice || (n.role !== "student" && !sameLevel(n, h))) return false;
+  const level = n.role === "office" && !n.hide ? marchLevel(n, h) : sameLevel(n, h);
+  if (Math.abs(h.x - n.x) > c.notice || (n.role !== "student" && !level)) return false;
   n.noticed = true;
   n.facing = toward(n, h);
   say(n, noticeLine(n), events);
@@ -323,7 +329,7 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   }
   patrol(n, w, c.march);
   // The phone chimes once each time he closes in.
-  const near = sameLevel(n, h) && Math.abs(h.x - n.x) < c.chime;
+  const near = marchLevel(n, h) && Math.abs(h.x - n.x) < c.chime;
   if (near && !n.cue) {
     n.cue = true;
     events.push({ type: "chime", x: n.x, y: n.y - n.h, job: n.job });

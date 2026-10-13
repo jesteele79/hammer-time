@@ -865,3 +865,24 @@ test("the ground under him: the lowest floor at his x, up the library steps and 
   assert.equal(groundAt(floor, 3200), null, "a pit has no ground");
   assert.equal(groundAt(floor, 3600), -200);
 });
+
+import { HEAD_PEEK } from "../src/render/cast.ts";
+
+test("a cook with no hat to show keeps the top of his head over the counter, his tell, and still rears up to stand", () => {
+  // Crown 360 up, the counter's top 180 up: with nothing worn, his crown stands HEAD_PEEK over the top.
+  const sink = counterSink(-360, -180, 0, HEAD_PEEK);
+  assert.ok(HEAD_PEEK >= 30, `enough head to read: ${HEAD_PEEK}`);
+  assert.equal(-360 + sink, -180 + 12 - HEAD_PEEK, "his crown HEAD_PEEK above the counter's lip");
+  assert.equal(counterSink(-360, -180, 1, HEAD_PEEK), 0, "risen, he stands");
+});
+
+import { heard } from "../src/render/sound.ts";
+
+test("the kitchen door's soft swing is heard only on screen; its bang, near him, always", () => {
+  const view = { x: 4000, y: -1000, w: 1600, h: 1000 };
+  const swing = (x, hard) => ({ type: "doorSwing", id: "kitchen", x, y: 0, dir: -1, hard });
+  assert.equal(heard(swing(5200, false), view), true, "in view");
+  assert.equal(heard(swing(9800, false), view), false, "across the restaurant");
+  assert.equal(heard(swing(9800, true), view), true, "a bang");
+  assert.equal(heard({ type: "chime", x: 9800, y: 0, job: "office" }, view), true, "everything else as before");
+});

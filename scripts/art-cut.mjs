@@ -1,5 +1,7 @@
 // Owner green-screen plates in, registered transparent parts out. Never edits the inputs.
 import sharp from "sharp";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const MARGIN = 8;
 
@@ -1371,4 +1373,29 @@ export async function sheetPieces(keyed, { join = 24, minShare = 0.02 } = {}) {
     out.push({ png: await sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer(), width, height, base: { x: Math.round((lo + hi) / 2) - left, y: g.y1 - top } });
   }
   return out;
+}
+
+/**
+ * Each hat by name (the bellhops' pillbox, the cook's toque) from `inDir`: whole for flying off, and cut at its base for
+ * wearing (the bellhops' strap loop would cross a face), written under `outDir`/cast and registered by name. One that
+ * cannot be cut is skipped, its wearer bareheaded, and the rest go on (a strict sync stops on it).
+ */
+export async function syncHats(registry, { inDir, outDir, strict }) {
+  for (const name of ["bellhop", "cook"]) {
+    const hatFile = join(inDir, `${name}-hat.png`);
+    if (!existsSync(hatFile)) continue;
+    await tolerant(`${name}'s hat`, strict, () => syncHat(registry, name, hatFile, outDir));
+  }
+}
+
+async function syncHat(registry, name, hatFile, outDir) {
+  const keyed = await keyOut(readFileSync(hatFile));
+  const png = await scaled(keyed.png, keyed.width, TEXTURE_SCALE);
+  const meta = await sharp(png).metadata();
+  const base = await hatBase(png);
+  writeFileSync(join(outDir, `cast/${name}-hat.png`), png);
+  const worn = await sharp(png).extract({ left: 0, top: 0, width: meta.width, height: Math.min(meta.height, base.y + 2) }).png().toBuffer();
+  writeFileSync(join(outDir, `cast/${name}-hat-worn.png`), worn);
+  registry.cast.hats[name] = { file: `cast/${name}-hat.png`, worn: `cast/${name}-hat-worn.png`, width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
+  console.log(`${name}'s hat: ${meta.width}x${meta.height}, its base at ${base.x},${base.y}, ${base.span} wide`);
 }
