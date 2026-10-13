@@ -64,4 +64,4 @@ You are making game art on this Windows laptop. Work only inside C:\Users\jeste\
 
 3. A REDO (one painting that failed the check)
 
-Redo <file>: <what was wrong>. Keep everything else from the brief and the checklist, use Image 1 as the input image again, and save the keeper as <file> in artincomingcast, replacing the old one, with its prompt beside it. (The game records each painting's fingerprint; after a redo it is re-recorded with: node scripts/art-sync.mjs --accept art/incoming/cast/<file>.)
+Redo <file>: <what was wrong>. Keep everything else from the brief and the checklist, use Image 1 as the input image again, and save the keeper as <file> in C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\, replacing the old one, with its prompt beside it. (The game records each painting's fingerprint; after a redo it is re-recorded with: node scripts/art-sync.mjs --accept art/incoming/cast/<file>.)
