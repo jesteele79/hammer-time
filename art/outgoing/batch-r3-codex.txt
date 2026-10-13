@@ -1,0 +1,143 @@
+HAMMER TIME — R3, THE CODEX PROMPTS
+
+These are for Codex in its mode that works on this laptop (it reads the briefs and the reference
+images from the repo and saves its images straight into art/incoming/). Paste each into a new Codex
+chat. They can run at the same time, except that prompt 3 waits until pig-body.png is checked.
+The briefs they point at: art/outgoing/batch-7-r3-cast.txt (the new cast),
+art/outgoing/batch-4-pig.txt (the pig), art/outgoing/batch-2-backdrops.txt (the back walls).
+
+
+1. THE NEW CAST (batch 7, items 1 to 5)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-7-r3-cast.txt in full. It is the brief. Follow its POSE AND FRAMING, STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png, and the other people in art\incoming\cast\ (bellhop-2, server-1, server-2, office-1, office-2, student-1, student-2) — the pose and style done right. Every new body must match them for style, finish and placement in the frame.
+
+3. Make items 1 to 5, one at a time, in order: cook-1, busser-1, lunch-1, prof-1, cook-hat.
+   For items 1 to 4, use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: each person has their own face, hair, build, height and clothes, exactly as their item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+   Item 5, the hat, is a single object, not a person: large in the frame on flat green, seen exactly from the side with its front to the left.
+
+4. Before you keep each body (items 1 to 4), put it side by side with Image 1 and bellhop-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and empty. The far arm and hand visible just behind the near one.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's. A taller or shorter person keeps the soles there; only the top of the head moves.
+   - Worn things the item names (the cook's side towel and apron, the busser's towel and long apron, the lunch worker's hairnet, glasses, gloves and name tag, the professor's glasses and bow tie) are part of the costume. Nothing else on the head, nothing held, nothing in the hands.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text or letters anywhere; name tags are blank, tattoos have no letters.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Each person clearly a different person from each other and from the eight already in art\incoming\cast\, and none of them looking like the man in Image 1.
+
+5. Save each keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\ plus the file name from its item (for example cook-1.png), and the exact prompt you used for it as the same name with .prompt.txt, in the same folder.
+
+6. When all five are saved, stop. List each file, how many tries it took, and anything on the checklist you could not get right.
+
+
+2. THE PIG, THE TEST IMAGE (batch 4, item 1 only)
+
+You are making one image for a game on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the two named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-4-pig.txt in full. It is the brief. Follow its POSE AND FRAMING, STYLE and RULES blocks word for word.
+
+2. Open these three images and study them:
+   - Image 1: art\outgoing\references\pig-toy.jpg — the pig: the toy to draw, its shape, color, seams and face.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\hammer\body-affliction.png — a finished game body: the strict left profile, the framing and the clear gap between the arms and the body to copy.
+
+3. Make ITEM 1 only: pig-body.png. Do not make items 2 to 6.
+   Use your built-in image generation with Image 1 as the input image, so the toy carries over, turned to a strict left profile and drawn in Image 2's style. Portrait canvas, 1024 x 1536 or your tool's portrait size. Do not upscale or resize afterward.
+
+4. Before you keep it, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - It is clearly the toy in Image 1: pale pink velour, the broad flat snout with two nostrils, button eyes, small floppy ears, the upright pear body, the short stubby limbs with darker pink pads, the stitched seams.
+   - Strict LEFT profile: the snout points exactly left, one eye shows, the body shows its side.
+   - Both arms held forward and down, away from the belly, with green showing all round each arm; the far arm visible just behind the near one.
+   - Both feet flat on one level line, the far leg a small step ahead, both feet fully visible; the curly tail at the back, clear of the body.
+   - A calm face, flat bright green background (#00FF00), no floor, no shadow, no text or letters anywhere.
+   - The same inked cartoon style as Image 2: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\pig\pig-body.png (create the pig folder). Save the exact prompt you used for it as pig-body.prompt.txt in the same folder.
+
+6. Stop. In a few lines, tell me how many tries it took and anything on the checklist you could not get right.
+
+
+3. THE PIG'S FACES (batch 4, items 2 to 6, once pig-body.png is kept)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including art\incoming\pig\pig-body.png. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-4-pig.txt in full. It is the brief. Item 1 is done and kept.
+
+2. Open art\incoming\pig\pig-body.png (the kept pig), art\outgoing\references\pig-toy.jpg and art\outgoing\references\hammer-profile.png.
+
+3. Make items 2 to 6, one at a time, in order: pig-squint, pig-charge, pig-hurt, pig-defeated, pig-stuffing.
+   For items 2 to 5, use your built-in image editing with pig-body.png as the input image and change ONLY the face as the item describes. Same canvas size. Do not upscale, resize, crop or move anything afterward.
+   Item 6 is new, not an edit: three tufts of stuffing on flat green, square canvas.
+
+4. Before you keep each face (items 2 to 5), lay it over pig-body.png and check: the outline, the pose, the size, the position in the frame, the seams and the colors are the same; only the eyes, brows, mouth and cheeks changed; the background is still flat bright green. If any point fails, edit again (up to five tries) and keep the best one.
+
+5. Save each keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\pig\ plus the file name from its item (for example pig-squint.png), and the exact prompt you used for it as the same name with .prompt.txt, in the same folder.
+
+6. When all five are saved, stop. List each file, how many tries it took, and anything you could not get right.
+
+
+4. THE RESTAURANT AND CAMPUS WALLS (batch 2, items 6 to 15)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-2-backdrops.txt in full. It is the brief. Follow its STYLE, RULES FOR THE WALLS and RULES FOR THE OBJECT SHEETS blocks word for word.
+
+2. Study these images:
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish every wall and object must match.
+   - art\outgoing\references\venue-restaurant.jpg (for item 6) and art\outgoing\references\venue-campus.jpg (for item 12) — layout and mood only.
+
+3. Make items 6 to 15, one at a time, in order: restaurant-far-1, restaurant-far-2, restaurant-far-3, restaurant-mid, restaurant-fore, campus-far-1, campus-far-2, campus-far-3, campus-mid, campus-fore. Use your built-in image generation at the widest landscape size it offers. Do not upscale or resize afterward.
+
+4. Before you keep each wall (the "-far-" items), check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Seen straight on: every horizontal line perfectly level across the picture, no perspective to the sides, no corners or side walls.
+   - The wall's base is one straight level line about three-quarters of the way down; below it, plain floor in the venue's material with nothing on it.
+   - From the base up to about waist height the wall is plain: nothing stands against it.
+   - No doors or doorways, no balconies or ledges.
+   - The venue's pilaster cut exactly in half at both side edges: put the picture's right edge against its own left edge (or against the venue's other walls) and the halves make one whole pilaster, with every horizontal line meeting at the same height.
+   - No people, no animals, no text, letters, numbers or logos; all signs, labels, flyers and clock faces blank.
+   - The same inked cartoon style as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   For the object sheets (the "-mid" and "-fore" items): only the listed objects, each whole and upright, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text.
+
+5. Save each keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\ plus the file name from its item (for example restaurant-far-1.png; create the backdrops folder), and the exact prompt you used for it as the same name with .prompt.txt, in the same folder.
+
+6. When all ten are saved, stop. List each file, how many tries it took, and anything on the checklist you could not get right.
+
+
+5. THE GIFT SHOP AND LOBBY WALLS (batch 2, items 1 to 5 and 16 to 19)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-2-backdrops.txt in full. It is the brief. Follow its STYLE, RULES FOR THE WALLS and RULES FOR THE OBJECT SHEETS blocks word for word.
+
+2. Study these images:
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish every wall and object must match.
+   - art\outgoing\references\venue-lobby.jpg (for item 1) — layout and mood only. The gift shop has no photo.
+
+3. Make items 16 to 19 and 1 to 5, one at a time, in this order: arena-far-1, arena-far-2, arena-mid, arena-fore, lobby-far-1, lobby-far-2, lobby-far-3, lobby-mid, lobby-fore. Use your built-in image generation at the widest landscape size it offers. Do not upscale or resize afterward.
+
+4. Before you keep each wall (the "-far-" items), check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Seen straight on: every horizontal line perfectly level across the picture, no perspective to the sides, no corners or side walls.
+   - The wall's base is one straight level line about three-quarters of the way down; below it, plain floor in the venue's material with nothing on it.
+   - From the base up to about waist height the wall is plain: nothing stands against it.
+   - No doors or doorways, no balconies or ledges.
+   - The venue's pilaster cut exactly in half at both side edges: put the picture's right edge against its own left edge (or against the venue's other walls) and the halves make one whole pilaster, with every horizontal line meeting at the same height.
+   - No people, no live animals, no text, letters, numbers or logos; all signs, labels, postcards, shirts and clock faces blank. Stuffed toys are allowed on the gift shop's shelves, but no pigs among them.
+   - The same inked cartoon style as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   For the object sheets (the "-mid" and "-fore" items): only the listed objects, each whole and upright, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text.
+
+5. Save each keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\ plus the file name from its item (for example arena-far-1.png; create the backdrops folder if it is not there), and the exact prompt you used for it as the same name with .prompt.txt, in the same folder.
+
+6. When all nine are saved, stop. List each file, how many tries it took, and anything on the checklist you could not get right.
+
+
+6. A REDO (one picture that failed my check)
+
+Redo <file>: <what was wrong>. Keep everything else from the brief and the checklist, and save the keeper as <file> in the same folder as before, replacing the old one, with its prompt beside it. (The game records each picture's fingerprint; after a redo it is re-recorded with: node scripts/art-sync.mjs --accept art/incoming/<folder>/<file>.)

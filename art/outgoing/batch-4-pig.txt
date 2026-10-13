@@ -1,36 +1,53 @@
-HAMMER TIME — ART BATCH 4: THE PIG
-Attach first: hammer-profile.png (for the style) and pig-toy.jpg (the pig).
+HAMMER TIME — ART BATCH 4: THE PIG (rewritten 2026-10-13 for R3)
+Attach first, for every item:
+  Image 1: art/outgoing/references/pig-toy.jpg (THE PIG: the toy to draw)
+  Image 2: art/outgoing/references/hammer-profile.png (the drawing style)
+  Image 3: art/incoming/hammer/body-affliction.png (a finished game body: the profile, the framing and the gap between the arms and the body to copy)
 
-You are producing six poses of the stuffed toy pig in the attached photo, drawn in the same ink style as the attached portrait. It must still read as the same soft toy every time: pale pink velour, visible stitched panels in the same places, a broad snout, an upright pear-shaped body, short stubby limbs, small ears. All six the same height and the same pink.
+You are drawing the boss of a game: the giant stuffed toy pig in Image 1, in the same ink style as Image 2. The game cuts the pig into parts (head, body, arms, legs, tail) and bends them to make it breathe, lean, charge, hop and deflate, the way it already does with the body in Image 3. So item 1 is one clean standing pig with every limb clear of the body, and items 2 to 5 are the same picture with only the face changed, swapped in for its expressions.
+
+It must read as the same soft toy as Image 1: pale pink velour, stitched panel seams, a broad flat snout with two nostrils, small black button eyes, small floppy ears, an upright pear-shaped body widest at the belly and hips, short stubby arms and legs with darker pink pads at the ends, a small curly tail.
+
+POSE AND FRAMING (item 1):
+- Orthographic side view, strict LEFT-facing profile like Image 3: the snout points exactly left, one eye shows, the near ear sits toward the back of the head with the far ear just showing behind it. The body shows its side, not its front.
+- Both stubby arms reach a little FORWARD (toward image-left) and DOWN, held away from the belly, so a clear gap of green shows all round each arm. The far arm sits just behind and above the near one, offset enough that both outlines can be told apart.
+- The two short legs a little apart, the far leg a small step ahead (to the left), both feet flat on one level line near the bottom of the picture, both feet fully visible.
+- The curly tail at the back (image-right), clear of the body's outline.
+- Stitched seam lines in the same places as Image 1: around the snout, around the face, down the middle of the belly, and where each arm and leg joins the body.
+- A calm, blank toy face: eyes open, mouth a small closed line.
+- Portrait canvas, 1024 x 1536 (or your tool's portrait size). The pig fills about 80 percent of the height, centered, with green margin all round. No floor, no shadow, no scenery.
 
 STYLE (apply to every image):
-Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference portrait.
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as Image 2.
 
 RULES (every image):
-- One pig per image, whole body in frame with margin.
-- Strict LEFT-facing profile.
-- Flat bright green background like a green screen.
-- No text, logos or watermarks.
-- Largest size available. PNG or WebP.
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks.
+- The whole subject inside the frame with margin all round.
+- PNG.
 
 ITEMS
 
-1. idle.png
-The pig standing upright in profile, relaxed, arms at its sides, a calm face.
+1. pig-body.png
+The pig standing as described in POSE AND FRAMING, calm.
+STOP after this item and wait: it is checked before the rest are made.
 
-2. windup.png
-The same pig leaning back on its heels, eyes squinting, body coiled, about to charge.
+Items 2 to 5 are EDITS of the kept pig-body.png. Change ONLY the face (the eyes, the brows, the mouth, the cheeks). Everything else stays identical: the same pose, outline, size, position in the frame, seams, colors and canvas, pixel for pixel where possible.
 
-3. charge.png
-The same pig leaning far forward mid-run, arms back, cheeks puffed, mouth set.
+2. pig-squint.png
+About to charge: the eyes narrowed to mean little slits, stitched brows pulled down, the mouth a tight determined line.
 
-4. hop.png
-The same pig in the air, legs tucked up, body stretched tall, eyes wide.
+3. pig-charge.png
+Charging: the eyes wide and fierce, the cheeks puffed out, the mouth set hard.
 
-5. hurt.png
-The same pig flinching, eyes squeezed shut, a tuft of white stuffing popping out of a seam on its side.
+4. pig-hurt.png
+Hit: the eyes squeezed shut in tight curves, the mouth open in a yelp, a little sweat drop by the brow.
 
-6. defeated.png
-The same pig slumped and half deflated, stuffing showing at two seams, eyes drawn as flat X stitches, still cute.
+5. pig-defeated.png
+Beaten: the eyes stitched as flat X marks, the mouth a wobbly line, still cute.
+
+6. pig-stuffing.png (not an edit)
+Three loose tufts of white polyester toy stuffing, each a soft fluffy cloud with a few stray fibers, small, spread apart across the picture on flat green. Square canvas.
 
 Save all of these to: art/incoming/pig/

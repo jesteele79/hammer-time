@@ -1,38 +1,58 @@
-HAMMER TIME — ART BATCH 2: BACKDROPS
-Attach first: hammer-profile.png (for the style). For each item also attach the venue photo it names.
+HAMMER TIME — ART BATCH 2: THE BACK WALLS (rewritten 2026-10-13 for R3)
+Attach first, for every item:
+  Image 1: art/outgoing/references/hammer-profile.png (the drawing style)
+  Image 2: art/incoming/cast/bellhop-1.png (a finished game character: the finish to match)
+For each item also attach the venue photo it names, if any (for layout and mood only).
 
-You are producing wide background scenes for a side-scrolling game, in the same drawn style as the attached portrait. These scenes sit behind the action: show the walls and what hangs on or stands against them, and stop at the floor line. The game draws the floor and everything the character stands on. No people anywhere. No readable text anywhere.
+You are painting the back walls of a side-scrolling game, and the things that stand against them, in the same drawn style as Images 1 and 2. The game walks a character along in front of these walls. It draws the floor he walks on, the counters, tables, stairs and doors he uses, and every person, itself. So a wall shows only the wall and what hangs on it, and the floor running away below it.
+
+Each venue has three walls (the gift shop two), in the order the character walks past them. In the game they stand side by side, so they must join: every wall of one venue has the same plain pilaster (a flat column the full height of the wall) cut exactly in half at both side edges, the right half at the left edge and the left half at the right edge, so any two walls of that venue, put side by side, join into one whole pilaster.
 
 STYLE (apply to every image):
-Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference image. Use the attached photo for layout and mood only; the result must be an illustration, not a filtered photo.
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images. Where an item names a photo, use it for layout and mood only; the result must be an illustration, not a filtered photo.
 
-RULES (every image):
-- Wide landscape, 3:1 or wider.
-- "far" images: the full wall scene, edge to edge.
-- "mid" and "fore" images: only the listed objects, on a flat bright green background like a green screen, with space between objects so they can be cut apart.
-- No text, letters, logos or watermarks. No people.
-- Largest size available. PNG or WebP.
+RULES FOR THE WALLS (every item named "-far-"):
+- The widest landscape size your image tool offers (for example 1536 x 1024). PNG.
+- Seen straight on, as if the camera stands square to the wall: every horizontal line (ceiling, trim, wainscot, shelf, window sill, the wall's base) stays perfectly level across the whole picture. No perspective running off to the sides, no corners, no side walls.
+- The wall's base, where it meets the floor, is one straight level line about three-quarters of the way down the picture (about 768 px down on a 1024 px picture). Below that line the floor runs toward the viewer to the bottom edge: plain, in the venue's floor material, with nothing standing or lying on it.
+- The lowest part of the wall, from its base up to about waist height (roughly 100 px above the base line on a 1024 px picture), is plain wall: no furniture, counters, tables, benches, plants, doors or objects stand against it. Lamps, art, windows, shelves and signs hang higher up.
+- No doors or doorways anywhere (the game has its own doors, and a painted one would look like a way in). No balconies, ledges or anything that looks like a place to stand.
+- The venue's pilaster, cut exactly in half, at both side edges, matching in width, color and light; every horizontal line meets both edges at the same height.
+- No people and no animals (stuffed toys are fine where an item asks for them). No text, letters, numbers or logos anywhere: signs, labels, menus, flyers and screens are blank.
+
+RULES FOR THE OBJECT SHEETS (every item named "-mid-" or "-fore-"):
+- Landscape, the widest size your image tool offers. PNG.
+- Only the listed objects, each whole, upright and seen straight from the front, spread across the picture with wide green space between them and around them. Nothing touches another object or the picture's edge.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no texture, no gradient.
+- No people, no text, letters, numbers or logos.
 
 ITEMS
 
-Lobby (attach venue-lobby.jpg)
-1. lobby-far.png — A grand hotel lobby wall: warm wood paneling, brass wall lamps, a long front desk against the wall, framed art, tall windows with night outside, warm light.
-2. lobby-mid.png — On green, spaced apart: two tall potted palms, a marble column, a brass luggage cart, a round side table with a lamp.
-3. lobby-fore.png — On green: one large leafy plant in a brass pot, and one marble pillar, as foreground pieces.
+THE LOBBY (attach art/outgoing/references/venue-lobby.jpg). Pilaster: plain cream marble with a thin brass edge. Floor: polished dark marble.
+1. lobby-far-1.png — The front desk hall at night: honey-colored wood paneling up to shoulder height with cream marble above, brass wall sconces glowing warm, two tall arched windows with the night sky outside, a large framed abstract painting in gold and navy between them, the edge of a coffered ceiling along the top.
+2. lobby-far-2.png — The tall elevator hall: a two-storey wall of cream marble, tall narrow windows high up with the night outside, brass sconces, a big crystal chandelier hanging down from the top edge, a long brass picture rail with two large framed landscapes.
+3. lobby-far-3.png — The conference wing's hall: dark wood wainscot, muted gold damask wallpaper above, brass sconces, tall windows with heavy burgundy drapes, framed landscape prints, a wall clock with no numbers.
+4. lobby-mid.png — On green: a tall potted palm in a brass pot, a brass floor lamp, a round side table with a table lamp on it, a tall marble urn with a flower arrangement, two brass stanchions joined by a red velvet rope.
+5. lobby-fore.png — On green: one large leafy plant in a brass pot, and one tall cream marble column (floor to ceiling height, the tallest thing in the picture).
 
-Restaurant (attach venue-restaurant.jpg)
-4. restaurant-far.png — A hotel restaurant and open kitchen pass: tiled wall, hanging copper pans, a pass window with heat lamps, stacked plates, a back bar with bottles, menu board with no readable text.
-5. restaurant-mid.png — On green, spaced apart: a prep counter, a tall rolling rack of trays, a bar stool, a swinging kitchen door.
-6. restaurant-fore.png — On green: a stainless steel counter end, and a stack of bus tubs.
+THE RESTAURANT (attach art/outgoing/references/venue-restaurant.jpg for item 6). Pilaster: a plain black steel column with bolted plates. Floors: dark wood in the dining room, red quarry tile in the kitchen, grey concrete at the dock.
+6. restaurant-far-1.png — The dining room: dark wood paneling, navy fabric wall panels, a large framed abstract painting in gold and navy, brass wall sconces, a back bar high on the wall with glass shelves of bottles (no labels), warm evening light.
+7. restaurant-far-2.png — The kitchen: a white subway-tile wall, a long stainless steel exhaust hood along the top, a rail of hanging copper pots and pans, steel wall shelves stacked with white plates and bowls, a ticket rail with blank paper tickets, the orange glow of heat lamps from above.
+8. restaurant-far-3.png — The loading dock at night, from inside the receiving bay: a painted grey concrete-block wall, a big steel roll-up door raised halfway on the dark night outside (a chain-link fence and the glow of a streetlight beyond), a caged wall light, pipes and conduit along the wall, yellow-and-black hazard stripes on the door frame.
+9. restaurant-mid.png — On green: a tall potted olive tree, a bar stool, a tall rolling rack of sheet trays, a steel prep shelf stacked with pots, a yellow mop bucket with a mop, a stack of plastic milk crates.
+10. restaurant-fore.png — On green: a large potted olive tree, and a tall stack of grey plastic bus tubs on a wheeled dolly.
 
-Campus (attach venue-campus.jpg)
-7. campus-far.png — A college dining commons: brick and glass wall, bulletin boards covered in flyers with no readable text, a long serving counter, pendant lights, a sunny quad seen through the windows.
-8. campus-mid.png — On green, spaced apart: a round cafe table with two chairs, a tray return cart, a tall trash and recycling station, a potted ficus.
-9. campus-fore.png — On green: a brick pillar, and a tall banner stand with no text.
+THE CAMPUS (attach art/outgoing/references/venue-campus.jpg for item 12). Pilaster: a red brick pier with a limestone base and cap. Floors: brick paving on the quad, speckled terrazzo in the commons, pale limestone at the library.
+11. campus-far-1.png — The quad on a sunny day: across a strip of green lawn, the front of a red-brick college hall with white-trimmed windows, big leafy oak trees, a white clock tower with a blank clock face rising behind, a blue sky with a few clouds. Here the "wall" is the building across the lawn; the lawn and the brick path are the floor below the base line.
+12. campus-far-2.png — The dining commons: red brick and tall glass windows looking out on the sunny quad, warm wood columns, pendant lights, a cork bulletin board covered with blank colored flyers, hanging potted plants.
+13. campus-far-3.png — The library at golden hour: a grand red-brick and limestone front with tall arched windows, stone columns, ivy climbing the brick, an old round clock with no numbers, trees at the sides, a warm sunset sky above.
+14. campus-mid.png — On green: a black iron lamp post, a bike rack with a bike in it, a round cafe table with two chairs, a trash and recycling station, a potted ficus, a stack of plastic chairs.
+15. campus-fore.png — On green: a large leafy shrub, and a tall banner stand with a blank banner.
 
-Pig arena (attach pig-toy.jpg for the mood only; no pig in the scene)
-10. arena-far.png — A hotel gift shop at night: shelves of stuffed animals, a neon sign shape with no letters, a glass door, a cash register counter, dim light with one bright spotlight area in the middle.
-11. arena-mid.png — On green, spaced apart: a display shelf of plush toys, a spinning postcard rack, a stack of gift boxes.
-12. arena-fore.png — On green: a large stuffed bear seen from behind, and a display table corner.
+THE GIFT SHOP, where the pig is fought (no photo). Pilaster: a plain dark wood pilaster. Floor: grey commercial carpet.
+16. arena-far-1.png — A hotel gift shop at night: wall shelves crowded with stuffed animals of every kind (bears, bunnies, ducks; no pigs), a neon sign shape on the wall glowing pink with no letters, dim light, a soft pool of spotlight in the middle of the wall.
+17. arena-far-2.png — The front of the same gift shop at night: a glass shopfront with the dark hotel lobby beyond it, wall racks of folded hotel t-shirts and caps (blank), a wall rack of postcards (blank), the same dim light.
+18. arena-mid.png — On green: a plush toy display shelf full of stuffed animals (no pigs), a spinning postcard rack, a stack of wrapped gift boxes with bows, a gumball machine, a cardboard bin of small plush toys.
+19. arena-fore.png — On green: a big stuffed bear seen from behind, and the corner of a display table with a cloth.
 
 Save all of these to: art/incoming/backdrops/
