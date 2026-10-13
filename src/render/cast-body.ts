@@ -21,9 +21,12 @@ export type PaintOpts = { recolor: string | null; dazed: boolean; hat: boolean; 
 export type Rim = { side: 1 | -1; k: number; px: number };
 
 const MIPMAPS = { autoGenerateMipmaps: true };
-/** The far arm and leg a shade back, as on Hammer. */
+/**
+ * The far arm a shade back, as on Hammer. Not the far leg: a cast member's trousers run from the torso's layer into
+ * the legs', and a tint starting at that cut showed as a seam across the thigh (Hammer's far leg is bare skin).
+ */
 const FAR_SHADE = 0xe2dad2;
-const FAR_LAYERS = new Set<LayerName>(["armFar", "legFar"]);
+const FAR_LAYERS = new Set<LayerName>(["armFar"]);
 /** The head between the near leg and the torso: the collar covers where its neck runs on, however it turns. */
 const HEAD_Z = 2.5;
 /** On the projector's sheet every part is this dark. */
