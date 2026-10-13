@@ -1,4 +1,4 @@
-import { CAST_LINES, STAFF_LINES, pick } from "../game/lines";
+import { CAST_LINES, JOB_LINES, pick, type CastJobName, type CastLineSet } from "../game/lines";
 import type { GameEvent } from "./events";
 import { bodyRect } from "./geometry";
 import type { CastPerson, Level } from "./level";
@@ -31,7 +31,14 @@ export type CastAct =
   | "flee";
 export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart" | "slide" | "body" | "puddle";
 
-export const roleOf = (p: CastPerson): CastRole => p.slice(0, -2) as CastRole;
+export type CastJob = CastJobName;
+/** Who a person is: the painting's name less its number ("cook-1" is a cook). */
+export const jobOf = (p: CastPerson): CastJob => p.slice(0, -2) as CastJob;
+/** Which of the lobby's four fights each job fights (R3 §4). */
+export const ROLE_OF: Record<CastJob, CastRole> = { bellhop: "bellhop", server: "server", office: "office", student: "student", cook: "office", busser: "bellhop", lunch: "server", prof: "office" };
+export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
+/** Who wears a hat that flies off at the first hit. */
+export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook"]);
 
 /** Each role's numbers (the R2b design §2): colliders, how far they notice him, wind-ups, attacks, rests, dazes. World px and seconds. */
 export const CAST = {
@@ -49,7 +56,10 @@ export const POINTS = { down: 100, slip: 150, schooled: 150, frozen: 50, swat: 5
 export const KNOCK = { small: { back: 700, up: 650 }, big: { back: 1100, up: 600 }, slide: { speed: 1100, friction: 700 }, bounce: 0.3 } as const;
 /** How fast a cart, a sliding bellhop or a flying body must move to bowl or to hurt. */
 export const ROLLING = 150;
-export const SPILL = { water: { w: 260, life: 8 }, coffee: { w: 150, life: 7 } } as const;
+export const SPILL = { water: { w: 260, life: 8 }, coffee: { w: 150, life: 7 }, gravy: { w: 260, life: 8 }, grease: { w: 150, life: 7 } } as const;
+export type SpillKind = keyof typeof SPILL;
+/** What a staffer's fall leaves on the floor: the tray's water, the coffee, the gravy, the pan's grease. */
+export const SPILL_OF: Partial<Record<CastJob, SpillKind>> = { server: "water", office: "coffee", lunch: "gravy", cook: "grease" };
 /**
  * The beats' seconds: the double-take, getting up, a stagger and the gap between bump lines, a slip, a freeze, a line; the leaving
  * walk's px/s; how far off he is gone; how far off, walking off against a wall, he is out of Hammer's view and gone at once.
@@ -65,6 +75,8 @@ export type Npc = {
   spawn: string;
   role: CastRole;
   person: CastPerson;
+  /** Who they are (the painting's job); `role` is the fight they fight. */
+  job: CastJob;
   recolor: string | null;
   /** Drawn this much taller or shorter than the painting (a repeat). */
   size: number;
@@ -119,7 +131,8 @@ export type Npc = {
 
 export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target[]): Npc[] {
   return (level.cast ?? []).map((s, k) => {
-    const role = roleOf(s.person);
+    const job = jobOf(s.person);
+    const role = ROLE_OF[job];
     const c = CAST[role];
     const target = s.cart === undefined ? undefined : targets.find((t) => Math.abs(t.x - s.cart!) < 1);
     // A busser's cart carries what he pushes: dirty dishes, or the dock's trash.
@@ -129,6 +142,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       id: CAST_ID + k,
       spawn: s.id,
       role,
+      job,
       person: s.person,
       recolor: s.recolor ?? null,
       size: s.size ?? 1,
@@ -152,7 +166,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       noticed: false,
       rest: role === "student" ? CAST.student.restMin + (k % 4) * CAST.student.restStep : 0,
       cart,
-      hat: role === "bellhop",
+      hat: HATTED.has(job),
       prop: role !== "bellhop",
       slimed: false,
       spin: 0,
@@ -192,7 +206,7 @@ export type StrikeWorld = { puddles: Puddle[]; stage: Stage };
 const BIG: ReadonlySet<CastHitBy> = new Set<CastHitBy>(["burst", "shield", "cart", "slide", "body"]);
 
 /** A spill on the floor under him: the server's water, the office worker's coffee. */
-export function spill(w: StrikeWorld, n: Npc, kind: "water" | "coffee"): void {
+export function spill(w: StrikeWorld, n: Npc, kind: SpillKind): void {
   const s = SPILL[kind];
   const y = floorAt(w.stage, n.x, n.y - 24) ?? n.y;
   w.puddles.push({ x: n.x, y, w: s.w, life: s.life, max: s.life, kind });
@@ -200,7 +214,7 @@ export function spill(w: StrikeWorld, n: Npc, kind: "water" | "coffee"): void {
 }
 
 function hitEvent(n: Npc, by: CastHitBy, dir: 1 | -1, down: boolean, points: number, events: GameEvent[]) {
-  events.push({ type: "castHit", id: n.id, role: n.role, by, x: n.x, y: n.y - n.h / 2, dir, down, points });
+  events.push({ type: "castHit", id: n.id, role: n.role, job: n.job, by, x: n.x, y: n.y - n.h / 2, dir, down, points });
 }
 
 /** Thrown: off his feet, flying `dir`, turning over. */
@@ -255,7 +269,7 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
   if (by === "snot") n.slimed = true;
   n.hits++;
   n.prop = false;
-  if (n.role === "bellhop") n.hat = false;
+  n.hat = false;
   const again = n.role === "bellhop" && n.hits < CAST.bellhop.hits;
   n.out = !again;
   const points = by === "shield" ? POINTS.shield : by === "puddle" ? POINTS.slip : chain ? 0 : POINTS.down;
@@ -281,8 +295,8 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
 
 /** The line a cast member opens with when he sees Hammer. */
 export function noticeLine(n: Npc): string {
-  if (n.role === "bellhop") return pick(CAST_LINES.bellhop.notice, n.k);
-  if (n.role === "server") return pick(STAFF_LINES.server, n.k);
-  if (n.role === "office") return pick(CAST_LINES.office.notice, n.k);
-  return pick(CAST_LINES.student.notice, n.k);
+  return pick(linesOf(n).notice, n.k);
 }
+
+/** Everything a cast member says. */
+export const linesOf = (n: Pick<Npc, "job">): CastLineSet => JOB_LINES[n.job];

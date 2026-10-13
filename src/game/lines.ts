@@ -125,6 +125,74 @@ export const CAST_LINES = {
 } as const;
 
 
+export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof";
+/** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
+export type CastLineSet = {
+  notice: readonly string[];
+  bump: readonly string[];
+  down: readonly string[];
+  /** Said on the way down a pit. */
+  fall: string;
+  /** The cart's shove (the bellhop, the busser). */
+  shove: readonly string[];
+  /** The rush's warning and its skid (the server, the lunch worker). */
+  warn: readonly string[];
+  skid: readonly string[];
+  /** Walked into head-on (the office worker, the cook, the professor). */
+  march: readonly string[];
+  /** Rearing up out of hiding (the office worker behind the screen, the cook behind the pass). */
+  ambush: readonly string[];
+  /** Frozen by the lecture; null sighs one of STAFF_SIGHS. */
+  frozen: string | null;
+};
+const none: readonly string[] = [];
+
+/** Every job's lines (R3 §4): the lobby's four as R2b wrote them, and the restaurant's and campus's new people. */
+export const JOB_LINES: Record<CastJobName, CastLineSet> = {
+  bellhop: { notice: CAST_LINES.bellhop.notice, bump: CAST_LINES.bellhop.bump, down: CAST_LINES.bellhop.down, fall: CAST_LINES.bellhop.fall, shove: CAST_LINES.bellhop.shove, warn: none, skid: none, march: none, ambush: none, frozen: null },
+  server: { notice: STAFF_LINES.server, bump: CAST_LINES.server.bump, down: CAST_LINES.server.down, fall: CAST_LINES.server.fall, shove: none, warn: CAST_LINES.server.warn, skid: CAST_LINES.server.skid, march: none, ambush: none, frozen: null },
+  office: { notice: CAST_LINES.office.notice, bump: CAST_LINES.office.notice, down: CAST_LINES.office.down, fall: CAST_LINES.office.fall, shove: none, warn: none, skid: none, march: CAST_LINES.office.march, ambush: CAST_LINES.office.ambush, frozen: CAST_LINES.office.frozen },
+  student: { notice: CAST_LINES.student.notice, bump: none, down: none, fall: CAST_LINES.student.fall, shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
+  busser: {
+    notice: ["Behind you!", "Are you still working on that?", "I just started here."],
+    bump: ["Coming through!", "Hot plates!"],
+    down: ["That's not my section.", "I just started here."],
+    fall: "I quiiit",
+    shove: ["Coming through!", "Bus cart!", "Heads up, sir!"],
+    warn: none, skid: none, march: none, ambush: none, frozen: null,
+  },
+  cook: {
+    notice: ["Who let him back here?", "Hands!", "Ninety-six on that."],
+    bump: ["Behind!", "Corner!"],
+    down: ["Who touched my station?", "I'm calling the chef."],
+    fall: "Behiiind",
+    shove: none, warn: none, skid: none,
+    march: ["Behind!"],
+    ambush: ["Order up!", "Hands!"],
+    frozen: "Yes, chef.",
+  },
+  lunch: {
+    notice: ["No cutting!", "One scoop, hon.", "You want gravy on that?"],
+    bump: ["Keep it moving, hon.", "Tray, please."],
+    down: ["That's it, I'm on break.", "I've been here thirty years."],
+    fall: "Hooooon",
+    shove: none,
+    warn: ["Keep it moving, hon!", "Line's back there!"],
+    skid: ["Next!", "Who's next?"],
+    march: none, ambush: none, frozen: null,
+  },
+  prof: {
+    notice: ["Office hours are Tuesdays.", "Are you in my section?", "Fascinating."],
+    bump: ["Pardon me.", "Were you enrolled?"],
+    down: ["I'm putting this in my memoir.", "That's going on your transcript."],
+    fall: "Tenuuure",
+    shove: none, warn: none, skid: none,
+    march: ["Pardon me. Were you enrolled?"],
+    ambush: none,
+    frozen: "Fascinating. Go on.",
+  },
+};
+
 export const IMPACT_WORDS = ["BONK!", "WHAM!", "CLONK!", "THWACK!"];
 
 /** Stable pick so a given staffer always opens with the same line. */

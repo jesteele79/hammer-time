@@ -878,3 +878,93 @@ test("whoever falls down a pit says their own line on the way down", () => {
   }
   assert.equal(new Set([CAST_LINES.bellhop.fall, CAST_LINES.server.fall, CAST_LINES.office.fall, CAST_LINES.student.fall]).size, 4, "four different lines");
 });
+
+import { JOB_LINES, STAFF_LINES } from "../src/game/lines.ts";
+import { strikeNpc } from "../src/sim/cast.ts";
+import { knock } from "../src/sim/targets.ts";
+
+test("the new people fight the lobby's ways: the busser's cart, the lunch worker's rush, the cook's and the professor's march", () => {
+  const w = worldWith(
+    [
+      { id: "b", person: "busser-1", x: 1000, y: 0, cart: 850, load: "dishes" },
+      { id: "l", person: "lunch-1", x: 3000, y: 0 },
+      { id: "c", person: "cook-1", x: 5000, y: 0, hide: true },
+      { id: "p", person: "prof-1", x: 7000, y: 0, x0: 6800, x1: 7200 },
+    ],
+    { x: -1500, y: 0 }, {}, [850],
+  );
+  assert.deepEqual(w.cast.map((n) => [n.job, n.role, n.hat]), [["busser", "bellhop", false], ["lunch", "server", false], ["cook", "office", true], ["prof", "office", false]]);
+  assert.equal(w.targets[0].load, "dishes");
+  assert.equal(npc(w, "c").act, "hide");
+});
+
+test("the busser shoves his dish cart with his own line; bonked, its dishes crash once", () => {
+  const w = worldWith([{ id: "b", person: "busser-1", x: 1400, y: 0, cart: 1250, load: "dishes" }], { x: 500, y: 0 }, {}, [1250]);
+  const evs = until(w, (x) => npc(x, "b").act === "chase", 4);
+  assert.ok(of(evs, "castAttack").length === 1 && w.targets[0].vx < 0, "shoved at him");
+  assert.ok(of(evs, "castLine").some((e) => JOB_LINES.busser.shove.includes(e.text)), "a busser's line");
+  knock(w.targets[0], 1, 1100, 200);
+  assert.equal(of(steps(w, 0.3), "dishes").length, 1);
+  knock(w.targets[0], -1, 1100, 200);
+  assert.equal(of(steps(w, 0.3), "dishes").length, 0, "once");
+});
+
+test("the lunch worker warns and rushes with her own lines; knocked down she leaves gravy", () => {
+  const w = worldWith([{ id: "l", person: "lunch-1", x: 1400, y: 0 }], { x: 900, y: 0 });
+  const evs = until(w, (x) => npc(x, "l").act === "attack", 3);
+  assert.ok(of(evs, "castLine").some((e) => JOB_LINES.lunch.warn.includes(e.text)), "her warning");
+  strikeNpc(npc(w, "l"), "mallet", 1, w, []);
+  const down = until(w, (x) => npc(x, "l").act === "leave", 6);
+  assert.equal(w.puddles.at(-1)?.kind, "gravy");
+  assert.ok(of(down, "castLine").some((e) => JOB_LINES.lunch.down.includes(e.text)), "her line getting up");
+});
+
+test("the cook rears up out of hiding with his own line and flings a hot pan that leaves grease; hit, his hat flies", () => {
+  const w = worldWith([{ id: "c", person: "cook-1", x: 1400, y: 0, hide: true }], { x: 600, y: 0 });
+  w.hero.x = 1000;
+  const evs = until(w, (x) => x.puddles.some((p) => p.kind === "grease"), 4);
+  assert.ok(of(evs, "castLine").some((e) => JOB_LINES.cook.ambush.includes(e.text)), "his line");
+  assert.ok(of(evs, "missile").some((e) => e.kind === "pan"), "a pan, not coffee");
+  assert.ok(w.puddles.some((p) => p.kind === "grease"), "a grease slick");
+  const c = npc(w, "c");
+  Object.assign(c, { act: "walk" });
+  assert.ok(c.hat);
+  strikeNpc(c, "mallet", 1, w, []);
+  assert.equal(c.hat, false, "the toque flies");
+});
+
+test("the professor reads as he marches: a page turns as he closes in, and head-on his papers fly and it costs a pip", () => {
+  const w = worldWith([{ id: "p", person: "prof-1", x: 1000, y: 0, x0: 600, x1: 1400 }], { x: -1500, y: 0 });
+  until(w, () => npc(w, "p").facing === -1 && npc(w, "p").x < 1300 && npc(w, "p").x > 900, 8);
+  Object.assign(w.hero, { x: npc(w, "p").x - 450, y: 0, facing: 1 });
+  const evs = until(w, (x) => x.hero.patience < 3, 4);
+  assert.ok(of(evs, "chime").some((e) => e.job === "prof"), "the page's tell");
+  assert.ok(of(evs, "castSplash").some((e) => e.kind === "papers"), "his papers");
+  assert.ok(of(evs, "castLine").some((e) => e.text === JOB_LINES.prof.march[0]));
+});
+
+test("the lecture freezes the cook and the professor with their own lines", () => {
+  const w = worldWith([{ id: "c", person: "cook-1", x: 1120, y: 0 }, { id: "p", person: "prof-1", x: 1150, y: 0 }], { x: 1000, y: 0 });
+  Object.assign(w.hero, { facing: 1, lectureCd: 0 });
+  const evs = [...press(w, "lecture"), ...until(w, (x) => x.events.some((e) => e.type === "castFreeze"), 1), ...w.events];
+  const lines = of(evs, "castLine").map((e) => e.text);
+  assert.ok(lines.includes(JOB_LINES.cook.frozen), lines.join(" | "));
+  assert.ok(lines.includes(JOB_LINES.prof.frozen), lines.join(" | "));
+});
+
+test("the new people say their own line down a pit", () => {
+  const pit = flat({ floor: [{ x0: -2000, x1: 1000, y0: 0, y1: 0 }, { x0: 1400, x1: 20000, y0: 0, y1: 0 }], bounds: { x: -2000, y: -3000, w: 22000, h: 3600 } });
+  for (const person of ["busser-1", "lunch-1", "cook-1", "prof-1"]) {
+    const w = worldWith([{ id: "p", person, x: 1200, y: 0 }], { x: -1500, y: 0 }, {}, [], pit);
+    const fell = of(until(w, (x) => !npc(x, "p").alive, 3), "castFell");
+    assert.equal(fell[0]?.line, JOB_LINES[person.slice(0, -2)].fall, person);
+  }
+});
+
+test("the lobby's people say exactly what they said before the jobs", () => {
+  const w = worldWith([{ id: "o", person: "office-1", x: 1400, y: 0 }, { id: "s", person: "server-1", x: 3000, y: 0 }, { id: "b", person: "bellhop-1", x: 5000, y: 0 }], { x: -1500, y: 0 });
+  assert.deepEqual(w.cast.map((n) => [n.job, n.role]), [["office", "office"], ["server", "server"], ["bellhop", "bellhop"]]);
+  assert.deepEqual(JOB_LINES.office.frozen, CAST_LINES.office.frozen);
+  assert.deepEqual(JOB_LINES.server.notice, STAFF_LINES.server);
+  assert.deepEqual(JOB_LINES.bellhop.shove, CAST_LINES.bellhop.shove);
+});

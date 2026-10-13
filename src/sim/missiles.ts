@@ -5,7 +5,7 @@ import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
 import type { HeroState, Point, Stage } from "./types";
 
-export type MissileKind = "plane" | "coffee";
+export type MissileKind = "plane" | "coffee" | "pan";
 /** Something thrown at him: `phase` seeds a plane's wobble, `from` is the thrower. */
 export type Missile = { id: number; kind: MissileKind; x: number; y: number; vx: number; vy: number; spin: number; life: number; phase: number; from: number };
 
@@ -28,14 +28,14 @@ export function launchPlane(id: number, from: Thrower, target: Point): Missile {
   return { id, kind: "plane", x: from.x + dir * 40, y, vx: dir * PLANE.speed, vy, spin: 0, life: PLANE.life, phase: id * 1.3, from: from.id };
 }
 
-export function launchCoffee(id: number, from: Thrower, target: Point): Missile {
+export function launchCoffee(id: number, from: Thrower, target: Point, kind: "coffee" | "pan" = "coffee"): Missile {
   const dir = Math.sign(target.x - from.x) || from.facing;
-  return { id, kind: "coffee", x: from.x + dir * 40, y: from.y - from.h * COFFEE.hand, vx: dir * COFFEE.speed, vy: COFFEE.up, spin: 0, life: COFFEE.life, phase: 0, from: from.id };
+  return { id, kind, x: from.x + dir * 40, y: from.y - from.h * COFFEE.hand, vx: dir * COFFEE.speed, vy: COFFEE.up, spin: 0, life: COFFEE.life, phase: 0, from: from.id };
 }
 
-function puddleAt(w: MissileWorld, x: number, y: number) {
-  const s = SPILL.coffee;
-  w.puddles.push({ x, y, w: s.w, life: s.life, max: s.life, kind: "coffee" });
+function puddleAt(w: MissileWorld, x: number, y: number, kind: "coffee" | "grease") {
+  const s = SPILL[kind];
+  w.puddles.push({ x, y, w: s.w, life: s.life, max: s.life, kind });
   if (w.puddles.length > SNOT.puddles) w.puddles.shift();
 }
 
@@ -71,7 +71,7 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       w.hits.push(m.x);
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y: m.y, floor: false, hero: true });
-      if (m.kind === "coffee") puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y);
+      if (m.kind !== "plane") puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y, m.kind === "pan" ? "grease" : "coffee");
       continue;
     }
     const floor = floorAt(w.stage, m.x, a.y);
@@ -82,7 +82,7 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       const y = onFloor ? floor! : plat ? plat.y : m.y;
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y, floor: onFloor || !!plat, hero: false });
-      if (m.kind === "coffee" && (onFloor || plat)) puddleAt(w, m.x, y);
+      if (m.kind !== "plane" && (onFloor || plat)) puddleAt(w, m.x, y, m.kind === "pan" ? "grease" : "coffee");
     }
   }
   w.missiles = w.missiles.filter((m) => m.life > 0);

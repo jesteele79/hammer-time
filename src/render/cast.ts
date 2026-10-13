@@ -57,6 +57,11 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   "office-2": { height: 325, head: 0.22, build: 0.85, skin: "#d9a98b", hair: "#1f1a18", hairStyle: "bob", top: "#5a5e68", sleeves: "top", bottom: "#1d1d1f", shoes: "#141414", earbuds: true, lanyard: true },
   "student-1": { height: 315, head: 0.22, build: 0.9, skin: "#c88f6a", hair: "#1c1612", hairStyle: "curly", top: "#5d6b3c", sleeves: "top", bottom: "#3f5e8f", shoes: "#f4f3ee", glasses: true, earbuds: true, backpack: "#6b1f2a" },
   "student-2": { height: 335, head: 0.22, build: 0.95, skin: "#f0cfae", hair: "#2a2a2e", hairStyle: "beanie", top: "#8a8d93", sleeves: "top", bottom: "#1f2024", shoes: "#f4f3ee", earbuds: true, backpack: "#1a1a1a" },
+  // R3's people (their stand-ins are the fallback only; never polish them).
+  "cook-1": { height: 360, head: 0.22, build: 1.2, skin: "#c98a5e", hair: "#1c1612", hairStyle: "bald", top: "#f4f3ee", sleeves: "skin", apron: true, bottom: "#2a2a2a", shoes: "#141414" },
+  "busser-1": { height: 340, head: 0.22, build: 0.75, skin: "#f0cfae", hair: "#e3b341", hairStyle: "short", top: "#1a1a1a", sleeves: "skin", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
+  "lunch-1": { height: 300, head: 0.22, build: 1.15, skin: "#e8bf9c", hair: "#b5b5b5", hairStyle: "curly", top: "#2d3f7a", sleeves: "skin", apron: true, bottom: "#1d1d1f", shoes: "#141414", glasses: true },
+  "prof-1": { height: 330, head: 0.22, build: 0.95, skin: "#e9c4a4", hair: "#f2f2f2", hairStyle: "curly", top: "#7b5a3a", sleeves: "top", tie: "#b8282e", bottom: "#6b4a2a", shoes: "#5a3a1e", glasses: true },
 };
 
 /** A look with the uniform's top (the vest where there is one) in the recolor's hue. */

@@ -1,4 +1,4 @@
-import { hittable, npcRect, strikeNpc, type Npc } from "./cast";
+import { hittable, npcRect, strikeNpc, type Npc, type SpillKind } from "./cast";
 import { HEAD_SCALE } from "./constants";
 import type { GameEvent } from "./events";
 import { sweptHeadHits } from "./hits";
@@ -12,7 +12,7 @@ import type { HeroState, Stage, Target } from "./types";
 /** `id` is unique in the world, so the renderer can match a blob across two steps. */
 export type Snot = { id: number; x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
 /** Snot, the tray's water or coffee on the floor: staff slip on any of them. */
-export type Puddle = { x: number; y: number; w: number; life: number; max: number; kind: "snot" | "water" | "coffee" };
+export type Puddle = { x: number; y: number; w: number; life: number; max: number; kind: "snot" | SpillKind };
 
 /** The shipped embers (280/330 px/s, −40/−30 up, 1.15 s, puddles 15/22 wide for 7/9 s) at the new scale. */
 export const SNOT = {

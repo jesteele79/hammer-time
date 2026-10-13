@@ -1,4 +1,5 @@
 import { CAST_LINES, RETORTS, STAFF_SIGHS, pick } from "../game/lines";
+import { SPILL_OF, linesOf } from "./cast";
 import {
   CAST,
   CHAIN,
@@ -97,8 +98,7 @@ function patrol(n: Npc, w: CastWorld, speed: number): void {
   n.act = "walk";
 }
 
-const downLine = (n: Npc): string =>
-  n.role === "bellhop" ? pick(CAST_LINES.bellhop.down, n.k) : n.role === "server" ? pick(CAST_LINES.server.down, n.k) : pick(CAST_LINES.office.down, n.k);
+const downLine = (n: Npc): string => pick(linesOf(n).down, n.k);
 
 /** The telegraph: he squares up to Hammer, and the ! burst goes up. */
 const windup = (n: Npc, w: CastWorld, events: GameEvent[]) => {
@@ -130,7 +130,7 @@ function stepServer(n: Npc, w: CastWorld, events: GameEvent[]): void {
     const ledge = !supportAt(w.stage, n.x + n.facing * (n.w / 2 + 20), n.y);
     if (n.actT >= c.rushT || Math.abs(n.x - n.mark) >= c.rushPx || n.blocked || ledge) {
       setAct(n, "recover");
-      say(n, pick(CAST_LINES.server.skid, n.k + n.hits), events);
+      say(n, pick(linesOf(n).skid, n.k + n.hits), events);
     }
     return;
   }
@@ -142,7 +142,7 @@ function stepServer(n: Npc, w: CastWorld, events: GameEvent[]): void {
   patrol(n, w, c.walk);
   if (!n.noticed || n.rest > 0 || !sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
   windup(n, w, events);
-  say(n, pick(CAST_LINES.server.warn, n.k + n.hits), events);
+  say(n, pick(linesOf(n).warn, n.k + n.hits), events);
 }
 
 /** Which side of him the cart stands on: Hammer's, where there is room for it; the other where a solid (the desk) is in the way. */
@@ -177,7 +177,7 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
       }
       attack(n, events, cart?.x, cart ? cart.y - cart.h / 2 : undefined);
       setAct(n, "chase");
-      say(n, pick(CAST_LINES.bellhop.shove, n.k + n.hits), events);
+      say(n, pick(linesOf(n).shove, n.k + n.hits), events);
     }
     return;
   }
@@ -289,7 +289,7 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
     n.vx = 0;
     if (!sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
     windup(n, w, events);
-    say(n, pick(CAST_LINES.office.ambush, n.k), events);
+    say(n, pick(linesOf(n).ambush, n.k), events);
     return;
   }
   if (n.act === "windup") {
@@ -308,9 +308,10 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
     if (n.prop && n.vy >= 0 && !n.mark) {
       n.mark = 1;
       n.prop = false;
-      w.missiles.push(launchCoffee(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }));
+      // The office worker flings his coffee; the cook his hot pan.
+      w.missiles.push(launchCoffee(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }, n.job === "cook" ? "pan" : "coffee"));
       const m = w.missiles[w.missiles.length - 1];
-      events.push({ type: "missile", kind: "coffee", x: m.x, y: m.y });
+      events.push({ type: "missile", kind: m.kind, x: m.x, y: m.y });
     }
     if (n.onGround && n.actT > 0.2) {
       n.hide = false;
@@ -325,7 +326,7 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const near = sameLevel(n, h) && Math.abs(h.x - n.x) < c.chime;
   if (near && !n.cue) {
     n.cue = true;
-    events.push({ type: "chime", x: n.x, y: n.y - n.h });
+    events.push({ type: "chime", x: n.x, y: n.y - n.h, job: n.job });
   }
   if (!near && Math.abs(h.x - n.x) > c.chime * 2) n.cue = false;
 }
@@ -427,8 +428,8 @@ function land(n: Npc, w: CastWorld): void {
     return;
   }
   setAct(n, "down");
-  if (n.role === "server") spill(w, n, "water");
-  else if (n.role === "office") spill(w, n, "coffee");
+  const s = SPILL_OF[n.job];
+  if (s) spill(w, n, s);
 }
 
 function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
@@ -453,7 +454,7 @@ function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   const b = w.stage.bounds;
   if (n.y > b.y + b.h - FALL_MARGIN) {
     n.alive = false;
-    events.push({ type: "castFell", id: n.id, x: n.x, y: n.y, points: POINTS.shaft, line: CAST_LINES[n.role].fall });
+    events.push({ type: "castFell", id: n.id, x: n.x, y: n.y, points: POINTS.shaft, line: linesOf(n).fall });
   } else if (n.act === "leave" || n.act === "flee") {
     const far = Math.abs(n.x - w.hero.x);
     // Walking off into a wall: gone if he cannot see them any more, else they turn back the other way.
@@ -480,8 +481,8 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
     if (h.invuln > 0 || h.move?.kind === "tumble") return;
     w.hits.push(n.x);
     if (n.role === "office") {
-      events.push({ type: "castSplash", x: h.x, y: h.y - h.h * 0.6 });
-      say(n, CAST_LINES.office.march[0], events);
+      events.push({ type: "castSplash", x: h.x, y: h.y - h.h * 0.6, kind: n.job === "cook" ? "grease" : n.job === "prof" ? "papers" : "coffee" });
+      say(n, pick(linesOf(n).march, 0), events);
       n.rest = CAST.office.rest;
       n.dir = dir;
       setAct(n, "bumped");
@@ -494,7 +495,7 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
     n.dir = dir;
     setAct(n, "bumped");
     events.push({ type: "castBump", id: n.id, x: n.x, y: n.y - n.h });
-    say(n, n.role === "bellhop" ? pick(CAST_LINES.bellhop.bump, n.k) : n.role === "server" ? pick(CAST_LINES.server.bump, n.k) : pick(CAST_LINES.office.notice, n.k + 1), events);
+    say(n, pick(linesOf(n).bump, n.role === "office" ? n.k + 1 : n.k), events);
   }
 }
 
@@ -567,7 +568,7 @@ function lectureOn(w: CastWorld, reach: Rect, events: GameEvent[]): void {
       n.vx = 0;
       n.facing = toward(n, w.hero);
       setAct(n, "frozen");
-      say(n, n.role === "office" ? CAST_LINES.office.frozen : pick(STAFF_SIGHS, n.k + frozen), events);
+      say(n, linesOf(n).frozen ?? pick(STAFF_SIGHS, n.k + frozen), events);
       events.push({ type: "castFreeze", id: n.id, x: n.x, y: n.y - n.h, points: POINTS.frozen });
       frozen++;
     }

@@ -207,7 +207,7 @@ export function drawMissile(g: Graphics, m: Missile) {
   g.rotation = m.spin;
 }
 
-const PUDDLE_COLORS = { snot: "#9cc24a", water: "#7cc8f0", coffee: "#6b3a1e" } as const;
+const PUDDLE_COLORS = { snot: "#9cc24a", water: "#7cc8f0", coffee: "#6b3a1e", gravy: "#8a5a2b", grease: "#d9a441" } as const;
 
 /** A flat glossy puddle on the floor, in what was spilled, that fades over its last second. */
 export function drawPuddle(g: Graphics, p: Puddle) {

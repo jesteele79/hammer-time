@@ -1,4 +1,4 @@
-import type { CastHitBy, CastRole } from "./cast";
+import type { CastHitBy, CastJob, CastRole } from "./cast";
 import type { GameMode } from "./game";
 import type { MissileKind } from "./missiles";
 import type { CrateKind, DoorKind, LevelId } from "./level";
@@ -73,7 +73,7 @@ export type GameEvent =
   /** A cast member says a line (a speech bubble). */
   | { type: "castLine"; id: number; text: string; seconds: number }
   /** A hit landed on a cast member. `down`: knocked out by it. `points` go to the score. */
-  | { type: "castHit"; id: number; role: CastRole; by: CastHitBy; x: number; y: number; dir: 1 | -1; down: boolean; points: number }
+  | { type: "castHit"; id: number; role: CastRole; job: CastJob; by: CastHitBy; x: number; y: number; dir: 1 | -1; down: boolean; points: number }
   /** He landed on someone from above; `landed` is false when a student sidestepped. */
   | { type: "stomp"; x: number; y: number; landed: boolean }
   /** A student runs off (snot, or after a knock). */
@@ -87,9 +87,9 @@ export type GameEvent =
   /** He walked into someone who was not attacking: a nudge and a line, no pip. */
   | { type: "castBump"; id: number; x: number; y: number }
   /** The office worker's coffee, all over him. */
-  | { type: "castSplash"; x: number; y: number }
+  | { type: "castSplash"; x: number; y: number; kind: "coffee" | "grease" | "papers" }
   /** A marching office worker's phone, as he closes in. */
-  | { type: "chime"; x: number; y: number }
+  | { type: "chime"; x: number; y: number; job: CastJob }
   /** A chain: the `count`th staffer bowled over by one moving thing; `oneUp` at eight. */
   | { type: "chain"; x: number; y: number; count: number; points: number; oneUp: boolean }
   /** A missile launched. */
