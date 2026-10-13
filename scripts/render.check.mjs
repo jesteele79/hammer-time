@@ -363,7 +363,7 @@ test("the cast and the missiles draw between the last two steps, matched by id",
 });
 
 test("every person has a look, taller or shorter than Hammer by the design, and a recolor changes only the top", () => {
-  assert.deepEqual(Object.keys(LOOKS).sort(), ["bellhop-1", "bellhop-2", "office-1", "office-2", "server-1", "server-2", "student-1", "student-2"]);
+  assert.deepEqual(Object.keys(LOOKS).sort(), ["bellhop-1", "bellhop-2", "busser-1", "cook-1", "lunch-1", "office-1", "office-2", "prof-1", "server-1", "server-2", "student-1", "student-2"]);
   assert.deepEqual([LOOKS["bellhop-1"].height, LOOKS["server-2"].height, LOOKS["student-1"].height], [355, 360, 315]);
   const r = recolored(LOOKS["server-1"], "#7a1f2b");
   assert.equal(r.vest, "#7a1f2b");
