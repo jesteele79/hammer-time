@@ -812,3 +812,13 @@ test("behind the counter the cook sinks till only his toque shows, and rears up 
   // Already under the top, he does not rise to meet it.
   assert.equal(counterSink(-100, -180, 0), 0);
 });
+
+import { floorBottom, openUnder } from "../src/render/venue-campus.ts";
+import { CAMPUS } from "../src/sim/levels/campus.ts";
+
+test("the campus's flights and landings stand on the ground; the deck's stair, with the commons floor under it, is open", () => {
+  const floors = CAMPUS.floor;
+  assert.deepEqual(floors.filter((f) => f.kind === "steps" && openUnder(f, floors)).map((f) => f.x0), [10400]);
+  // A flight between two landings reaches the ground like the landings either side of it, not 120 under its foot.
+  for (const f of floors.filter((f) => (f.kind === "steps" || f.kind === "stone") && !openUnder(f, floors))) assert.equal(floorBottom(f), 120, `${f.kind} at ${f.x0}`);
+});

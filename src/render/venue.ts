@@ -4,6 +4,7 @@ import { pitsOf, type CheckpointSpec, type DoorSpec, type Furniture, type Level,
 import type { FloorSegment, Pass, Point } from "../sim/types";
 import { SCENERY_Z } from "./backdrop";
 import { FLOOR, INK, THIN } from "./ink";
+import { campusFloor, campusFurniture, campusPlatform, drawBeltTrays } from "./venue-campus";
 import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
@@ -71,17 +72,17 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   root.addChild(back, mid, front);
 
   // Each venue's own kinds first; the lobby's drawing for the rest.
-  for (const f of level.furniture) if (!restaurantFurniture(back, f)) drawFurniture(back, f);
+  for (const f of level.furniture) if (!restaurantFurniture(back, f) && !campusFurniture(back, f)) drawFurniture(back, f);
   for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
   else drawPass(back, p, root);
-  for (const p of level.platforms) if (!restaurantPlatform(mid, p)) drawPlatform(mid, p);
-  for (const f of level.floor) if (!restaurantFloor(front, f)) drawFloor(front, f, level);
+  for (const p of level.platforms) if (!restaurantPlatform(mid, p) && !campusPlatform(mid, p)) drawPlatform(mid, p);
+  for (const f of level.floor) if (!restaurantFloor(front, f) && !campusFloor(front, f, level.floor)) drawFloor(front, f, level);
   drawPits(back, level);
   const doorG = new Graphics();
   root.addChild(doorG);
   for (const s of level.signs) drawSign(root, s);
 
-  const escalators = level.floor.filter((f) => f.kind === "escalator");
+  const moving = level.floor.filter((f) => f.kind === "escalator" || f.kind === "belt");
   const steps = new Graphics();
   root.addChild(steps);
 
@@ -104,7 +105,8 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   let glowing: string | null = null;
   const redrawSteps = () => {
     steps.clear();
-    for (const seg of escalators) drawEscalatorSteps(steps, seg, t);
+    for (const seg of moving) if (seg.kind === "belt") drawBeltTrays(steps, seg, t);
+    else drawEscalatorSteps(steps, seg, t);
   };
   redrawSteps();
 
@@ -135,7 +137,7 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
     },
     update(dt) {
       t += dt;
-      if (escalators.length) redrawSteps();
+      if (moving.length) redrawSteps();
       if (glowing) {
         const d = doors.get(glowing);
         if (d) d.glow.alpha = 0.65 + 0.35 * Math.sin(t * 6);

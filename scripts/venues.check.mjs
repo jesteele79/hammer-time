@@ -297,3 +297,77 @@ test("the lobby's exit now leads to the restaurant's card", () => {
   for (let i = 0; i < Math.round(20 / STEP) && g.mode !== "card"; i++) g.step(input({ right: true }));
   assert.deepEqual([g.mode, g.level.id], ["card", "restaurant"]);
 });
+
+import { CAMPUS } from "../src/sim/levels/campus.ts";
+
+test("the campus keeps the spec's shape: its length, two clocks, the bands, an early pepper, no pit", () => {
+  const K = CAMPUS;
+  assert.ok(K.length >= 14000 && K.length <= 18000);
+  assert.equal(K.checkpoints.length, 2);
+  assert.deepEqual(pitsOf(K), []);
+  assert.ok(Math.min(...K.crates.filter((c) => c.kind === "pepper").map((c) => c.x)) < 1200);
+  assert.ok(K.platforms.some((p) => p.kind === "deck" && p.y === -520), "the deck at 520");
+  const belt = K.floor.find((f) => f.kind === "belt");
+  assert.ok(belt.belt > 0 && belt.y1 < belt.y0, "a belt rising to the right");
+  for (const f of K.floor.filter((f) => f.kind === "steps")) {
+    const deg = (Math.atan2(Math.abs(f.y1 - f.y0), f.x1 - f.x0) * 180) / Math.PI;
+    assert.ok(Math.abs(deg - 30) < 0.5, `30-degree steps: ${deg}`);
+  }
+  for (const d of ["SKILLS LAB", "LIBRARY"]) assert.ok(K.doors.some((x) => x.label === d), d);
+  assert.equal(K.cast.length, 12);
+  footed(K);
+});
+
+test("the deck is out of reach from the floor and nothing under it reaches it; the fountain's top is reached from its rim, not the plaza", () => {
+  const deck = CAMPUS.platforms.find((p) => p.kind === "deck");
+  assert.ok(0 - deck.y > REACH, "not from the floor");
+  for (const p of CAMPUS.platforms) if (p !== deck && p.x1 > deck.x0 && p.x0 < deck.x1) assert.ok(p.y - deck.y > 300 + 100, `${p.kind} at ${p.y} under the deck`);
+  const tray = CAMPUS.platforms.find((p) => p.kind === "tray");
+  const belt = CAMPUS.floor.find((f) => f.kind === "belt");
+  assert.ok(tray.x1 === belt.x0 && tray.y === belt.y0 && -tray.y < REACH, "the tray counter, a hop up, feeds the belt");
+  assert.ok(belt.x1 === deck.x0 && belt.y1 === deck.y, "the belt delivers onto the deck");
+  const rim = CAMPUS.platforms.find((p) => p.kind === "fountain");
+  const tier = CAMPUS.platforms.find((p) => p.kind === "tier");
+  assert.ok(rim.y - tier.y < REACH && -200 - tier.y > REACH, "the tier from the rim, never from the plaza");
+});
+
+test("the library's ledges are each reached from the flight or landing beside them", () => {
+  const stage = stageOf(CAMPUS);
+  for (const l of CAMPUS.platforms.filter((p) => p.kind === "ledge")) {
+    const near = Math.max(...[l.x0, l.x1, l.x1 + 100].map((x) => -(floorAt(stage, x, -2000) ?? 0)));
+    assert.ok(-l.y - near < REACH, `ledge at ${l.x0}: ${-l.y - near} px above its footing`);
+  }
+});
+
+test("every run of the campus has a can, nuts and a Buc-ee's under the deck and on it", () => {
+  assert.deepEqual(CAMPUS.routes.map((r) => r.id), ["floor", "deck"]);
+  for (let seed = 1; seed <= 24; seed++) {
+    const p = seedRewards(CAMPUS, seed);
+    for (const r of CAMPUS.routes)
+      for (const kind of ["can", "nuts", "bucees"])
+        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id}`);
+  }
+});
+
+test("a scripted player clears the campus by the floor and by the deck: alive, inside the clock", () => {
+  for (const route of ["floor", "balcony"]) {
+    const { g, topY } = clear([RESTAURANT, CAMPUS], 2, route);
+    assert.equal(g.level.id, "campus");
+    assert.equal(g.run.lives, 3, `${route}: no life lost`);
+    assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `${route}: reached the LIBRARY (${g.mode} at ${g.world.hero.x})`);
+    assert.ok(topY <= -880, `${route}: up the library steps`);
+  }
+});
+
+test("the shift runs lobby, restaurant, campus, then it is over", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT, CAMPUS] }, 7);
+  const seen = [g.level.id];
+  for (let i = 0; i < 3; i++) {
+    while (g.mode === "card") g.step(input());
+    const exit = g.level.doors.find((d) => d.kind === "exit");
+    Object.assign(g.world.hero, { x: exit.x - 120, y: exit.y, vx: 0, vy: 0 });
+    for (let k = 0; k < Math.round(20 / STEP) && g.mode !== "card" && g.mode !== "clear"; k++) g.step(input({ right: true }));
+    seen.push(g.mode === "clear" ? "clear" : g.level.id);
+  }
+  assert.deepEqual(seen, ["lobby", "restaurant", "campus", "clear"]);
+});

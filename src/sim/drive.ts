@@ -25,7 +25,7 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony", wo
   const gap = h.onGround && floorAt(stage, h.x + LOOK.gap, h.y - 60) === null;
   const wall = level.solids.some((s) => s.x - h.x > 0 && s.x - h.x < LOOK.wall && s.y < h.y - 10 && s.y + s.h > h.y - 290);
   const landing =
-    route === "balcony" && h.y === 0 && level.platforms.some((p) => p.kind === "landing" && p.x0 - h.x > 0 && p.x0 - h.x < LOOK.landing);
+    route === "balcony" && h.y === 0 && level.platforms.some((p) => (p.kind === "landing" || p.kind === "tray") && p.x0 - h.x > 0 && p.x0 - h.x < LOOK.landing);
   const pass = level.passes.some((p) => p.x - h.x > -p.w && p.x - h.x < LOOK.pass);
   if (world) fight(world, h, i);
   if (pass) i.held.down = true;

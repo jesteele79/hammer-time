@@ -24,6 +24,7 @@ import type { Level, LevelId } from "../sim/level";
 import { LOBBY } from "../sim/levels/lobby";
 import { STASH } from "../sim/levels/stash";
 import { RESTAURANT } from "../sim/levels/restaurant";
+import { CAMPUS } from "../sim/levels/campus";
 import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
@@ -52,7 +53,7 @@ import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
 
 /** The shift's venues in order (R3 §2): the restaurant and the campus join in R3a's later tasks. */
-const SHIFT: Level[] = [LOBBY, RESTAURANT];
+const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS];
 const LEVELS = new Map<LevelId, Level>([...SHIFT, STASH].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** How long a pickup's line stays in the hint. */
