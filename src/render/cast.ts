@@ -1,6 +1,6 @@
 import { Container, Graphics, type Texture } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Registry } from "../art/registry";
-import type { CastAct, CastRole } from "../sim/cast";
+import { HATTED, type CastAct, type CastJob, type CastRole } from "../sim/cast";
 import { HEAD_SCALE, STEP } from "../sim/constants";
 import type { CastPerson, Furniture } from "../sim/level";
 import { castGround, castPose } from "../sim/rig/cast";
@@ -39,7 +39,7 @@ export type CastLook = {
   /** The head's share of the height, crown to neck, the owner picked on the cast-heads board; the painting's own when missing. */
   head?: number;
 };
-export type FigureOpts = { role: CastRole; act: CastAct; hat: boolean; prop: boolean; slimed: boolean; silhouette: boolean };
+export type FigureOpts = { role: CastRole; job: CastJob; act: CastAct; hat: boolean; prop: boolean; slimed: boolean; silhouette: boolean };
 
 const INK = PALETTE.outline;
 const LINE = 4;
@@ -174,10 +174,30 @@ export function drawFigure(g: Graphics, s: Solved, look: CastLook, o: FigureOpts
   drawHead(g, s, look, o);
 }
 
-/** The tray on the near hand, the cup and the phone, the student's phone: what the role carries. */
+export type Carried = "glasses" | "food" | "cup" | "phone" | "pan" | "book";
+/** What each job carries in its hands: drawn in code over the painting or the stand-in, so it can fly and break. */
+export function carriedOf(job: CastJob): Carried[] {
+  switch (job) {
+    case "server":
+      return ["glasses"];
+    case "lunch":
+      return ["food"];
+    case "office":
+      return ["cup", "phone"];
+    case "cook":
+      return ["pan"];
+    case "prof":
+      return ["book"];
+    default:
+      return [];
+  }
+}
+
+/** What the job carries: the server's tray of glasses, the lunch tray, the coffee and the phone, the pan, the book; the student's phone. */
 function drawProp(g: Graphics, j: Record<JointName, Point>, k: number, f: 1 | -1, o: FigureOpts) {
   const h = j.handNear;
-  if (o.role === "server" && o.prop) {
+  const c = carriedOf(o.job);
+  if (c.includes("glasses") && o.prop) {
     g.ellipse(h.x + f * 10 * k, h.y - 10 * k, 46 * k, 10 * k)
       .fill("#c9ccd1")
       .stroke({ width: 3, color: INK });
@@ -186,19 +206,41 @@ function drawProp(g: Graphics, j: Record<JointName, Point>, k: number, f: 1 | -1
         .fill({ color: "#dff3ff", alpha: 0.9 })
         .stroke({ width: 2, color: INK });
   }
-  if (o.role === "office") {
-    if (o.prop)
-      g.roundRect(h.x - 11 * k, h.y - 30 * k, 22 * k, 28 * k, 4)
-        .fill("#f4f3ee")
-        .stroke({ width: 3, color: INK })
-        .rect(h.x - 11 * k, h.y - 30 * k, 22 * k, 6 * k)
-        .fill("#6b3a1e");
+  if (c.includes("food") && o.prop) {
+    // The lunch tray: mashed potatoes, a row of peas, a jello cube.
+    g.ellipse(h.x + f * 10 * k, h.y - 10 * k, 46 * k, 10 * k).fill("#c9a84a").stroke({ width: 3, color: INK });
+    g.ellipse(h.x - f * 12 * k, h.y - 22 * k, 16 * k, 12 * k).fill("#f1e3b5").stroke({ width: 2, color: INK });
+    for (const dx of [2, 10, 18]) g.circle(h.x + f * dx * k, h.y - 18 * k, 5 * k).fill("#7fb24a").stroke({ width: 1.5, color: INK });
+    g.roundRect(h.x + f * 26 * k - 9 * k, h.y - 34 * k, 18 * k, 18 * k, 3).fill({ color: "#c8443a", alpha: 0.9 }).stroke({ width: 2, color: INK });
+  }
+  if (c.includes("cup") && o.prop)
+    g.roundRect(h.x - 11 * k, h.y - 30 * k, 22 * k, 28 * k, 4)
+      .fill("#f4f3ee")
+      .stroke({ width: 3, color: INK })
+      .rect(h.x - 11 * k, h.y - 30 * k, 22 * k, 6 * k)
+      .fill("#6b3a1e");
+  if (c.includes("phone")) {
     const p = j.handFar;
     g.roundRect(p.x - 9 * k, p.y - 20 * k, 18 * k, 34 * k, 3)
       .fill("#1a1a1a")
       .stroke({ width: 2, color: INK })
       .rect(p.x - 7 * k, p.y - 18 * k, 14 * k, 28 * k)
       .fill({ color: "#9fd6ff", alpha: 0.9 });
+  }
+  if (c.includes("pan") && o.prop) {
+    // The cook's pan held out by its handle, food in it.
+    g.roundRect(Math.min(h.x, h.x + f * 70 * k), h.y - 6 * k, 70 * k, 12 * k, 4).fill("#3a2a1c").stroke({ width: 2, color: INK });
+    g.ellipse(h.x + f * 110 * k, h.y - 8 * k, 46 * k, 12 * k).fill("#2b2b2e").stroke({ width: 3, color: INK });
+    g.ellipse(h.x + f * 110 * k, h.y - 16 * k, 24 * k, 8 * k).fill("#d98a3a");
+  }
+  if (c.includes("book") && o.prop) {
+    // The professor's open book, held up in the far hand.
+    const p = j.handFar;
+    g.poly([p.x - 30 * k, p.y - 34 * k, p.x, p.y - 26 * k, p.x + 30 * k, p.y - 34 * k, p.x + 30 * k, p.y + 4 * k, p.x, p.y + 12 * k, p.x - 30 * k, p.y + 4 * k])
+      .fill("#f4efe2")
+      .stroke({ width: 2, color: INK });
+    g.moveTo(p.x, p.y - 26 * k).lineTo(p.x, p.y + 12 * k).stroke({ width: 2, color: INK });
+    g.rect(p.x - 32 * k, p.y + 4 * k, 64 * k, 6 * k).fill("#6b3a1e");
   }
   if (o.role === "student" && (o.act === "idle" || o.act === "notice" || o.act === "hide")) {
     g.roundRect(h.x - 9 * k, h.y - 22 * k, 18 * k, 34 * k, 3)
@@ -264,10 +306,10 @@ function drawHead(g: Graphics, s: Solved, look: CastLook, o: FigureOpts) {
     g.moveTo(eye.x - f * rx * 0.26, eye.y).lineTo(arm.x, arm.y).stroke({ width: 3, color: INK });
   }
   if (look.earbuds) g.circle(ear.x + f * rx * 0.06, ear.y + ry * 0.1, rx * 0.09).fill("#ffffff").stroke({ width: 2, color: INK });
-  hairOn(g, at, rx, ry, look, o.hat && o.role === "bellhop");
+  hairOn(g, at, rx, ry, look, o.hat && HATTED.has(o.job) ? (o.job === "cook" ? "toque" : "pillbox") : false);
 }
 
-function hairOn(g: Graphics, at: (x: number, y: number) => Point, rx: number, ry: number, look: CastLook, hat: boolean) {
+function hairOn(g: Graphics, at: (x: number, y: number) => Point, rx: number, ry: number, look: CastLook, hat: false | "pillbox" | "toque") {
   const hair = look.hair;
   /** A cap of hair over the skull from `fromX` to `toX`, its top at `top`, `thick` deep. */
   const cap = (fromX: number, toX: number, top: number, thick: number) => {
@@ -326,7 +368,16 @@ function hairOn(g: Graphics, at: (x: number, y: number) => Point, rx: number, ry
       break;
     }
   }
-  if (hat) {
+  if (hat === "toque") {
+    // The cook's tall pleated toque.
+    const b0 = at(-rx * 0.8, ry * 1.8);
+    const b1 = at(rx * 0.8, ry * 1.8);
+    const t0 = at(-rx * 0.8, ry * 4.0);
+    const t1 = at(rx * 0.8, ry * 4.0);
+    g.poly([b0.x, b0.y, b1.x, b1.y, t1.x, t1.y, t0.x, t0.y]).fill("#f4f3ee").stroke({ width: 3, color: INK, join: "round" });
+    const top = at(0, ry * 4.1);
+    g.ellipse(top.x, top.y, rx * 1.0, ry * 0.45).fill("#ffffff").stroke({ width: 3, color: INK });
+  } else if (hat) {
     const h0 = at(-rx * 1.0, ry * 1.85);
     const h1 = at(rx * 0.75, ry * 1.85);
     const t0 = at(-rx * 1.0, ry * 2.4);
@@ -426,7 +477,7 @@ export class Cast {
   /** The painting where it loaded, the stand-in where it did not. */
   private draw(v: View, s: Solved, o: FigureOpts, recolor: string | null, dazed: boolean, rim: Rim | null = null): void {
     if (!v.painted) return drawFigure(v.body, s, v.look, o);
-    v.painted.apply(s, { recolor, dazed, hat: o.hat && o.role === "bellhop", silhouette: o.silhouette }, rim);
+    v.painted.apply(s, { recolor, dazed, hat: o.hat && HATTED.has(o.job), silhouette: o.silhouette }, rim);
     drawCarried(v.carried, s, o);
   }
 
@@ -483,7 +534,7 @@ export class Cast {
           v.root.mask = v.mask;
         }
         v.mask.clear().rect(sheet.x, sheet.y, sheet.w, sheet.h).fill(0xffffff);
-        this.draw(v, solved, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: true }, n.recolor, dazed);
+        this.draw(v, solved, { role: n.role, job: n.job, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: true }, n.recolor, dazed);
         // His head on the sheet, so "Got a minute?" has somewhere to hang from.
         this.crowns.set(n.id, { x: n.x + solved.crown.x * k * 0.95, y: sheet.y + sheet.h + 30 + solved.crown.y * k * 0.95, facing: n.facing });
         v.root.zIndex = -1e5;
@@ -507,7 +558,7 @@ export class Cast {
       const lit = this.rimOn ? rimFor(n.x, n.y - n.h / 2, lights) : null;
       // The root is scaled by k: the edge's offset is in world px.
       const rim = lit && { ...lit, px: RIM.offset / k };
-      this.draw(v, solved, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed, rim);
+      this.draw(v, solved, { role: n.role, job: n.job, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed, rim);
       if (dazed) {
         const c = solved.crown;
         for (let i = 0; i < STARS.n; i++) {

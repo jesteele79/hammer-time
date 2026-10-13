@@ -1,4 +1,5 @@
 import { Container, Graphics, Sprite, type Texture } from "pixi.js";
+import type { CastJob } from "../sim/cast";
 import { GRAVITY_DOWN } from "../sim/constants";
 import { PALETTE } from "./palette";
 import type { Particles } from "./particles";
@@ -36,7 +37,7 @@ export class Flyers {
    * The bellhop's hat, knocked off: it tumbles, lands and lies there a while. `painted` is the owner's hat, strap and
    * all, at the size it sat on his head; without it the code-drawn stand-in's hat flies.
    */
-  hat(x: number, y: number, dir: 1 | -1, painted: { texture: Texture; pivot: { x: number; y: number }; scale: number } | null = null): void {
+  hat(x: number, y: number, dir: 1 | -1, painted: { texture: Texture; pivot: { x: number; y: number }; scale: number } | null = null, job: CastJob = "bellhop"): void {
     let view: Container;
     if (painted) {
       const s = new Sprite(painted.texture);
@@ -44,7 +45,8 @@ export class Flyers {
       // The painting's front is to the left; flying right it leads with its front too.
       s.scale.set(-dir * painted.scale, painted.scale);
       view = s;
-    } else
+    } else if (job === "cook") view = Flyers.toque();
+    else
       view = new Graphics()
         .roundRect(-28, -14, 56, 28, 4)
         .fill("#b8282e")
@@ -65,6 +67,63 @@ export class Flyers {
         f.rot = 0;
       },
     );
+  }
+
+  /** The cook's toque, code-drawn: what flies when his painted one is missing. */
+  private static toque(): Graphics {
+    return new Graphics()
+      .roundRect(-22, -60, 44, 60, 10)
+      .fill("#f4f3ee")
+      .stroke({ width: 3, color: INK })
+      .ellipse(0, -62, 30, 18)
+      .fill("#ffffff")
+      .stroke({ width: 3, color: INK });
+  }
+
+  /** Something knocked loose that lands and lies there a while: a pan, a towel, a book. */
+  private lie(view: Container, x: number, y: number, dir: 1 | -1, up: number, spin: number): void {
+    this.add(view, x, y, dir * 260, -up, dir * spin, 3, (f) => {
+      f.vx = 0;
+      f.spin = 0;
+    });
+  }
+
+  /** The lunch tray's food: the potatoes, the peas and the jello, each splatting where it lands. */
+  food(x: number, y: number, dir: 1 | -1): void {
+    const bits: [Graphics, number][] = [
+      [new Graphics().ellipse(0, 0, 16, 12).fill("#f1e3b5").stroke({ width: 2, color: INK }), -700],
+      [new Graphics().circle(-6, 0, 5).circle(6, 0, 5).circle(0, -7, 5).fill("#7fb24a").stroke({ width: 1.5, color: INK }), -820],
+      [new Graphics().roundRect(-9, -9, 18, 18, 3).fill({ color: "#c8443a", alpha: 0.9 }).stroke({ width: 2, color: INK }), -560],
+    ];
+    bits.forEach(([g, up], i) =>
+      this.add(g, x + i * 12, y, dir * (120 + i * 90) + (i - 1) * 60, up, (i - 1) * 7, 3, (f) => {
+        f.life = 0;
+        this.particles.emit("coffee", f.x, f.y, 6);
+      }),
+    );
+  }
+
+  pan(x: number, y: number, dir: 1 | -1): void {
+    const g = new Graphics().roundRect(-80, -6, 70, 12, 4).fill("#3a2a1c").stroke({ width: 2, color: INK }).ellipse(20, -8, 46, 12).fill("#2b2b2e").stroke({ width: 3, color: INK });
+    this.lie(g, x, y, dir, 600, 9);
+  }
+
+  towel(x: number, y: number, dir: 1 | -1): void {
+    this.lie(new Graphics().roundRect(-26, -16, 52, 32, 6).fill("#f4f3ee").stroke({ width: 3, color: INK }), x, y, dir, 520, 6);
+  }
+
+  book(x: number, y: number, dir: 1 | -1): void {
+    this.lie(new Graphics().roundRect(-24, -16, 48, 32, 3).fill("#6b3a1e").stroke({ width: 3, color: INK }).rect(-20, -12, 40, 24).fill("#f4efe2"), x, y, dir, 560, 8);
+  }
+
+  /** The professor's papers: four sheets fluttering down, and a flurry. */
+  papers(x: number, y: number, dir: 1 | -1): void {
+    for (let i = 0; i < 4; i++)
+      this.add(new Graphics().rect(-14, -18, 28, 36).fill("#ffffff").stroke({ width: 2, color: INK }), x, y, dir * (60 + 70 * i), -400 - 90 * i, (i - 1.5) * 3, 2, (f) => {
+        f.vx = 0;
+        f.spin = 0;
+      });
+    this.particles.emit("paper", x, y, 10);
   }
 
   /** The tray's glasses: three arcs, each shattering where it lands. */

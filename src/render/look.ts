@@ -34,7 +34,7 @@ import { createLighting, multiplyTint, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
-import type { CastRole } from "../sim/cast";
+import { HATTED, type CastRole } from "../sim/cast";
 import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
 import { PaintedFigure } from "./cast-body";
@@ -467,15 +467,20 @@ export async function startLook(
       case "castHit": {
         if (e.by === "stomp" || e.by === "puddle") words.say(e.by === "puddle" ? "WHOA!" : "OOF!", e.x, e.y - 90, false, face, view);
         else if (e.by !== "mallet" && e.by !== "snot") words.say("WHAM!", e.x, e.y - 90, false, face, view);
-        if (e.role === "bellhop") {
-          const n = world.cast.find((c) => c.id === e.id);
-          if (n && !n.hat && n.hits === 1) flyers.hat(e.x, e.y - 150, e.dir, cast.hat(n.person));
-        }
-        if (e.role === "server" && e.down) {
+        const n = world.cast.find((c) => c.id === e.id);
+        if (n && !n.hat && n.hits === 1 && HATTED.has(n.job)) flyers.hat(e.x, e.y - 150, e.dir, cast.hat(n.person), n.job);
+        if (e.job === "busser" && n?.hits === 1) flyers.towel(e.x, e.y - 60, e.dir);
+        if (e.job === "server" && e.down) {
           flyers.glasses(e.x + e.dir * 20, e.y - 60, e.dir);
           particles.emit("water", e.x, e.y - 60, 12);
         }
-        if (e.role === "office" && e.down) flyers.cup(e.x, e.y - 40, e.dir);
+        if (e.job === "lunch" && e.down) flyers.food(e.x + e.dir * 20, e.y - 60, e.dir);
+        if (e.job === "office" && e.down) flyers.cup(e.x, e.y - 40, e.dir);
+        if (e.job === "cook" && e.down) flyers.pan(e.x, e.y - 40, e.dir);
+        if (e.job === "prof" && e.down) {
+          flyers.book(e.x, e.y - 60, e.dir);
+          flyers.papers(e.x, e.y - 80, e.dir);
+        }
         if (e.role !== "student" && e.down) comeback(e.role);
         break;
       }
@@ -507,11 +512,16 @@ export async function startLook(
         }
         break;
       case "missileHit":
-        if (e.kind === "coffee") particles.emit("coffee", e.x, e.y, 12);
+        if (e.kind !== "plane") particles.emit("coffee", e.x, e.y, 12);
         else particles.emit("paper", e.x, e.y, 4);
         break;
       case "castSplash":
-        particles.emit("coffee", e.x + facing * 40, e.y, 16);
+        if (e.kind === "papers") particles.emit("paper", e.x + facing * 40, e.y, 14);
+        else particles.emit("coffee", e.x + facing * 40, e.y, 16);
+        break;
+      case "dishes":
+        particles.emit("glass", e.x, e.y, 18);
+        words.say("CRASH!", e.x, e.y - 120, false, face, view);
         break;
       default:
         break;

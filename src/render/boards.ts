@@ -1,6 +1,6 @@
 import { Container, Graphics, Matrix, RenderTexture, Sprite } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
-import type { CastAct, CastRole } from "../sim/cast";
+import { HATTED, jobOf, roleOf, type CastAct } from "../sim/cast";
 import { HEAD_SCALE } from "../sim/constants";
 import type { CastPerson, LevelId } from "../sim/level";
 import { ACT_SECONDS, castGround, castPose } from "../sim/rig/cast";
@@ -15,7 +15,7 @@ import { LOBBY } from "../sim/levels/lobby";
 import { DAZED, LOOKS, drawCarried, drawFigure, recolored, star } from "./cast";
 import { castHeadScale, hatWorldWidth } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
-import { drawMissile, drawPuddle } from "./props";
+import { drawCart, drawMissile, drawPuddle } from "./props";
 import { Particles } from "./particles";
 import { wordStar } from "./words";
 import type { RenderApp } from "./app";
@@ -72,7 +72,7 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
   { x: 12500, y: -160, cx: 13200 },
   { x: 13800, y: 0, cx: 14300 },
 ];
-const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1"];
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
 /** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
 const HEAD_SHARES = [0.22, 0.26];
@@ -291,7 +291,8 @@ export function createBoards(
       const t = label(name, "display", name.length > 9 ? 22 : 30);
       t.position.set(16, 50 + row * CELL_H + 12);
       board.addChild(t);
-      const role = person.slice(0, -2) as CastAct extends never ? never : "bellhop" | "server" | "office" | "student";
+      const role = roleOf(person);
+      const job = jobOf(person);
       const acts = role === "student" ? STUDENT_ACTS : STAFF_ACTS;
       acts.forEach((act, col) => {
         if (row === 0 || row === 6) {
@@ -309,7 +310,7 @@ export function createBoards(
         const dy = groundShift(solved, castGround(act, act !== "fly" && act !== "hop", false));
         const cell = new Container();
         const g = new Graphics();
-        const opts = { role, act, hat: role === "bellhop", prop: true, slimed: false, silhouette: false };
+        const opts = { role, job, act, hat: HATTED.has(job), prop: true, slimed: false, silhouette: false };
         if (art) {
           const fig = new PaintedFigure(art);
           figs.push(fig);
@@ -365,15 +366,16 @@ export function createBoards(
       hammer.container.position.set(150 + CELL_W * 0.6, feet + groundShift(hs, "planted"));
       hammer.apply(hs, "neutral", 0);
       const k = LOOKS[person].height / HERO_HEIGHT;
-      const role = person.slice(0, -2) as CastRole;
+      const role = roleOf(person);
+      const job = jobOf(person);
       [art.head.share, ...HEAD_SHARES].forEach((s, i) => {
         const pose = castPose({ role, act: "idle", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
         const solved = solve(pose, -1, castHeadScale(s, art.head), art.head, art.skeleton);
         const fig = new PaintedFigure(art);
         figs.push(fig);
-        fig.apply(solved, { recolor: null, dazed: false, hat: role === "bellhop", silhouette: false });
+        fig.apply(solved, { recolor: null, dazed: false, hat: HATTED.has(job), silhouette: false });
         const g = new Graphics();
-        drawCarried(g, solved, { role, act: "idle", hat: role === "bellhop", prop: true, slimed: false, silhouette: false });
+        drawCarried(g, solved, { role, job, act: "idle", hat: HATTED.has(job), prop: true, slimed: false, silhouette: false });
         const cell = new Container();
         cell.addChild(fig.container, g);
         cell.scale.set(k);
@@ -391,6 +393,16 @@ export function createBoards(
     const cell = 260;
     // The owner's hat when it is in, at the size it flies off the first bellhop.
     const bell = await loadCastArt(registry, "bellhop-1");
+    const cook = await loadCastArt(registry, "cook-1");
+    const cookLook = LOOKS["cook-1"];
+    /** A cart drawn small enough to sit in a cell. */
+    const cart = (c: Container, load: "dishes" | "trash") => {
+      const g = new Graphics();
+      drawCart(g, { w: 200, h: 340, load, spilled: false });
+      g.scale.set(0.35);
+      g.position.set(0, 60);
+      c.addChild(g);
+    };
     const look = LOOKS["bellhop-1"];
     const items: [string, (c: Container) => void][] = [
       [
@@ -422,6 +434,52 @@ export function createBoards(
       ["plane", (c) => drawMissile(c.addChild(new Graphics()), { id: 1, kind: "plane", x: 0, y: 0, vx: -500, vy: 40, spin: 0.08, life: 1, phase: 0, from: 0 })],
       ["coffee", (c) => drawPuddle(c.addChild(new Graphics()), { x: 0, y: 0, w: 150, life: 7, max: 7, kind: "coffee" })],
       ["water", (c) => drawPuddle(c.addChild(new Graphics()), { x: 0, y: 0, w: 260, life: 8, max: 8, kind: "water" })],
+      [
+        "toque",
+        (c) => {
+          if (!cook?.hat) {
+            c.addChild(new Graphics().roundRect(-22, -60, 44, 60, 10).fill("#f4f3ee").stroke({ width: 3, color: 0x101010 }).ellipse(0, -62, 30, 18).fill("#ffffff").stroke({ width: 3, color: 0x101010 }));
+            return;
+          }
+          const { whole, plate } = cook.hat;
+          const s = new Sprite(whole);
+          s.anchor.set(plate.pivot!.x / whole.width, plate.pivot!.y / whole.height);
+          s.scale.set(hatWorldWidth(cook.rig, cookLook.head ?? cook.head.share, cookLook.height) / plate.span!);
+          c.addChild(s);
+        },
+      ],
+      ["pan", (c) => drawMissile(c.addChild(new Graphics()), { id: 1, kind: "pan", x: 0, y: 0, vx: 0, vy: 0, spin: 0.3, life: 1, phase: 0, from: 0 })],
+      [
+        "tray",
+        (c) =>
+          c.addChild(
+            new Graphics()
+              .ellipse(0, 0, 46, 10)
+              .fill("#c9a84a")
+              .stroke({ width: 3, color: 0x101010 })
+              .ellipse(-22, -12, 16, 12)
+              .fill("#f1e3b5")
+              .stroke({ width: 2, color: 0x101010 })
+              .circle(0, -8, 5)
+              .circle(8, -8, 5)
+              .circle(16, -8, 5)
+              .fill("#7fb24a")
+              .roundRect(18, -24, 18, 18, 3)
+              .fill({ color: "#c8443a", alpha: 0.9 })
+              .stroke({ width: 2, color: 0x101010 }),
+          ),
+      ],
+      ["book", (c) => c.addChild(new Graphics().roundRect(-24, -16, 48, 32, 3).fill("#6b3a1e").stroke({ width: 3, color: 0x101010 }).rect(-20, -12, 40, 24).fill("#f4efe2"))],
+      [
+        "papers",
+        (c) => {
+          for (let i = 0; i < 4; i++) c.addChild(new Graphics().rect(-14, -18, 28, 36).fill("#ffffff").stroke({ width: 2, color: 0x101010 })).position.set(-40 + i * 26, (i % 2) * 14);
+        },
+      ],
+      ["gravy", (c) => drawPuddle(c.addChild(new Graphics()), { x: 0, y: 0, w: 260, life: 8, max: 8, kind: "gravy" })],
+      ["grease", (c) => drawPuddle(c.addChild(new Graphics()), { x: 0, y: 0, w: 150, life: 7, max: 7, kind: "grease" })],
+      ["dish cart", (c) => cart(c, "dishes")],
+      ["bin", (c) => cart(c, "trash")],
       [
         "confetti",
         (c) => {

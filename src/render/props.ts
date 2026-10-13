@@ -23,7 +23,9 @@ const ink = (g: Graphics, { flash }: Fill, width = LINE) =>
  * handle and two uprights, a red carpet deck on four castors and three strapped cases.
  * `flash` draws the same shapes in white: the overlay for the hit flash.
  */
-export function drawCart(g: Graphics, t: Pick<Target, "w" | "h">, flash = false): void {
+export function drawCart(g: Graphics, t: Pick<Target, "w" | "h"> & Partial<Pick<Target, "load" | "spilled">>, flash = false): void {
+  if (t.load === "dishes") return drawBusCart(g, { w: t.w, spilled: !!t.spilled }, flash);
+  if (t.load === "trash") return drawBin(g, t, flash);
   const f: Fill = { flash };
   const brass = tones(PALETTE.brass);
   const deck = tones("#8e2b2b");
@@ -100,7 +102,59 @@ export function drawCart(g: Graphics, t: Pick<Target, "w" | "h">, flash = false)
   }
 }
 
-type CartView = { root: Container; flash: Graphics; lean: number };
+/** A busser's grey utility cart: two shelves of bus tubs, dirty dishes stacked in them until they crash. */
+function drawBusCart(g: Graphics, t: { w: number; spilled: boolean }, flash: boolean): void {
+  const f: Fill = { flash };
+  const grey = tones("#7c8086");
+  const half = t.w / 2 - 10;
+  for (const x of [-half + 14, half - 14]) {
+    g.circle(x, -14, 14);
+    paint(g, "#1a1a1a", f);
+    ink(g, f, 3);
+  }
+  for (const x of [-half, half - 14]) {
+    g.rect(x, -250, 14, 222);
+    paint(g, grey.shadow, f);
+    ink(g, f, 3);
+  }
+  for (const y of [-70, -180]) {
+    g.rect(-half, y, half * 2, 18);
+    paint(g, grey.base, f);
+    ink(g, f, 3);
+    g.roundRect(-half + 16, y - 56, half * 2 - 32, 56, 6);
+    paint(g, "#5a5e66", f);
+    ink(g, f, 3);
+    if (!t.spilled)
+      for (let x = -half + 34; x < half - 40; x += 34) {
+        g.ellipse(x, y - 60, 16, 6);
+        paint(g, "#f4f3ee", f);
+        ink(g, f, 2);
+      }
+  }
+  g.roundRect(-half - 10, -262, half * 2 + 20, 16, 6);
+  paint(g, grey.highlight, f);
+  ink(g, f, 3);
+}
+
+/** The dock's wheeled trash bin, its lid shut. */
+function drawBin(g: Graphics, t: Pick<Target, "w">, flash: boolean): void {
+  const f: Fill = { flash };
+  const body = tones("#3d5a3f");
+  const half = t.w / 2 - 20;
+  g.circle(-half + 20, -16, 16);
+  paint(g, "#1a1a1a", f);
+  ink(g, f, 3);
+  g.poly([-half, -300, half, -300, half - 12, -24, -half + 12, -24]);
+  paint(g, body.base, f);
+  ink(g, f);
+  g.poly([half - 50, -300, half, -300, half - 12, -24, half - 46, -24]);
+  paint(g, body.shadow, f);
+  g.roundRect(-half - 8, -322, half * 2 + 16, 26, 6);
+  paint(g, body.highlight, f);
+  ink(g, f, 3);
+}
+
+type CartView = { root: Container; body: Graphics; flash: Graphics; lean: number; spilled: boolean };
 
 /** Draws the carts, the snot in flight and the puddles from each snapshot. */
 export class Props {
@@ -139,7 +193,7 @@ export class Props {
     this.pool(this.missiles, s.missiles.length, 3);
     s.missiles.forEach((m, i) => {
       drawMissile(this.missiles[i], m);
-      if (trail && m.kind === "coffee") this.particles.emit("coffee", m.x, m.y, 1);
+      if (trail && m.kind !== "plane") this.particles.emit("coffee", m.x, m.y, 1);
     });
   }
 
@@ -155,8 +209,14 @@ export class Props {
       root.addChild(body, flash);
       root.zIndex = 1;
       this.container.addChild(root);
-      v = { root, flash, lean: 0 };
+      v = { root, body, flash, lean: 0, spilled: t.spilled };
       this.carts.set(t.id, v);
+    }
+    // A dish cart's dishes are gone once they crash.
+    if (v.spilled !== t.spilled) {
+      v.spilled = t.spilled;
+      drawCart(v.body.clear(), t);
+      drawCart(v.flash.clear(), t, true);
     }
     const want = t.onGround ? 0 : t.spin * SPIN_LEAN;
     v.lean += (want - v.lean) * Math.min(1, dt * 14);
@@ -200,8 +260,15 @@ export function drawMissile(g: Graphics, m: Missile) {
     g.rotation = m.vx < 0 ? -m.spin : m.spin;
     return;
   }
-  g.roundRect(-11, -14, 22, 28, 4).fill("#f4f3ee").stroke({ width: 3, color: INK });
-  g.rect(-11, -14, 22, 6).fill("#6b3a1e");
+  if (m.kind === "pan") {
+    // The cook's hot pan, tumbling, its food going with it.
+    g.roundRect(-80, -6, 70, 12, 4).fill("#3a2a1c").stroke({ width: 2, color: INK });
+    g.ellipse(20, -8, 46, 12).fill("#2b2b2e").stroke({ width: 3, color: INK });
+    g.ellipse(20, -16, 24, 8).fill("#d98a3a");
+  } else {
+    g.roundRect(-11, -14, 22, 28, 4).fill("#f4f3ee").stroke({ width: 3, color: INK });
+    g.rect(-11, -14, 22, 6).fill("#6b3a1e");
+  }
   g.position.set(m.x, m.y);
   g.scale.set(1, 1);
   g.rotation = m.spin;

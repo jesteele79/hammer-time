@@ -760,3 +760,36 @@ test("the venues' hazards sound: a sizzle on a flat-top, frost in the freezer, a
   assert.deepEqual(cuesForVenues({ type: "dishes", x: 0, y: 0 }), ["shatter", "smash"]);
 });
 
+
+import { carriedOf, LOOKS as LOOKS_R3 } from "../src/render/cast.ts";
+test("each job carries its own things: the server's glasses, the lunch tray, the coffee and phone, the pan, the book", () => {
+  assert.deepEqual(carriedOf("server"), ["glasses"]);
+  assert.deepEqual(carriedOf("lunch"), ["food"]);
+  assert.deepEqual(carriedOf("office"), ["cup", "phone"]);
+  assert.deepEqual(carriedOf("cook"), ["pan"]);
+  assert.deepEqual(carriedOf("prof"), ["book"]);
+  assert.deepEqual([carriedOf("bellhop"), carriedOf("busser"), carriedOf("student")], [[], [], []]);
+});
+
+test("every person the levels place has a look, its head 0.22 of its height", () => {
+  for (const p of ["cook-1", "busser-1", "lunch-1", "prof-1"]) {
+    assert.ok(LOOKS_R3[p], p);
+    assert.equal(LOOKS_R3[p].head, 0.22, p);
+  }
+});
+
+test("the new people sound like themselves: the cook's sizzle and the professor's page as tells, papers and grease, a dropped tray", () => {
+  assert.deepEqual(cuesFor({ type: "chime", x: 0, y: 0, job: "office" }), ["chime"]);
+  assert.deepEqual(cuesFor({ type: "chime", x: 0, y: 0, job: "cook" }), ["sizzle"]);
+  assert.deepEqual(cuesFor({ type: "chime", x: 0, y: 0, job: "prof" }), ["page"]);
+  assert.deepEqual(cuesFor({ type: "castSplash", x: 0, y: 0, kind: "papers" }), ["paper"]);
+  assert.deepEqual(cuesFor({ type: "castSplash", x: 0, y: 0, kind: "grease" }), ["splash"]);
+  const down = (job, role) => cuesFor({ type: "castHit", id: 1, role, job, by: "mallet", x: 0, y: 0, dir: 1, down: true, points: 100 });
+  assert.deepEqual(down("server", "server"), ["shatter"]);
+  assert.deepEqual(down("lunch", "server"), ["splash"]);
+  assert.deepEqual(down("cook", "office"), ["splash"]);
+  assert.deepEqual(down("prof", "office"), ["page"]);
+  assert.deepEqual(cuesFor({ type: "missile", kind: "pan", x: 0, y: 0 }), ["whoosh"]);
+  assert.deepEqual(cuesFor({ type: "missile", kind: "plane", x: 0, y: 0 }), ["paper"]);
+});
+

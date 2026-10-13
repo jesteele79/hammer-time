@@ -40,10 +40,8 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   castFell: ["die"],
   chain: ["kick"],
   swat: ["thud"],
-  missile: ["paper"],
-  castSplash: ["splash"],
+
   stomp: ["stomp"],
-  chime: ["chime"],
   lectureLand: ["harrumph"],
 };
 const PICKUP_CUES: Record<string, Cue[]> = { can: ["coin"], nuts: ["power"], bucees: ["power", "oneUp"], pepper: ["power"] };
@@ -92,10 +90,17 @@ export function cuesFor(e: GameEvent): Cue[] {
     case "castHit": {
       // The mallet and the snot ring through their own hit event; a knocked-out server's glasses shatter, an office worker's coffee splashes.
       const names: Cue[] = e.by === "stomp" ? ["stomp"] : e.by === "puddle" ? ["slip"] : e.by === "mallet" || e.by === "snot" ? [] : ["kick"];
-      if (e.down && e.role === "server") names.push("shatter");
-      if (e.down && e.role === "office") names.push("splash");
+      if (e.down && e.job === "server") names.push("shatter");
+      if (e.down && (e.job === "office" || e.job === "lunch" || e.job === "cook")) names.push("splash");
+      if (e.down && e.job === "prof") names.push("page");
       return names;
     }
+    case "chime":
+      return e.job === "cook" ? ["sizzle"] : e.job === "prof" ? ["page"] : ["chime"];
+    case "castSplash":
+      return e.kind === "papers" ? ["paper"] : ["splash"];
+    case "missile":
+      return e.kind === "pan" ? ["whoosh"] : ["paper"];
     case "heatZone":
       return e.kind === "flattop" ? ["sizzle"] : ["frost"];
     case "doorSwing":
@@ -103,7 +108,7 @@ export function cuesFor(e: GameEvent): Cue[] {
     case "dishes":
       return ["shatter", "smash"];
     case "missileHit":
-      return e.kind === "coffee" ? ["splash"] : [];
+      return e.kind === "plane" ? [] : ["splash"];
     default:
       return CUES[e.type] ?? [];
   }
