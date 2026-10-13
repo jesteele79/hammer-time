@@ -1,7 +1,7 @@
 import type { CastHitBy, CastRole } from "./cast";
 import type { GameMode } from "./game";
 import type { MissileKind } from "./missiles";
-import type { CrateKind, DoorKind } from "./level";
+import type { CrateKind, DoorKind, LevelId } from "./level";
 import type { PickupKind } from "./rewards";
 import type { Rect } from "./types";
 
@@ -58,6 +58,8 @@ export type GameEvent =
   /** The tally counted another whole second of the clock into points. */
   | { type: "tallyTick"; seconds: number }
   | { type: "clear" }
+  /** The shift moved on: the next venue's card is up. */
+  | { type: "venue"; id: LevelId }
   /** He walked into a stash he had already cleaned out. */
   | { type: "stashEmpty" }
   /** A cast member noticed him: the double-take. */

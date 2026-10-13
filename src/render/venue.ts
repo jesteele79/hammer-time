@@ -40,6 +40,8 @@ const BALCONY = { slab: 44, rail: 112, post: 140, column: 900 } as const;
 const CHAIR_H = 330;
 
 export type VenueView = {
+  /** The venue's container on the play layer: `prepare` tints a venue built after the lighting. */
+  readonly root: Container;
   /** The door he stands in front of glows with a down arrow. */
   setDoorGlow(id: string | null): void;
   /** A punch clock's card turns gold and its face lights. */
@@ -105,6 +107,7 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   redrawSteps();
 
   return {
+    root,
     setDoorGlow(id) {
       glowing = id;
       for (const [k, d] of doors) d.glow.visible = k === id;

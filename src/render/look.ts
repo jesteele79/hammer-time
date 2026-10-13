@@ -20,7 +20,7 @@ import { addBody, addLean, createLayers, stepLayers } from "../sim/rig/layers";
 import { createPlayback, playAction } from "../sim/rig/playback";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
-import type { Level } from "../sim/level";
+import type { Level, LevelId } from "../sim/level";
 import { LOBBY } from "../sim/levels/lobby";
 import { STASH } from "../sim/levels/stash";
 import { RUN } from "../sim/run";
@@ -30,7 +30,7 @@ import { loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
-import { createLighting, type Light } from "./lighting";
+import { createLighting, multiplyTint, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
@@ -49,7 +49,9 @@ import { installFonts } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
 
-const LEVELS = { lobby: LOBBY, stash: STASH } as const;
+/** The shift's venues in order (R3 §2): the restaurant and the campus join in R3a's later tasks. */
+const SHIFT: Level[] = [LOBBY];
+const LEVELS = new Map<LevelId, Level>([...SHIFT, STASH].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** How long a pickup's line stays in the hint. */
 const NOTE_T = 2;
@@ -105,26 +107,24 @@ type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point
  */
 export async function startLook(
   render: RenderApp,
-  opts: { noart?: boolean; board?: boolean; dev?: boolean; nocast?: boolean; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
+  opts: { noart?: boolean; board?: boolean; dev?: boolean; nocast?: boolean; start?: LevelId; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
-  const game = createGame(LEVELS, newSeed(), { cast: !opts.nocast });
+  const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1) }, newSeed(), {
+    cast: !opts.nocast,
+    start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.start)),
+  });
   const world = game.world;
   const clock = createClock();
-  scene.camera.bounds = LOBBY.bounds;
-  scene.camera.x = LOBBY.spawn.x;
+  scene.camera.bounds = game.level.bounds;
+  scene.camera.x = game.level.spawn.x;
   scene.camera.focusY = scene.camera.y = -HERO_HEIGHT * 0.55;
 
   await installFonts();
   const products = await loadProducts();
   let registry = await loadRegistry();
   if (opts.noart) registry = stripped(registry);
-  const backdrops: Record<Level["id"], Backdrop> = {
-    lobby: await loadBackdrop(scene, "lobby", LOBBY.length, registry),
-    stash: await loadBackdrop(scene, "stash", STASH.length, registry),
-  };
-  const venues: Record<Level["id"], VenueView> = { lobby: drawVenue(scene, LOBBY), stash: drawVenue(scene, STASH) };
   const reduced = scene.reducedMotion;
   const particles = new Particles(scene.layers.fx, reduced ? 400 : 600, reduced);
   const words = new Words(scene.layers.fx);
@@ -136,8 +136,8 @@ export async function startLook(
   const shieldGlow = new Graphics();
   if (!reduced) shieldGlow.blendMode = "add";
   scene.layers.play.addChild(shieldGlow);
-  // The lamps light the play layer's children as they are now, so everything it holds comes first.
-  const lighting = createLighting(scene, render.quality, [...lightsOf(LOBBY), ...lightsOf(STASH)]);
+  // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
+  const lighting = createLighting(scene, render.quality, [...SHIFT, STASH].flatMap((l) => lightsOf(l)));
   const props = new Props(scene.layers.play, particles, scene.ambient);
   const cast = new Cast(scene.layers.play, scene.ambient, registry);
   cast.setQuality(render.quality);
@@ -149,8 +149,33 @@ export async function startLook(
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   await character.ready;
-  // Every painting the lobby's cast wears, before the first frame, so nobody pops from stand-in to painting.
-  if (!opts.nocast) await cast.preload((LOBBY.cast ?? []).map((s) => s.person));
+  type Views = { venue: VenueView; backdrop: Backdrop };
+  const views = new Map<LevelId, Views>();
+  const loading = new Map<LevelId, Promise<void>>();
+  /**
+   * A level's venue, backdrop and cast paintings, built once; the game holds while the level he is in is not ready.
+   * Every painting its cast wears loads before it shows, so nobody pops from stand-in to painting.
+   */
+  const prepare = (level: Level): Promise<void> => {
+    let p = loading.get(level.id);
+    if (!p) {
+      p = (async () => {
+        const backdrop = await loadBackdrop(scene, level.id, level.length, registry);
+        const venue = drawVenue(scene, level);
+        venue.root.tint = multiplyTint(venue.root.tint, scene.ambient);
+        venue.setVisible(false);
+        backdrop.setVisible(false);
+        if (!opts.nocast) await cast.preload((level.cast ?? []).map((s) => s.person));
+        views.set(level.id, { venue, backdrop });
+      })();
+      loading.set(level.id, p);
+    }
+    return p;
+  };
+  await prepare(game.level);
+  await prepare(STASH);
+  // The rest of the shift loads one venue after another while he plays.
+  void SHIFT.reduce((p, l) => p.then(() => prepare(l)), Promise.resolve());
   const headPlate = registry.hammer.heads.neutral!;
 
   const vignette = new Sprite(vignetteTexture());
@@ -410,7 +435,7 @@ export async function startLook(
         words.say("DING!", e.x, e.y - 70, false, face, view);
         break;
       case "checkpoint":
-        venues.lobby.punch(e.id);
+        views.get(game.level.id)?.venue.punch(e.id);
         particles.emit("glint", e.x, e.y - 360, 6);
         savedT = 2;
         break;
@@ -552,15 +577,15 @@ export async function startLook(
   /** The level he is in now: its venue, backdrop, lamps, bounds and camera. */
   function showLevel(level: Level, x: number, y: number) {
     shown = level.id;
-    for (const k of ["lobby", "stash"] as const) {
-      venues[k].setVisible(k === level.id);
-      backdrops[k].setVisible(k === level.id);
+    for (const [id, v] of views) {
+      v.venue.setVisible(id === level.id);
+      v.backdrop.setVisible(id === level.id);
     }
     lighting.setGroup(level.id);
     scene.camera.bounds = level.bounds;
     objects.clear();
     shownPickups = game.pickups;
-    if (level.id === "lobby") venues.lobby.setPunched(game.run.punched);
+    views.get(level.id)?.venue.setPunched(game.run.punched);
     snapCamera(x, y);
     // The zoom lands with him: no easing across a door.
     const zone = level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
@@ -568,8 +593,11 @@ export async function startLook(
   }
 
   const tick = (t: Ticker) => {
+    // A venue still loading holds the game where it is, its card up.
+    const holding = !views.has(game.level.id);
+    if (holding) void prepare(game.level);
     // A break stops everything that runs on game time; the camera and the screen still draw.
-    const dt = game.mode === "pause" ? 0 : Math.min(t.deltaMS / 1000, 0.1);
+    const dt = game.mode === "pause" || holding ? 0 : Math.min(t.deltaMS / 1000, 0.1);
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
     // Hit-stop and slow motion: the sim and everything it drives run on the clock's seconds,
     // and a hit freezes the world on the step it lands.
@@ -686,17 +714,17 @@ export async function startLook(
     drawSmear(m, base, x, drawY, h.facing, face);
     drawShield(x, drawY, y, simDt);
 
-    if (game.level.id !== shown) showLevel(game.level, x, y);
+    if (game.level.id !== shown && !holding) showLevel(game.level, x, y);
     if (game.pickups !== shownPickups) {
       // A respawn or a door laid the pickups out afresh.
       objects.clear();
       shownPickups = game.pickups;
-      if (game.level.id === "lobby") venues.lobby.setPunched(game.run.punched);
+      views.get(game.level.id)?.venue.setPunched(game.run.punched);
       snapCamera(x, y);
     }
     objects.sync(game.pickups, game.crates, simDt);
     const door = game.mode === "play" && game.door && (game.door.kind === "stash" || game.door.kind === "return") ? game.door.id : null;
-    venues[game.level.id].setDoorGlow(door);
+    views.get(game.level.id)?.venue.setDoorGlow(door);
     // The level's theme while he plays (the stash has its own), silence otherwise; a repeat changes nothing.
     sound.music(game.mode === "play" ? game.level.music : null);
     if (game.mode !== lastMode) {
@@ -717,7 +745,7 @@ export async function startLook(
     cam.falling = h.vy > 900;
     scene.update(dt);
     lighting.update(dt);
-    venues[game.level.id].update(simDt);
+    views.get(game.level.id)?.venue.update(simDt);
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     speech.update(simDt, (id) => cast.crownOf(id), face, scene.view());
@@ -808,19 +836,19 @@ export async function startLook(
     // The boards show the stash by swapping the visuals for one frame; the game stays where it is.
     // Another level's frame draws that level's crates in place of the live objects.
     let boardCrates: Container | null = null;
-    const showForBoard = (id: Level["id"]) => {
-      for (const k of ["lobby", "stash"] as const) {
-        venues[k].setVisible(k === id);
-        backdrops[k].setVisible(k === id);
+    const showForBoard = (id: LevelId) => {
+      for (const [k, v] of views) {
+        v.venue.setVisible(k === id);
+        v.backdrop.setVisible(k === id);
       }
       lighting.setGroup(id);
-      scene.camera.bounds = LEVELS[id].bounds;
+      scene.camera.bounds = LEVELS.get(id)!.bounds;
       boardCrates?.destroy({ children: true });
       boardCrates = null;
       objects.setVisible(id === game.level.id);
       if (id !== game.level.id) {
         boardCrates = new Container();
-        for (const c of LEVELS[id].crates) {
+        for (const c of LEVELS.get(id)!.crates) {
           const g = drawCrate(new Graphics(), c.kind, false);
           g.position.set(c.x, c.y);
           boardCrates.addChild(g);
@@ -873,8 +901,7 @@ export async function startLook(
       sound.destroy();
       objects.destroy();
       cast.destroy();
-      venues.lobby.destroy();
-      venues.stash.destroy();
+      for (const v of views.values()) v.venue.destroy();
       if (window.__next) delete window.__next.dev;
       scene.destroy();
     },

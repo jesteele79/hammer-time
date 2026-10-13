@@ -51,8 +51,9 @@ export type LevelLight = { x: number; y: number; radius: number; intensity: numb
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
+export type LevelId = "lobby" | "stash" | "restaurant" | "campus";
 export type Level = Omit<Stage, "floor" | "platforms"> & {
-  id: "lobby" | "stash";
+  id: LevelId;
   name: string;
   world: string;
   length: number;

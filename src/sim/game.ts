@@ -3,7 +3,7 @@ import { FALL_MARGIN, createCast, hittable, npcRect, strikeNpc, type Npc } from 
 import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
 import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
-import { createHero } from "./hero";
+import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
@@ -18,10 +18,17 @@ import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
 
 export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear";
-export type Levels = { lobby: Level; stash: Level };
+/** The lobby and its stash, and the venues after the lobby in the shift's order (R3 §2). */
+export type Levels = { lobby: Level; stash: Level; venues?: Level[] };
 
 export type Game = {
   levels: Levels;
+  /** The shift's venues in order: the lobby first. */
+  shift: Level[];
+  /** The venue he is in: an index into the shift. */
+  venue: number;
+  /** Where this shift began: "Try again" and "Play again" start there. */
+  start: number;
   level: Level;
   world: World;
   run: Run;
@@ -35,12 +42,14 @@ export type Game = {
   /** This step's events: the world's and the game's. */
   events: GameEvent[];
   step(input: Input): void;
-  newRun(seed: number): void;
+  newRun(seed: number, start?: number): void;
   togglePause(): void;
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
 const STASH_SEED = 7919;
+/** Each venue after the lobby seeds its pickups this far from the run's seed, so venues differ and the lobby stays as it was. */
+export const VENUE_SEED = 104729;
 /** The shipped 20 px door reach at the new scale. */
 const DOOR_REACH = 136;
 /** How far above the slam a crate's bottom may hang and still be shaken open: a jump's bump and then some. */
@@ -57,15 +66,18 @@ const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x 
  * the seeded pickups and the crates, score, cans, lives and the clock, punch clocks, deaths and respawn.
  */
 /** `cast: false` runs the lobby with nobody in it (the older browser checks). */
-export function createGame(levels: Levels, seed: number, opts: { cast?: boolean } = {}): Game {
-  const world = createWorld(stageOf(levels.lobby), levels.lobby.spawn, { patience: RUN.patience });
+export function createGame(levels: Levels, seed: number, opts: { cast?: boolean; start?: number } = {}): Game {
+  const shift = [levels.lobby, ...(levels.venues ?? [])];
+  const clampStart = (s: number | undefined) => Math.min(shift.length - 1, Math.max(0, Math.floor(s ?? 0)));
+  const start = clampStart(opts.start);
+  const world = createWorld(stageOf(shift[start]), shift[start].spawn, { patience: RUN.patience });
   let timedOut = false;
   /** Down must come up between doors, so arriving with it held never sends him straight back. */
   let armed = true;
   /** The stash's shelves this run: stocked on the first visit and never again (owner, 2026-10-12). */
   let stashStock: { pickups: Pickup[]; crates: Crate[] } | null = null;
   /** The lobby as he left it for the stash. */
-  let lobbySave: { pickups: Pickup[]; crates: Crate[]; targets: World["targets"]; cast: Npc[]; missiles: Missile[]; facing: 1 | -1; door: DoorSpec } | null = null;
+  let lobbySave: { level: Level; pickups: Pickup[]; crates: Crate[]; targets: World["targets"]; cast: Npc[]; missiles: Missile[]; facing: 1 | -1; door: DoorSpec } | null = null;
   let exitDoor: DoorSpec | null = null;
   let nextPickup = 1000;
   let swingMove: Move | null = null;
@@ -74,7 +86,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
 
   const game: Game = {
     levels,
-    level: levels.lobby,
+    shift,
+    venue: start,
+    start,
+    level: shift[start],
     world,
     run: createRun(seed),
     pickups: [],
@@ -108,18 +123,18 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     h.onGround = true;
   }
 
-  /** The lobby as the run laid it out, him at the last punch clock with a full clock: the shipped respawn. */
-  function begin(charge: number, ev: GameEvent[]) {
-    const lobby = levels.lobby;
-    game.level = lobby;
-    game.crates = cratesOf(lobby);
-    game.pickups = seedRewards(lobby, game.run.seed);
-    const k = lobby.checkpoints.find((c) => c.id === game.run.checkpoint);
-    const at = k ?? lobby.spawn;
-    Object.assign(world.hero, createHero(at, { patience: RUN.patience, charge }));
+  /** The venue he is in as the run laid it out, him at its last punch clock with a full clock: the shipped respawn. */
+  function begin(carry: HeroOptions, ev: GameEvent[]) {
+    const level = shift[game.venue];
+    game.level = level;
+    game.crates = cratesOf(level);
+    game.pickups = seedRewards(level, game.run.seed + game.venue * VENUE_SEED);
+    const k = level.checkpoints.find((c) => c.id === game.run.checkpoint);
+    const at = k ?? level.spawn;
+    Object.assign(world.hero, createHero(at, carry));
     restage();
-    world.targets = lobby.carts.map((x, i) => createCart(i + 1, x));
-    world.cast = opts.cast === false ? [] : createCast(lobby, world.targets);
+    world.targets = level.carts.map((x, i) => createCart(i + 1, x));
+    world.cast = opts.cast === false ? [] : createCast(level, world.targets);
     world.missiles = [];
     world.nextMissile = 0;
     world.snot = [];
@@ -127,7 +142,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     world.hits = [];
     world.swing = [];
     standAt(at);
-    game.run.time = lobby.time;
+    game.run.time = level.time;
     game.run.star = 0;
     timedOut = false;
     swingMove = null;
@@ -137,10 +152,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     setMode("card", ev, RUN.cardT);
   }
 
-  function newRun(s: number) {
+  function newRun(s: number, from = game.start) {
+    game.start = game.venue = clampStart(from);
     game.run = createRun(s);
     stashStock = null;
-    begin(0, (game.events = []));
+    begin({ charge: 0, patience: RUN.patience }, (game.events = []));
   }
 
   /** A break, or back from one: the mode event goes into a fresh events list for the caller to drain. */
@@ -164,8 +180,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
       ev.push({ type: "over" });
       return;
     }
-    const charge = world.hero.charge;
-    begin(charge, ev);
+    begin({ charge: world.hero.charge, patience: RUN.patience }, ev);
     world.hero.invuln = RUN.respawnGrace;
     ev.push({ type: "respawn" });
   }
@@ -273,7 +288,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     armed = false;
     ev.push({ type: "door", kind: d.kind, id: d.id });
     if (d.kind === "stash") {
-      lobbySave = { pickups: game.pickups, crates: game.crates, targets: world.targets, cast: world.cast, missiles: world.missiles, facing: h.facing, door: d };
+      lobbySave = { level: game.level, pickups: game.pickups, crates: game.crates, targets: world.targets, cast: world.cast, missiles: world.missiles, facing: h.facing, door: d };
       const stash = levels.stash;
       stashStock ??= { pickups: seedRewards(stash, game.run.seed + STASH_SEED), crates: cratesOf(stash) };
       game.crates = stashStock.crates;
@@ -296,7 +311,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
       world.targets = save.targets;
       world.cast = save.cast;
       world.missiles = save.missiles;
-      enter(levels.lobby, { x: save.door.x, y: save.door.y });
+      enter(save.level, { x: save.door.x, y: save.door.y });
       h.facing = save.facing;
       game.door = save.door;
       return true;
@@ -331,9 +346,23 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     }
     game.modeT -= STEP;
     if (game.modeT <= 1e-9) {
-      ev.push({ type: "clear" });
-      setMode("clear", ev);
+      if (game.venue < shift.length - 1) nextVenue(ev);
+      else {
+        ev.push({ type: "clear" });
+        setMode("clear", ev);
+      }
     }
+  }
+
+  /** On to the shift's next venue: what he carries comes along; he arrives cool with full snot, his shield spent, its clocks unpunched. */
+  function nextVenue(ev: GameEvent[]) {
+    const h = world.hero;
+    const carry = { charge: h.charge, patience: h.patience, hot: h.hot };
+    game.venue++;
+    game.run.checkpoint = null;
+    game.run.punched = [];
+    begin(carry, ev);
+    ev.push({ type: "venue", id: game.level.id });
   }
 
   /** The Buc-ee's shield: whatever he runs into goes flying away from him, cast included, and he keeps going. */
@@ -400,7 +429,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
       score(bowled);
       ev.push(...bowled);
     }
-    if (!lethal && game.level.id === "lobby")
+    if (!lethal)
       for (const k of game.level.checkpoints)
         if (!run.punched.includes(k.id) && h.x >= k.x) {
           run.punched.push(k.id);
@@ -428,7 +457,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean 
     else if (game.mode === "tally") tally(ev);
   }
 
-  begin(0, game.events);
+  begin({ charge: 0, patience: RUN.patience }, game.events);
   game.events = [];
   return game;
 }

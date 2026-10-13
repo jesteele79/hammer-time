@@ -2,7 +2,7 @@ import { Container, Graphics, Matrix, RenderTexture, Sprite } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
 import type { CastAct, CastRole } from "../sim/cast";
 import { HEAD_SCALE } from "../sim/constants";
-import type { CastPerson } from "../sim/level";
+import type { CastPerson, LevelId } from "../sim/level";
 import { ACT_SECONDS, castGround, castPose } from "../sim/rig/cast";
 import { SUPER_CUT, type MoveKind } from "../sim/moves";
 import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
@@ -134,7 +134,7 @@ export function createBoards(
   /** Stands him at x, on the floor there or at `y`, and returns where his feet are. */
   placeHero: (x: number, y?: number) => number,
   /** Shows a level's visuals (null: the one he is in) without moving the game. */
-  showLevel: (id: "lobby" | "stash" | null) => void = () => {},
+  showLevel: (id: LevelId | null) => void = () => {},
 ): Boards {
   const { app } = render;
 
@@ -450,7 +450,7 @@ export function createBoards(
     return snapshot(board, width, height);
   };
 
-  const lobby = async (frameList = LOBBY_FRAMES, level: "lobby" | "stash" = "lobby") => {
+  const lobby = async (frameList = LOBBY_FRAMES, level: LevelId = "lobby") => {
     const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target, zoom: scene.camera.zoom };
     const frames: string[] = [];
     scene.camera.target = null;

@@ -13,13 +13,18 @@ export const Route = createFileRoute("/")({
     board: flag(search.board),
     dev: flag(search.dev),
     nocast: flag(search.nocast),
+    venue: venueOf(search.venue),
   }),
   component: Home,
 });
 
 const flag = (v: unknown): true | undefined => (v === true || v === 1 || v === "1" ? true : undefined);
+const VENUES = ["restaurant", "campus"] as const;
+type Venue = (typeof VENUES)[number];
+/** `&venue=` starts the shift at a later venue (R3a's play-test link, before the start screen). */
+const venueOf = (v: unknown): Venue | undefined => ((VENUES as readonly unknown[]).includes(v) ? (v as Venue) : undefined);
 
 function Home() {
-  const { next, gl, noart, board, dev, nocast } = Route.useSearch();
-  return next ? <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} /> : <KilnHop />;
+  const { next, gl, noart, board, dev, nocast, venue } = Route.useSearch();
+  return next ? <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} start={venue} /> : <KilnHop />;
 }

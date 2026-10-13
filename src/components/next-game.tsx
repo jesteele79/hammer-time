@@ -46,6 +46,7 @@ export function NextGame({
   board = false,
   dev = false,
   nocast = false,
+  start,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
@@ -54,6 +55,8 @@ export function NextGame({
   dev?: boolean;
   /** A lobby with nobody in it: the older checks' switch. */
   nocast?: boolean;
+  /** Start the shift at a later venue (`&venue=`). */
+  start?: "restaurant" | "campus";
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -62,6 +65,7 @@ export function NextGame({
   const [hud, setHud] = useState<HudPayload | null>(null);
   const [mode, setMode] = useState<GameMode | null>(null);
   const [back, setBack] = useState(false);
+  const [first, setFirst] = useState(true);
   const [best, setBest] = useState(0);
   const [muted, setMuted] = useState(false);
   const [place, setPlace] = useState<"top" | "bottom">("bottom");
@@ -87,7 +91,11 @@ export function NextGame({
     setHud(h);
   }, []);
   const onMode = useCallback((m: GameMode) => {
-    if (m === "card") setBack(lastMode.current === "dying");
+    if (m === "card") {
+      setBack(lastMode.current === "dying");
+      // The shift's first card; a card after a venue's tally says the shift goes on.
+      setFirst(lastMode.current === null || lastMode.current === "clear" || lastMode.current === "over");
+    }
     if (m === "over" || m === "clear") {
       const score = hudNow.current?.score ?? 0;
       setBest((b) => {
@@ -111,7 +119,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, onHud, onMode });
+      const started = await startLook(render, { noart, board, dev, nocast, start, onHud, onMode });
       if (cancelled) {
         started.stop();
         return render.destroy();
@@ -127,7 +135,7 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, onHud, onMode]);
+  }, [forceWebgl, noart, board, dev, nocast, start, onHud, onMode]);
 
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
   const veiled = mode === "pause" || mode === "over" || mode === "clear";
@@ -139,6 +147,7 @@ export function NextGame({
     lives: hud?.lives ?? 3,
     portrait: hud?.portrait ?? null,
     back,
+    first,
   };
   return (
     <>

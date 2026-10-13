@@ -583,3 +583,98 @@ test("dying clears the door he stood at, and a pause sends a mode event", () => 
   h.togglePause();
   assert.deepEqual(h.events, [{ type: "mode", mode: "play" }]);
 });
+
+import { SINUS_MAX } from "../src/sim/moves.ts";
+import { VENUE_SEED } from "../src/sim/game.ts";
+
+/** A venue after the lobby: mini's shape, its own exit, the same punch clock id as the lobby's ("k1"). */
+const venueOf = (id) => ({ ...mini(), id, name: id, world: id === "restaurant" ? "1-2" : "1-3", doors: [{ id: `${id}-out`, kind: "exit", x: 5900, y: 0, label: "OUT" }], carts: [] });
+const shiftOf = () => ({ lobby: { ...mini(), doors: [{ id: "out", kind: "exit", x: 5900, y: 0, label: "CLOCK OUT" }] }, stash: stashOf(), venues: [venueOf("restaurant"), venueOf("campus")] });
+/** Walks him out of the venue he is in and through the tally; returns every event on the way. */
+const walkOut = (g) => {
+  g.world.hero.x = 5700;
+  const evs = until(g, (x) => x.mode === "walkoff", 3, { right: true });
+  return [...evs, ...until(g, (x) => x.mode !== "walkoff" && x.mode !== "tally", 12)];
+};
+
+test("clocking out tallies, then the next venue's card: what he carries comes along, he arrives cool, snot full, shield spent", () => {
+  const g = createGame(shiftOf(), 7);
+  play(g);
+  Object.assign(g.world.hero, { charge: 8, patience: 3, hot: true, heat: 70, sinus: 1 });
+  Object.assign(g.run, { cans: 12, lives: 4, star: 5 });
+  const evs = walkOut(g);
+  assert.ok(evs.some((e) => e.type === "venue" && e.id === "restaurant"));
+  assert.deepEqual([g.mode, g.level.id, g.venue], ["card", "restaurant", 1]);
+  const h = g.world.hero;
+  assert.deepEqual([h.charge, h.patience, h.hot, h.heat, h.sinus, g.run.cans, g.run.lives, g.run.star, h.invuln], [8, 3, true, 0, SINUS_MAX, 12, 4, 0, 0]);
+  assert.ok(g.run.score > 0, "the tally paid");
+  assert.ok(Math.abs(g.run.time - 420) < 1e-9, "the restaurant's own full clock");
+  assert.ok(Math.abs(h.x - g.level.spawn.x) < 1, "at the restaurant's start");
+});
+
+test("nothing in the air or on the floor follows him into the next venue", () => {
+  const g = createGame(shiftOf(), 7);
+  play(g);
+  g.world.missiles.push({ id: 1, kind: "plane", x: 5000, y: -2500, vx: 0, vy: 0, spin: 0, life: 9, phase: 0, from: 0 });
+  g.world.puddles.push({ x: 5800, y: 0, w: 100, life: 9, max: 9, kind: "water" });
+  g.world.snot.push({ id: 1, x: 5000, y: -2500, vx: 0, vy: 0, life: 9, hot: false, pierce: 0, hit: [] });
+  walkOut(g);
+  assert.equal(g.level.id, "restaurant");
+  assert.deepEqual([g.world.missiles.length, g.world.puddles.length, g.world.snot.length, g.world.targets.length], [0, 0, 0, 0]);
+});
+
+test("a lost life in a later venue brings him back at that venue's last punch clock, never the lobby's", () => {
+  const g = createGame(shiftOf(), 7);
+  play(g);
+  g.world.hero.x = 3050;
+  stepsG(g, 0.1);
+  assert.deepEqual(g.run.punched, ["k1"], "the lobby's clock");
+  walkOut(g);
+  play(g);
+  assert.deepEqual(g.run.punched, [], "the restaurant's clocks start fresh, the same id or not");
+  knockOut(g);
+  until(g, (x) => x.mode === "card");
+  play(g);
+  assert.equal(g.level.id, "restaurant");
+  assert.ok(Math.abs(g.world.hero.x - g.level.spawn.x) < 1, "no clock punched here yet: back at the restaurant's start");
+  g.world.hero.x = 3050;
+  stepsG(g, 0.1);
+  assert.deepEqual(g.run.punched, ["k1"]);
+  const layout = JSON.stringify(g.pickups.map((p) => [p.kind, p.x, p.y]));
+  // Past the last respawn's grace, so the knockdown lands.
+  g.world.hero.invuln = 0;
+  knockOut(g);
+  until(g, (x) => x.mode === "card");
+  play(g);
+  assert.ok(g.level.id === "restaurant" && Math.abs(g.world.hero.x - 3000) < 1, `at the restaurant's clock: ${g.level.id} ${g.world.hero.x}`);
+  assert.equal(JSON.stringify(g.pickups.map((p) => [p.kind, p.x, p.y])), layout, "the restaurant as the run laid it out");
+});
+
+test("each venue lays its pickups out by its own seed; the lobby keeps the run's", () => {
+  const layout = (list) => JSON.stringify(list.map((p) => [p.kind, p.x, p.y]));
+  const a = createGame(shiftOf(), 7);
+  assert.equal(layout(a.pickups), layout(seedRewards(a.level, 7)), "the lobby as before");
+  play(a);
+  walkOut(a);
+  assert.equal(layout(a.pickups), layout(seedRewards(a.level, 7 + VENUE_SEED)), "the restaurant by its own seed");
+  assert.notEqual(layout(a.pickups), layout(seedRewards(a.level, 7)));
+});
+
+test("the last venue's tally ends the shift; a shift started at a later venue starts there again", () => {
+  const g = createGame(shiftOf(), 7, { start: 2 });
+  assert.deepEqual([g.level.id, g.venue, g.start], ["campus", 2, 2]);
+  play(g);
+  const evs = walkOut(g);
+  assert.ok(evs.some((e) => e.type === "clear"));
+  assert.equal(g.mode, "clear");
+  g.newRun(9);
+  assert.equal(g.level.id, "campus", "play again starts where the shift began");
+  play(g);
+  g.run.lives = 1;
+  knockOut(g);
+  until(g, (x) => x.mode === "over");
+  assert.equal(g.mode, "over");
+  g.newRun(10);
+  assert.deepEqual([g.level.id, g.run.lives, g.run.score], ["campus", 3, 0]);
+  assert.equal(createGame(shiftOf(), 7, { start: 9 }).level.id, "campus", "a start past the end is the last venue");
+});

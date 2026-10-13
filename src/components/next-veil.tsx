@@ -9,6 +9,8 @@ export type VeilInfo = {
   portrait: string | null;
   /** The card after a lost life, not the first. */
   back: boolean;
+  /** The shift's first card, not one after a venue. */
+  first: boolean;
 };
 
 /** The keys, for the break card: the keyboard's whole set on one card. */
@@ -75,7 +77,7 @@ export function NextVeil({
         <section className="next-veil__card" aria-live="polite">
           <p className="next-veil__eyebrow">World {info.world}</p>
           <h2 className="next-veil__title">{info.venue}</h2>
-          <p className="next-veil__line">{info.back ? "Back from your break" : "Your shift starts here"}</p>
+          <p className="next-veil__line">{info.back ? "Back from your break" : info.first ? "Your shift starts here" : "Your shift goes on"}</p>
           <Lives n={info.lives} portrait={info.portrait} />
         </section>
       </div>
@@ -115,9 +117,9 @@ export function NextVeil({
   if (mode === "clear")
     return (
       <div className="next-veil" data-place={place}>
-        <section className="next-veil__card" role="dialog" aria-label="Lobby clear">
+        <section className="next-veil__card" role="dialog" aria-label="Shift over">
           <p className="next-veil__eyebrow">World {info.world}</p>
-          <h2 className="next-veil__title">Lobby clear</h2>
+          <h2 className="next-veil__title">Shift over</h2>
           <p className="next-veil__line">Clocked out with time to spare.</p>
           <Scores info={info} />
           <button type="button" className="next-veil__button" onClick={onNewRun}>
