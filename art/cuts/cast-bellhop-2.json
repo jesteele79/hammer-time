@@ -1,0 +1,385 @@
+{
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/bellhop-2.png. Layers as in hammer-body.json, plus head: everything above the collar's top edge, claimed after the torso (so the collar stays with the jacket) and drawn behind it; its fill paints the neck on down under the collar. rig.joints are the painted joints; the neck joint sits on the collar's top edge at the neck's middle (the head turns about it). The arms take Hammer's rest directions in the game (ARM_BONES). jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. Check with: node scripts/art-grid.mjs cast/bellhop-2.",
+ "space": "crop",
+ "jaw": [
+  [318,214],
+  [440,195]
+ ],
+ "rig": {
+  "sole": 1343,
+  "rootX": 442,
+  "joints": {
+   "pelvis": [418,788],
+   "chest": [414,493],
+   "neck": [400,236],
+   "shoulderNear": [452,355],
+   "elbowNear": [339,551],
+   "wristNear": [250,705],
+   "knuckleNear": [207,750],
+   "handNear": [133,826],
+   "shoulderFar": [433,382],
+   "elbowFar": [256,530],
+   "wristFar": [117,647],
+   "handFar": [33,780],
+   "hipNear": [455,845],
+   "kneeNear": [478,1010],
+   "ankleNear": [514,1231],
+   "toeNear": [305,1336],
+   "heelNear": [580,1336],
+   "hipFar": [380,845],
+   "kneeFar": [385,1000],
+   "ankleFar": [379,1156],
+   "toeFar": [195,1232],
+   "heelFar": [433,1238]
+  },
+  "bones": [
+   [
+    "pelvis",
+    "hipNear"
+   ],
+   [
+    "pelvis",
+    "chest"
+   ],
+   [
+    "chest",
+    "neck"
+   ],
+   [
+    "shoulderNear",
+    "elbowNear"
+   ],
+   [
+    "elbowNear",
+    "wristNear"
+   ],
+   [
+    "wristNear",
+    "knuckleNear"
+   ],
+   [
+    "knuckleNear",
+    "handNear"
+   ],
+   [
+    "shoulderFar",
+    "elbowFar"
+   ],
+   [
+    "elbowFar",
+    "wristFar"
+   ],
+   [
+    "wristFar",
+    "handFar"
+   ],
+   [
+    "hipNear",
+    "kneeNear"
+   ],
+   [
+    "kneeNear",
+    "ankleNear"
+   ],
+   [
+    "ankleNear",
+    "toeNear"
+   ],
+   [
+    "hipFar",
+    "kneeFar"
+   ],
+   [
+    "kneeFar",
+    "ankleFar"
+   ],
+   [
+    "ankleFar",
+    "toeFar"
+   ]
+  ],
+  "skin": {
+   "torso": {
+    "chain": [
+     "pelvis",
+     "chest",
+     "neck"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [-30,30],
+    "blend": [
+     60
+    ]
+   },
+   "armNear": {
+    "chain": [
+     "shoulderNear",
+     "elbowNear",
+     "wristNear",
+     "knuckleNear",
+     "handNear"
+    ],
+    "parent": [
+     "chest",
+     "neck"
+    ],
+    "start": [0,60],
+    "blend": [
+     34,
+     12,
+     10
+    ]
+   },
+   "armFar": {
+    "chain": [
+     "shoulderFar",
+     "elbowFar",
+     "wristFar",
+     "handFar"
+    ],
+    "parent": [
+     "chest",
+     "neck"
+    ],
+    "start": [0,60],
+    "blend": [30,12]
+   },
+   "legNear": {
+    "chain": [
+     "hipNear",
+     "kneeNear",
+     "ankleNear",
+     "toeNear"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [0,70],
+    "blend": [36,16]
+   },
+   "legFar": {
+    "chain": [
+     "hipFar",
+     "kneeFar",
+     "ankleFar",
+     "toeFar"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [0,70],
+    "blend": [32,14]
+   }
+  }
+ },
+ "layers": {
+  "head": {
+   "polygon": [
+    [230,0],
+    [598,0],
+    [598,290],
+    [230,290]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [347,257],
+      [450,212],
+      [458,228],
+      [452,285],
+      [358,285]
+     ],
+     "from": [
+      [338,240],
+      [345,222],
+      [400,205],
+      [440,196],
+      [452,210],
+      [349,257]
+     ]
+    }
+   ]
+  },
+  "torso": {
+   "polygon": [
+    [345,253],
+    [452,209],
+    [466,232],
+    [505,295],
+    [516,390],
+    [505,470],
+    [500,523],
+    [515,600],
+    [535,680],
+    [547,700],
+    [542,722],
+    [530,860],
+    [350,860],
+    [340,722],
+    [318,712],
+    [300,650],
+    [292,560],
+    [292,450],
+    [298,360],
+    [318,300],
+    [343,280]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [318,300],
+      [400,285],
+      [452,222],
+      [475,240],
+      [505,295],
+      [516,390],
+      [505,470],
+      [500,523],
+      [515,600],
+      [535,690],
+      [318,690]
+     ],
+     "from": [
+      [290,250],
+      [550,250],
+      [550,715],
+      [290,715]
+     ]
+    }
+   ]
+  },
+  "armNear": {
+   "polygon": [
+    [378,312],
+    [452,355],
+    [512,393],
+    [492,417],
+    [465,470],
+    [432,543],
+    [405,590],
+    [372,643],
+    [345,683],
+    [326,690],
+    [323,728],
+    [290,742],
+    [272,775],
+    [245,815],
+    [205,842],
+    [150,845],
+    [125,830],
+    [118,790],
+    [130,740],
+    [165,698],
+    [200,690],
+    [208,645],
+    [247,634],
+    [269,590],
+    [297,540],
+    [327,480],
+    [364,413]
+   ]
+  },
+  "armFar": {
+   "polygon": [
+    [262,398],
+    [300,400],
+    [310,480],
+    [305,555],
+    [290,600],
+    [250,634],
+    [210,645],
+    [200,690],
+    [165,698],
+    [150,720],
+    [110,770],
+    [60,792],
+    [12,782],
+    [5,735],
+    [8,655],
+    [60,622],
+    [110,598],
+    [150,575],
+    [200,520],
+    [235,470]
+   ],
+   "fill": [
+    [
+     [451,403],
+     [407,351],
+     [230,499],
+     [274,551]
+    ]
+   ],
+   "extrude": true
+  },
+  "legNear": {
+   "polygon": [
+    [410,800],
+    [528,800],
+    [540,900],
+    [560,1000],
+    [575,1150],
+    [585,1250],
+    [598,1290],
+    [598,1352],
+    [285,1352],
+    [285,1300],
+    [330,1265],
+    [415,1232],
+    [452,1225],
+    [452,1150],
+    [440,1050],
+    [425,950],
+    [412,860]
+   ],
+   "fill": [
+    [
+     [410,770],
+     [528,770],
+     [528,870],
+     [410,870]
+    ]
+   ]
+  },
+  "legFar": {
+   "polygon": [
+    [345,800],
+    [440,800],
+    [445,950],
+    [450,1050],
+    [455,1150],
+    [452,1225],
+    [415,1232],
+    [330,1265],
+    [290,1295],
+    [230,1245],
+    [180,1235],
+    [180,1180],
+    [230,1160],
+    [300,1150],
+    [350,1120],
+    [365,1000],
+    [352,900]
+   ],
+   "fill": [
+    [
+     [420,860],
+     [455,860],
+     [455,1225],
+     [420,1225]
+    ],
+    [
+     [345,770],
+     [440,770],
+     [440,870],
+     [345,870]
+    ]
+   ]
+  }
+ }
+}

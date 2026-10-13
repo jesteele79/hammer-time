@@ -512,3 +512,7 @@ test("a cast body's rig: five skinned layers, a head plate turning on its neck j
   assert.ok(h.neck.y > h.height * 0.6 && h.neck.y < h.height, `the neck anchor low on the plate: ${h.neck.y} of ${h.height}`);
   assert.ok(h.share > 0.14 && h.share < 0.24, `the painted head is ${h.share} of him`);
 });
+
+test("every cast painting in art/incoming/cast has its cut", () => {
+  for (const p of PERSONS) if (existsSync(`${CAST_IN}/${p}.png`)) assert.ok(existsSync(`art/cuts/cast-${p}.json`), `${p} is painted but not cut`);
+});
