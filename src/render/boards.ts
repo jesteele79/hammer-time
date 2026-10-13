@@ -11,7 +11,8 @@ import { plantFeet } from "../sim/rig/feet";
 import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { FAR_FLOOR, HERO_HEIGHT } from "../sim/rig/skeleton";
-import { DAZED, LOOKS, drawCarried, drawFigure, star } from "./cast";
+import { LOBBY } from "../sim/levels/lobby";
+import { DAZED, LOOKS, drawCarried, drawFigure, recolored, star } from "./cast";
 import { castHeadScale, hatWorldWidth } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
 import { drawMissile, drawPuddle } from "./props";
@@ -268,8 +269,13 @@ export function createBoards(
 
   /** Every person in every act, a third of the way in (loops at 0.4 s), facing left as the paintings will. */
   const castSheet = async () => {
+    // Every person as painted, then each repeat the lobby recolors and resizes.
+    const sheetRows = [
+      ...PERSONS.map((person) => ({ person, name: person as string, recolor: null as string | null, size: 1 })),
+      ...(LOBBY.cast ?? []).filter((s) => s.recolor).map((s) => ({ person: s.person, name: `${s.person} ${s.recolor}`, recolor: s.recolor!, size: s.size ?? 1 })),
+    ];
     const cols = STAFF_ACTS.length;
-    const rows = PERSONS.length;
+    const rows = sheetRows.length;
     const width = cols * CELL_W + 150;
     const height = rows * CELL_H + 50;
     const board = new Container();
@@ -277,10 +283,10 @@ export function createBoards(
     for (let r = 0; r <= rows; r++) bg.rect(150, 50 + r * CELL_H, cols * CELL_W, 2).fill("#343a44");
     for (let c = 0; c <= cols; c++) bg.rect(150 + c * CELL_W, 50, 2, rows * CELL_H).fill("#343a44");
     board.addChild(bg);
-    const arts = await Promise.all(PERSONS.map((p) => loadCastArt(registry, p)));
-    PERSONS.forEach((person, row) => {
+    const arts = await Promise.all(sheetRows.map((r) => loadCastArt(registry, r.person)));
+    sheetRows.forEach(({ person, name, recolor, size }, row) => {
       const art = arts[row];
-      const t = label(person, "display", 30);
+      const t = label(name, "display", name.length > 9 ? 22 : 30);
       t.position.set(16, 50 + row * CELL_H + 12);
       board.addChild(t);
       const role = person.slice(0, -2) as CastAct extends never ? never : "bellhop" | "server" | "office" | "student";
@@ -293,18 +299,18 @@ export function createBoards(
         }
         const tt = ACT_SECONDS[act] ? ACT_SECONDS[act] / 3 : 0.4;
         const pose = castPose({ role, act, t: tt, speed: 300, onGround: act !== "fly" && act !== "hop", sit: false, spin: act === "fly" ? 120 : 0, hits: 0 });
-        const look = LOOKS[person];
+        const look = recolored(LOOKS[person], recolor);
         const solved = art
           ? solve(pose, -1, castHeadScale(look.head ?? art.head.share, art.head), art.head, art.skeleton)
           : solve(pose, -1, HEAD_SCALE, HEAD_PLATE_DEFAULT);
-        const k = look.height / HERO_HEIGHT;
+        const k = (look.height * size) / HERO_HEIGHT;
         const dy = groundShift(solved, castGround(act, act !== "fly" && act !== "hop", false));
         const cell = new Container();
         const g = new Graphics();
         const opts = { role, act, hat: role === "bellhop", prop: true, slimed: false, silhouette: false };
         if (art) {
           const fig = new PaintedFigure(art);
-          fig.apply(solved, { recolor: null, dazed: DAZED.has(act), hat: opts.hat, silhouette: false });
+          fig.apply(solved, { recolor, dazed: DAZED.has(act), hat: opts.hat, silhouette: false });
           drawCarried(g, solved, opts);
           cell.addChild(fig.container);
         } else drawFigure(g, solved, look, opts);

@@ -1,5 +1,5 @@
 {
- "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/server-1.png. Layers as in cast-bellhop-1.json: the head takes her ponytail down her back; the torso takes the vest, the shirt's front, the long apron and its tie (the legs are painted on under it); the arms take the rolled shirtsleeves and the bare forearms. jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. Check with: node scripts/art-grid.mjs cast/server-1.",
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/server-1.png. Layers as in cast-bellhop-1.json: the head takes her ponytail down her back; the torso takes the vest, the shirt's front, the long apron and its tie (the legs are painted on under it); the arms take the rolled shirtsleeves and the bare forearms. jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. recolors: for a repeat wearing this painting, the garment by region and tone, recolored keeping its shading. Check with: node scripts/art-grid.mjs cast/server-1.",
  "space": "crop",
  "jaw": [
   [300,222],
@@ -408,6 +408,22 @@
      [426,1250]
     ]
    ]
+  }
+ },
+ "recolors": {
+  "#7a1f2b": {
+   "regions": [
+    [
+     [250,290],
+     [520,290],
+     [520,575],
+     [250,575]
+    ]
+   ],
+   "match": {
+    "sat": [0,0.25],
+    "luma": [22,120]
+   }
   }
  }
 }

@@ -17,6 +17,9 @@ import {
   layerZ,
   castRig,
   hatBase,
+  recolorMask,
+  maskMean,
+  recolorLayer,
 } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
@@ -568,5 +571,45 @@ test("the bellhops' cuts seat the hat on the head, inside the head plate", async
     assert.ok(h, `${person}: the cut seats the hat`);
     assert.ok(h.x > 0 && h.x < rig.head.width && h.y >= 0 && h.y < rig.head.neck.y, `${person}: the seat on the head: ${JSON.stringify(h)}`);
     assert.ok(h.width > rig.head.width * 0.4 && h.width < rig.head.width * 1.2, `${person}: about the head's width: ${h.width} of ${rig.head.width}`);
+  }
+});
+
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+
+test("a recolor takes the garment to the new hue, keeps its light and dark, and leaves the ink and everything else", () => {
+  const W = 40,
+    H = 20;
+  const rgba = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4;
+      // Left half an olive cloth shaded left to right, an ink line down x = 10, the right half white.
+      if (x === 10) rgba.set([16, 16, 16, 255], i);
+      else if (x < 20) rgba.set([90 + x * 3, 100 + x * 3, 40 + x, 255], i);
+      else rgba.set([240, 240, 236, 255], i);
+    }
+  const spec = { regions: [[[0, 0], [40, 0], [40, 20], [0, 20]]], match: { hue: [50, 100], sat: [0.2, 1], luma: [40, 255] } };
+  const mask = recolorMask(rgba, W, H, spec);
+  const out = recolorLayer(rgba, mask, "#c9a227", maskMean(rgba, mask));
+  const at = (b, x, y) => [...b.subarray((y * W + x) * 4, (y * W + x) * 4 + 4)];
+  assert.deepEqual(at(out, 10, 5), at(rgba, 10, 5), "the ink stays ink");
+  assert.deepEqual(at(out, 30, 5), at(rgba, 30, 5), "the white stays white");
+  const hue = ([r, g, b]) => {
+    const max = Math.max(r, g, b),
+      min = Math.min(r, g, b);
+    return max === r ? (60 * ((g - b) / (max - min)) + 360) % 360 : max === g ? 60 * ((b - r) / (max - min)) + 120 : 60 * ((r - g) / (max - min)) + 240;
+  };
+  for (const x of [2, 8, 16]) assert.ok(Math.abs(hue(at(out, x, 5)) - hue([0xc9, 0xa2, 0x27])) < 8, `mustard at ${x}: ${at(out, x, 5)}`);
+  const luma = (p) => 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2];
+  assert.ok(luma(at(out, 2, 5)) < luma(at(out, 16, 5)), "the shading runs the same way");
+});
+
+test("every recolor the lobby asks for is in the cut of the painting it repaints, and synced on every layer and the head", async () => {
+  for (const s of LOBBY.cast.filter((c) => c.recolor)) {
+    assert.ok(CAST_CUT.includes(s.person), `${s.id}: ${s.person} is cut`);
+    const { keyed, cuts } = await castOf(s.person);
+    assert.ok(cuts.recolors?.[s.recolor], `${s.id}: ${s.person}'s cut has no ${s.recolor}`);
+    const { rig, images } = await castRig(s.person, keyed, cuts);
+    for (const part of [...Object.values(rig.layers), rig.head]) assert.ok(images.has(part.recolors?.[s.recolor]), `${s.id}: a ${s.recolor} texture for ${part.file}`);
   }
 });

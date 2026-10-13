@@ -44,6 +44,8 @@ export type CastSpawn = {
   hide?: boolean;
   sit?: boolean;
   recolor?: string;
+  /** Drawn this much taller or shorter than the painting: a recolored repeat, within ±4 percent (R2b §5). */
+  size?: number;
 };
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */

@@ -105,9 +105,9 @@ export const LOBBY: Level = {
     { id: "server-staff", person: "server-2", x: 9300, y: 0, x0: 8600, x1: 9600 },
     { id: "student-rail-1", person: "student-1", x: 7950, y: -520 },
     { id: "student-rail-2", person: "student-2", x: 8500, y: -520 },
-    { id: "student-rail-3", person: "student-1", x: 9650, y: -520, recolor: "#c9a227" },
-    { id: "server-tables", person: "server-1", x: 13100, y: 0, x0: 12900, x1: 13300, recolor: "#7a1f2b" },
-    { id: "student-table", person: "student-2", x: 13900, y: -160, sit: true, recolor: "#2a8c8a" },
+    { id: "student-rail-3", person: "student-1", x: 9650, y: -520, recolor: "#c9a227", size: 1.03 },
+    { id: "server-tables", person: "server-1", x: 13100, y: 0, x0: 12900, x1: 13300, recolor: "#7a1f2b", size: 0.97 },
+    { id: "student-table", person: "student-2", x: 13900, y: -160, sit: true, recolor: "#2a8c8a", size: 1.02 },
     { id: "office-screen", person: "office-2", x: 14450, y: 0, hide: true },
   ],
 };

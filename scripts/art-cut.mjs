@@ -880,6 +880,58 @@ export async function hatBase(png) {
   throw new Error("hatBase: no hat");
 }
 
+
+/** A pixel's hue in degrees (0 for a grey), its saturation (0 to 1) and its luma (0 to 255). */
+function toneOf(r, g, b) {
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  let hue = 0;
+  if (max !== min)
+    hue = max === r ? (60 * ((g - b) / (max - min)) + 360) % 360 : max === g ? 60 * ((b - r) / (max - min)) + 120 : 60 * ((r - g) / (max - min)) + 240;
+  return { hue, sat: max ? (max - min) / max : 0, luma: 0.3 * r + 0.59 * g + 0.11 * b };
+}
+
+/** The garment a recolor names: painted pixels inside its regions (crop px) within its hue, saturation and luma ranges (each optional; a hue range may wrap past 360). */
+export function recolorMask(rgba, W, H, { regions, match = {} }) {
+  const inside = new Uint8Array(W * H);
+  for (const poly of regions) {
+    const m = polygonMask(poly, W, H, { x: 0, y: 0 });
+    for (let i = 0; i < W * H; i++) if (m[i]) inside[i] = 1;
+  }
+  const within = (v, r) => !r || (r[0] <= r[1] ? v >= r[0] && v <= r[1] : v >= r[0] || v <= r[1]);
+  const mask = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    if (!inside[i] || rgba[i * 4 + 3] < 128) continue;
+    const t = toneOf(rgba[i * 4], rgba[i * 4 + 1], rgba[i * 4 + 2]);
+    if (within(t.hue, match.hue) && within(t.sat, match.sat) && within(t.luma, match.luma)) mask[i] = 1;
+  }
+  return mask;
+}
+
+/** The garment's mean luma: what each of its pixels' light and dark is measured against. */
+export function maskMean(rgba, mask) {
+  let sum = 0,
+    n = 0;
+  for (let i = 0; i < mask.length; i++)
+    if (mask[i]) {
+      sum += 0.3 * rgba[i * 4] + 0.59 * rgba[i * 4 + 1] + 0.11 * rgba[i * 4 + 2];
+      n++;
+    }
+  return n ? sum / n : 1;
+}
+
+/** The garment in `hex`: each pixel as much lighter or darker than the new color as it was than the garment's mean. */
+export function recolorLayer(rgba, mask, hex, mean) {
+  const out = Buffer.from(rgba);
+  const target = [1, 3, 5].map((k) => parseInt(hex.slice(k, k + 2), 16));
+  for (let i = 0; i < mask.length; i++) {
+    if (!mask[i]) continue;
+    const k = (0.3 * rgba[i * 4] + 0.59 * rgba[i * 4 + 1] + 0.11 * rgba[i * 4 + 2]) / mean;
+    for (let c = 0; c < 3; c++) out[i * 4 + c] = Math.max(0, Math.min(255, Math.round(target[c] * k)));
+  }
+  return out;
+}
+
 /** Mesh cells in crop pixels, and the size layer textures are stored at (the game draws a body at about a quarter of its crop, twice that on a high-density screen). */
 export const MESH_CELL = 14;
 export const TEXTURE_SCALE = 0.5;
@@ -1023,6 +1075,27 @@ export async function castRig(person, keyed, cuts, { silly = null, strict = fals
       y: Math.round((cuts.hat.y - head.box.y) * TEXTURE_SCALE),
       width: Math.round(cuts.hat.width * TEXTURE_SCALE),
     };
+  // Recolors for a repeat wearing this painting: the garment's masks in every layer and the head, shaded off the painting's own mean.
+  const recolors = Object.entries(cuts.recolors ?? {});
+  if (recolors.length) {
+    const { data } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (const [hex, spec] of recolors) {
+      const mean = maskMean(data, recolorMask(data, W, H, spec));
+      const tag = hex.slice(1);
+      for (const name of LAYER_Z) {
+        const l = out.layers[name];
+        const rgba = recolorLayer(layers[name].rgba, recolorMask(layers[name].rgba, W, H, spec), hex, mean);
+        const file = `cast/${person}-${tag}-${name}.png`;
+        images.set(file, await scaled(await paddedLayer(rgba, W, H, { x0: l.x, y0: l.y, width: l.width, height: l.height }), l.width, TEXTURE_SCALE));
+        (l.recolors ??= {})[hex] = file;
+      }
+      const rgba = recolorLayer(layers.head.rgba, recolorMask(layers.head.rgba, W, H, spec), hex, mean);
+      const plate = await castHeadPlate(rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+      const file = `cast/${person}-${tag}-head.png`;
+      images.set(file, plate.png);
+      (out.head.recolors ??= {})[hex] = file;
+    }
+  }
   if (silly) {
     const a = await alignTo(keyed.png, silly.png);
     const verdict = gateExpression(a.overlap, { strict });

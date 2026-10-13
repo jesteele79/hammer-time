@@ -447,7 +447,7 @@ export class Cast {
       const solved = art
         ? solve(pose, n.facing, castHeadScale(v.look.head ?? art.head.share, art.head), art.head, art.skeleton)
         : solve(pose, n.facing, HEAD_SCALE, HEAD_PLATE_DEFAULT);
-      const k = v.look.height / HERO_HEIGHT;
+      const k = (v.look.height * n.size) / HERO_HEIGHT;
       const dy = groundShift(solved, castGround(n.act, n.onGround, n.sit));
       const dazed = DAZED.has(n.act);
       v.body.clear();

@@ -67,6 +67,8 @@ export type Npc = {
   role: CastRole;
   person: CastPerson;
   recolor: string | null;
+  /** Drawn this much taller or shorter than the painting (a repeat). */
+  size: number;
   x: number;
   y: number;
   w: number;
@@ -127,6 +129,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       role,
       person: s.person,
       recolor: s.recolor ?? null,
+      size: s.size ?? 1,
       x: s.x,
       y: s.y,
       w: c.w,

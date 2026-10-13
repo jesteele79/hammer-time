@@ -1,5 +1,5 @@
 {
- "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/student-1.png. Layers as in cast-bellhop-1.json: the head takes the curls, the glasses and the earbuds; the torso takes the overshirt's body, the t-shirt, the backpack and its straps, and the jeans' top; the arms take the rolled sleeves, the bare forearms and the hands. jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. Check with: node scripts/art-grid.mjs cast/student-1.",
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/student-1.png. Layers as in cast-bellhop-1.json: the head takes the curls, the glasses and the earbuds; the torso takes the overshirt's body, the t-shirt, the backpack and its straps, and the jeans' top; the arms take the rolled sleeves, the bare forearms and the hands. jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. recolors: for a repeat wearing this painting, the garment by region and tone, recolored keeping its shading. Check with: node scripts/art-grid.mjs cast/student-1.",
  "space": "crop",
  "jaw": [
   [245,238],
@@ -423,6 +423,23 @@
      [420,1260]
     ]
    ]
+  }
+ },
+ "recolors": {
+  "#c9a227": {
+   "regions": [
+    [
+     [100,245],
+     [560,245],
+     [560,830],
+     [100,830]
+    ]
+   ],
+   "match": {
+    "hue": [45,110],
+    "sat": [0.15,1],
+    "luma": [30,255]
+   }
   }
  }
 }

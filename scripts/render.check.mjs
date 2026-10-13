@@ -688,3 +688,12 @@ test("the hat in flight is as wide as the hat on his head, grown with the head a
   const onHead = Math.hypot(ends[2] - ends[0], ends[3] - ends[1]) * own * (height / HERO_HEIGHT);
   assert.ok(Math.abs(hatWorldWidth(rig, share, height) - onHead) < 1e-6, `${hatWorldWidth(rig, share, height)} against ${onHead}`);
 });
+
+import { layerTexture } from "../src/render/skin.ts";
+
+test("two people in one painting keep their own colors, and a recolor the art lacks falls back to the painting", () => {
+  const layer = { file: "cast/server-1-torso.png", recolors: { "#7a1f2b": "cast/server-1-7a1f2b-torso.png" } };
+  assert.equal(layerTexture(layer, null), "cast/server-1-torso.png");
+  assert.equal(layerTexture(layer, "#7a1f2b"), "cast/server-1-7a1f2b-torso.png");
+  assert.equal(layerTexture(layer, "#123456"), "cast/server-1-torso.png");
+});

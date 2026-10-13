@@ -1,5 +1,5 @@
 {
- "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/student-2.png. Layers as in cast-bellhop-1.json: the head takes the beanie, the curls and the earbuds; the torso takes the hoodie's body, its hood lying on the shoulders, the drawstrings, the backpack and its straps, and the joggers' top; the arms take the hoodie's sleeves, the ribbed cuffs and the hands. jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. Check with: node scripts/art-grid.mjs cast/student-2.",
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/student-2.png. Layers as in cast-bellhop-1.json: the head takes the beanie, the curls and the earbuds; the torso takes the hoodie's body, its hood lying on the shoulders, the drawstrings, the backpack and its straps, and the joggers' top; the arms take the hoodie's sleeves, the ribbed cuffs and the hands. jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. recolors: for a repeat wearing this painting, the garment by region and tone, recolored keeping its shading. Check with: node scripts/art-grid.mjs cast/student-2.",
  "space": "crop",
  "jaw": [
   [318,240],
@@ -421,6 +421,22 @@
      [440,1280]
     ]
    ]
+  }
+ },
+ "recolors": {
+  "#2a8c8a": {
+   "regions": [
+    [
+     [0,225],
+     [600,225],
+     [600,800],
+     [0,800]
+    ]
+   ],
+   "match": {
+    "sat": [0,0.2],
+    "luma": [55,235]
+   }
   }
  }
 }

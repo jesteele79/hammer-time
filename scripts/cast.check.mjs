@@ -846,3 +846,13 @@ test("a bellhop chasing his cart faces it, wherever it rolled", () => {
   assert.equal(b.facing, 1, "turned to the cart behind him");
   assert.ok(b.vx > 0, "and walking forwards to it");
 });
+
+test("the recolored repeats are drawn within 4 percent of their painting's height, everyone else as painted", () => {
+  const w = createGame({ lobby: LOBBY, stash: STASH }, 5).world;
+  for (const n of w.cast) {
+    const spawn = LOBBY.cast.find((s) => s.id === n.spawn);
+    assert.equal(n.size, spawn.size ?? 1);
+    assert.ok(Math.abs(n.size - 1) <= 0.04, `${n.spawn}: ${n.size}`);
+    assert.ok(spawn.recolor ? n.size !== 1 : n.size === 1, `${n.spawn}: only the repeats are resized`);
+  }
+});
