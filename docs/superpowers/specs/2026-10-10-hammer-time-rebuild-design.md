@@ -501,10 +501,14 @@ under, a swinging door that knocks), the line (steel counters, a flat-top that
 burns: heat +20/s while standing on it, a walk-in freezer that cools: heat
 −30/s), the loading dock (a ramp, stacked crates, a dumpster) to the exit.
 
+As built in R3a (2026-10-13): see the R3 design (`2026-10-13-r3-the-run-design.md`) §3.1.
+
 **Campus (1-3).** The quad (steps, a fountain rim as a platform, lamp posts,
 students on benches throwing paper), the dining commons (serving counters,
 tray-return conveyor as a mover, a mezzanine seating deck), the library steps
 (a long stair up to the exit with students firing down).
+
+As built in R3a (2026-10-13): see the R3 design (`2026-10-13-r3-the-run-design.md`) §3.2.
 
 **The pig arena (1-4 for now; 1-5 after the Skills Lab).** A hotel gift shop
 at night: a cash counter, plush shelves as platforms, a spotlight on the
@@ -848,6 +852,10 @@ every step; the old build serves `/` until R3.
   doors, the stash; the lobby playable start to finish.
 - **R3 The run.** Restaurant, campus, the arena and the pig; the full shift
   end to end; `/` switches to the new build; the old engine is deleted.
+  R3a (the restaurant, the campus and the shift through them) done
+  2026-10-13; R3b (the gift shop and the pig, the start screen, the lobby's
+  walls, the switch and the merge) next. The design is
+  `2026-10-13-r3-the-run-design.md`.
 - **R4 Hungry Hungry Hammer** (§11), the BUFFET door, the Side quests row.
 - **R5 Fare Darts** (§12), the AIRPORT SHUTTLE door.
 - **R6 Marriott status and the lounge** (expansion spec §7).

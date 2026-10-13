@@ -2,7 +2,7 @@ import { Container, Graphics, Matrix, RenderTexture, Sprite } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
 import { HATTED, jobOf, roleOf, type CastAct } from "../sim/cast";
 import { HEAD_SCALE } from "../sim/constants";
-import type { CastPerson, LevelId } from "../sim/level";
+import type { CastPerson, Level, LevelId } from "../sim/level";
 import { ACT_SECONDS, castGround, castPose } from "../sim/rig/cast";
 import { SUPER_CUT, type MoveKind } from "../sim/moves";
 import { ACTIONS, ACTION_MASK, displayU, overlay } from "../sim/rig/actions";
@@ -28,7 +28,7 @@ import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -55,6 +55,26 @@ const MOVE_FRAMES = 10;
  * shaft and the landing, the mezzanine over the floor route (its 0.88 zone), the tables, and the
  * corridor and the exit.
  */
+/** Each venue's six frames: where he stands, where the camera looks and how wide. */
+const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }[]>> = {
+  restaurant: [
+    { x: 750, y: 0, cx: 1300 },
+    { x: 4450, y: -180, cx: 4900 },
+    { x: 6000, y: 0, cx: 6500 },
+    { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },
+    { x: 12200, y: -340, cx: 12800 },
+    { x: 13450, y: -200, cx: 14100 },
+  ],
+  campus: [
+    { x: 1300, y: -100, cx: 1900 },
+    { x: 2450, y: -310, cx: 2900, cy: -500 },
+    { x: 5300, y: 0, cx: 5900 },
+    { x: 7250, y: -120, cx: 8100, cy: -420, zoom: 0.88 },
+    { x: 9000, y: 0, cx: 9400, cy: -350, zoom: 0.88 },
+    { x: 13200, y: -473, cx: 13600, cy: -700, zoom: 0.88 },
+  ],
+};
+
 const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [
   { x: 1100, y: 0, cx: 1700 },
   { x: 3250, y: -110, cx: 3700 },
@@ -137,6 +157,8 @@ export function createBoards(
   placeHero: (x: number, y?: number) => number,
   /** Shows a level's visuals (null: the one he is in) without moving the game. */
   showLevel: (id: LevelId | null) => void = () => {},
+  /** The level the game is in: the venue board frames it. */
+  currentLevel: () => Level = () => LOBBY,
 ): Boards {
   const { app } = render;
 
@@ -511,7 +533,7 @@ export function createBoards(
     return snapshot(board, width, height);
   };
 
-  const lobby = async (frameList = LOBBY_FRAMES, level: LevelId = "lobby") => {
+  const levelFrames = async (frameList = LOBBY_FRAMES, level: LevelId = "lobby") => {
     const saved = { w: scene.width, h: scene.height, x: scene.camera.x, y: scene.camera.y, target: scene.camera.target, zoom: scene.camera.zoom };
     const frames: string[] = [];
     scene.camera.target = null;
@@ -603,19 +625,25 @@ export function createBoards(
           return sheet(SLOPES.length, rows.length, cells, rows.map((r) => r[3]), heads, 1, SLOPE_TALL);
         }
         case "lobby":
-          return lobby();
+          return levelFrames();
         case "objects":
           return objects();
         case "stash":
-          return lobby([{ x: 1300, y: -330, cx: 1500, cy: -420 }], "stash");
+          return levelFrames([{ x: 1300, y: -330, cx: 1500, cy: -420 }], "stash");
         case "cast":
           return castSheet();
         case "cast-lobby":
-          return lobby(CAST_FRAMES);
+          return levelFrames(CAST_FRAMES);
         case "cast-fx":
           return castFx();
         case "cast-heads":
           return castHeads();
+        case "venue": {
+          const lv = currentLevel();
+          const frames = VENUE_FRAMES[lv.id];
+          if (!frames) throw new Error(`no venue frames for ${lv.id}`);
+          return levelFrames(frames, lv.id);
+        }
       }
     },
   };

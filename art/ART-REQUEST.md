@@ -189,6 +189,14 @@ green: a plant, a pillar, a luggage cart). Name them `backdrops/<venue>-far.png`
   with a heat lamp, a wall of snacks, a bright beaver-mascot mural with no
   text."
 
+Status (2026-10-13, R3a): the venues' walls are now three straight-on walls a venue
+(`<venue>-far-1..3.png`, each cut at its edge pilasters) with `-mid` and `-fore` sheets of
+standing pieces, briefed in `art/outgoing/batch-2-backdrops.txt` and
+`art/outgoing/batch-r3-codex.txt` sections 4 and 5. In and in the game: the restaurant's
+three walls, its mid and fore sheets; the campus's three walls, its mid and fore sheets. Still
+open: the gift shop's walls and sheets (`arena-*`), and the lobby's
+(`lobby-far-1..3`, `lobby-mid`, `lobby-fore`), which replace the lobby's inked photo in R3b.
+
 ## 5. The cast
 
 **The lobby's four roles (R2b, 2026-10-12): the brief is `art/outgoing/batch-3-cast.txt`.**
@@ -226,6 +234,13 @@ the belly, the foot stagger, the soles' height in the frame); nothing in the han
 Status (2026-10-12): the eight lobby bodies and the hat are in, made with Codex from
 `art/outgoing/batch-3-codex.txt`, and in the game. Still open: the optional face edits
 (`<person>-silly.png`), and the later venues' cast.
+
+Status (2026-10-13, R3a): the restaurant's and the campus's new people are briefed in
+`art/outgoing/batch-7-r3-cast.txt` (Codex prompts in `batch-r3-codex.txt` section 1). In,
+cut and in the game: `cook-1`, `busser-1`, `lunch-1`. Still open: `prof-1.png` (he draws
+as the code-drawn stand-in until it is in) and `cook-hat.png`, the cook's toque on its own
+(he plays bareheaded, and a code-drawn toque flies, until it is in). The pig's velour body
+redo and its four faces (section 3) are for R3b.
 
 ## 6. Pickups and props
 

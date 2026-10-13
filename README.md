@@ -342,6 +342,58 @@ is stocked once a run: what he takes stays gone, across visits and lost
 lives, and its clock never runs. Walking into it cleaned out, he thinks
 "Can't keep one shelf stocked." and then says "They need to get fired."
 
+### The restaurant (1-2)
+
+The restaurant (`src/sim/levels/restaurant.ts`) runs 15,800 px in three
+acts, and its enemy is heat as much as the staff:
+
+- **The dining room:** the host's podium, the closed PRIVATE DINING door
+  ("Opens later"), two booths and a table to hop, the first punch clock, and
+  the bar to jump. A busser pushes his bus cart of dirty dishes at Hammer.
+- **The kitchen:** the swinging door. When the kitchen server comes through
+  it while he is near, she winds up with "Behind!" and the door bangs open
+  toward the dining room: standing in its swing costs a pip; a mallet hit on
+  the door during her wind-up slams it back on her. Then the pass, where a
+  line cook crouches behind the counter with only his toque showing and
+  rears up to fling a hot pan; the heat-lamp gantry to slide under; and the
+  line, two routes. Up on the steel counters the flat-tops add 20 heat a
+  second (a sizzle, steam off his shoes) and the pot rack overhead holds the
+  route's best pickups; down on the floor a second cook marches, and the
+  walk-in freezer's open door takes 30 heat a second off (frost, his
+  breath). The second punch clock is past the line.
+- **The loading dock:** a ramp up, produce crates, a delivery case, a busser
+  with a trash bin on wheels, the truck well (the one pit: a lost life for
+  Hammer, 500 and "DELIVERY REFUSED" for staff knocked in), the truck's bed,
+  a server on her break, the dumpster and the DELIVERIES gate out.
+
+### The campus (1-3)
+
+The campus (`src/sim/levels/campus.ts`) runs 16,400 px, the busiest venue
+before the pig, with paper the main threat:
+
+- **The quad:** stone steps up to a brick plaza, students on the benches
+  throwing paper, the fountain (its rim, and its top tier from the rim), a
+  professor marching with his nose in his book, steps down to the closed
+  SKILLS LAB door ("Opens with the Skills Lab") and the first punch clock.
+- **The dining commons:** the serving line with a lunch worker in front of
+  it. Then two routes. Hop onto the tray return and ride the conveyor up
+  past the trays to the seating deck, out of reach from the floor, with two
+  students; or stay on the floor under it, past an office worker and a
+  second lunch worker at the salad bar. An open stair brings the deck down
+  where the two meet; the second punch clock is past it.
+- **The library steps:** three flights and their landings, ledges beside
+  them, students firing down the steps and a second professor on the
+  stairs, up to the terrace, a delivery case and the LIBRARY doors, the
+  shift's end for now.
+
+Both venues stand in front of the owner's painted walls (three each, in
+walking order, cropped at their pilasters by `art/cuts/wall-<name>.json`)
+with painted pieces standing against them and in front of the play, cut from
+the owner's sheets at sync; the walls are scaled to span the venue and rise
+with the ground he stands on. A venue whose walls are not all in keeps its
+inked photo. `node scripts/art-grid.mjs wall/<name>` draws a wall with its
+seams and floor line.
+
 ### The lobby's cast
 
 Eleven people work the lobby (`src/sim/cast.ts`, `cast-behavior.ts`,
@@ -410,11 +462,48 @@ it; `node scripts/art-sync.mjs --overlay` writes its layers side by side; the
 board `cast-heads.png` shows each head size beside Hammer, and
 `scripts/cast-art-browser.check.mjs` checks the paintings load and fall back.
 
-### The run
+**The venues' new people** (R3a): four more paintings, each fighting one of
+the lobby's ways (`ROLE_OF` in `src/sim/cast.ts`), with their own lines,
+props and way of going down:
 
-- **A run** starts on the venue card with three lives, two patience pips and
-  420 seconds. The clock runs only in the lobby; under 80 seconds it turns red
-  and the music hurries.
+- **The busser** pushes the bellhop's runaway cart, a grey bus cart of dirty
+  dishes (the dock's busser a trash bin): jump it or bonk it back. The
+  dishes crash and leave no puddle; his towel flies at the first hit.
+- **The line cook** ambushes from behind the pass (only his toque showing,
+  then he rears up and flings a hot pan, a grease slick where it lands) and
+  marches the line like the office worker, a sizzle his tell. Knocked down,
+  his toque flies and his pan clatters. Until the owner's painting of the
+  toque is in, he plays bareheaded and a code-drawn toque flies.
+- **The lunch worker** rushes like a server with a tray of mashed potatoes,
+  peas and jello; knocked down, the food flies and leaves a gravy puddle.
+- **The professor** marches head-down in his book, a page turning his tell;
+  head-on his papers fly everywhere. His painting is not in yet: he draws as
+  the code-drawn stand-in.
+
+Each new person's painting is cut like the lobby's eight; a cut names the
+hat it seats, and the sync registers each hat painting by name. The repeats
+in the venues (the host's plum vest, the second cook's black jacket, the
+dock busser's maroon shirt, the salad bar's red polo and the rest) are
+recolored from masks in each painting's cut; a mask region may name the
+layers it reaches, so a garment painted in behind an arm changes color
+without touching the arm.
+
+### The shift
+
+- **A shift** runs the venues in order: the lobby (1-1), the restaurant
+  (1-2), the campus (1-3); the gift shop and the pig follow in R3b. It
+  starts on the lobby's card with three lives, two patience pips and 420
+  seconds. Each venue has its own clock (420 seconds), its own punch clocks
+  and its own seeded pickups and crates; under 80 seconds the clock turns
+  red and the music hurries.
+- **Between venues:** walking into a venue's exit counts the leftover clock
+  into 50 points a second, then the next venue's card ("Your shift goes
+  on"). Score, lives, cans, the smash charge, patience pips and the pepper
+  carry on; he arrives cool with full snot, and a Buc-ee's shield ends at
+  the exit. After the last venue the card is "Shift over", with the score
+  and the best. Until the start screen offers it (R3b),
+  `/?next=1&venue=restaurant` and `&venue=campus` start a fresh shift
+  there, for play-testing.
 - **Pickups** are laid out fresh each run by the shipped seeded rule (anchors
   on floors and platforms, Buc-ee's and nuts first, the rest cans), and each
   route always gets a can, nuts and a Buc-ee's. They are the real products
@@ -436,19 +525,20 @@ board `cast-heads.png` shows each head size beside Hammer, and
 - **Punch clocks** save where he comes back: walking past one punches its
   BREAK card gold and the HUD says "Checkpoint saved".
 - **Losing a life:** the last pip's knockdown once he lies still, a fall down
-  the shaft, or the clock running out. He comes back at the last punch clock
-  with two pips, the full clock and the lobby's pickups and crates as the run
-  laid them out. At no lives it is "Hammer down".
+  the shaft or the truck well, or the clock running out. He comes back at the
+  last punch clock in the venue he is in, with two pips, the full clock and
+  the venue's pickups and crates as the shift laid them out. At no lives it
+  is "Hammer down", and Try again starts a new shift where the last one
+  started.
 - **Doors:** Down in front of the staff door goes to the stash and Down at its
   cart comes back, with the lobby just as he left it. The BUFFET, AIRPORT
   SHUTTLE and M CLUB doors carry cards saying what opens them. Walking into
-  CLOCK OUT ends the lobby: the leftover clock counts into 50 points a second,
-  then "Lobby clear".
+  CLOCK OUT ends the lobby and the shift goes on in the restaurant.
 - **The shell:** the HUD's top bar carries the score, the Coke Zero count,
   lives as small portraits, the Buc-ee's boost, the clock, and pause and mute
   buttons; the panel keeps patience, heat, snot and smash; the bottom line is
   the shipped game's contextual hint. The cards (the venue card, "On break"
-  with the keys, "Hammer down", "Lobby clear" with the score and the best,
+  with the keys, "Hammer down", "Shift over" with the score and the best,
   kept in this browser) sit in the lower half, clear of his face. On phones
   and touch screens a ten-button pad runs along the bottom.
 
@@ -460,6 +550,7 @@ node scripts/run-browser.check.mjs http://127.0.0.1:8090/
 node scripts/moves-browser.check.mjs http://127.0.0.1:8090/
 node scripts/acts-browser.check.mjs http://127.0.0.1:8090/
 node scripts/cast-browser.check.mjs http://127.0.0.1:8090/
+node scripts/shift-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
@@ -492,7 +583,12 @@ role, the shove and the jump over it, the reversed cart, the rush, the march
 and the bump, the planes and the swat, the hop and the duck, the ambush, the
 lecture on staff and students, the chain through a thrown body, puddles and
 slips, the two-attackers rule, respawn and the stash, the scoring, and the
-scripted player fighting through both routes). The rig checks also sweep
+scripted player fighting through both routes) and the venue checks in
+`venues.check.mjs` (the shift's order and what carries, each venue's clock
+and punch clocks, the heat zones, the swinging door, carts on their floor
+and down pits, footing on stairs, the new people's fights, each venue's
+shape and reach, the seeded rewards on every route, and a scripted player
+clearing each venue by both routes). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks
@@ -502,8 +598,12 @@ keyboard, confirms Hammer's screen height at two aspect ratios, fits the HUD
 at 1280 by 800, 390 by 844 and 844 by 390 with the touch pad on the phones
 and the break card clear of his face, forces WebGL and the no-art fallback;
 the run check plays the lobby from the start card through the pepper, a punch
-clock, a life lost in the shaft, a break, the stash, the exit's tally and the
-clear, then plays again and loses all three lives; the moves browser check
+clock, a life lost in the shaft, a break, the stash and the exit's tally into
+the restaurant, then loses its last lives down the truck well and tries again
+from the lobby; the shift check walks the lobby into the restaurant with the
+pepper carried, stands on a flat-top and in the walk-in, waits out the
+swinging door, rides the campus's conveyor up and walks through the LIBRARY
+doors into "Shift over"; the moves browser check
 swings, bonks a cart, fires and splats snot, towels off and smashes, and
 checks the sounds; the acts browser check waits for the watch check, the tap
 and the harrumph, lectures, takes the two pips' hits and the lost life, and
@@ -520,8 +620,9 @@ crates, fresh and spent), `lobby-look-1..6.png` (the desk, the sofas, the
 shaft and the stairs, the mezzanine over the floor route, the tables, the
 corridor and the exit), `stash.png`, `cast.png` (every person in every act),
 `cast-fx.png` (the burst, the stars, the hat, the glass, the cup, the plane,
-the puddles and the confetti) and `cast-lobby-1..6.png` (the cast in its six
-scenes); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
+the puddles and the confetti), `cast-lobby-1..6.png` (the cast in its six
+scenes), and `restaurant-look-1..6.png` and `campus-look-1..6.png` (each
+venue in six frames: `restaurant` and `campus` in the board list); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
 `cast-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
 argument to `look-boards.mjs` names the boards to render, comma separated.
 

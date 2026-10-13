@@ -864,6 +864,8 @@ export async function startLook(
       const solved = solve(p.pose, 1, HEAD_SCALE, headPlate);
       character.container.position.set(x, y + p.dy);
       character.apply(solved, "neutral", -p.dy, scene.ambient);
+      // A board frame is one picture, not a walk: the painted walls stand on the ground under him at once.
+      views.get(game.level.id)?.backdrop.update(null, 1, groundAt(game.level.floor, x));
       return y;
     };
     // The boards show the stash by swapping the visuals for one frame; the game stays where it is.
@@ -889,7 +891,7 @@ export async function startLook(
         scene.layers.play.addChild(boardCrates);
       }
     };
-    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id));
+    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id), () => game.level);
   }
   if (opts.dev && window.__next)
     window.__next.dev = {
@@ -922,6 +924,9 @@ export async function startLook(
       give(kind: PickupKind) {
         const h = world.hero;
         game.pickups.push({ id: 900000 + gifts++, kind, x: h.x, y: h.y - h.h / 2, taken: false });
+      },
+      dismiss(spawn: string) {
+        for (const n of world.cast) if (n.spawn === spawn) n.alive = false;
       },
     };
   return {

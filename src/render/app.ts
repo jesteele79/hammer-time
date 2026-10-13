@@ -93,6 +93,8 @@ export type NextProbe = {
     heat(n: number): void;
     /** Restores his patience, so a check's later steps do not inherit the earlier ones' pips. */
     heal(): void;
+    /** Sends one of the cast off the level by spawn id, so a check can watch a hazard without them in the way. */
+    dismiss(spawn: string): void;
   };
 };
 declare global {

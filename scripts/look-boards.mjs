@@ -55,6 +55,15 @@ try {
     frames.forEach((f, i) => save(`cast-lobby-${i + 1}.png`, f));
     count += frames.length;
   }
+  for (const venue of ["restaurant", "campus"]) {
+    if (!want(venue)) continue;
+    await page.goto(`${base}?next=1&board=1&venue=${venue}`);
+    await page.waitForFunction((v) => window.__nextBoard && window.__next?.run?.level === v, venue, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const frames = (await render("venue")).split("\n");
+    frames.forEach((f, i) => save(`${venue}-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log(`PASS: ${count} boards rendered.`);
 } catch (err) {

@@ -130,6 +130,13 @@ Its enemy is heat as much as the staff: eight people, against the lobby's eleven
 | 3 | Busser 2 (`busser-dock`) and a trash bin | busser-1, recolored | bin 13080, him behind it, on the dock | the cart again |
 | 3 | Server on break (`server-break`) | server-2 | 14650 on the truck bed, patrols 14100 to 14950 | "I'm on my ten." |
 
+As built in R3a (2026-10-13): as above. The steel counters break where the walk-in's door stands (8700
+to 9000 on the counters is open), so the freezer is reached from the floor. The swinging door's warning
+is the kitchen server's own wind-up ("Behind!" and the ! burst), so its pip is her attack and takes her
+ticket. The cook behind the pass is drawn crouched behind the counter, only his toque over it, and rears
+up out of it as he winds up. The far plane is the owner's three walls (dining room, kitchen, dock),
+scaled to span the venue; the mid pieces stand against them and the two fore pieces in front of the play.
+
 ### 3.2 The campus (1-3), 16,400 px
 
 The busiest venue before the pig: twelve people, paper the main threat (planes stay capped at three).
@@ -177,6 +184,12 @@ The busiest venue before the pig: twelve people, paper the main threat (planes s
 | 3 | Professor 2 (`prof-steps`) | prof-1, recolored | 13300, marches 12520 to 13520 | on the second flight |
 | 3 | Student (`student-steps-2`) | student-1, recolored | 13850 on the second landing | |
 | 3 | Student (`student-terrace`) | student-2 | 14800 on the terrace | |
+
+As built in R3a (2026-10-13): as above. Under the deck the table and the bench stand 110 high, so nothing
+under the deck reaches it. The deck's stair is drawn open on its stringer, since the floor route walks on
+under it; every other flight and landing stands on the ground. The far plane is the owner's three walls
+(the quad, the commons, the library), rising with the ground he stands on up the library steps; the mid
+pieces stand against them and its two fore pieces (a shrub, a banner stand) in front of the play.
 
 ### 3.3 The level format
 
@@ -255,6 +268,12 @@ tie (330 tall).
 - Recolors and sizes for the repeats as in R2b-2: garment masks in each person's cut, within ±4 percent of
   the painting's height; two repeats of one painting each keep their own colors.
 
+As built in R3a (2026-10-13): the busser, the line cook and the lunch worker are painted and cut; the
+professor draws as the code-drawn stand-in until `prof-1.png` is in, and the cook plays bareheaded, with
+a code-drawn toque flying when he is hit, until `cook-hat.png` is in (a cut names the hat it seats; the
+sync registers each hat painting by name). A recolor mask's region may name the layers it reaches, so the
+second cook's jacket painted in behind his arm turns black without touching the tattoo on the arm.
+
 ## 5. The pig and the gift shop (R3b)
 
 ### 5.1 The gift shop (1-4), 4,400 px
@@ -306,12 +325,23 @@ times the far parallax, plus a view) is longer than its walls, the last wall rep
 walls are cut (R3b). A venue whose walls are missing draws its venue photo inked, or a plain wall in its
 palette where it has none.
 
+As built in R3a (2026-10-13): the restaurant's and the campus's walls are cut and in the game. Each
+venue's walls are scaled so they span its length in the far plane (between 0.9 and 1.4), so each stands
+behind its own stretch in walking order, and they stand on the ground he stands on (the lowest floor at
+his x, eased), rising with him on the library steps and the dock. Each wall's painted floor carries on
+below it in its bottom row's color, and a painted venue gets solid ground under its floors. The
+gift shop's and the lobby's walls come in R3b.
+
 ### 6.2 The standing pieces
 
 The `-mid` and `-fore` sheets are cut into separate objects at sync (each a separate shape on the green,
 its base found) and placed by level data: the mid pieces against the wall at the mid plane's parallax, the
 fore pieces in front (the main spec §5.3: darkened 30 percent, blurred 2 px, fading to 20 percent while
 his head is behind one). The lobby's code-drawn columns and palms give way to its painted ones in R3b.
+
+As built in R3a (2026-10-13): a sheet's shapes join when their paint comes within 24 px (boxes alone
+joined the restaurant's olive tree to the bar stool beside its trunk). The restaurant's six mid pieces
+and two fore pieces and the campus's six mid and two fore pieces are in.
 
 ### 6.3 The pig
 
