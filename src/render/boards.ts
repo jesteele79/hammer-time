@@ -11,7 +11,9 @@ import { plantFeet } from "../sim/rig/feet";
 import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { FAR_FLOOR, HERO_HEIGHT } from "../sim/rig/skeleton";
+import { CAMPUS } from "../sim/levels/campus";
 import { LOBBY } from "../sim/levels/lobby";
+import { RESTAURANT } from "../sim/levels/restaurant";
 import { DAZED, LOOKS, drawCarried, drawFigure, recolored, star } from "./cast";
 import { castHeadScale, hatWorldWidth } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
@@ -269,11 +271,12 @@ export function createBoards(
 
   /** Every person in every act, a third of the way in (loops at 0.4 s), facing left as the paintings will. */
   const castSheet = async () => {
-    // Every person as painted, then each repeat the lobby recolors and resizes.
-    const sheetRows = [
-      ...PERSONS.map((person) => ({ person, name: person as string, recolor: null as string | null, size: 1 })),
-      ...(LOBBY.cast ?? []).filter((s) => s.recolor).map((s) => ({ person: s.person, name: `${s.person} ${s.recolor}`, recolor: s.recolor!, size: s.size ?? 1 })),
-    ];
+    // Every person as painted, then each repeat the venues recolor and resize: one row per person and color.
+    const repeats = new Map<string, { person: CastPerson; name: string; recolor: string | null; size: number }>();
+    for (const s of [LOBBY, RESTAURANT, CAMPUS].flatMap((l) => l.cast ?? []))
+      if (s.recolor && !repeats.has(`${s.person} ${s.recolor}`))
+        repeats.set(`${s.person} ${s.recolor}`, { person: s.person, name: `${s.person} ${s.recolor}`, recolor: s.recolor, size: s.size ?? 1 });
+    const sheetRows = [...PERSONS.map((person) => ({ person, name: person as string, recolor: null as string | null, size: 1 })), ...repeats.values()];
     const cols = STAFF_ACTS.length;
     const rows = sheetRows.length;
     const width = cols * CELL_W + 150;

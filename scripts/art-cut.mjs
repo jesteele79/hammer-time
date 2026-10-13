@@ -905,11 +905,18 @@ function toneOf(r, g, b) {
   return { hue, sat: max ? (max - min) / max : 0, luma: 0.3 * r + 0.59 * g + 0.11 * b };
 }
 
-/** The garment a recolor names: painted pixels inside its regions (crop px) within its hue, saturation and luma ranges (each optional; a hue range may wrap past 360). */
-export function recolorMask(rgba, W, H, { regions, match = {} }) {
+/**
+ * The garment a recolor names: painted pixels inside its regions (crop px) within its hue, saturation and luma ranges
+ * (each optional; a hue range may wrap past 360). A region given as { polygon, layers } reaches only those layers: the
+ * garment painted in behind an arm, where the painting itself holds the arm. Without a layer (the painting, for the
+ * garment's mean) only the open regions count.
+ */
+export function recolorMask(rgba, W, H, { regions, match = {} }, layer = null) {
   const inside = new Uint8Array(W * H);
-  for (const poly of regions) {
-    const m = polygonMask(poly, W, H, { x: 0, y: 0 });
+  for (const region of regions) {
+    const { polygon, layers } = Array.isArray(region) ? { polygon: region, layers: null } : region;
+    if (layers && !layers.includes(layer)) continue;
+    const m = polygonMask(polygon, W, H, { x: 0, y: 0 });
     for (let i = 0; i < W * H; i++) if (m[i]) inside[i] = 1;
   }
   const within = (v, r) => !r || (r[0] <= r[1] ? v >= r[0] && v <= r[1] : v >= r[0] || v <= r[1]);
@@ -1099,12 +1106,12 @@ export async function castRig(person, keyed, cuts, { silly = null, strict = fals
       const tag = hex.slice(1);
       for (const name of LAYER_Z) {
         const l = out.layers[name];
-        const rgba = recolorLayer(layers[name].rgba, recolorMask(layers[name].rgba, W, H, spec), hex, mean);
+        const rgba = recolorLayer(layers[name].rgba, recolorMask(layers[name].rgba, W, H, spec, name), hex, mean);
         const file = `cast/${person}-${tag}-${name}.png`;
         images.set(file, await scaled(await paddedLayer(rgba, W, H, { x0: l.x, y0: l.y, width: l.width, height: l.height }), l.width, TEXTURE_SCALE));
         (l.recolors ??= {})[hex] = file;
       }
-      const rgba = recolorLayer(layers.head.rgba, recolorMask(layers.head.rgba, W, H, spec), hex, mean);
+      const rgba = recolorLayer(layers.head.rgba, recolorMask(layers.head.rgba, W, H, spec, "head"), hex, mean);
       const plate = await castHeadPlate(rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
       const file = `cast/${person}-${tag}-head.png`;
       images.set(file, plate.png);

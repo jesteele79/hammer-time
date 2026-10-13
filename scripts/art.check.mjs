@@ -575,6 +575,8 @@ test("the bellhops' cuts seat the hat on the head, inside the head plate", async
 });
 
 import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+import { CAMPUS } from "../src/sim/levels/campus.ts";
 
 test("a recolor takes the garment to the new hue, keeps its light and dark, and leaves the ink and everything else", () => {
   const W = 40,
@@ -639,4 +641,27 @@ test("each hatted person's cut names the hat it seats, and the sync registers ev
   const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
   for (const name of ["bellhop", "cook"])
     if (existsSync(`${CAST_IN}/${name}-hat.png`)) assert.ok(reg.cast.hats[name]?.span > 0 && reg.cast.hats[name].pivot, `${name}'s hat`);
+});
+
+test("every recolor a level asks of a painting is in that painting's cut", () => {
+  for (const level of [LOBBY, RESTAURANT, CAMPUS])
+    for (const s of level.cast ?? []) {
+      if (!s.recolor || !existsSync(`art/cuts/cast-${s.person}.json`)) continue;
+      const cuts = JSON.parse(readFileSync(`art/cuts/cast-${s.person}.json`, "utf8"));
+      assert.ok(cuts.recolors?.[s.recolor], `${level.id} ${s.id}: ${s.person} has no ${s.recolor} mask`);
+    }
+});
+
+test("a recolor region can name the layers it reaches: a garment painted in behind an arm is recolored on its own layer only", () => {
+  const W = 20,
+    H = 10;
+  const rgba = new Uint8Array(W * H * 4);
+  for (let i = 0; i < W * H; i++) rgba.set([240, 240, 236, 255], i * 4);
+  const everywhere = [[0, 0], [10, 0], [10, 10], [0, 10]];
+  const torsoOnly = { polygon: [[10, 0], [20, 0], [20, 10], [10, 10]], layers: ["torso"] };
+  const spec = { regions: [everywhere, torsoOnly], match: { sat: [0, 0.1], luma: [200, 255] } };
+  const count = (m) => m.reduce((a, b) => a + b, 0);
+  assert.equal(count(recolorMask(rgba, W, H, spec, "torso")), 200, "the torso takes both regions");
+  assert.equal(count(recolorMask(rgba, W, H, spec, "armNear")), 100, "the arm only the open one");
+  assert.equal(count(recolorMask(rgba, W, H, spec)), 100, "the painting, for the garment's mean, only the open one");
 });
