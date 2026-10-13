@@ -1,10 +1,15 @@
 {
- "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/bellhop-2.png. Layers as in hammer-body.json, plus head: everything above the collar's top edge, claimed after the torso (so the collar stays with the jacket) and drawn behind it; its fill paints the neck on down under the collar. rig.joints are the painted joints; the neck joint sits on the collar's top edge at the neck's middle (the head turns about it). The arms take Hammer's rest directions in the game (ARM_BONES). jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. Check with: node scripts/art-grid.mjs cast/bellhop-2.",
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/cast/bellhop-2.png. Layers as in hammer-body.json, plus head: everything above the collar's top edge, claimed after the torso (so the collar stays with the jacket) and drawn behind it; its fill paints the neck on down under the collar. rig.joints are the painted joints; the neck joint sits on the collar's top edge at the neck's middle (the head turns about it). The arms take Hammer's rest directions in the game (ARM_BONES). jaw runs from under the chin to the nape: a bigger head grows above it and keeps the painted neck below it. hat is where the bellhops’ hat sits: the middle of its base on the head, and its width there. Check with: node scripts/art-grid.mjs cast/bellhop-2.",
  "space": "crop",
  "jaw": [
   [318,214],
   [440,195]
  ],
+ "hat": {
+  "x": 412,
+  "y": 64,
+  "width": 156
+ },
  "rig": {
   "sole": 1343,
   "rootX": 442,

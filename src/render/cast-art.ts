@@ -1,6 +1,7 @@
 import type { HeadPlate } from "../art/registry";
-import { skeletonFrom, type Skeleton } from "../sim/rig/skeleton";
-import type { CastHead, RigFile } from "./skin";
+import { solve } from "../sim/rig/fk";
+import { HERO_HEIGHT, REST_POSE, skeletonFrom, type Skeleton } from "../sim/rig/skeleton";
+import { bodyScale, type CastHead, type RigFile } from "./skin";
 
 /** A cast member's skeleton from their painting: its joints and bone lengths, the arms turned to Hammer's stance. */
 export const castSkeleton = (rig: RigFile): Skeleton => skeletonFrom({ joints: rig.joints, sole: rig.root[1], rootX: rig.root[0] }, rig.match);
@@ -32,7 +33,7 @@ export function taperHead(verts: ArrayLike<number>, head: CastHead, g: number, b
     nx = -nx;
     ny = -ny;
   }
-  const k = (g * (head.crown.y - head.neck.y) - (jy - head.neck.y)) / (head.crown.y - jy);
+  const k = growAbove(head, g);
   for (let i = 0; i < verts.length; i += 2) {
     const x = verts[i];
     const y = verts[i + 1];
@@ -60,4 +61,25 @@ export function rimFor(x: number, y: number, lights: readonly { x: number; y: nu
   }
   if (!best || d >= RIM.reach) return null;
   return { side: best.x >= x ? 1 : -1, k: RIM.max * (1 - d / RIM.reach) };
+}
+
+/** How much a head grown by `g` is scaled above its jaw (taperHead's factor there): what rides on top of it, the hat, grows by. */
+export function growAbove(head: CastHead, g: number): number {
+  const jy = head.jaw ? (head.jaw[0][1] + head.jaw[1][1]) / 2 : head.neck.y;
+  return (g * (head.crown.y - head.neck.y) - (jy - head.neck.y)) / (head.crown.y - jy);
+}
+
+/** The world px per plate px a painted head is drawn at, and how much it is grown, for a head `share` of the figure at rest. */
+export function headDraw(rig: RigFile, share: number): { own: number; g: number } {
+  const head = rig.head!;
+  const s = solve(REST_POSE, -1, castHeadScale(share, head), head, castSkeleton(rig));
+  const own = bodyScale(s, rig) / head.scale;
+  return { own, g: s.parts.head.length / head.height / own };
+}
+
+/** The bellhops' hat's width in world px, as it sits on a head of `share` on a figure `height` tall. */
+export function hatWorldWidth(rig: RigFile, share: number, height: number): number {
+  const head = rig.head!;
+  const { own, g } = headDraw(rig, share);
+  return (head.hat?.width ?? 0) * growAbove(head, g) * own * (height / HERO_HEIGHT);
 }

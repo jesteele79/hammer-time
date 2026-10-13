@@ -1,4 +1,4 @@
-import { Container, Graphics, Matrix, RenderTexture } from "pixi.js";
+import { Container, Graphics, Matrix, RenderTexture, Sprite } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
 import type { CastAct, CastRole } from "../sim/cast";
 import { HEAD_SCALE } from "../sim/constants";
@@ -12,7 +12,7 @@ import { solve } from "../sim/rig/fk";
 import { groundModeFor, groundShift, type Ground } from "../sim/rig/ground";
 import { FAR_FLOOR, HERO_HEIGHT } from "../sim/rig/skeleton";
 import { DAZED, LOOKS, drawCarried, drawFigure, star } from "./cast";
-import { castHeadScale } from "./cast-art";
+import { castHeadScale, hatWorldWidth } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
 import { drawMissile, drawPuddle } from "./props";
 import { Particles } from "./particles";
@@ -374,6 +374,9 @@ export function createBoards(
   /** The cast's effects at rest: the ! burst, the stars, the hat, a glass, the cup, a plane, the puddles, confetti. */
   const castFx = async () => {
     const cell = 260;
+    // The owner's hat when it is in, at the size it flies off the first bellhop.
+    const bell = await loadCastArt(registry, "bellhop-1");
+    const look = LOOKS["bellhop-1"];
     const items: [string, (c: Container) => void][] = [
       [
         "! burst",
@@ -385,7 +388,20 @@ export function createBoards(
         },
       ],
       ["stars", (c) => [0, 1, 2].forEach((i) => star(c.addChild(new Graphics()), Math.cos((i * Math.PI * 2) / 3) * 40, Math.sin((i * Math.PI * 2) / 3) * 14, 9))],
-      ["hat", (c) => c.addChild(new Graphics().roundRect(-28, -14, 56, 28, 4).fill("#b8282e").stroke({ width: 3, color: 0x101010 }).rect(-28, 8, 56, 6).fill("#c9a24a"))],
+      [
+        "hat",
+        (c) => {
+          if (!bell?.hat) {
+            c.addChild(new Graphics().roundRect(-28, -14, 56, 28, 4).fill("#b8282e").stroke({ width: 3, color: 0x101010 }).rect(-28, 8, 56, 6).fill("#c9a24a"));
+            return;
+          }
+          const { whole, plate } = bell.hat;
+          const s = new Sprite(whole);
+          s.anchor.set(plate.pivot!.x / whole.width, plate.pivot!.y / whole.height);
+          s.scale.set(hatWorldWidth(bell.rig, look.head ?? bell.head.share, look.height) / plate.span!);
+          c.addChild(s);
+        },
+      ],
       ["glass", (c) => c.addChild(new Graphics().roundRect(-7, -14, 14, 28, 3).fill({ color: "#dff3ff", alpha: 0.9 }).stroke({ width: 2, color: 0x101010 }))],
       ["cup", (c) => c.addChild(new Graphics().roundRect(-11, -30, 22, 28, 4).fill("#f4f3ee").stroke({ width: 3, color: 0x101010 }).rect(-11, -30, 22, 6).fill("#6b3a1e"))],
       ["plane", (c) => drawMissile(c.addChild(new Graphics()), { id: 1, kind: "plane", x: 0, y: 0, vx: -500, vy: 40, spin: 0.08, life: 1, phase: 0, from: 0 })],

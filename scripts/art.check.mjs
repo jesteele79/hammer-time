@@ -16,6 +16,7 @@ import {
   LAYER_Z,
   layerZ,
   castRig,
+  hatBase,
 } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
@@ -515,4 +516,57 @@ test("a cast body's rig: five skinned layers, a head plate turning on its neck j
 
 test("every cast painting in art/incoming/cast has its cut", () => {
   for (const p of PERSONS) if (existsSync(`${CAST_IN}/${p}.png`)) assert.ok(existsSync(`art/cuts/cast-${p}.json`), `${p} is painted but not cut`);
+});
+
+test("a hat sits on its base's middle, whatever hangs below it", async () => {
+  // A pillbox 200 x 120 with a thin chin strap hanging 60 px below its left end, on clear ground.
+  const W = 240,
+    H = 220;
+  const rgba = Buffer.alloc(W * H * 4);
+  const paint = (x0, y0, w, h) => {
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) rgba.set([180, 30, 40, 255], (y * W + x) * 4);
+  };
+  paint(20, 20, 200, 120);
+  paint(30, 140, 10, 60);
+  const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  const base = await hatBase(png);
+  assert.deepEqual([base.x, base.y, base.span], [120, 139, 200]);
+});
+
+test("a face edit that drifted is drawn back onto its body; one of another body is refused when strict", async () => {
+  const { keyed, cuts } = await castOf("bellhop-1");
+  const meta = await sharp(keyed.png).metadata();
+  // The same painting moved 8 px right and 4 px down inside a canvas 10 px bigger: a drifted edit.
+  const moved = await sharp({ create: { width: meta.width + 10, height: meta.height + 10, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: keyed.png, left: 8, top: 4 }])
+    .png()
+    .toBuffer();
+  const plain = await castRig("bellhop-1", keyed, cuts);
+  const edited = await castRig("bellhop-1", keyed, cuts, { silly: { png: moved }, strict: true });
+  const silly = edited.images.get(edited.rig.head.silly);
+  assert.ok(silly, "the edit is synced");
+  const [a, b] = await Promise.all([plain.images.get(plain.rig.head.file), silly].map((p) => sharp(p).ensureAlpha().raw().toBuffer({ resolveWithObject: true })));
+  assert.deepEqual([a.info.width, a.info.height], [b.info.width, b.info.height], "framed exactly like the head");
+  let both = 0,
+    either = 0;
+  for (let i = 3; i < a.data.length; i += 4) {
+    both += a.data[i] > 127 && b.data[i] > 127 ? 1 : 0;
+    either += a.data[i] > 127 || b.data[i] > 127 ? 1 : 0;
+  }
+  assert.ok(both / either > 0.95, `back on the neck: overlap ${(both / either).toFixed(3)}`);
+  const other = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
+  await assert.rejects(castRig("bellhop-1", keyed, cuts, { silly: other, strict: true }), /overlap/);
+  const loose = await castRig("bellhop-1", keyed, cuts, { silly: other, strict: false });
+  assert.equal(loose.rig.head.silly, undefined, "skipped in a dev run: the plain face stands in");
+});
+
+test("the bellhops' cuts seat the hat on the head, inside the head plate", async () => {
+  for (const person of ["bellhop-1", "bellhop-2"]) {
+    const { keyed, cuts } = await castOf(person);
+    const { rig } = await castRig(person, keyed, cuts);
+    const h = rig.head.hat;
+    assert.ok(h, `${person}: the cut seats the hat`);
+    assert.ok(h.x > 0 && h.x < rig.head.width && h.y >= 0 && h.y < rig.head.neck.y, `${person}: the seat on the head: ${JSON.stringify(h)}`);
+    assert.ok(h.width > rig.head.width * 0.4 && h.width < rig.head.width * 1.2, `${person}: about the head's width: ${h.width} of ${rig.head.width}`);
+  }
 });

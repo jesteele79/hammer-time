@@ -832,6 +832,54 @@ export function buildMesh(alpha, W, H, cell) {
   return { x0, y0, cell, width: cols * cell, height: rows * cell, positions, indices };
 }
 
+
+/**
+ * The candidate redrawn in the reference's frame through an alignTo result: each reference pixel p
+ * takes the candidate's pixel at (p + d) / scale, so an edit that drifted or was rescaled sits back
+ * on the painting it was made from.
+ */
+export async function alignOnto(reference, candidate, align) {
+  const ref = await sharp(reference.png).metadata();
+  const { data, info } = await sharp(candidate.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = ref.width,
+    H = ref.height;
+  const out = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const qx = Math.round((x + align.dx) / align.scale),
+        qy = Math.round((y + align.dy) / align.scale);
+      if (qx < 0 || qy < 0 || qx >= info.width || qy >= info.height) continue;
+      data.copy(out, (y * W + x) * 4, (qy * info.width + qx) * 4, (qy * info.width + qx) * 4 + 4);
+    }
+  return { png: await sharp(out, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer(), width: W, height: H };
+}
+
+/**
+ * Where a hat sits: the lowest row holding at least 60 percent as much paint as its fullest (a chin strap, even a
+ * loop of one, is thin), and the middle and the width of the hat's widest such row (its base can curve in).
+ */
+export async function hatBase(png) {
+  const mask = await alphaMask(png);
+  let fullest = 0;
+  const filled = [];
+  for (let y = 0; y < mask.h; y++) {
+    let n = 0;
+    for (let x = 0; x < mask.w; x++) n += mask.m[y * mask.w + x];
+    filled.push(n);
+    fullest = Math.max(fullest, n);
+  }
+  let base = -1;
+  let wide = null;
+  for (let y = 0; y < mask.h; y++) {
+    if (filled[y] < fullest * 0.6) continue;
+    base = y;
+    const s = rowSpan(mask, y);
+    if (s && (!wide || s[1] - s[0] > wide[1] - wide[0])) wide = s;
+  }
+  if (wide) return { x: Math.round((wide[0] + wide[1] + 1) / 2), y: base, span: wide[1] - wide[0] + 1 };
+  throw new Error("hatBase: no hat");
+}
+
 /** Mesh cells in crop pixels, and the size layer textures are stored at (the game draws a body at about a quarter of its crop, twice that on a high-density screen). */
 export const MESH_CELL = 14;
 export const TEXTURE_SCALE = 0.5;
@@ -906,10 +954,11 @@ export async function castHeadPlate(rgba, W, H, neck, scale, crop = null) {
  * A cast body as the game loads it, from its keyed painting and its cut: the five skinned layers
  * (meshes and weights in the crop's pixels, textures at TEXTURE_SCALE), the head as a plate turning
  * on the painted neck joint, a white silhouette of each for the rim light, and `share`, the painted
- * head's height (crown to neck joint) over the whole figure's. Returns the rig and the images to
- * write, by their names under public/art.
+ * head's height (crown to neck joint) over the whole figure's. A face edit (`silly`, keyed) is aligned
+ * back onto the painting and cut the same way; one that does not fit is skipped, or refused when strict.
+ * Returns the rig and the images to write, by their names under public/art.
  */
-export async function castRig(person, keyed, cuts) {
+export async function castRig(person, keyed, cuts, { silly = null, strict = false } = {}) {
   const { W, H, layers } = await separateLayers(keyed, cuts);
   const { rig } = cuts;
   const images = new Map();
@@ -967,6 +1016,26 @@ export async function castRig(person, keyed, cuts) {
     scale: TEXTURE_SCALE,
     ...(cuts.jaw ? { jaw: cuts.jaw.map(([x, y]) => [Math.round((x - head.box.x) * TEXTURE_SCALE), Math.round((y - head.box.y) * TEXTURE_SCALE)]) } : {}),
   };
+  // The bellhops' hat: where its base sits on the head and how wide it is there, in the plate's px.
+  if (cuts.hat)
+    out.head.hat = {
+      x: Math.round((cuts.hat.x - head.box.x) * TEXTURE_SCALE),
+      y: Math.round((cuts.hat.y - head.box.y) * TEXTURE_SCALE),
+      width: Math.round(cuts.hat.width * TEXTURE_SCALE),
+    };
+  if (silly) {
+    const a = await alignTo(keyed.png, silly.png);
+    const verdict = gateExpression(a.overlap, { strict });
+    const why = `${person}-silly.png: outline overlap ${a.overlap.toFixed(2)}, expected at least ${ALIGN_MIN}; make it again as an edit of ${person}.png`;
+    if (verdict === "refuse") throw new Error(why);
+    if (verdict === "skip") console.warn(`${why} (skipped; the plain face stands in)`);
+    else {
+      const { layers: edited } = await separateLayers(await alignOnto(keyed, silly, a), cuts);
+      const plate = await castHeadPlate(edited.head.rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+      out.head.silly = `cast/${person}-head-silly.png`;
+      images.set(out.head.silly, plate.png);
+    }
+  }
   return { rig: out, images, layers, W, H, head };
 }
 

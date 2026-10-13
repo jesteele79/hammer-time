@@ -443,7 +443,7 @@ export async function startLook(
         else if (e.by !== "mallet" && e.by !== "snot") words.say("WHAM!", e.x, e.y - 90, false, face, view);
         if (e.role === "bellhop") {
           const n = world.cast.find((c) => c.id === e.id);
-          if (n && !n.hat && n.hits === 1) flyers.hat(e.x, e.y - 150, e.dir);
+          if (n && !n.hat && n.hits === 1) flyers.hat(e.x, e.y - 150, e.dir, cast.hat(n.person));
         }
         if (e.role === "server" && e.down) {
           flyers.glasses(e.x + e.dir * 20, e.y - 60, e.dir);

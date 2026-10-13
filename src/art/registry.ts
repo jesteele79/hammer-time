@@ -19,7 +19,17 @@ export type HeadPlate = {
 };
 /** A painted body: its skinned layers and bones live in the rig file; `span` is its sole-to-neck height in crop pixels. */
 export type Body = { rig: string; span: number };
-export type Prop = { file: string; width: number; height: number; pivot?: Point; tip?: Point };
+export type Prop = {
+  file: string;
+  width: number;
+  height: number;
+  pivot?: Point;
+  tip?: Point;
+  /** A hat's width at its base, in its own pixels. */
+  span?: number;
+  /** The hat as worn: cut at its base, the strap left off (same top-left, so the same pivot). */
+  worn?: string;
+};
 export type Registry = {
   version: number;
   hammer: {

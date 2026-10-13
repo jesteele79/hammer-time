@@ -1,9 +1,9 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite, type Texture } from "pixi.js";
 import { GRAVITY_DOWN } from "../sim/constants";
 import { PALETTE } from "./palette";
 import type { Particles } from "./particles";
 
-type Flyer = { g: Graphics; x: number; y: number; vx: number; vy: number; spin: number; rot: number; life: number; landed: boolean; onLand: (f: Flyer) => void };
+type Flyer = { g: Container; x: number; y: number; vx: number; vy: number; spin: number; rot: number; life: number; landed: boolean; onLand: (f: Flyer) => void };
 const INK = PALETTE.outline;
 
 /** Props that fly off the cast when they are hit: the pillbox hat, the tray's glasses, the coffee cup. */
@@ -23,23 +23,33 @@ export class Flyers {
     return this.root;
   }
 
-  private add(draw: (g: Graphics) => void, x: number, y: number, vx: number, vy: number, spin: number, life: number, onLand: (f: Flyer) => void) {
-    const g = new Graphics();
-    draw(g);
+  private add(g: Container, x: number, y: number, vx: number, vy: number, spin: number, life: number, onLand: (f: Flyer) => void) {
     g.position.set(x, y);
     this.root.addChild(g);
     this.live.push({ g, x, y, vx, vy, spin, rot: 0, life, landed: false, onLand });
   }
 
-  /** The bellhop's hat, knocked off: it tumbles, lands and lies there a while. */
-  hat(x: number, y: number, dir: 1 | -1): void {
+  /**
+   * The bellhop's hat, knocked off: it tumbles, lands and lies there a while. `painted` is the owner's hat, strap and
+   * all, at the size it sat on his head; without it the code-drawn stand-in's hat flies.
+   */
+  hat(x: number, y: number, dir: 1 | -1, painted: { texture: Texture; pivot: { x: number; y: number }; scale: number } | null = null): void {
+    let view: Container;
+    if (painted) {
+      const s = new Sprite(painted.texture);
+      s.anchor.set(painted.pivot.x / painted.texture.width, painted.pivot.y / painted.texture.height);
+      // The painting's front is to the left; flying right it leads with its front too.
+      s.scale.set(-dir * painted.scale, painted.scale);
+      view = s;
+    } else
+      view = new Graphics()
+        .roundRect(-28, -14, 56, 28, 4)
+        .fill("#b8282e")
+        .stroke({ width: 3, color: INK })
+        .rect(-28, 8, 56, 6)
+        .fill(PALETTE.brass);
     this.add(
-      (g) =>
-        g.roundRect(-28, -14, 56, 28, 4)
-          .fill("#b8282e")
-          .stroke({ width: 3, color: INK })
-          .rect(-28, 8, 56, 6)
-          .fill(PALETTE.brass),
+      view,
       x,
       y,
       dir * 320,
@@ -58,10 +68,10 @@ export class Flyers {
   glasses(x: number, y: number, dir: 1 | -1): void {
     [-700, -820, -560].forEach((up, i) =>
       this.add(
-        (g) =>
-          g.roundRect(-7, -14, 14, 28, 3)
-            .fill({ color: "#dff3ff", alpha: 0.9 })
-            .stroke({ width: 2, color: INK }),
+        new Graphics()
+          .roundRect(-7, -14, 14, 28, 3)
+          .fill({ color: "#dff3ff", alpha: 0.9 })
+          .stroke({ width: 2, color: INK }),
         x + i * 12,
         y,
         dir * (120 + i * 90) + (i - 1) * 60,
@@ -80,12 +90,12 @@ export class Flyers {
   /** The office worker's cup, flung off: coffee where it lands. */
   cup(x: number, y: number, dir: 1 | -1): void {
     this.add(
-      (g) =>
-        g.roundRect(-11, -30, 22, 28, 4)
-          .fill("#f4f3ee")
-          .stroke({ width: 3, color: INK })
-          .rect(-11, -30, 22, 6)
-          .fill("#6b3a1e"),
+      new Graphics()
+        .roundRect(-11, -30, 22, 28, 4)
+        .fill("#f4f3ee")
+        .stroke({ width: 3, color: INK })
+        .rect(-11, -30, 22, 6)
+        .fill("#6b3a1e"),
       x,
       y,
       dir * 260,

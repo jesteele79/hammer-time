@@ -672,3 +672,19 @@ test("the rim light takes the nearest lamp's side, is stronger nearer it, and is
   assert.equal(rimFor(1000 + RIM.reach + 10, -500, [lamps[0]]), null);
   assert.equal(rimFor(0, 0, []), null);
 });
+
+import { hatWorldWidth } from "../src/render/cast-art.ts";
+
+test("the hat in flight is as wide as the hat on his head, grown with the head above the jaw", async () => {
+  const rig = structuredClone(await rigOf("bellhop-1"));
+  rig.head.hat = { x: 60, y: 20, width: 90 };
+  const share = 0.22;
+  const height = 355;
+  const s = solve(REST_POSE, -1, castHeadScale(share, rig.head), rig.head, castSkeleton(rig));
+  const own = bodyScale(s, rig) / rig.head.scale;
+  const g = s.parts.head.length / rig.head.height / own;
+  const h = rig.head.hat;
+  const ends = taperHead([h.x - h.width / 2, h.y, h.x + h.width / 2, h.y], rig.head, g);
+  const onHead = Math.hypot(ends[2] - ends[0], ends[3] - ends[1]) * own * (height / HERO_HEIGHT);
+  assert.ok(Math.abs(hatWorldWidth(rig, share, height) - onHead) < 1e-6, `${hatWorldWidth(rig, share, height)} against ${onHead}`);
+});

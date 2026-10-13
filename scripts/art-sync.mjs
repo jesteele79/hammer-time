@@ -21,6 +21,7 @@ import {
   LAYER_Z,
   layerZ,
   castRig,
+  hatBase,
   paddedLayer,
   scaled,
   MESH_CELL,
@@ -213,7 +214,10 @@ async function cast(registry) {
       continue;
     }
     const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
-    const { rig, images, layers, W, H } = await castRig(person, await keyOut(readFileSync(file)), cuts);
+    // A face edit, knocked silly, swaps in for the head while dazed; one that does not fit its painting is skipped (refused with --strict).
+    const sillyFile = join(CAST_IN, `${person}-silly.png`);
+    const silly = existsSync(sillyFile) ? await keyOut(readFileSync(sillyFile)) : null;
+    const { rig, images, layers, W, H } = await castRig(person, await keyOut(readFileSync(file)), cuts, { silly, strict });
     for (const [name, png] of images) writeFileSync(join(OUT, name), png);
     const rigFile = `cast/${person}-rig.json`;
     writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
@@ -223,6 +227,19 @@ async function cast(registry) {
       const sheet = await Promise.all(layerZ(cuts).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer()));
       await drawLayers(`cast-${person}`, sheet);
     }
+  }
+  // The bellhops' hat: whole for flying off, and cut at its base for wearing (the strap's loop would cross a face).
+  const hatFile = join(CAST_IN, "bellhop-hat.png");
+  if (existsSync(hatFile)) {
+    const keyed = await keyOut(readFileSync(hatFile));
+    const png = await scaled(keyed.png, keyed.width, TEXTURE_SCALE);
+    const meta = await sharp(png).metadata();
+    const base = await hatBase(png);
+    writeFileSync(join(OUT, "cast/bellhop-hat.png"), png);
+    const worn = await sharp(png).extract({ left: 0, top: 0, width: meta.width, height: Math.min(meta.height, base.y + 2) }).png().toBuffer();
+    writeFileSync(join(OUT, "cast/bellhop-hat-worn.png"), worn);
+    registry.cast.hat = { file: "cast/bellhop-hat.png", worn: "cast/bellhop-hat-worn.png", width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
+    console.log(`cast hat: ${meta.width}x${meta.height}, its base at ${base.x},${base.y}, ${base.span} wide`);
   }
 }
 

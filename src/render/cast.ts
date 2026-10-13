@@ -1,4 +1,4 @@
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, type Texture } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Registry } from "../art/registry";
 import type { CastAct, CastRole } from "../sim/cast";
 import { HEAD_SCALE, STEP } from "../sim/constants";
@@ -9,7 +9,7 @@ import { groundShift } from "../sim/rig/ground";
 import { HERO_HEIGHT, type JointName } from "../sim/rig/skeleton";
 import type { Point, Snapshot } from "../sim/types";
 import type { Quality } from "./app";
-import { RIM, castHeadScale, rimFor } from "./cast-art";
+import { RIM, castHeadScale, hatWorldWidth, rimFor } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt, type Rim } from "./cast-body";
 import { between } from "./interp";
 import { PALETTE, tones } from "./palette";
@@ -392,6 +392,15 @@ export class Cast {
   async preload(persons: Iterable<CastPerson>): Promise<void> {
     const reg = this.registry;
     await Promise.all([...new Set(persons)].map(async (p) => this.arts.set(p, reg ? await loadCastArt(reg, p) : null)));
+  }
+
+  /** A bellhop's painted hat as it flies off, at the size it sat on their head; null without the painting. */
+  hat(person: CastPerson): { texture: Texture; pivot: { x: number; y: number }; scale: number } | null {
+    const art = this.arts.get(person);
+    if (!art?.hat) return null;
+    const look = LOOKS[person];
+    const { whole, plate } = art.hat;
+    return { texture: whole, pivot: plate.pivot!, scale: hatWorldWidth(art.rig, look.head ?? art.head.share, look.height) / plate.span! };
   }
 
   setQuality(q: Quality): void {

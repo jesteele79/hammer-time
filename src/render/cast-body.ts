@@ -1,13 +1,21 @@
-import { Assets, Container, Mesh, MeshGeometry, Texture } from "pixi.js";
-import { ART_BASE, HEAD_PLATE_FACING, type Registry } from "../art/registry";
+import { Assets, Container, Mesh, MeshGeometry, Sprite, Texture } from "pixi.js";
+import { ART_BASE, HEAD_PLATE_FACING, type Prop, type Registry } from "../art/registry";
 import type { CastPerson } from "../sim/level";
 import type { Solved } from "../sim/rig/fk";
 import type { Skeleton } from "../sim/rig/skeleton";
-import { RIM, castSkeleton, taperHead } from "./cast-art";
+import { RIM, castSkeleton, growAbove, taperHead } from "./cast-art";
 import { LAYER_Z, bodyScale, layerTexture, skinLayer, type CastHead, type LayerName, type RigFile, type RigLayer } from "./skin";
 
 /** One person's painting, loaded once and shared by everyone who wears it. */
-export type CastArt = { person: CastPerson; rig: RigFile; skeleton: Skeleton; head: CastHead; textures: Map<string, Texture> };
+export type CastArt = {
+  person: CastPerson;
+  rig: RigFile;
+  skeleton: Skeleton;
+  head: CastHead;
+  textures: Map<string, Texture>;
+  /** The bellhops' hat, worn (cut at its base) and whole (to fly off), when their cut seats one. */
+  hat: { worn: Texture; whole: Texture; plate: Prop } | null;
+};
 export type PaintOpts = { recolor: string | null; dazed: boolean; hat: boolean; silhouette: boolean };
 /** The rim light on a member: which side, how strong, and how far the edge peeks out in the figure's own px. */
 export type Rim = { side: 1 | -1; k: number; px: number };
@@ -48,7 +56,13 @@ export function loadCastArt(registry: Registry, person: CastPerson): Promise<Cas
         if (!rig.head || !LAYER_Z.every((n) => rig.layers?.[n]?.file)) throw new Error("no head, or a layer missing");
         const textures = new Map<string, Texture>();
         await Promise.all(filesOf(rig).map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS }).then((t) => textures.set(f, t))));
-        return { person, rig, skeleton: castSkeleton(rig), head: rig.head, textures };
+        const plate = registry.cast?.hat;
+        let hat: CastArt["hat"] = null;
+        if (rig.head.hat && plate?.span && plate.pivot) {
+          const [worn, whole] = await Promise.all([plate.worn ?? plate.file, plate.file].map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS })));
+          hat = { worn, whole, plate };
+        }
+        return { person, rig, skeleton: castSkeleton(rig), head: rig.head, textures, hat };
       } catch (err) {
         console.warn(`cast art fallback: ${person} draws as the stand-in (${body.rig}: ${(err as Error).message})`);
         return null;
@@ -101,6 +115,8 @@ export class PaintedFigure {
   private readonly headGeometry: MeshGeometry;
   /** The growth the head's positions were last tapered for: built at 1, as painted. */
   private grown = 1;
+  /** The bellhops' hat, riding on the head: it turns, flips and grows with it. */
+  protected readonly hat: Sprite | null = null;
 
   constructor(protected readonly art: CastArt) {
     this.container.sortableChildren = true;
@@ -132,6 +148,12 @@ export class PaintedFigure {
     this.headMesh = new Mesh({ geometry: this.headGeometry, texture: art.textures.get(plate.file) ?? Texture.EMPTY });
     this.head.zIndex = HEAD_Z;
     this.head.addChild(this.headMesh);
+    if (art.hat && plate.hat) {
+      const { worn, plate: hp } = art.hat;
+      this.hat = new Sprite(worn);
+      this.hat.anchor.set(hp.pivot!.x / worn.width, hp.pivot!.y / worn.height);
+      this.head.addChild(this.hat);
+    }
     this.container.addChild(this.head);
     const edgeHead = new Mesh({ geometry: this.headGeometry, texture: art.textures.get(plate.sil) ?? Texture.EMPTY });
     edgeHead.tint = RIM.color;
@@ -172,5 +194,12 @@ export class PaintedFigure {
     const face = o.dazed && plate.silly ? plate.silly : layerTexture(plate, o.recolor);
     this.headMesh.texture = art.textures.get(face) ?? this.headMesh.texture;
     this.headMesh.tint = o.silhouette ? SIL : 0xffffff;
+    if (this.hat && art.hat && plate.hat) {
+      this.hat.visible = o.hat;
+      const [x, y] = taperHead([plate.hat.x, plate.hat.y], plate, g);
+      this.hat.position.set(x, y);
+      this.hat.scale.set((growAbove(plate, g) * plate.hat.width) / art.hat.plate.span!);
+      this.hat.tint = this.headMesh.tint;
+    }
   }
 }
