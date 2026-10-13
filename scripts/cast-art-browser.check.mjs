@@ -77,6 +77,10 @@ try {
     [],
     "nothing breaks but the blocked file",
   );
+  // A venue whose painted walls and pieces do not load still plays, in front of its photo; nothing else breaks.
+  const noWalls = await open("no-walls", "&venue=restaurant", "**/art/backdrops/restaurant-*.png");
+  assert.ok(noWalls.art.painted.includes("cook-1"), JSON.stringify(noWalls.art));
+  assert.deepEqual(noWalls.errors.filter((e) => !/Failed to load resource|ERR_FAILED|restaurant-/.test(e)), [], "nothing breaks but the blocked walls");
   const plain = await open("noart", "&noart=1");
   assert.deepEqual(plain.art.painted, []);
   console.log("PASS: the painted cast loads, falls back per person, and stays off with noart.");

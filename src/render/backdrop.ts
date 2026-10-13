@@ -40,6 +40,16 @@ const WALL_TINT = "#c4b9ad";
 const GROUND = "#1d1714";
 const MID_TINT = "#b8ad9f";
 
+/** Every texture, or null if any fails to load: the caller draws what stands in for them. */
+async function loadAll(urls: string[]): Promise<Texture[] | null> {
+  try {
+    return await Promise.all(urls.map((u) => Assets.load<Texture>(u)));
+  } catch (err) {
+    console.warn(`backdrop: ${urls.join(", ")} did not load, a stand-in is drawn (${(err as Error).message})`);
+    return null;
+  }
+}
+
 /** A venue's walls in order, all registered, or null: a venue with any wall missing draws its photo, never a partial row. */
 export function wallsFor(level: Pick<Level, "backdrop">, registry: Pick<Registry, "walls">): Wall[] | null {
   const names = level.backdrop?.walls ?? [];
@@ -118,8 +128,9 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   planes.fore.addChild(grounded.fore);
   let groundY: number | null = null;
   const walls = wallsFor(level, registry);
-  if (walls) {
-    const textures = await Promise.all(walls.map((w) => Assets.load<Texture>(ART_BASE + w.file)));
+  // A wall that does not load leaves the venue its photo, never a gap in the row.
+  const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
+  if (walls && textures) {
     const scale = wallScale(walls, level);
     const extent: [number, number] = [b.x * PARALLAX.far - VIEW_HALF, (b.x + b.w) * PARALLAX.far + VIEW_HALF];
     for (const { index, x } of layWalls(walls, scale, (b.x + b.w / 2) * PARALLAX.far, extent)) {
@@ -138,8 +149,8 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     planes.mid.addChild(new Graphics().rect(-20000, FLOOR.depth, 60000, 6000).fill(GROUND));
   } else {
     const far = registry.backdrops[level.id]?.far;
-    if (far) {
-      const texture = await Assets.load<Texture>(ART_BASE + far);
+    const texture = far ? (await loadAll([ART_BASE + far]))?.[0] : null;
+    if (texture) {
       const tile = new TilingSprite({ texture, width: texture.width * 3, height: texture.height });
       tile.scale.set(FAR_SCALE);
       tile.position.set(-1500, -FAR_FLOOR_LINE * FAR_SCALE);
@@ -150,8 +161,9 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   if (level.id === "stash") planes.far.addChild(blockWall(level.length));
   const piece = async (name: string): Promise<Sprite | null> => {
     const p = registry.pieces?.[name];
-    if (!p) return null;
-    const s = new Sprite(await Assets.load<Texture>(ART_BASE + p.file));
+    const texture = p ? (await loadAll([ART_BASE + p.file]))?.[0] : null;
+    if (!p || !texture) return null;
+    const s = new Sprite(texture);
     s.anchor.set(p.base.x / p.width, p.base.y / p.height);
     return s;
   };

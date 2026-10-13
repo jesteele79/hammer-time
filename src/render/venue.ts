@@ -103,6 +103,7 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
 
   let t = 0;
   let glowing: string | null = null;
+  let doorKey: string | null = null;
   const redrawSteps = () => {
     steps.clear();
     for (const seg of moving) if (seg.kind === "belt") drawBeltTrays(steps, seg, t);
@@ -113,12 +114,13 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   return {
     root,
     setDoors(doors) {
+      // Redrawn only when a door moves: at rest it stays as drawn.
+      const poses = doorPoses(level.swingDoors ?? [], doors);
+      const key = poses.map((p) => `${p.open.toFixed(3)}:${p.dir}`).join("|");
+      if (key === doorKey) return;
+      doorKey = key;
       doorG.clear();
-      for (const spec of level.swingDoors ?? []) {
-        const d = doors.find((q) => q.id === spec.id);
-        const open = d && d.t > 0 ? Math.sin(Math.PI * (1 - d.t / SWING.swing)) : 0;
-        drawSwingDoor(doorG, spec, open, d?.dir ?? -1);
-      }
+      (level.swingDoors ?? []).forEach((spec, i) => drawSwingDoor(doorG, spec, poses[i].open, poses[i].dir));
     },
     setDoorGlow(id) {
       glowing = id;
@@ -500,6 +502,14 @@ function drawPits(g: Graphics, level: Level) {
           .stroke({ width: 3, color: "#3a3640" });
     else for (const x of [p.x0, p.x1 - 24]) g.rect(x, p.y - FLOOR.back, 24, FLOOR.depth).fill(COLORS.hazard);
   }
+}
+
+/** Each swinging door's pose this frame: how far open (0 shut, 1 flat open) and which way it swings. */
+export function doorPoses(specs: readonly { id: string }[], doors: readonly SwingDoor[]): { open: number; dir: 1 | -1 }[] {
+  return specs.map((spec) => {
+    const d = doors.find((q) => q.id === spec.id);
+    return { open: d && d.t > 0 ? Math.sin(Math.PI * (1 - d.t / SWING.swing)) : 0, dir: d?.dir ?? -1 };
+  });
 }
 
 /** The kitchen's swinging door in its frame: the panel turns on its hinge like a card flipping toward us as it swings. */

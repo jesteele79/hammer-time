@@ -886,3 +886,15 @@ test("the kitchen door's soft swing is heard only on screen; its bang, near him,
   assert.equal(heard(swing(9800, true), view), true, "a bang");
   assert.equal(heard({ type: "chime", x: 9800, y: 0, job: "office" }, view), true, "everything else as before");
 });
+
+import { doorPoses } from "../src/render/venue.ts";
+
+test("the swinging door's drawn pose holds still at rest, so it is drawn once, and moves through a swing", () => {
+  const specs = [{ id: "kitchen", x: 5200, y: 0, server: "s" }];
+  const rest = [{ id: "kitchen", x: 5200, y: 0, server: "s", t: 0, dir: -1, hard: false, chain: 0 }];
+  assert.deepEqual(doorPoses(specs, rest), [{ open: 0, dir: -1 }]);
+  assert.deepEqual(doorPoses(specs, rest), doorPoses(specs, [...rest]), "the same pose frame to frame at rest");
+  const mid = [{ ...rest[0], t: 0.2, dir: 1 }];
+  assert.ok(doorPoses(specs, mid)[0].open > 0.99 && doorPoses(specs, mid)[0].dir === 1, JSON.stringify(doorPoses(specs, mid)));
+  assert.deepEqual(doorPoses([], rest), [], "a venue with no door draws none");
+});

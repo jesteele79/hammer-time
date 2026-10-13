@@ -40,7 +40,6 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   castFell: ["die"],
   chain: ["kick"],
   swat: ["thud"],
-
   stomp: ["stomp"],
   lectureLand: ["harrumph"],
 };
