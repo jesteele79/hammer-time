@@ -357,7 +357,10 @@ idle. All numbers in `src/sim/constants.ts`; timing constants from
 
 For the lobby's four roles this section is replaced by the R2b design,
 `2026-10-12-r2b-lobby-cast-design.md` (painted cast pose-locked to Hammer's body, two people per
-role, a slapstick ensemble); the later venues' cast follows the same route.
+role, a slapstick ensemble); the later venues' cast follows the same route. As built in R2b-2: each
+person's painting is cut into Hammer's five skinned layers plus a head, on a skeleton from their own
+painted joints whose arms are turned to his stance, so every clip runs on every body
+(`skeletonFrom`, `castRig`, `PaintedFigure`).
 
 The same skeleton with proportion presets (`tall`, `stocky`, `slight`) and
 costume part sets: server (vest, apron, tray in the near hand), bellhop (red
@@ -488,7 +491,9 @@ before he leaps out with his coffee. Their rules (two attackers at a time, the
 mallet, the stomp, the lecture, the shield, puddles, the chain), their points
 and their placement are the R2b design
 (`docs/superpowers/specs/2026-10-12-r2b-lobby-cast-design.md`); `?nocast=1`
-plays the lobby without them.
+plays the lobby without them. In R2b-2 (2026-10-12) they became the owner's paintings, drawn like
+Hammer's body, with the owner's hat on the bellhops, recolored repeats and a warm lamp-side edge; the
+stand-ins remain the fallback for a missing painting.
 
 **Restaurant (1-2).** Dining room (tables and booths as platforms, a host
 stand), the kitchen pass (a counter with heat lamps, the service pass to slide

@@ -346,10 +346,9 @@ lives, and its clock never runs. Walking into it cleaned out, he thinks
 
 Eleven people work the lobby (`src/sim/cast.ts`, `cast-behavior.ts`,
 `missiles.ts`; placed in `levels/lobby.ts`; the design is
-`docs/superpowers/specs/2026-10-12-r2b-lobby-cast-design.md`). Until their
-paintings arrive they are inked stand-ins drawn on Hammer's own skeleton
-(`src/sim/rig/cast.ts`, `src/render/cast.ts`). Each does a double-take when he
-comes near, says a line in a speech bubble, and goes about the job:
+`docs/superpowers/specs/2026-10-12-r2b-lobby-cast-design.md`). Each does a
+double-take when he comes near, says a line in a speech bubble, and goes about
+the job:
 
 - **Two bellhops** (the desk, the floor route under the balcony), each gripping
   a luggage cart. He squares up with a ! burst, the wheels squeal and he shoves
@@ -385,6 +384,31 @@ them (the older checks use it). `scripts/cast-browser.check.mjs` plays the
 fights in the browser and the boards `cast.png`, `cast-fx.png` and
 `cast-lobby-1..6.png` show every person in every act, the effects and the
 six scenes.
+
+**The cast is painted** like Hammer (R2b-2). Each of the eight people is the
+owner's painting under `art/incoming/cast/`, made with Codex from
+`art/outgoing/batch-3-codex.txt` and pose-locked to Hammer's body plate, cut by
+`art/cuts/cast-<person>.json` (his five layers plus a head) and synced by
+`castRig` (`scripts/art-cut.mjs`) into skinned layers, a head plate,
+silhouettes and a rig under `public/art/cast/`. In the game
+(`src/render/cast-body.ts`, `PaintedFigure`) each person bends on their own
+skeleton (`skeletonFrom`: their bone lengths, their arms turned to Hammer's
+stance so every pose and reach lands the same way); the head grows to the
+share of the height the owner picked (0.22, `LOOKS[...].head`) above a
+jaw-to-nape line while the painted neck keeps fitting its collar
+(`taperHead`). The bellhops wear the owner's hat (worn without its strap's
+loop, whole when it flies off). The three repeats are recolored at sync from
+garment masks in their painting's cut (a burgundy vest, a mustard overshirt, a
+teal hoodie) and drawn a few percent taller or shorter. The side facing the
+nearest lamp gets a thin warm edge (off at the low quality tier). A face edit,
+`<person>-silly.png`, swaps in while dazed when the owner makes one. Anyone
+whose painting is missing or fails to load draws as the code-drawn stand-in,
+and `&noart=1` draws them all that way (`window.__next.castArt` says who is
+which). To check a new painting, `node scripts/art-pose.mjs <person>` lays it
+over Hammer's; `node scripts/art-grid.mjs cast/<person>` draws its cut over
+it; `node scripts/art-sync.mjs --overlay` writes its layers side by side; the
+board `cast-heads.png` shows each head size beside Hammer, and
+`scripts/cast-art-browser.check.mjs` checks the paintings load and fall back.
 
 ### The run
 

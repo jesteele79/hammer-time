@@ -223,6 +223,10 @@ guy) will follow the same pose-locked brief when their phases come:
 Checks: the same pose and framing as `hammer/body-affliction.png` (the arm angle, the gap at
 the belly, the foot stagger, the soles' height in the frame); nothing in the hands.
 
+Status (2026-10-12): the eight lobby bodies and the hat are in, made with Codex from
+`art/outgoing/batch-3-codex.txt`, and in the game. Still open: the optional face edits
+(`<person>-silly.png`), and the later venues' cast.
+
 ## 6. Pickups and props
 
 Each on green, same ink style, no text unless listed. Small; square images are

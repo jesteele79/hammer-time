@@ -277,12 +277,28 @@ Files land in `art/incoming/cast/`, hashed into `art/manifest.json` like Hammer'
 - The face edits, when present, swap in whole for the head layer while dazed.
 - Rim light: the side of each cast member facing the nearest lobby lamp gets a thin warm lit edge.
 
+As built in R2b-2 (2026-10-12, plan `docs/superpowers/plans/2026-10-12-r2b2-painted-cast.md`): all
+eight paintings and the hat came in the same day (made with Codex) and passed the pose check. Each
+skeleton keeps its painting's legs, spine and bone lengths and turns its arms (not its hands) to
+Hammer's rest directions, so every clip and every reach for a rail, tray, cup or phone lands where
+it lands on him; the paint of each turned bone turns with it. The head layer is drawn behind the
+torso so the neck runs on under the collar; it turns on the painted neck joint, and a bigger head
+grows above a jaw-to-nape line while the neck below keeps its painted size, so it still fits the
+collar. The owner picked 0.22 of the height (crown to neck) for the first bellhop, and it is
+everyone's start (painted heads are 0.17 to 0.20). Elbow blends are widened where bare or thin arms
+fold sharply. Recolors are baked at sync, each garment found by region and tone in its painting's
+cut and shaded off its own mean; the repeats are drawn 3 percent taller (student 3), 3 percent
+shorter (server 3) and 2 percent taller (student 4). The rim light is a warm copy of the figure's
+silhouette 3 px toward the nearest lamp, fading over 1300 px. The hat is worn cut at its base (the
+painting hangs a strap loop that would cross a face) and flies off whole. No face edits were made
+yet; the path aligns one back onto its painting and is tested with a shifted copy.
+
 ### 6.3 Stand-ins and fallback
 
 Until a person's painting is cut, they draw as a code-drawn figure in the style of the
 brainstorm's board panel C (inked outline, three-tone fills, the role's uniform), built from the
 same solved skeleton, with every clip. The stand-in stays as the fallback when the art is missing
-or fails to load.
+or fails to load. As built, the fallback is per person: one missing painting leaves the others painted.
 
 ## 7. Animation and effects
 
