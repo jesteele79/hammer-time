@@ -1082,12 +1082,13 @@ export async function castRig(person, keyed, cuts, { silly = null, strict = fals
     scale: TEXTURE_SCALE,
     ...(cuts.jaw ? { jaw: cuts.jaw.map(([x, y]) => [Math.round((x - head.box.x) * TEXTURE_SCALE), Math.round((y - head.box.y) * TEXTURE_SCALE)]) } : {}),
   };
-  // The bellhops' hat: where its base sits on the head and how wide it is there, in the plate's px.
+  // The hat it wears (the bellhops' unless the cut names another): where its base sits on the head and how wide it is there, in the plate's px.
   if (cuts.hat)
     out.head.hat = {
       x: Math.round((cuts.hat.x - head.box.x) * TEXTURE_SCALE),
       y: Math.round((cuts.hat.y - head.box.y) * TEXTURE_SCALE),
       width: Math.round(cuts.hat.width * TEXTURE_SCALE),
+      name: cuts.hat.name ?? "bellhop",
     };
   // Recolors for a repeat wearing this painting: the garment's masks in every layer and the head, shaded off the painting's own mean.
   const recolors = Object.entries(cuts.recolors ?? {});

@@ -13,7 +13,7 @@ export type CastArt = {
   skeleton: Skeleton;
   head: CastHead;
   textures: Map<string, Texture>;
-  /** The bellhops' hat, worn (cut at its base) and whole (to fly off), when their cut seats one. */
+  /** The hat their cut seats (the bellhops' or the cook's), worn (cut at its base) and whole (to fly off). */
   hat: { worn: Texture; whole: Texture; plate: Prop } | null;
 };
 export type PaintOpts = { recolor: string | null; dazed: boolean; hat: boolean; silhouette: boolean };
@@ -59,7 +59,7 @@ export function loadCastArt(registry: Registry, person: CastPerson): Promise<Cas
         if (!rig.head || !LAYER_Z.every((n) => rig.layers?.[n]?.file)) throw new Error("no head, or a layer missing");
         const textures = new Map<string, Texture>();
         await Promise.all(filesOf(rig).map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS }).then((t) => textures.set(f, t))));
-        const plate = registry.cast?.hat;
+        const plate = rig.head.hat ? registry.cast?.hats?.[rig.head.hat.name ?? "bellhop"] : undefined;
         let hat: CastArt["hat"] = null;
         // The hat on its own: one that does not load leaves them painted and bareheaded.
         if (rig.head.hat && plate?.span && plate.pivot)

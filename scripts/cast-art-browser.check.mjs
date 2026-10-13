@@ -61,7 +61,7 @@ try {
   assert.equal(painted.art.tints.flyers, painted.art.tints.cast, "a hat knocked off is lit like the head it came off");
   assert.deepEqual(painted.errors, []);
   // A hat that does not load leaves the bellhops painted, bareheaded.
-  const noHat = await open("no-hat", "", "**/art/cast/bellhop-hat*.png");
+  const noHat = await open("no-hat", "", "**/art/cast/*-hat*.png");
   assert.ok(noHat.art.painted.includes("bellhop-1") && noHat.art.painted.includes("bellhop-2"), JSON.stringify(noHat.art));
   // A layer's texture that does not load, and a rig that is not JSON: that person is the stand-in, the game plays on.
   const noTorso = await open("no-torso", "", "**/art/cast/bellhop-1-torso.png");

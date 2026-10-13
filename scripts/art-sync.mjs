@@ -201,7 +201,7 @@ async function bodies(registry) {
 }
 
 const CAST_IN = "art/incoming/cast";
-const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {
@@ -232,18 +232,20 @@ async function cast(registry) {
       }
     });
   }
-  // The bellhops' hat: whole for flying off, and cut at its base for wearing (the strap's loop would cross a face).
-  const hatFile = join(CAST_IN, "bellhop-hat.png");
-  if (existsSync(hatFile)) {
+  // Each hat by name (the bellhops' pillbox, the cook's toque): whole for flying off, and cut at its base for wearing
+  // (the bellhops' strap loop would cross a face).
+  for (const name of ["bellhop", "cook"]) {
+    const hatFile = join(CAST_IN, `${name}-hat.png`);
+    if (!existsSync(hatFile)) continue;
     const keyed = await keyOut(readFileSync(hatFile));
     const png = await scaled(keyed.png, keyed.width, TEXTURE_SCALE);
     const meta = await sharp(png).metadata();
     const base = await hatBase(png);
-    writeFileSync(join(OUT, "cast/bellhop-hat.png"), png);
+    writeFileSync(join(OUT, `cast/${name}-hat.png`), png);
     const worn = await sharp(png).extract({ left: 0, top: 0, width: meta.width, height: Math.min(meta.height, base.y + 2) }).png().toBuffer();
-    writeFileSync(join(OUT, "cast/bellhop-hat-worn.png"), worn);
-    registry.cast.hat = { file: "cast/bellhop-hat.png", worn: "cast/bellhop-hat-worn.png", width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
-    console.log(`cast hat: ${meta.width}x${meta.height}, its base at ${base.x},${base.y}, ${base.span} wide`);
+    writeFileSync(join(OUT, `cast/${name}-hat-worn.png`), worn);
+    registry.cast.hats[name] = { file: `cast/${name}-hat.png`, worn: `cast/${name}-hat-worn.png`, width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
+    console.log(`${name}'s hat: ${meta.width}x${meta.height}, its base at ${base.x},${base.y}, ${base.span} wide`);
   }
 }
 
@@ -284,7 +286,7 @@ async function backdrops(registry) {
   }
 }
 
-const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, cast: { bodies: {}, hat: null }, backdrops: {} };
+const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, cast: { bodies: {}, hats: {} }, backdrops: {} };
 mkdirSync(join(OUT, "hammer"), { recursive: true });
 guard(ownerFiles());
 await heads(registry);

@@ -1,0 +1,39 @@
+Final cook-1 refinement from Image 4. Preserve the distinct shaved, thick-black-bearded scowling sweaty cook, his taller burly build, exact costume/tattoos/tucked side towel, all original shoe sole heights and native 1086 x 1448 canvas.
+Only improve arm separation and finish. MOVE BOTH ARMS FORWARD/LEFT FROM SHOULDERS, nearly straight at 30 degrees from vertical, so the near tattooed forearm does NOT touch or cover belly/apron: a CLEAR TRIANGULAR GREEN gap must separate them. Open relaxed BARE hands EMPTY, far tattooed arm and hand just behind near one and visible. No hand holding a knife; knives/flames are tattoos only.
+Keep strict LEFT side torso/head/hips/legs/both clogs, only narrow front edge/button rows visible. Perfectly constant uniform #00FF00 background, flat base plus ONE shadow/ONE highlight per material, no gradients/texture/extra shade bands/text. Exactly 1086 x 1448 native PNG.
+Use case: precise-object-edit. Make ONLY cook-1.png, one whole game character on green.
+Image 1 is the INPUT IMAGE: carry over its native 1086 x 1448 portrait canvas, orthographic camera, pose, frame placement and each foot position. Replace the original man COMPLETELY. Nothing of his identity, face, hair, build or costume remains, only the pose/camera/framing.
+Image 2 is the drawing STYLE only, never an identity reference.
+Image 3 is the kept bellhop-1: match its inked caricature style, finish, arm pose and placement. Do not copy its identity.
+
+EXACT ITEM DESCRIPTION:
+A restaurant line cook: a burly man in his mid forties, taller and broader than Image 1, a shaved head, a thick black beard, a permanent scowl (lips closed), sweat on his brow. Forearm tattoos of knives and flames (no letters). A white double-breasted chef's jacket with the sleeves rolled to the elbow, a short black waist apron, a white side towel tucked into the apron string at the hip, black-and-white houndstooth chef's trousers, black kitchen clogs. Bareheaded (his hat is item 5).
+
+IDENTITY AND COSTUME CONSTRAINTS:
+An entirely new burly bearded cook, not the original man or any kept cast member. Broad square jaw, heavy thick BLACK beard, completely SHAVED scalp, scowling closed lips and sweat beads on forehead. Both forearms tattooed with stylized knives and flames only, NO LETTERS, tattoos are drawn on the skin and no knife is held. BARE open empty hands, no gloves or tools. Short BLACK WAIST apron, white towel TUCKED at hip, not held. Genuine geometric black-and-white HOUNDSTOOTH trousers, not plain black, letters or a simple checkerboard. BLACK kitchen clogs, both toes exactly LEFT. Head slightly higher than Image 1, around y=10; feet fixed, body broader but margin all round.
+
+BRIEF BLOCKS TO FOLLOW WORD FOR WORD:
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait) and the same placement in the frame: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the cook's hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name tags and badges are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- PNG.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Framing precision: far forward shoe approximately x=335..595, sole around y=1330; near rear shoe approximately x=445..745, sole around y=1420, matching EACH original foot. Both soles flat and both toes exactly LEFT, no walking stride. Height changes ONLY top-of-head/body proportions, feet stay fixed. Body and all clothing fully inside the frame with margin.
+STRICT 90-degree LEFT SIDE PROFILE through head, torso, hips, legs and both shoes. Torso shows its SIDE, not front chest. Chin level, one eye visible, mouth closed, looking left.
+Both shoulder-elbow-wrist lines nearly straight at about 30 degrees FORWARD from vertical, hands open relaxed EMPTY, far arm parallel offset just behind and visible, green triangular gap near forearm/belly. Match kept bellhop's arms.
+All background pixels must be digitally uniform EXACT RGB(0,255,0), #00FF00. Do NOT preserve uneven green texture from the input. Flat cel base plus ONLY ONE shadow tone and ONE highlight tone per material, tiny white specular glints, no gradients or extra shade bands. No floor, background shadow, writing, letters, logos or other items.
+Output EXACT native 1086 x 1448 PNG, no crop, upscale or resizing afterward.

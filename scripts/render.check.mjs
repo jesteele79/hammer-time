@@ -533,10 +533,11 @@ import { existsSync } from "node:fs";
 import { castHeadScale, castSkeleton } from "../src/render/cast-art.ts";
 import { castRig, keyOut } from "./art-cut.mjs";
 import { castPose } from "../src/sim/rig/cast.ts";
+import { roleOf as castRoleOf } from "../src/sim/cast.ts";
 import { HERO_HEIGHT } from "../src/sim/rig/skeleton.ts";
 
 /** Every cast person painted and cut: the checks below run on each, so each new cut is held to them. */
-const CAST_PEOPLE = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"].filter(
+const CAST_PEOPLE = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1"].filter(
   (p) => existsSync(`art/incoming/cast/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`),
 );
 const rigs = new Map();
@@ -558,7 +559,8 @@ const paintedTriangles = (layer, rgba, W) => {
   }
   return out;
 };
-const roleOf = (person) => person.slice(0, -2);
+/** The role the game poses each person in (the cook as the office worker, the busser as the bellhop, ...). */
+const roleOf = (person) => castRoleOf(person);
 /** Every act each role plays (the hidden one aside: it is drawn as a silhouette of the idle). */
 const actsOf = (person) =>
   roleOf(person) === "student"

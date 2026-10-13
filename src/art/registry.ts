@@ -38,8 +38,8 @@ export type Registry = {
     props: Record<string, Prop>;
     portrait: HeadPlate | null;
   };
-  /** The cast's paintings (R2b-2): each person's rig file, and the bellhops' hat. Missing from an older sync. */
-  cast?: { bodies: Partial<Record<CastPerson, Body>>; hat: Prop | null };
+  /** The cast's paintings (R2b-2): each person's rig file, and each hat by name (the bellhops', the cook's). Missing from an older sync. */
+  cast?: { bodies: Partial<Record<CastPerson, Body>>; hats: Record<string, Prop> };
   backdrops: Record<string, { far?: string }>;
 };
 

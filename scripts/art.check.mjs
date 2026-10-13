@@ -389,7 +389,7 @@ test("a profile head registers its nose tip at the face box's front edge", async
 
 
 const CAST_IN = "art/incoming/cast";
-const PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+const PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1"];
 /** The cast bodies with a painting and a cut: every cast check runs on each. */
 const CAST_CUT = PERSONS.filter((p) => existsSync(`${CAST_IN}/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`));
 const castCache = new Map();
@@ -628,4 +628,15 @@ test("one bad item in a tolerant sync is a warning and a fallback; a strict sync
     console.warn = warn;
   }
   await assert.rejects(tolerant("cast z", true, async () => { throw new Error("bad cut"); }), /bad cut/);
+});
+
+test("each hatted person's cut names the hat it seats, and the sync registers every hat painting under its name", () => {
+  for (const p of CAST_CUT) {
+    const cuts = JSON.parse(readFileSync(`art/cuts/cast-${p}.json`, "utf8"));
+    if (!cuts.hat) continue;
+    assert.equal(cuts.hat.name ?? "bellhop", p.startsWith("cook") ? "cook" : "bellhop", p);
+  }
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  for (const name of ["bellhop", "cook"])
+    if (existsSync(`${CAST_IN}/${name}-hat.png`)) assert.ok(reg.cast.hats[name]?.span > 0 && reg.cast.hats[name].pivot, `${name}'s hat`);
 });

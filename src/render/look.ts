@@ -971,7 +971,7 @@ function stripped(registry: Registry): Registry {
       bodies: { affliction: registry.hammer.bodies.affliction },
     },
     // The cast draws as the stand-ins.
-    cast: { bodies: {}, hat: null },
+    cast: { bodies: {}, hats: {} },
   };
 }
 

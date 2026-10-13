@@ -54,8 +54,8 @@ export type CastHead = HeadPlate & {
   /** The face edit, knocked silly, framed exactly like the plate. */
   silly?: string;
   recolors?: Record<string, string>;
-  /** Where the bellhops' hat sits (its base's middle) and how wide it is, plate pixels. */
-  hat?: { x: number; y: number; width: number };
+  /** Where its hat sits (its base's middle) and how wide it is, plate pixels; `name` is whose hat, the bellhops' when missing. */
+  hat?: { x: number; y: number; width: number; name?: string };
 };
 
 /** A layer's or a head's texture in a recolor when it has one, its own otherwise. */
