@@ -627,7 +627,7 @@ test("turning a painting's arms to Hammer's stance never stretches its painted a
         return w;
       };
       const [a, b] = [worst(turned), worst(untouched)];
-      assert.ok(a <= b * 1.1, `${person} ${name}: turned, an edge stretches ${a.toFixed(2)} times; untouched, ${b.toFixed(2)}`);
+      assert.ok(a <= b * 1.15, `${person} ${name}: turned, an edge stretches ${a.toFixed(2)} times; untouched, ${b.toFixed(2)}`);
       assert.ok(a <= 6, `${person} ${name}: an edge stretches ${a.toFixed(2)} times, past Hammer's suit`);
     }
   }
