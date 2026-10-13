@@ -139,7 +139,9 @@ try {
   r = await waitFor((x) => x.level === "lobby", 1500);
   assert.equal(r.level, "lobby");
 
-  // Hot, he slows and the heat bar pulses; boiled over he cannot run until he towels off.
+  // Hot, he slows and the heat bar pulses; boiled over he cannot run until he towels off. The cans lie on a fresh
+  // random layout every run, and one picked up on this walk cools him off the boil, so the lobby is cleared first.
+  await page.evaluate(() => window.__next.dev.clearShelves());
   await page.evaluate(() => window.__next.dev.heat(100));
   await page.keyboard.down("ShiftLeft");
   await page.keyboard.down("ArrowLeft");
