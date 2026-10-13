@@ -23,6 +23,8 @@ import { HERO_HEIGHT } from "../sim/rig/skeleton";
 import type { Level, LevelId } from "../sim/level";
 import { LOBBY } from "../sim/levels/lobby";
 import { STASH } from "../sim/levels/stash";
+import { RESTAURANT } from "../sim/levels/restaurant";
+import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { RenderApp } from "./app";
@@ -50,7 +52,7 @@ import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
 
 /** The shift's venues in order (R3 §2): the restaurant and the campus join in R3a's later tasks. */
-const SHIFT: Level[] = [LOBBY];
+const SHIFT: Level[] = [LOBBY, RESTAURANT];
 const LEVELS = new Map<LevelId, Level>([...SHIFT, STASH].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** How long a pickup's line stays in the hint. */
@@ -267,6 +269,9 @@ export async function startLook(
   let lineDue: number | null = null;
   let faceOnScreen: Rect | null = null;
   let steamT = 0;
+  /** The flat-top's steam or the walk-in's frost at his feet, and the walk-in's own breath. */
+  let zoneT = 0;
+  let fogT = 0;
   let sweatT = 0;
   const counts: Record<string, number> = {};
   const pending: GameEvent[] = [];
@@ -498,7 +503,7 @@ export async function startLook(
         taunt("student");
         break;
       case "castFell":
-        words.say("OUT OF ORDER", e.x, e.y - 400, true, face, view);
+        words.say(game.level.pitWord ?? "OUT OF ORDER", e.x, e.y - 400, true, face, view);
         speech.say(e.id, e.line, 1.2);
         break;
       case "chain":
@@ -665,7 +670,7 @@ export async function startLook(
     props.sync(prev, cur, alpha, simDt);
     // The cast draws just behind him too: nothing of them is ever over his face.
     cast.container.zIndex = y - 0.6;
-    cast.sync(prev, cur, alpha, time, game.level.furniture, game.level.lights, scene.view());
+    cast.sync(prev, cur, alpha, time, game.level, game.level.lights, scene.view());
     // Their flying props too (the hat, the glasses, the cup): between the cast and the carts, never over his face.
     flyers.container.zIndex = y - 0.55;
     flyers.update(simDt, (fx, fy) => topUnder(fx, fy));
@@ -721,6 +726,20 @@ export async function startLook(
       bubbles.say(TAUNT_LINES.fired.text, 1.8);
       sound.voice("fired");
     }
+    // A flat-top steams under his shoes; the walk-in frosts round them.
+    const heatAt = heatZoneAt(world.stage, h);
+    zoneT = heatAt ? zoneT + simDt : 0;
+    if (heatAt && zoneT >= (heatAt.kind === "flattop" ? 0.1 : 0.12)) {
+      zoneT = 0;
+      particles.emit(heatAt.kind === "flattop" ? "steam" : "frost", x + (Math.random() - 0.5) * 80, floorY - 10, 1);
+    }
+    // The walk-in breathes cold out of its door while it is on screen.
+    fogT += simDt;
+    if (fogT >= 0.3) {
+      fogT = 0;
+      const v = scene.view();
+      for (const z of game.level.heat ?? []) if (z.kind === "freezer" && z.x1 > v.x && z.x0 < v.x + v.w) particles.emit("frost", z.x0 + Math.random() * (z.x1 - z.x0), z.y - 40, 2);
+    }
     drawSmear(m, base, x, drawY, h.facing, face);
     drawShield(x, drawY, y, simDt);
 
@@ -756,6 +775,7 @@ export async function startLook(
     scene.update(dt);
     lighting.update(dt);
     views.get(game.level.id)?.venue.update(simDt);
+    views.get(game.level.id)?.venue.setDoors(cur.doors);
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     speech.update(simDt, (id) => cast.crownOf(id), face, scene.view());

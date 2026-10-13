@@ -207,3 +207,93 @@ test("the hint names the hazard he is at: the flat-top, the freezer, the swingin
   Object.assign(g.world.hero, { x: 3300 });
   assert.match(hintOf(g), /Swinging door/);
 });
+
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+import { seedRewards } from "../src/sim/rewards.ts";
+import { drive } from "../src/sim/drive.ts";
+import { floorAt } from "../src/sim/physics.ts";
+
+/** His jump tops out near 398 px (the lobby's measure). */
+const REACH = 398;
+/** Where every spawn stands: on a floor or a platform at its y. */
+const footed = (level) => {
+  const stage = stageOf(level);
+  for (const s of level.cast ?? []) {
+    const f = floorAt(stage, s.x, s.y - 24);
+    const onFloor = f !== null && Math.abs(f - s.y) < 2;
+    const onPlat = level.platforms.some((p) => s.x >= p.x0 && s.x <= p.x1 && Math.abs(p.y - s.y) < 2);
+    assert.ok(onFloor || onPlat, `${level.id}: ${s.id} floats at ${s.x}, ${s.y}`);
+  }
+};
+/** Drives the scripted player from the venue's card to its exit; returns the game and the highest he climbed. */
+const clear = (level, start, route, seed = 11) => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: level }, seed, { start });
+  while (g.mode === "card") g.step(input());
+  let t = 0, last = g.world.hero.x, stuck = 0, topY = 0;
+  while (g.mode === "play" && t < 150) {
+    g.step(drive(g.level, g.world.hero, route, g.world));
+    t += STEP;
+    topY = Math.min(topY, g.world.hero.y);
+    if (Math.floor(t * 2) !== Math.floor((t - STEP) * 2)) {
+      stuck = g.world.hero.x <= last + 1 ? stuck + 1 : 0;
+      last = g.world.hero.x;
+      assert.ok(stuck < 6, `${g.level.id} ${route}: stuck at ${g.world.hero.x}, ${g.world.hero.y}`);
+    }
+  }
+  return { g, topY };
+};
+
+test("the restaurant keeps the spec's shape: its length, two clocks, the three bands, an early pepper, the truck well its only pit", () => {
+  const R = RESTAURANT;
+  assert.ok(R.length >= 14000 && R.length <= 18000);
+  assert.equal(R.checkpoints.length, 2);
+  assert.ok(R.platforms.some((p) => p.y === -180) && R.platforms.some((p) => p.y === -520), "counters at 180, the pot rack at 520");
+  assert.deepEqual(pitsOf(R), [{ x0: 13600, x1: 13930, y: -200 }]);
+  assert.ok(Math.min(...R.crates.filter((c) => c.kind === "pepper").map((c) => c.x)) < 1200, "an early pepper");
+  assert.deepEqual(R.heat.map((z) => z.kind), ["flattop", "flattop", "freezer"]);
+  for (const z of R.heat.filter((z) => z.kind === "flattop"))
+    assert.ok(R.platforms.some((p) => p.kind === "flattop" && p.x0 === z.x0 && p.x1 === z.x1 && p.y === z.y), "each flat-top zone is a flat-top's top");
+  const freezer = R.heat.find((z) => z.kind === "freezer");
+  assert.ok(!R.platforms.some((p) => p.y === -180 && p.x1 > freezer.x0 && p.x0 < freezer.x1), "no counter in front of the walk-in's door");
+  assert.equal(R.swingDoors[0].server, "server-kitchen");
+  const k = R.cast.find((s) => s.id === "server-kitchen");
+  assert.ok(k.x0 < R.swingDoors[0].x && k.x1 > R.swingDoors[0].x, "her patrol crosses the door");
+  for (const d of ["PRIVATE DINING", "DELIVERIES"]) assert.ok(R.doors.some((x) => x.label === d), d);
+  assert.equal(R.cast.length, 8);
+  footed(R);
+});
+
+test("the pot rack is reached from the counters, never from the floor; no crate hangs under it", () => {
+  const rack = RESTAURANT.platforms.find((p) => p.kind === "rack");
+  const counters = RESTAURANT.platforms.filter((p) => (p.kind === "steel" || p.kind === "flattop") && p.x1 > rack.x0 && p.x0 < rack.x1);
+  assert.ok(counters.length > 0 && counters.every((c) => c.y - rack.y < REACH), "a jump from a counter reaches it");
+  assert.ok(0 - rack.y > REACH, "a jump from the floor does not");
+  for (const c of RESTAURANT.crates) assert.ok(c.x < rack.x0 - 100 || c.x > rack.x1 + 100, `crate ${c.id} under the rack`);
+});
+
+test("every run of the restaurant has a can, nuts and a Buc-ee's on the line's floor and up on the rack", () => {
+  assert.deepEqual(RESTAURANT.routes.map((r) => r.id), ["line", "rack"]);
+  for (let seed = 1; seed <= 24; seed++) {
+    const p = seedRewards(RESTAURANT, seed);
+    assert.equal(p.length, RESTAURANT.rewards.count);
+    for (const r of RESTAURANT.routes)
+      for (const kind of ["can", "nuts", "bucees"])
+        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id}`);
+  }
+});
+
+test("a scripted player clears the restaurant by its floor route: alive, inside the clock, scoring on the cast", () => {
+  const { g } = clear([RESTAURANT], 1, "floor");
+  assert.equal(g.level.id, "restaurant");
+  assert.equal(g.run.lives, 3, "no life lost");
+  assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `reached DELIVERIES (${g.mode} at ${g.world.hero.x})`);
+  assert.ok(g.run.score > 0);
+});
+
+test("the lobby's exit now leads to the restaurant's card", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT] }, 7);
+  while (g.mode === "card") g.step(input());
+  g.world.hero.x = 15800;
+  for (let i = 0; i < Math.round(20 / STEP) && g.mode !== "card"; i++) g.step(input({ right: true }));
+  assert.deepEqual([g.mode, g.level.id], ["card", "restaurant"]);
+});

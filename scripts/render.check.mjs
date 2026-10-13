@@ -793,3 +793,22 @@ test("the new people sound like themselves: the cook's sizzle and the professor'
   assert.deepEqual(cuesFor({ type: "missile", kind: "plane", x: 0, y: 0 }), ["paper"]);
 });
 
+
+import { coverOf, counterSink } from "../src/render/cast.ts";
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+
+test("whoever hides has cover: the projector's sheet in the lobby, the pass's counter in the restaurant, nothing on the open line", () => {
+  const screen = LOBBY.furniture.find((f) => f.kind === "screen");
+  assert.equal(coverOf(screen.x + 10, LOBBY)?.kind, "screen");
+  assert.deepEqual(coverOf(6300, RESTAURANT), { kind: "counter", top: -180 });
+  assert.equal(coverOf(8600, RESTAURANT), null);
+});
+
+test("behind the counter the cook sinks till only his toque shows, and rears up out of it as he winds up", () => {
+  // His crown 360 up, the counter's top 180 up: hiding he sinks till his crown is just under the top.
+  assert.equal(counterSink(-360, -180, 0), 192);
+  assert.equal(counterSink(-360, -180, 0.5), 96);
+  assert.equal(counterSink(-360, -180, 1), 0);
+  // Already under the top, he does not rise to meet it.
+  assert.equal(counterSink(-100, -180, 0), 0);
+});

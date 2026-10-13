@@ -38,12 +38,13 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony", wo
 function fight(w: World, h: HeroState, i: Input): void {
   if (h.move) return;
   const ahead = (x: number, within: number) => (x - h.x) * h.facing > 0 && Math.abs(x - h.x) < within;
-  const level = (y: number) => Math.abs(y - h.y) < 80;
+  // On stairs whoever is ahead stands higher or lower the farther away they are.
+  const level = (x: number, y: number) => Math.abs(y - h.y) < 80 + Math.abs(x - h.x) * 0.6;
   const staff = w.cast.some(
-    (n) => n.alive && n.role !== "student" && hittable(n) && (attacking(n, h) || n.act === "windup" || standing(n)) && ahead(n.x, FIGHT.staff) && level(n.y),
+    (n) => n.alive && n.role !== "student" && hittable(n) && (attacking(n, h) || n.act === "windup" || standing(n)) && ahead(n.x, FIGHT.staff) && level(n.x, n.y),
   );
   const plane = w.missiles.some((m) => ahead(m.x, FIGHT.plane) && Math.abs(m.y - (h.y - h.h * 0.6)) < 200);
-  const cart = w.targets.some((t) => ahead(t.x, FIGHT.cart) && Math.abs(t.vx) >= ROLLING && (h.x - t.x) * t.vx > 0 && level(t.y));
+  const cart = w.targets.some((t) => ahead(t.x, FIGHT.cart) && Math.abs(t.vx) >= ROLLING && (h.x - t.x) * t.vx > 0 && level(t.x, t.y));
   const students = w.cast.filter((n) => n.alive && n.role === "student" && n.act !== "schooled" && overlapsRect(lectureReach(h), npcRect(n)));
   if (cart && h.onGround) {
     i.pressed.jump = true;

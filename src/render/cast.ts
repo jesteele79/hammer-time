@@ -2,7 +2,7 @@ import { Container, Graphics, type Texture } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Registry } from "../art/registry";
 import { HATTED, type CastAct, type CastJob, type CastRole } from "../sim/cast";
 import { HEAD_SCALE, STEP } from "../sim/constants";
-import type { CastPerson, Furniture } from "../sim/level";
+import type { CastPerson, Furniture, Level } from "../sim/level";
 import { castGround, castPose } from "../sim/rig/cast";
 import { solve, type Solved } from "../sim/rig/fk";
 import { groundShift } from "../sim/rig/ground";
@@ -426,6 +426,23 @@ export const DAZED: ReadonlySet<CastAct> = new Set<CastAct>(["down", "slide", "s
 const SQUASH = { x: 1.08, y: 0.92, t: 0.09 } as const;
 /** The lit screen's sheet, below the furniture's top. */
 const SHEET_H = 300;
+/** How long a cook behind the pass takes to rear up out of it as he winds up. */
+const REAR_T = 0.25;
+
+/** Cover for whoever hides: the lobby's projector sheet, his shadow thrown on it, or a pass's counter he crouches behind. */
+export type Cover = { kind: "screen"; sheet: Furniture } | { kind: "counter"; top: number };
+
+export function coverOf(x: number, level: Pick<Level, "furniture" | "platforms">): Cover | null {
+  const sheet = level.furniture.find((f) => f.kind === "screen" && x >= f.x && x <= f.x + f.w);
+  if (sheet) return { kind: "screen", sheet };
+  const counter = level.platforms.find((p) => p.kind === "pass" && x >= p.x0 && x <= p.x1);
+  return counter ? { kind: "counter", top: counter.y } : null;
+}
+
+/** How far a cook behind a counter sinks: his crown just under its top, so only his toque shows; `risen` 1 is stood up. */
+export function counterSink(crown: number, top: number, risen: number): number {
+  return Math.max(0, top + 12 - crown) * (1 - risen);
+}
 
 /**
  * Draws the cast from each snapshot: each member from their painting, skinned on their own skeleton, or as the stand-in
@@ -481,7 +498,7 @@ export class Cast {
     drawCarried(v.carried, s, o);
   }
 
-  sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, screens: Furniture[], lights: readonly { x: number; y: number }[] = [], view: Rect | null = null): void {
+  sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, level: Pick<Level, "furniture" | "platforms">, lights: readonly { x: number; y: number }[] = [], view: Rect | null = null): void {
     const s = between(prev, cur, alpha);
     const seen = new Set<number>();
     for (const n of s.cast) {
@@ -520,19 +537,32 @@ export class Cast {
       v.shadow.clear();
       v.stars.clear();
       if (hidden) {
-        // His shadow thrown on the lit screen: the figure, dark, clipped to the sheet.
-        const screen = screens.find((f) => f.kind === "screen" && n.x >= f.x && n.x <= f.x + f.w);
-        if (!screen) continue;
-        const sheet = { x: screen.x, y: screen.y, w: screen.w, h: SHEET_H };
-        // His feet a little below the sheet's bottom edge, so his head and shoulders fill it.
-        v.root.position.set(n.x, sheet.y + sheet.h + 30);
-        v.root.scale.set(k * 0.95);
-        v.root.alpha = 0.55;
+        const cover = coverOf(n.x, level);
+        if (!cover) continue;
         if (!v.mask) {
           v.mask = new Graphics();
           this.container.addChild(v.mask);
           v.root.mask = v.mask;
         }
+        if (cover.kind === "counter") {
+          // Crouched behind the pass, only his toque over the counter in the lamps' glow; winding up, he rears up out of it.
+          const crown = n.y + (dy + solved.crown.y) * k;
+          const sink = counterSink(crown, cover.top, n.act === "windup" ? Math.min(1, t / REAR_T) : 0);
+          v.root.position.set(n.x, n.y + dy * k + sink);
+          v.root.scale.set(k);
+          v.root.alpha = 1;
+          v.mask.clear().rect(n.x - 400, cover.top - 1000, 800, 1000).fill(0xffffff);
+          this.draw(v, solved, { role: n.role, job: n.job, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed);
+          this.crowns.set(n.id, { x: n.x + solved.crown.x * k, y: crown + sink, facing: n.facing });
+          v.root.zIndex = n.y;
+          continue;
+        }
+        // His shadow thrown on the lit screen: the figure, dark, clipped to the sheet.
+        const sheet = { x: cover.sheet.x, y: cover.sheet.y, w: cover.sheet.w, h: SHEET_H };
+        // His feet a little below the sheet's bottom edge, so his head and shoulders fill it.
+        v.root.position.set(n.x, sheet.y + sheet.h + 30);
+        v.root.scale.set(k * 0.95);
+        v.root.alpha = 0.55;
         v.mask.clear().rect(sheet.x, sheet.y, sheet.w, sheet.h).fill(0xffffff);
         this.draw(v, solved, { role: n.role, job: n.job, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: true }, n.recolor, dazed);
         // His head on the sheet, so "Got a minute?" has somewhere to hang from.

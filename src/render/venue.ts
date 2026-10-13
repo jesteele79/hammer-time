@@ -1,18 +1,14 @@
 import { Container, Graphics } from "pixi.js";
-import type { CheckpointSpec, DoorSpec, Furniture, Level, LevelFloor, LevelPlatform, SignSpec } from "../sim/level";
+import { SWING, type SwingDoor } from "../sim/hazards";
+import { pitsOf, type CheckpointSpec, type DoorSpec, type Furniture, type Level, type LevelFloor, type LevelPlatform, type SignSpec } from "../sim/level";
 import type { FloorSegment, Pass, Point } from "../sim/types";
 import { SCENERY_Z } from "./backdrop";
+import { FLOOR, INK, THIN } from "./ink";
+import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
 import { label } from "./text";
 
-const OUTLINE = 4;
-const INK = { width: OUTLINE, color: PALETTE.outline, join: "round" as const };
-const THIN = { width: 3, color: PALETTE.outline, join: "round" as const };
-const FLOOR_DEPTH = 120;
-const FLOOR_TOP = 26;
-/** The floor's top runs this far back toward the wall, so the far foot (a step back in the painting) stands on it. */
-const FLOOR_BACK = 34;
 const COLORS = {
   velvet: "#7a2e3a",
   runner: "#8f2a2a",
@@ -50,6 +46,8 @@ export type VenueView = {
   setPunched(ids: readonly string[]): void;
   update(dt: number): void;
   setVisible(on: boolean): void;
+  /** The swinging doors as the sim has them this frame. */
+  setDoors(doors: readonly SwingDoor[]): void;
   destroy(): void;
 };
 
@@ -72,11 +70,15 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   const front = new Graphics();
   root.addChild(back, mid, front);
 
-  for (const f of level.furniture) drawFurniture(back, f);
-  for (const p of level.passes) drawPass(back, p, root);
-  for (const p of level.platforms) drawPlatform(mid, p);
-  for (const f of level.floor) drawFloor(front, f, level);
-  drawShaftPits(back, level);
+  // Each venue's own kinds first; the lobby's drawing for the rest.
+  for (const f of level.furniture) if (!restaurantFurniture(back, f)) drawFurniture(back, f);
+  for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
+  else drawPass(back, p, root);
+  for (const p of level.platforms) if (!restaurantPlatform(mid, p)) drawPlatform(mid, p);
+  for (const f of level.floor) if (!restaurantFloor(front, f)) drawFloor(front, f, level);
+  drawPits(back, level);
+  const doorG = new Graphics();
+  root.addChild(doorG);
   for (const s of level.signs) drawSign(root, s);
 
   const escalators = level.floor.filter((f) => f.kind === "escalator");
@@ -108,6 +110,14 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
 
   return {
     root,
+    setDoors(doors) {
+      doorG.clear();
+      for (const spec of level.swingDoors ?? []) {
+        const d = doors.find((q) => q.id === spec.id);
+        const open = d && d.t > 0 ? Math.sin(Math.PI * (1 - d.t / SWING.swing)) : 0;
+        drawSwingDoor(doorG, spec, open, d?.dir ?? -1);
+      }
+    },
     setDoorGlow(id) {
       glowing = id;
       for (const [k, d] of doors) d.glow.visible = k === id;
@@ -147,17 +157,17 @@ function drawFloor(g: Graphics, f: LevelFloor, level: Level) {
   const top = f.kind === "tile" ? highlightOf(COLORS.tile) : PALETTE.marbleTop;
   const x0 = Math.max(f.x0, level.bounds.x - 200);
   const x1 = Math.min(f.x1, level.bounds.x + level.bounds.w + 200);
-  g.poly([x0, f.y0 + FLOOR_TOP, x1, f.y1 + FLOOR_TOP, x1, f.y1 + FLOOR_DEPTH, x0, f.y0 + FLOOR_DEPTH]).fill(face.base);
-  g.poly([x0, f.y0 - FLOOR_BACK, x1, f.y1 - FLOOR_BACK, x1, f.y1 + FLOOR_TOP, x0, f.y0 + FLOOR_TOP]).fill(top);
-  g.poly([x0, f.y0 + FLOOR_TOP, x1, f.y1 + FLOOR_TOP, x1, f.y1 + FLOOR_TOP + 10, x0, f.y0 + FLOOR_TOP + 10]).fill(face.shadow);
+  g.poly([x0, f.y0 + FLOOR.top, x1, f.y1 + FLOOR.top, x1, f.y1 + FLOOR.depth, x0, f.y0 + FLOOR.depth]).fill(face.base);
+  g.poly([x0, f.y0 - FLOOR.back, x1, f.y1 - FLOOR.back, x1, f.y1 + FLOOR.top, x0, f.y0 + FLOOR.top]).fill(top);
+  g.poly([x0, f.y0 + FLOOR.top, x1, f.y1 + FLOOR.top, x1, f.y1 + FLOOR.top + 10, x0, f.y0 + FLOOR.top + 10]).fill(face.shadow);
   g.poly([x0, f.y0 + 16, x1, f.y1 + 16, x1, f.y1 + 20, x0, f.y0 + 20]).fill({ color: "#ffffff", alpha: 0.4 });
-  g.poly([x0, f.y0 - FLOOR_BACK, x1, f.y1 - FLOOR_BACK, x1, f.y1 + FLOOR_DEPTH, x0, f.y0 + FLOOR_DEPTH]).stroke(INK);
+  g.poly([x0, f.y0 - FLOOR.back, x1, f.y1 - FLOOR.back, x1, f.y1 + FLOOR.depth, x0, f.y0 + FLOOR.depth]).stroke(INK);
   if (f.kind === "tile") {
-    for (let x = x0 + 120; x < x1; x += 120) g.moveTo(x, f.y0 + FLOOR_TOP + 10).lineTo(x, f.y0 + FLOOR_DEPTH).stroke({ width: 2, color: face.shadow });
+    for (let x = x0 + 120; x < x1; x += 120) g.moveTo(x, f.y0 + FLOOR.top + 10).lineTo(x, f.y0 + FLOOR.depth).stroke({ width: 2, color: face.shadow });
     return;
   }
   for (let x = x0 + 160; x < x1 - 320; x += 420) {
-    const y = f.y0 + FLOOR_TOP + 30;
+    const y = f.y0 + FLOOR.top + 30;
     g.moveTo(x, y)
       .quadraticCurveTo(x + 90, y + 40, x + 200, y + 20)
       .quadraticCurveTo(x + 260, y + 10, x + 320, y + 55)
@@ -477,16 +487,33 @@ function drawDial(g: Graphics, x: number, y: number, floor: number) {
   g.moveTo(x, y + 20).lineTo(x + Math.cos(a) * 32, y + 20 + Math.sin(a) * 32).stroke({ width: 4, color: PALETTE.outline, cap: "round" });
 }
 
-/** The open shaft's drop below the floor line, dark with its cables. */
-function drawShaftPits(g: Graphics, level: Level) {
-  const floors = level.floor.filter((f) => f.kind === "marble" || f.kind === "tile").sort((a, b) => a.x0 - b.x0);
-  for (let i = 1; i < floors.length; i++) {
-    const x0 = floors[i - 1].x1;
-    const x1 = floors[i].x0;
-    if (x1 - x0 < 40) continue;
-    g.rect(x0, -FLOOR_BACK, x1 - x0, 700).fill(COLORS.shaft);
-    for (const k of [0.35, 0.65]) g.moveTo(x0 + (x1 - x0) * k, -FLOOR_BACK).lineTo(x0 + (x1 - x0) * k, 700).stroke({ width: 3, color: "#3a3640" });
+/** Every pit's drop below its floor line, dark: the lobby's shaft with its cables, a hazard edge on anyone else's. */
+function drawPits(g: Graphics, level: Level) {
+  for (const p of pitsOf(level)) {
+    g.rect(p.x0, p.y - FLOOR.back, p.x1 - p.x0, 700).fill(COLORS.shaft);
+    if (level.id === "lobby")
+      for (const k of [0.35, 0.65])
+        g.moveTo(p.x0 + (p.x1 - p.x0) * k, p.y - FLOOR.back)
+          .lineTo(p.x0 + (p.x1 - p.x0) * k, p.y + 700)
+          .stroke({ width: 3, color: "#3a3640" });
+    else for (const x of [p.x0, p.x1 - 24]) g.rect(x, p.y - FLOOR.back, 24, FLOOR.depth).fill(COLORS.hazard);
   }
+}
+
+/** The kitchen's swinging door in its frame: the panel turns on its hinge like a card flipping toward us as it swings. */
+export function drawSwingDoor(g: Graphics, at: { x: number; y: number }, open: number, dir: 1 | -1): void {
+  const w = 140;
+  const h = 340;
+  const steel = tones(COLORS.steel);
+  g.rect(at.x - w / 2 - 16, at.y - h - 16, w + 32, h + 16).fill(PALETTE.wallWood).stroke(INK);
+  g.rect(at.x - w / 2, at.y - h, w, h).fill("#1c1f24");
+  const hinge = at.x + (dir * w) / 2;
+  const span = w * Math.cos((open * Math.PI) / 2);
+  const left = Math.min(hinge, hinge - dir * span);
+  const width = Math.max(4, Math.abs(span));
+  g.rect(left, at.y - h, width, h).fill(steel.base).stroke(THIN);
+  g.circle(left + width / 2, at.y - h * 0.64, Math.min(20, width / 2)).fill({ color: "#cfe6f0", alpha: 0.85 }).stroke(THIN);
+  g.rect(left, at.y - 70, width, 50).fill(steel.shadow);
 }
 
 function drawPass(g: Graphics, p: Pass, root: Container) {

@@ -1,5 +1,6 @@
 // Plays the lobby at /?next=1&nocast=1&dev=1: the early pepper crate, the desk's punch clock, a life lost in
-// the shaft and back at the clock, pause, the stash and back, and the exit's tally to the clear.
+// the shaft and back at the clock, pause, the stash and back, the exit's tally into the restaurant's card, then game
+// over down the truck well and Try again from the lobby.
 // Usage: node scripts/run-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -47,6 +48,15 @@ const cardClearOfFace = async (name) => {
     assert.ok(!hit(r.card, r.face), `${name} at ${w}x${h}: the card covers his face ${JSON.stringify(r)}`);
     await shot(`${name}-${w}x${h}.png`);
   }
+};
+/** A card that holds only a moment, checked at the shape the page already has. */
+const cardClearNow = async (name) => {
+  const r = await page.evaluate(() => {
+    const b = document.querySelector(".next-veil__card").getBoundingClientRect();
+    return { card: { x: b.x, y: b.y, w: b.width, h: b.height }, face: window.__next.faceScreen, size: [innerWidth, innerHeight] };
+  });
+  assert.ok(!hit(r.card, r.face), `${name}: the card covers his face ${JSON.stringify(r)}`);
+  await shot(`${name}-${r.size[0]}x${r.size[1]}.png`);
 };
 try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -161,27 +171,25 @@ try {
   played = await page.evaluate(() => window.__next.sound.played);
   assert.ok((played["music:day"] ?? 0) >= 2, `the day music comes back in the lobby: ${JSON.stringify(played)}`);
 
-  // The exit: walk in, the tally, the clear.
+  // The exit: walk in, the tally, and the shift goes on in the restaurant. Its card holds 1.6 s, too short to turn
+  // the phone, so it is seen on the phone's tall shape, where his face sits nearest the card.
+  await page.setViewportSize({ width: 390, height: 844 });
   await tp(15700);
   await page.waitForTimeout(250);
   await hold(["ArrowRight"], 900);
   r = await waitFor((x) => x.mode === "tally", 3000);
   await shot("run-tally.png");
-  r = await waitFor((x) => x.mode === "clear", 14000);
-  assert.equal(r.mode, "clear", "the lobby is cleared");
-  assert.equal(r.time, 0);
-  await page.waitForSelector(".next-veil__card", { timeout: 2000 });
-  await shot("run-clear.png");
-  await cardClearOfFace("veil-clear");
-
-  // Play again: a fresh run from its card.
-  await page.click("text=Play again");
+  r = await waitFor((x) => x.mode === "card" && x.level === "restaurant", 14000);
+  assert.deepEqual([r.mode, r.level], ["card", "restaurant"], "the lobby leads to the restaurant");
+  await page.waitForSelector("text=Your shift goes on", { timeout: 2000 });
+  await cardClearNow("veil-venue");
   r = await waitFor((x) => x.mode === "play", 5000);
-  assert.deepEqual([r.mode, r.lives, r.score, r.level], ["play", 3, 0, "lobby"], "a fresh run");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  assert.ok(Math.abs(r.time - 420) < 1, "the restaurant's own clock");
 
-  // Two falls down the shaft and a knockdown: game over, and Try again starts over.
+  // Two falls down the truck well and a knockdown: game over, and Try again starts the shift over in the lobby.
   for (let i = 0; i < 2; i++) {
-    await tp(6060, -40);
+    await tp(13765, -260);
     await waitFor((x) => x.mode !== "play", 3000);
     await waitFor((x) => x.mode === "play", 6000);
   }
@@ -197,11 +205,11 @@ try {
   await cardClearOfFace("veil-over");
   await page.click("text=Try again");
   r = await waitFor((x) => x.mode === "play", 5000);
-  assert.deepEqual([r.mode, r.lives], ["play", 3], "tried again");
+  assert.deepEqual([r.mode, r.lives, r.level], ["play", 3, "lobby"], "tried again, from the lobby");
 
   assert.deepEqual(errors, []);
   writeFileSync(resolve(out, "run-check.json"), JSON.stringify({ run: await run(), errors }, null, 2));
-  console.log("PASS: start, the pepper, a punch clock, a life in the shaft, a break, the stash, the exit, the clear, play again, game over and try again; no errors.");
+  console.log("PASS: start, the pepper, a punch clock, a life in the shaft, a break, the stash, the exit into the restaurant, game over down the truck well and try again; no errors.");
 } catch (err) {
   console.error("Run check failure", errors);
   await page?.screenshot({ path: resolve(out, "run-failure.png") });
