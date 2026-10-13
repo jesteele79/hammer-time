@@ -269,10 +269,10 @@ tie (330 tall).
 - Recolors and sizes for the repeats as in R2b-2: garment masks in each person's cut, within ±4 percent of
   the painting's height; two repeats of one painting each keep their own colors.
 
-As built in R3a (2026-10-13): the busser, the line cook and the lunch worker are painted and cut; the
-professor draws as the code-drawn stand-in until `prof-1.png` is in, and the cook plays bareheaded, with
-a code-drawn toque flying when he is hit, until `cook-hat.png` is in (a cut names the hat it seats; the
-sync registers each hat painting by name). A recolor mask's region may name the layers it reaches, so the
+As built in R3a (2026-10-13): all four are painted and cut, and the cook wears his painted toque (a cut
+names the hat it seats; the sync registers each hat painting by name). Without a hat to show, a painted
+cook behind the pass would peek the top of his head over the counter instead; the stand-in draws its own
+toque. A recolor mask's region may name the layers it reaches, so the
 second cook's jacket painted in behind his arm turns black without touching the tattoo on the arm.
 
 ## 5. The pig and the gift shop (R3b)

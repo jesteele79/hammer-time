@@ -237,10 +237,9 @@ Status (2026-10-12): the eight lobby bodies and the hat are in, made with Codex 
 
 Status (2026-10-13, R3a): the restaurant's and the campus's new people are briefed in
 `art/outgoing/batch-7-r3-cast.txt` (Codex prompts in `batch-r3-codex.txt` section 1). In,
-cut and in the game: `cook-1`, `busser-1`, `lunch-1`. Still open: `prof-1.png` (he draws
-as the code-drawn stand-in until it is in) and `cook-hat.png`, the cook's toque on its own
-(he plays bareheaded, and a code-drawn toque flies, until it is in). The pig's velour body
-redo and its four faces (section 3) are for R3b.
+cut and in the game: `cook-1`, `busser-1`, `lunch-1`, `prof-1` and `cook-hat`. The pig's
+velour body redo is in (`art/incoming/pig/pig-body.png`, accepted, cut in R3b); its four
+faces (section 3) are next.
 
 ## 6. Pickups and props
 

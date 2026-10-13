@@ -1,0 +1,38 @@
+Use case: precise-object-edit. HAMMER TIME ITEM 4 only, prof-1.png.
+Inputs:
+Image 1: body-affliction.png — original input image and absolute reference for the 1086 x 1448 canvas, orthographic camera, pose, framing, original soles and feet placement.
+Image 2: hammer-profile.png — drawing style reference.
+Image 3: bellhop-1.png — exact finished-cast inked cartoon finish and pose reference.
+Image 4: previous professor candidate — edit this professor to fix the arm silhouette. Keep his elderly identity, wild white hair, round wire glasses, short white goatee, absent-minded closed-mouth expression and full costume.
+
+Subject required by ITEM 4, verbatim:
+A college professor: a man in his late sixties, average height, wild white hair sticking out in every direction, bushy white eyebrows, round wire glasses, a short white goatee, an absent-minded far-away look (lips closed). A brown tweed jacket with suede elbow patches over a cream sweater vest and a white shirt, a red bow tie, brown corduroy trousers, brown loafers.
+
+POSE AND FRAMING (copy Image 1 exactly, every body):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait) and the same placement in the frame: the soles at the same height near the bottom, the figure centered with green margin all round. A taller or shorter person keeps the soles where Image 1's are; only the top of the head sits higher or lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat (the cook's hat is a separate item). No props, nothing in the hands.
+- No floor, no shadow, no scenery.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name tags and badges are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- PNG.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+CRITICAL LOCAL EDIT IN IMAGE 4:
+The near forearm is currently drawn over the jacket front. Correct that overlap by carrying the near arm forward from the shoulder in a nearly straight line at about 30 degrees forward from vertical, and making the torso slimmer behind it. There must be a distinct LARGE OPEN TRIANGULAR HOLE OF GREEN BETWEEN THE INNER EDGE OF THE NEAR FOREARM AND THE BELLY. This triangle is on the RIGHT of the near arm and LEFT of the torso. It is a separate triangle from the existing gap between the two arms. The near arm connects at the shoulder, but its elbow and forearm silhouette stand in green with no contact with the chest or belly. Draw the jacket torso's complete forward edge visibly behind that green triangle. Both sleeves reach forward and down, parallel and offset, both open bare empty hands remain visible; far hand slightly farther left. Keep a green gap between the far arm and body too. Do not put the far arm behind the back.
+
+Keep the strict left-facing SIDE of the torso, hips, head, legs and shoes. The shirt/cream vest/red bow tie remain along the narrow left front edge. Both brown loafers fully included and flat, far foot a small step ahead, original respective sole heights around y=1330 and y=1418. Exact original 1086 x 1448 portrait canvas: no cropping, resizing, upscaling, recentering or added border. All wild white hair tips inside the frame with at least 20 pixels green margin above them. Only top of head changes with height.
+
+Finish the inked cartoon in Image 3's artist style: thick clean black contours, large smooth flat base color areas, ONE flat shadow tone and ONE flat highlight tone per material, small white glints. Make Image 4's tweed jacket smooth flat cel color with only a few sparse ink indications of weave, removing dense speckled texture. Brown corduroy trousers have simple sparse vertical ink ribs. Brown suede elbow patches; cream sweater vest; white shirt; red bow tie; brown slip-on loafers. No gradients, painterly marks, 3D shading, realistic textures or grain. No letters, text, logo or watermark.
+
+Replace all background with a brand-new exact uniform pure green digital fill: #00FF00 / RGB 0,255,0. Identical green in every corner and edge and every arm/hand/leg gap. No reference background color variation, color noise, gradients, shadows, scenery or floor.
+Nothing of Image 1's man's identity, face, haircut, printed shirt, shorts, socks or sneakers remains. No props, no book, papers, bag, pen, earbuds, head accessory, or anything held. One professor only. Return lossless PNG at exactly 1086 x 1448.

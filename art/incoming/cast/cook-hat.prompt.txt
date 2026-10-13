@@ -1,0 +1,28 @@
+Use case: precise-object-edit
+Asset type: final isolated PNG game sprite, cook-hat.png.
+Input image: the supplied chef's toque candidate is the edit target. It already has the correct silhouette and framing.
+
+Make a refined regeneration of this hat by changing its COLOR FILLS ONLY. Preserve exactly the hat shape, all outer black contours, the straight horizontal base band, every inked pleat, the soft puffed crown, its left-facing orthographic side view, its size and its position. Keep native 1086 x 1448 dimensions. Do not upscale, downscale, crop, move, warp, or resize anything.
+
+Primary color correction:
+REPLACE THE ENTIRE GREEN BACKGROUND with one absolutely uniform, untextured, pure digital color #00FF00, exact RGB (0,255,0). This includes every corner and all green margin pixels. The original green has faint variations; remove ALL of them. Zero gradient, zero noise, zero texture, zero shadow, zero vignette or corner darkening. A single solid chroma-key fill.
+
+Cloth color correction:
+Make the hat's cloth fills completely FLAT CEL SHADING, with warm off-white base, exactly one warm-gray shadow tone, exactly one pale highlight tone and small white specular glints. Remove the subtle gradients and extra intermediate shades. Keep the thick clean black outer outline and black pleat lines. Preserve the reference's inked caricature finish and warm chef-jacket whites.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image. No collages.
+- Background: flat bright green like a green screen (#00FF00). No texture, no gradient, no shadow on the background.
+- No text, letters, logos, signatures or watermarks anywhere (name tags and badges are blank).
+- The whole subject inside the frame with margin all round. Feet included.
+- PNG.
+- "Profile" means facing LEFT, exactly like Image 1.
+
+Required preserved subject:
+Only one tall white pleated chef's toque, a tall cylinder with a soft integrated puffed top leaning slightly left. The bottom band remains the widest solid part of the hat, extending beyond the crown at both ends. The band's bottom remains one perfectly straight, level, horizontal line. Nothing hangs below it.
+Whole hat clear of every edge with green all round.
+No person, head, hair, body, feet, stand, strap, cord, other objects, floor, shadow, text, letters or logos.
+Return the complete corrected image as a native-resolution PNG.

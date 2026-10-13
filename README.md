@@ -472,13 +472,13 @@ props and way of going down:
 - **The line cook** ambushes from behind the pass (only his toque showing,
   then he rears up and flings a hot pan, a grease slick where it lands) and
   marches the line like the office worker, a sizzle his tell. Knocked down,
-  his toque flies and his pan clatters. Until the owner's painting of the
-  toque is in, he plays bareheaded and a code-drawn toque flies.
+  his painted toque flies whole and his pan clatters. Hiding, he sinks
+  till only the toque shows over the counter.
 - **The lunch worker** rushes like a server with a tray of mashed potatoes,
   peas and jello; knocked down, the food flies and leaves a gravy puddle.
 - **The professor** marches head-down in his book, a page turning his tell;
-  head-on his papers fly everywhere. His painting is not in yet: he draws as
-  the code-drawn stand-in.
+  head-on his papers fly everywhere. The second professor, on the library
+  stairs, wears grey tweed.
 
 Each new person's painting is cut like the lobby's eight; a cut names the
 hat it seats, and the sync registers each hat painting by name. The repeats
