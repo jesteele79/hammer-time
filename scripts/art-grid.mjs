@@ -2,8 +2,9 @@
 // joints and cut lines by eye. The rig's joints, bones and layer outlines (fills dashed) from the
 // body's cut file are drawn over it when they exist: art/cuts/hammer-body.json for Hammer's
 // costumes, art/cuts/cast-<person>.json for a cast painting.
-// Usage: node scripts/art-grid.mjs <costume | cast/<person>> [x y w h] [scale] [--bare]
-//   writes artifacts/grid-<costume>.png or artifacts/grid-cast-<person>.png
+// A venue's wall is named wall/<name>: its painting as it is (no green to key), its cut's seams red and its floor line cyan.
+// Usage: node scripts/art-grid.mjs <costume | cast/<person> | wall/<name>> [x y w h] [scale] [--bare]
+//   writes artifacts/grid-<costume>.png, artifacts/grid-cast-<person>.png or artifacts/grid-wall-<name>.png
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import sharp from "sharp";
 import { keyOut } from "./art-cut.mjs";
@@ -13,7 +14,11 @@ const bare = process.argv.includes("--bare");
 const target = args[0] ?? "affliction";
 // A cast painting is named cast/<person>: its plate and its own cut file.
 const person = target.startsWith("cast/") ? target.slice(5) : null;
-const keyed = await keyOut(readFileSync(person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`));
+const wall = target.startsWith("wall/") ? target.slice(5) : null;
+const wallPng = wall ? readFileSync(`art/incoming/backdrops/${wall}.png`) : null;
+const keyed = wallPng
+  ? { png: wallPng, ...(await sharp(wallPng).metadata()) }
+  : await keyOut(readFileSync(person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`));
 const [x0, y0, w, h] = args.length >= 5 ? args.slice(1, 5).map(Number) : [0, 0, keyed.width, keyed.height];
 const scale = Number(args[5] ?? (args.length >= 5 ? 2 : 1));
 const W = Math.round(w * scale),
@@ -38,8 +43,14 @@ for (let y = Math.ceil(y0 / step) * step; y <= y0 + h; y += step) {
   if (major) shapes.push(`<text x="2" y="${py(y) - 2}" font-size="12" font-family="monospace" fill="#39ff6a">${y}</text>`);
 }
 
+const wallCut = wall ? `art/cuts/wall-${wall}.json` : null;
+if (!bare && wallCut && existsSync(wallCut)) {
+  const cut = JSON.parse(readFileSync(wallCut, "utf8"));
+  for (const s of cut.seams) shapes.push(`<line x1="${px(s)}" y1="0" x2="${px(s)}" y2="${H}" stroke="#ff3b3b" stroke-width="3"/>`);
+  shapes.push(`<line x1="0" y1="${py(cut.floor)}" x2="${W}" y2="${py(cut.floor)}" stroke="#3bfff0" stroke-width="3"/>`);
+}
 const cutsFile = person ? `art/cuts/cast-${person}.json` : "art/cuts/hammer-body.json";
-if (!bare && existsSync(cutsFile)) {
+if (!bare && !wall && existsSync(cutsFile)) {
   const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
   const colors = { head: "#c08cff", torso: "#ff3b3b", armNear: "#ffd23b", armFar: "#3bb0ff", legNear: "#ff7ad9", legFar: "#3bfff0" };
   const layers = { ...(cuts.layers ?? {}), ...(person ? {} : (cuts.overrides?.[target]?.layers ?? {})) };
@@ -74,6 +85,6 @@ const base = await sharp(keyed.png)
   .toBuffer();
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">${shapes.join("")}</svg>`;
 mkdirSync("artifacts", { recursive: true });
-const out = `artifacts/grid-${person ? `cast-${person}` : target}.png`;
+const out = `artifacts/grid-${person ? `cast-${person}` : wall ? `wall-${wall}` : target}.png`;
 await sharp(base).composite([{ input: Buffer.from(svg), top: 0, left: 0 }]).png().toFile(out);
 console.log(`${out}: crop ${keyed.width}x${keyed.height}, region ${x0},${y0} ${w}x${h} at ${scale}x`);

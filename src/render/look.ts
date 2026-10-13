@@ -29,7 +29,7 @@ import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { RenderApp } from "./app";
-import { loadBackdrop, type Backdrop } from "./backdrop";
+import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
@@ -163,7 +163,7 @@ export async function startLook(
     let p = loading.get(level.id);
     if (!p) {
       p = (async () => {
-        const backdrop = await loadBackdrop(scene, level.id, level.length, registry);
+        const backdrop = await loadBackdrop(scene, level, registry);
         const venue = drawVenue(scene, level);
         venue.root.tint = multiplyTint(venue.root.tint, scene.ambient);
         venue.setVisible(false);
@@ -681,6 +681,8 @@ export async function startLook(
     const faceTl = scene.toScreen({ x: face.x, y: face.y });
     const faceBr = scene.toScreen({ x: face.x + face.w, y: face.y + face.h });
     faceOnScreen = { x: faceTl.x, y: faceTl.y, w: faceBr.x - faceTl.x, h: faceBr.y - faceTl.y };
+    // A fore piece fades while his head is behind it.
+    views.get(game.level.id)?.backdrop.update(faceOnScreen, simDt, groundAt(game.level.floor, x));
     const at: Frame = {
       face,
       view: scene.view(),
@@ -972,6 +974,8 @@ function stripped(registry: Registry): Registry {
     },
     // The cast draws as the stand-ins.
     cast: { bodies: {}, hats: {} },
+    walls: {},
+    pieces: {},
   };
 }
 

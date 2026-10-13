@@ -23,6 +23,8 @@ import {
   castRig,
   tolerant,
   hatBase,
+  wallCrop,
+  sheetPieces,
   paddedLayer,
   scaled,
   MESH_CELL,
@@ -269,7 +271,7 @@ async function drawLayers(costume, sheet) {
 
 /** Far planes: the owner's painted backdrop when present, else the inked venue photo. */
 async function backdrops(registry) {
-  const venues = { lobby: "public/hotel-corridor.webp" };
+  const venues = { lobby: "public/hotel-corridor.webp", restaurant: "public/hotel-restaurant-bg.jpg", campus: "public/campus-common.webp" };
   for (const [venue, photo] of Object.entries(venues)) {
     const owner = `art/incoming/backdrops/${venue}-far.png`;
     const outFile = `backdrops/${venue}-far.png`;
@@ -286,7 +288,41 @@ async function backdrops(registry) {
   }
 }
 
-const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, cast: { bodies: {}, hats: {} }, backdrops: {} };
+/** The venues' painted walls, cropped at their seams (art/cuts/wall-<name>.json), and their mid and fore sheets cut into pieces. */
+async function walls(registry) {
+  const dir = "art/incoming/backdrops";
+  if (!existsSync(dir)) return;
+  mkdirSync(join(OUT, "backdrops"), { recursive: true });
+  for (const file of readdirSync(dir).filter((f) => /-far-\d+\.png$/.test(f))) {
+    const name = file.replace(/\.png$/, "");
+    const cutFile = `art/cuts/wall-${name}.json`;
+    if (!existsSync(cutFile)) {
+      console.warn(`wall ${name}: painted but not cut yet (no ${cutFile}); its venue keeps its photo`);
+      continue;
+    }
+    await tolerant(`wall ${name}`, strict, async () => {
+      const w = await wallCrop(readFileSync(join(dir, file)), JSON.parse(readFileSync(cutFile, "utf8")));
+      writeFileSync(join(OUT, `backdrops/${name}.png`), w.png);
+      registry.walls[name] = { file: `backdrops/${name}.png`, width: w.width, height: w.height, floor: w.floor, top: w.top, bottom: w.bottom };
+      console.log(`wall ${name}: ${w.width}x${w.height}, its floor at ${w.floor}`);
+    });
+  }
+  for (const file of readdirSync(dir).filter((f) => /-(mid|fore)\.png$/.test(f))) {
+    const sheet = file.replace(/\.png$/, "");
+    await tolerant(`pieces ${sheet}`, strict, async () => {
+      const pieces = await sheetPieces(await keyOut(readFileSync(join(dir, file))));
+      pieces.forEach((p, i) => {
+        const name = `${sheet}-${i + 1}`;
+        writeFileSync(join(OUT, `backdrops/${name}.png`), p.png);
+        registry.pieces[name] = { file: `backdrops/${name}.png`, width: p.width, height: p.height, base: p.base };
+      });
+      console.log(`pieces ${sheet}: ${pieces.length}`);
+    });
+  }
+}
+
+
+const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, cast: { bodies: {}, hats: {} }, backdrops: {}, walls: {}, pieces: {} };
 mkdirSync(join(OUT, "hammer"), { recursive: true });
 guard(ownerFiles());
 await heads(registry);
@@ -294,5 +330,6 @@ await props(registry);
 await bodies(registry);
 await cast(registry);
 await backdrops(registry);
+await walls(registry);
 writeFileSync(join(OUT, "registry.json"), JSON.stringify(registry, null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);

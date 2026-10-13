@@ -1,0 +1,5 @@
+{
+ "note": "Coordinates are pixels of art/incoming/backdrops/restaurant-far-3.png. Each edge holds a whole steel pilaster, outlined on both sides, so the seams are their middles: two walls side by side make one pilaster of the halves. floor is the row where the wainscot meets the floor. Check with: node scripts/art-grid.mjs wall/restaurant-far-3.",
+ "floor": 731,
+ "seams": [35, 1500]
+}

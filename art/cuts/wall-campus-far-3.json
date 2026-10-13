@@ -1,0 +1,5 @@
+{
+ "note": "Coordinates are pixels of art/incoming/backdrops/campus-far-3.png. The picture's own edges cut its brick pilasters, open there, so the seams are the edges: two walls side by side make one pilaster of the two parts. floor is the row where the stone base meets the ground. Check with: node scripts/art-grid.mjs wall/campus-far-3.",
+ "floor": 773,
+ "seams": [0, 1536]
+}

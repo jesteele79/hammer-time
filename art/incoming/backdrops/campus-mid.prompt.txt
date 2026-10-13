@@ -1,0 +1,5 @@
+Regenerate campus-mid.png from Image1's correct six-group composition, native1536x1024PNG. Images2/3 hammer-profile and bellhop-1 supply thick-black-inked flat-cel style.
+Exactlysix whole upright FRONT-VIEW groups: blackironlamppost; bikerackwithbike; roundcafetablewithtwochairs; trashandrecyclingstationwithblankfronts; pottedficus; stackofplasticchairs. Keepbikefront-facing andalltable/chairlegsvisible. No otherobjects orsymbols/text/numbers/letters/logos.
+FIX FRAMING: lampfinial currentlytoo near top and ficuspottoo nearbottom. Place everygroup entirely within80px margins onallfoursides, without cropping, withlargegreengaps between groups. Generate thisframing natively, no resizeafterward.
+FIX BACKGROUND: a single exact puregreen constantfill#00FF00 = R0G255B0 throughout all emptyspace and objectholes. Allcorners identical. No grain, gradients, mottling, vignette, halo, floor orshadow.
+Render everymaterial with thickcleanblackoutlines, one SOLIDshadowtone andone SOLIDhighlighttone, tinywhiteglints, saturatednaturalcolors. No softgradientshading, texture, brushwork, photorealism or3D. Treefoliage crisp flatcartoonshapes. Only sixlistedgroups andpuregreen.

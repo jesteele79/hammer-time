@@ -1,0 +1,5 @@
+Edit Image1 to finish restaurant-fore.png. Keep native1536x1024 size and EXACTLY TWO whole upright front-facing groups: large potted olive tree; tall stack of grey plastic bus tubs on wheeled dolly. Images2/3 are the game's thick-black-ink flat cel-shaded style references.
+
+Correction: simplify the tree trunk and pot and tubs to flat cel colors, ONE solid base color, ONE hard-edged shadow tone, ONE hard-edged highlight tone, tiny white glints. Remove bark grain, painterly texture, smooth gradients and realistic lighting. Bold clean black outlines throughout. Also give a little more green margin above and below both objects, still keeping them large and well-separated; no leaf, pot or wheel touches an edge.
+Entire background EXACT uniform bright chroma green #00FF00, RGB(0,255,0), no noise, texture, gradient, vignette, lighting or shadows; every gap green. No floor, no contact shadow.
+Front faces of tubs square and symmetrical, no three-quarter side view. Only the tree in its pot and tubs on dolly, no extra objects, people, text, letters, numbers, logos or labels.

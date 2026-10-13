@@ -1242,3 +1242,133 @@ export function skinWeights(positions, rig, layer) {
   }
   return { bones, weights };
 }
+
+/** A wall painting cropped between its seams (the middles of its edge pilasters), full height; its floor line kept and its top and bottom rows' mean colors, which the wall carries on above and below itself. */
+export async function wallCrop(png, cut) {
+  const meta = await sharp(png).metadata();
+  const [a, b] = cut.seams;
+  if (!(a >= 0 && b <= meta.width && b - a > 200)) throw new Error(`wallCrop: seams ${a}..${b} outside the painting's ${meta.width} px`);
+  if (!(cut.floor > 0 && cut.floor < meta.height)) throw new Error(`wallCrop: floor line ${cut.floor} outside the painting's ${meta.height} px`);
+  const out = await sharp(png).extract({ left: a, top: 0, width: b - a, height: meta.height }).png().toBuffer();
+  const { data } = await sharp(out).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const w = b - a;
+  const rowColor = (y) => {
+    const sum = [0, 0, 0];
+    for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) sum[c] += data[(y * w + x) * 4 + c];
+    return "#" + sum.map((v) => Math.round(v / w).toString(16).padStart(2, "0")).join("");
+  };
+  return { png: out, width: w, height: meta.height, floor: cut.floor, top: rowColor(0), bottom: rowColor(meta.height - 1) };
+}
+
+/**
+ * A keyed sheet of objects cut into one image each: its paint's 8-connected shapes, shapes whose paint comes within `join`
+ * px merged (a mop and its bucket; boxes alone would join a tree's crown to the stool beside its trunk), shapes under
+ * `minShare` of the largest dropped (specks); left to right, each cropped with the margin to its own shapes only, its
+ * base the middle of its lowest painted row.
+ */
+export async function sheetPieces(keyed, { join = 24, minShare = 0.02 } = {}) {
+  const { data, info } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width,
+    H = info.height;
+  const label = new Int32Array(W * H).fill(-1);
+  let groups = [];
+  const stack = [];
+  for (let i = 0; i < W * H; i++) {
+    if (label[i] >= 0 || data[i * 4 + 3] < 128) continue;
+    const id = groups.length;
+    const g = { ids: [id], x0: W, y0: H, x1: -1, y1: -1, n: 0 };
+    label[i] = id;
+    stack.push(i);
+    while (stack.length) {
+      const j = stack.pop();
+      const x = j % W,
+        y = (j - x) / W;
+      g.n++;
+      g.x0 = Math.min(g.x0, x);
+      g.x1 = Math.max(g.x1, x);
+      g.y0 = Math.min(g.y0, y);
+      g.y1 = Math.max(g.y1, y);
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = x + dx,
+            ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+          const k = ny * W + nx;
+          if (label[k] < 0 && data[k * 4 + 3] >= 128) {
+            label[k] = id;
+            stack.push(k);
+          }
+        }
+    }
+    groups.push(g);
+  }
+  const boxNear = (p, q) => !(p.x0 - join > q.x1 || q.x0 - join > p.x1 || p.y0 - join > q.y1 || q.y0 - join > p.y1);
+  /** Whether any of q's paint lies within `join` px of p's: p's paint grown by `join` (a chamfer distance over the boxes' overlap), then q's pixels looked up. */
+  const near = (p, q) => {
+    if (!boxNear(p, q)) return false;
+    const x0 = Math.max(0, Math.max(p.x0, q.x0) - join),
+      y0 = Math.max(0, Math.max(p.y0, q.y0) - join);
+    const x1 = Math.min(W - 1, Math.min(p.x1, q.x1) + join),
+      y1 = Math.min(H - 1, Math.min(p.y1, q.y1) + join);
+    const w = x1 - x0 + 1,
+      h = y1 - y0 + 1;
+    const ps = new Set(p.ids),
+      qs = new Set(q.ids);
+    const d = new Float32Array(w * h).fill(1e9);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (ps.has(label[(y0 + y) * W + x0 + x])) d[y * w + x] = 0;
+    const D = Math.SQRT2;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        let v = d[y * w + x];
+        if (x > 0) v = Math.min(v, d[y * w + x - 1] + 1);
+        if (y > 0) v = Math.min(v, d[(y - 1) * w + x] + 1, x > 0 ? d[(y - 1) * w + x - 1] + D : 1e9, x < w - 1 ? d[(y - 1) * w + x + 1] + D : 1e9);
+        d[y * w + x] = v;
+      }
+    for (let y = h - 1; y >= 0; y--)
+      for (let x = w - 1; x >= 0; x--) {
+        let v = d[y * w + x];
+        if (x < w - 1) v = Math.min(v, d[y * w + x + 1] + 1);
+        if (y < h - 1) v = Math.min(v, d[(y + 1) * w + x] + 1, x < w - 1 ? d[(y + 1) * w + x + 1] + D : 1e9, x > 0 ? d[(y + 1) * w + x - 1] + D : 1e9);
+        d[y * w + x] = v;
+      }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[y * w + x] <= join && qs.has(label[(y0 + y) * W + x0 + x])) return true;
+    return false;
+  };
+  for (let merged = true; merged; ) {
+    merged = false;
+    for (let a = 0; a < groups.length && !merged; a++)
+      for (let b = a + 1; b < groups.length && !merged; b++) {
+        const p = groups[a],
+          q = groups[b];
+        if (!near(p, q)) continue;
+        groups[a] = { ids: [...p.ids, ...q.ids], x0: Math.min(p.x0, q.x0), y0: Math.min(p.y0, q.y0), x1: Math.max(p.x1, q.x1), y1: Math.max(p.y1, q.y1), n: p.n + q.n };
+        groups.splice(b, 1);
+        merged = true;
+      }
+  }
+  const largest = Math.max(...groups.map((g) => g.n));
+  groups = groups.filter((g) => g.n >= largest * minShare).sort((p, q) => p.x0 - q.x0);
+  const out = [];
+  for (const g of groups) {
+    const own = new Set(g.ids);
+    const left = Math.max(0, g.x0 - MARGIN),
+      top = Math.max(0, g.y0 - MARGIN);
+    const width = Math.min(W, g.x1 + 1 + MARGIN) - left,
+      height = Math.min(H, g.y1 + 1 + MARGIN) - top;
+    const rgba = Buffer.alloc(width * height * 4);
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const k = (top + y) * W + left + x;
+        if (own.has(label[k])) data.copy(rgba, (y * width + x) * 4, k * 4, k * 4 + 4);
+      }
+    let lo = -1,
+      hi = -1;
+    for (let x = g.x0; x <= g.x1; x++)
+      if (own.has(label[g.y1 * W + x])) {
+        if (lo < 0) lo = x;
+        hi = x;
+      }
+    out.push({ png: await sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer(), width, height, base: { x: Math.round((lo + hi) / 2) - left, y: g.y1 - top } });
+  }
+  return out;
+}

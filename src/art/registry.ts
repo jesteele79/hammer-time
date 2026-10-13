@@ -30,6 +30,10 @@ export type Prop = {
   /** The hat as worn: cut at its base, the strap left off (same top-left, so the same pivot). */
   worn?: string;
 };
+/** A venue's painted wall, cropped at its seams: `floor` is the row where it meets the floor; `top` and `bottom` its top and bottom rows' colors, which carry it on above and below. */
+export type Wall = { file: string; width: number; height: number; floor: number; top: string; bottom?: string };
+/** A standing piece cut from a mid or fore sheet: `base` is where it stands, in its own px. */
+export type Piece = { file: string; width: number; height: number; base: Point };
 export type Registry = {
   version: number;
   hammer: {
@@ -41,6 +45,9 @@ export type Registry = {
   /** The cast's paintings (R2b-2): each person's rig file, and each hat by name (the bellhops', the cook's). Missing from an older sync. */
   cast?: { bodies: Partial<Record<CastPerson, Body>>; hats: Record<string, Prop> };
   backdrops: Record<string, { far?: string }>;
+  /** The venues' painted walls and standing pieces by name. Missing from an older sync. */
+  walls?: Record<string, Wall>;
+  pieces?: Record<string, Piece>;
 };
 
 export const ART_BASE = "/art/";

@@ -20,6 +20,8 @@ import {
   recolorMask,
   maskMean,
   recolorLayer,
+  wallCrop,
+  sheetPieces,
 } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
@@ -664,4 +666,65 @@ test("a recolor region can name the layers it reaches: a garment painted in behi
   assert.equal(count(recolorMask(rgba, W, H, spec, "torso")), 200, "the torso takes both regions");
   assert.equal(count(recolorMask(rgba, W, H, spec, "armNear")), 100, "the arm only the open one");
   assert.equal(count(recolorMask(rgba, W, H, spec)), 100, "the painting, for the garment's mean, only the open one");
+});
+
+test("a wall is cropped between its seams, full height, its floor line kept and its top row's color noted", async () => {
+  const W = 1000, H = 600;
+  const rgba = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) {
+    const y = Math.floor(i / W);
+    rgba.set(y < 10 ? [200, 40, 40, 255] : [90, 90, 90, 255], i * 4);
+  }
+  const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  const w = await wallCrop(png, { floor: 400, seams: [50, 950] });
+  assert.deepEqual([w.width, w.height, w.floor, w.top], [900, 600, 400, "#c82828"]);
+  await assert.rejects(wallCrop(png, { floor: 400, seams: [50, 1200] }), /seams/);
+  await assert.rejects(wallCrop(png, { floor: 700, seams: [50, 950] }), /floor/);
+});
+
+test("a sheet of objects on green is cut into one piece each, left to right, near shapes joined, specks dropped, each with its base", async () => {
+  const W = 700, H = 320;
+  const rgba = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) rgba.set([0, 255, 0, 255], i * 4);
+  const block = (x0, y0, x1, y1, c) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) rgba.set([...c, 255], (y * W + x) * 4); };
+  block(40, 100, 140, 280, [180, 40, 40]);
+  block(240, 60, 300, 280, [40, 40, 180]);
+  block(420, 120, 470, 280, [120, 90, 40]);
+  block(480, 220, 520, 280, [200, 200, 40]);
+  block(640, 20, 643, 23, [40, 40, 40]);
+  const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  const pieces = await sheetPieces(await keyOut(png));
+  assert.equal(pieces.length, 3, "three pieces: the near pair joined, the speck dropped");
+  assert.ok(pieces[0].width < pieces[1].width + 60 && pieces[2].width > 100, `widths ${pieces.map((p) => p.width)}`);
+  for (const p of pieces) assert.equal(p.base.y, p.height - 1 - 8, "the base on the lowest painted row, inside the 8 px margin");
+});
+
+test("each painted sheet is cut into as many pieces as its brief lists", () => {
+  const listed = { "restaurant-mid": 6, "restaurant-fore": 2, "campus-mid": 6, "campus-fore": 2, "arena-mid": 5, "arena-fore": 2, "lobby-mid": 5, "lobby-fore": 2 };
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  for (const [sheet, n] of Object.entries(listed)) {
+    if (!existsSync(`art/incoming/backdrops/${sheet}.png`)) continue;
+    assert.equal(Object.keys(reg.pieces ?? {}).filter((k) => k.startsWith(`${sheet}-`)).length, n, sheet);
+  }
+});
+
+test("two objects on a sheet whose boxes nearly touch but whose paint stands well apart stay two pieces (a tree's crown over a stool)", async () => {
+  const W = 300, H = 320;
+  const rgba = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) rgba.set([0, 255, 0, 255], i * 4);
+  const block = (x0, y0, x1, y1, c) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) rgba.set([...c, 255], (y * W + x) * 4); };
+  // The crown high and wide, its trunk down the middle; the stool low, starting 4 px past the crown's box.
+  block(40, 40, 140, 140, [40, 60, 170]);
+  block(85, 140, 95, 280, [120, 70, 30]);
+  block(144, 200, 220, 280, [180, 30, 30]);
+  const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  assert.equal((await sheetPieces(await keyOut(png))).length, 2);
+});
+
+test("a wall notes its bottom row's color too, which carries its painted floor on below it", async () => {
+  const W = 400, H = 300;
+  const rgba = Buffer.alloc(W * H * 4);
+  for (let i = 0; i < W * H; i++) rgba.set(Math.floor(i / W) >= H - 4 ? [30, 60, 90, 255] : [90, 90, 90, 255], i * 4);
+  const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  assert.equal((await wallCrop(png, { floor: 200, seams: [0, 400] })).bottom, "#1e3c5a");
 });

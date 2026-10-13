@@ -824,3 +824,44 @@ test("the campus's flights and landings stand on the ground; the deck's stair, w
   // A flight between two landings reaches the ground like the landings either side of it, not 120 under its foot.
   for (const f of floors.filter((f) => (f.kind === "steps" || f.kind === "stone") && !openUnder(f, floors))) assert.equal(floorBottom(f), 120, `${f.kind} at ${f.x0}`);
 });
+
+import { layWalls, wallsFor } from "../src/render/backdrop.ts";
+
+test("a venue's walls stand side by side, centred, the end walls repeated to cover the view; any wall missing means its photo", () => {
+  const walls = [{ width: 1000 }, { width: 1000 }, { width: 1000 }];
+  const row = layWalls(walls, 1, 1500, [-1200, 4500]);
+  assert.deepEqual(row.map((r) => r.index), [0, 0, 0, 1, 2, 2, 2]);
+  assert.deepEqual(row.map((r) => r.x), [-2000, -1000, 0, 1000, 2000, 3000, 4000]);
+  const wall = { file: "w.png", width: 1400, height: 1000, floor: 730, top: "#000000" };
+  assert.equal(wallsFor({ backdrop: { walls: ["a", "b"], mid: [], fore: [] } }, { walls: { a: wall } }), null);
+  assert.equal(wallsFor({}, { walls: { a: wall } }), null);
+  assert.deepEqual(wallsFor({ backdrop: { walls: ["a", "a"], mid: [], fore: [] } }, { walls: { a: wall } }), [wall, wall]);
+});
+
+import { groundAt, wallScale } from "../src/render/backdrop.ts";
+
+test("a venue's walls are scaled so they span its length in the far plane, each standing behind its own stretch, never past the cap", () => {
+  const level = { bounds: { x: -400, y: -1600, w: 16400, h: 2200 } };
+  const walls = [{ width: 1464 }, { width: 1461 }, { width: 1465 }];
+  const k = wallScale(walls, level);
+  assert.ok(Math.abs(k * 4390 - 16400 * 0.25) < 1, `the row spans the far extent: ${k}`);
+  // A short arena keeps a readable scale and centres its walls instead.
+  assert.equal(wallScale(walls, { bounds: { x: 0, y: 0, w: 3000, h: 1000 } }), 0.9);
+  assert.equal(wallScale([{ width: 400 }], level), 1.4);
+});
+
+test("the ground under him: the lowest floor at his x, up the library steps and onto the dock; none over a pit", () => {
+  const floor = [
+    { x0: 0, x1: 1000, y0: 0, y1: 0 },
+    { x0: 1000, x1: 1520, y0: 0, y1: -300 },
+    { x0: 1520, x1: 3000, y0: -300, y1: -300 },
+    { x0: 600, x1: 900, y0: -100, y1: -520 },
+    { x0: 3400, x1: 4000, y0: -200, y1: -200 },
+  ];
+  assert.equal(groundAt(floor, 500), 0);
+  assert.equal(groundAt(floor, 700), 0, "a belt over the floor is not the ground");
+  assert.equal(groundAt(floor, 1260), -150);
+  assert.equal(groundAt(floor, 2000), -300);
+  assert.equal(groundAt(floor, 3200), null, "a pit has no ground");
+  assert.equal(groundAt(floor, 3600), -200);
+});
