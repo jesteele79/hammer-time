@@ -865,3 +865,16 @@ test("a knocked-out staffer blocked 1250 px off, in view on a wide screen with t
   steps(w, 1.2);
   assert.ok(s.alive && s.facing === -1, "still there, walking the other way");
 });
+
+import { CAST_LINES } from "../src/game/lines.ts";
+
+test("whoever falls down a pit says their own line on the way down", () => {
+  const pit = flat({ floor: [{ x0: -2000, x1: 1000, y0: 0, y1: 0 }, { x0: 1400, x1: 20000, y0: 0, y1: 0 }], bounds: { x: -2000, y: -3000, w: 22000, h: 3600 } });
+  for (const [person, line] of [["bellhop-1", CAST_LINES.bellhop.fall], ["server-1", CAST_LINES.server.fall], ["office-1", CAST_LINES.office.fall], ["student-1", CAST_LINES.student.fall]]) {
+    const w = worldWith([{ id: "p", person, x: 1200, y: 0 }], { x: -1500, y: 0 }, {}, [], pit);
+    const fell = of(until(w, (x) => !npc(x, "p").alive, 3), "castFell");
+    assert.equal(fell.length, 1, person);
+    assert.equal(fell[0].line, line, person);
+  }
+  assert.equal(new Set([CAST_LINES.bellhop.fall, CAST_LINES.server.fall, CAST_LINES.office.fall, CAST_LINES.student.fall]).size, 4, "four different lines");
+});

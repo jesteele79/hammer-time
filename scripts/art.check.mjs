@@ -613,3 +613,19 @@ test("every recolor the lobby asks for is in the cut of the painting it repaints
     for (const part of [...Object.values(rig.layers), rig.head]) assert.ok(images.has(part.recolors?.[s.recolor]), `${s.id}: a ${s.recolor} texture for ${part.file}`);
   }
 });
+
+import { tolerant } from "./art-cut.mjs";
+
+test("one bad item in a tolerant sync is a warning and a fallback; a strict sync stops on it", async () => {
+  const warn = console.warn;
+  const said = [];
+  console.warn = (m) => said.push(String(m));
+  try {
+    assert.equal(await tolerant("cast x", false, async () => { throw new Error("bad cut"); }), null);
+    assert.ok(said.some((m) => m.includes("cast x") && m.includes("bad cut")), said.join(" | "));
+    assert.equal(await tolerant("cast y", false, async () => 7), 7);
+  } finally {
+    console.warn = warn;
+  }
+  await assert.rejects(tolerant("cast z", true, async () => { throw new Error("bad cut"); }), /bad cut/);
+});

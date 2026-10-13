@@ -71,7 +71,7 @@ export type GameEvent =
   /** A student runs off (snot, or after a knock). */
   | { type: "castFlee"; id: number; x: number; y: number; points: number }
   /** Someone went down the open shaft. */
-  | { type: "castFell"; id: number; x: number; y: number; points: number }
+  | { type: "castFell"; id: number; x: number; y: number; points: number; line: string }
   /** An attack's telegraph: the ! burst and its sound. */
   | { type: "castWindup"; id: number; role: CastRole; x: number; y: number }
   /** The attack itself: a shove, a rush, a fling, a throw. */

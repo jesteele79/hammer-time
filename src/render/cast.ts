@@ -7,7 +7,7 @@ import { castGround, castPose } from "../sim/rig/cast";
 import { solve, type Solved } from "../sim/rig/fk";
 import { groundShift } from "../sim/rig/ground";
 import { HERO_HEIGHT, type JointName } from "../sim/rig/skeleton";
-import type { Point, Snapshot } from "../sim/types";
+import type { Point, Rect, Snapshot } from "../sim/types";
 import type { Quality } from "./app";
 import { RIM, castHeadScale, hatWorldWidth, rimFor } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt, type Rim } from "./cast-body";
@@ -358,6 +358,11 @@ type View = {
   squashT: number;
 };
 const SHADOW_RX = 60;
+/** How far past the view a cast member is still drawn: a figure walking in is already posed. */
+export const CULL_PAD = 600;
+/** Inside the view or within the pad of it: anyone farther is not posed or drawn this frame. */
+export const onScreen = (x: number, y: number, view: Rect, pad = CULL_PAD): boolean =>
+  x >= view.x - pad && x <= view.x + view.w + pad && y >= view.y - pad && y <= view.y + view.h + pad;
 /** Dazed: three stars circling the head. */
 const STARS = { n: 3, r: 40, size: 9, rate: 4 } as const;
 export const DAZED: ReadonlySet<CastAct> = new Set<CastAct>(["down", "slide", "slip", "getup"]);
@@ -420,7 +425,7 @@ export class Cast {
     drawCarried(v.carried, s, o);
   }
 
-  sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, screens: Furniture[], lights: readonly { x: number; y: number }[] = []): void {
+  sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, screens: Furniture[], lights: readonly { x: number; y: number }[] = [], view: Rect | null = null): void {
     const s = between(prev, cur, alpha);
     const seen = new Set<number>();
     for (const n of s.cast) {
@@ -440,6 +445,10 @@ export class Cast {
         v = { root, body, painted, carried, shadow, stars, look: recolored(LOOKS[n.person], n.recolor), mask: null, air: !n.onGround, squashT: 0 };
         this.views.set(n.id, v);
       }
+      // Far off the view he is neither posed nor drawn; his view is kept for when he comes back.
+      const seenNow = !view || onScreen(n.x, n.y - n.h / 2, view);
+      v.root.visible = seenNow;
+      if (!seenNow) continue;
       const hidden = n.act === "hide" || (n.hide && n.act === "windup");
       const t = n.actT + alpha * STEP;
       const pose = castPose({ role: n.role, act: n.act, t, speed: Math.abs(n.vx), onGround: n.onGround, sit: n.sit, spin: n.spin, hits: n.hits });

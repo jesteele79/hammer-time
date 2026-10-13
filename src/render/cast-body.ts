@@ -176,7 +176,8 @@ export class PaintedFigure {
     PaintedFigure.live--;
     for (const p of this.parts) p.geometry.destroy();
     this.headGeometry.destroy();
-    this.container.destroy({ children: true });
+    // A board's snapshot may have destroyed the container along with its board already.
+    if (!this.container.destroyed) this.container.destroy({ children: true });
   }
 
   apply(solved: Solved, o: PaintOpts, rim: Rim | null = null): void {

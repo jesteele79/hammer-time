@@ -738,3 +738,15 @@ test("a server's tray, held up for the warning and the rush, stays clear of her 
       }
   }
 });
+
+import { onScreen } from "../src/render/cast.ts";
+
+test("the cast is drawn only near the view: inside it or within the pad, never far off it", () => {
+  const view = { x: 1000, y: -1000, w: 2000, h: 1100 };
+  assert.ok(onScreen(1500, 0, view));
+  assert.ok(onScreen(400, 0, view), "within the pad to the left");
+  assert.ok(onScreen(3500, 0, view), "within the pad to the right");
+  assert.ok(!onScreen(-200, 0, view), "far left");
+  assert.ok(!onScreen(4200, 0, view), "far right");
+  assert.ok(!onScreen(1500, 900, view), "far below");
+});

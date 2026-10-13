@@ -113,6 +113,7 @@ const hudFits = async (name) => {
 const booted = async (url) => {
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.renderer && window.__next?.hero, {}, { timeout: 30000 });
+  if (url.includes("nocast=1")) assert.deepEqual(await page.evaluate(() => window.__next.castArt?.painted ?? []), [], "nocast loads no cast paintings");
 };
 try {
   page = await browser.newPage({ viewport: { width: 1280, height: 800 } });

@@ -451,7 +451,7 @@ function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   const b = w.stage.bounds;
   if (n.y > b.y + b.h - FALL_MARGIN) {
     n.alive = false;
-    events.push({ type: "castFell", id: n.id, x: n.x, y: n.y, points: POINTS.shaft });
+    events.push({ type: "castFell", id: n.id, x: n.x, y: n.y, points: POINTS.shaft, line: CAST_LINES[n.role].fall });
   } else if (n.act === "leave" || n.act === "flee") {
     const far = Math.abs(n.x - w.hero.x);
     // Walking off into a wall: gone if he cannot see them any more, else they turn back the other way.

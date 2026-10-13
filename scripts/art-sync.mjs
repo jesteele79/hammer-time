@@ -21,6 +21,7 @@ import {
   LAYER_Z,
   layerZ,
   castRig,
+  tolerant,
   hatBase,
   paddedLayer,
   scaled,
@@ -213,20 +214,23 @@ async function cast(registry) {
       console.warn(`cast ${person}: painted but not cut yet (no ${cutsFile}); the stand-in draws them`);
       continue;
     }
-    const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
-    // A face edit, knocked silly, swaps in for the head while dazed; one that does not fit its painting is skipped (refused with --strict).
-    const sillyFile = join(CAST_IN, `${person}-silly.png`);
-    const silly = existsSync(sillyFile) ? await keyOut(readFileSync(sillyFile)) : null;
-    const { rig, images, layers, W, H } = await castRig(person, await keyOut(readFileSync(file)), cuts, { silly, strict });
-    for (const [name, png] of images) writeFileSync(join(OUT, name), png);
-    const rigFile = `cast/${person}-rig.json`;
-    writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
-    registry.cast.bodies[person] = { rig: rigFile, span: rig.span };
-    console.log(`cast ${person}: five layers and the head, the painted head ${rig.head.share} of the figure`);
-    if (overlay) {
-      const sheet = await Promise.all(layerZ(cuts).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer()));
-      await drawLayers(`cast-${person}`, sheet);
-    }
+    // One bad cut leaves that person on the stand-in and the rest of the art going (a strict sync stops on it).
+    await tolerant(`cast ${person}`, strict, async () => {
+      const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
+      // A face edit, knocked silly, swaps in for the head while dazed; one that does not fit its painting is skipped (refused with --strict).
+      const sillyFile = join(CAST_IN, `${person}-silly.png`);
+      const silly = existsSync(sillyFile) ? await keyOut(readFileSync(sillyFile)) : null;
+      const { rig, images, layers, W, H } = await castRig(person, await keyOut(readFileSync(file)), cuts, { silly, strict });
+      for (const [name, png] of images) writeFileSync(join(OUT, name), png);
+      const rigFile = `cast/${person}-rig.json`;
+      writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
+      registry.cast.bodies[person] = { rig: rigFile, span: rig.span };
+      console.log(`cast ${person}: five layers and the head, the painted head ${rig.head.share} of the figure`);
+      if (overlay) {
+        const sheet = await Promise.all(layerZ(cuts).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer()));
+        await drawLayers(`cast-${person}`, sheet);
+      }
+    });
   }
   // The bellhops' hat: whole for flying off, and cut at its base for wearing (the strap's loop would cross a face).
   const hatFile = join(CAST_IN, "bellhop-hat.png");

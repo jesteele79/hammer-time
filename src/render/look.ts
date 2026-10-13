@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
-import { ASIDES, CAST_LINES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
+import { ASIDES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
 import { PATIENCE_MAX } from "../sim/damage";
@@ -150,7 +150,7 @@ export async function startLook(
   scene.layers.play.addChild(character.container);
   await character.ready;
   // Every painting the lobby's cast wears, before the first frame, so nobody pops from stand-in to painting.
-  await cast.preload((LOBBY.cast ?? []).map((s) => s.person));
+  if (!opts.nocast) await cast.preload((LOBBY.cast ?? []).map((s) => s.person));
   const headPlate = registry.hammer.heads.neutral!;
 
   const vignette = new Sprite(vignetteTexture());
@@ -469,7 +469,7 @@ export async function startLook(
         break;
       case "castFell":
         words.say("OUT OF ORDER", e.x, e.y - 400, true, face, view);
-        speech.say(e.id, CAST_LINES.office.shaft, 1.2);
+        speech.say(e.id, e.line, 1.2);
         break;
       case "chain":
         words.say(e.oneUp ? "1UP!" : String(e.points), e.x, e.y - 60, e.count >= 4, face, view);
@@ -627,7 +627,7 @@ export async function startLook(
     props.sync(prev, cur, alpha, simDt);
     // The cast draws just behind him too: nothing of them is ever over his face.
     cast.container.zIndex = y - 0.6;
-    cast.sync(prev, cur, alpha, time, game.level.furniture, game.level.lights);
+    cast.sync(prev, cur, alpha, time, game.level.furniture, game.level.lights, scene.view());
     // Their flying props too (the hat, the glasses, the cup): between the cast and the carts, never over his face.
     flyers.container.zIndex = y - 0.55;
     flyers.update(simDt, (fx, fy) => topUnder(fx, fy));

@@ -283,6 +283,8 @@ export function createBoards(
     for (let r = 0; r <= rows; r++) bg.rect(150, 50 + r * CELL_H, cols * CELL_W, 2).fill("#343a44");
     for (let c = 0; c <= cols; c++) bg.rect(150 + c * CELL_W, 50, 2, rows * CELL_H).fill("#343a44");
     board.addChild(bg);
+    // Every figure drawn here is let go of once the board is a picture.
+    const figs: PaintedFigure[] = [];
     const arts = await Promise.all(sheetRows.map((r) => loadCastArt(registry, r.person)));
     sheetRows.forEach(({ person, name, recolor, size }, row) => {
       const art = arts[row];
@@ -310,6 +312,7 @@ export function createBoards(
         const opts = { role, act, hat: role === "bellhop", prop: true, slimed: false, silhouette: false };
         if (art) {
           const fig = new PaintedFigure(art);
+          figs.push(fig);
           fig.apply(solved, { recolor, dazed: DAZED.has(act), hat: opts.hat, silhouette: false });
           drawCarried(g, solved, opts);
           cell.addChild(fig.container);
@@ -320,12 +323,15 @@ export function createBoards(
         board.addChild(cell);
       });
     });
-    return snapshot(board, width, height);
+    const png = await snapshot(board, width, height);
+    for (const f of figs) f.destroy();
+    return png;
   };
 
   /** Each painted person beside Hammer at their painted head, 0.22 and 0.26 of their height, for the owner to pick. */
   const castHeads = async () => {
     const people: [CastPerson, CastArt][] = [];
+    const figs: PaintedFigure[] = [];
     for (const p of PERSONS) {
       const a = await loadCastArt(registry, p);
       if (a) people.push([p, a]);
@@ -364,6 +370,7 @@ export function createBoards(
         const pose = castPose({ role, act: "idle", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
         const solved = solve(pose, -1, castHeadScale(s, art.head), art.head, art.skeleton);
         const fig = new PaintedFigure(art);
+        figs.push(fig);
         fig.apply(solved, { recolor: null, dazed: false, hat: role === "bellhop", silhouette: false });
         const g = new Graphics();
         drawCarried(g, solved, { role, act: "idle", hat: role === "bellhop", prop: true, slimed: false, silhouette: false });
@@ -374,7 +381,9 @@ export function createBoards(
         board.addChild(cell);
       });
     }
-    return snapshot(board, width, height);
+    const png = await snapshot(board, width, height);
+    for (const f of figs) f.destroy();
+    return png;
   };
 
   /** The cast's effects at rest: the ! burst, the stars, the hat, a glass, the cup, a plane, the puddles, confetti. */

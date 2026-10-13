@@ -98,12 +98,14 @@ export const CAST_LINES = {
     shove: ["Coming through!", "Cart!", "Make way, sir!"],
     bump: ["Sir, check-in is at four.", "Mind the cart, sir."],
     down: ["I'll get my manager.", "That's a resort fee, sir."],
+    fall: "Luggaaage!",
   },
   server: {
     warn: ["Can I start you off with some waters?!", "Order up!", "Be right with you!!"],
     skid: ["Be right with you!", "Still working on that?"],
     bump: ["Behind you!", "Hot plate!"],
     down: ["I'm going on break.", "Is Pepsi okay? No? Okay."],
+    fall: "Order uuup!",
   },
   office: {
     notice: ["Per my last email...", "Quick sync?", "Let's circle back."],
@@ -111,13 +113,14 @@ export const CAST_LINES = {
     ambush: ["Got a minute?", "Can we take this offline?"],
     frozen: "Per my last em\u2014",
     down: ["I'm putting this in an email.", "Let's circle back."],
-    shaft: "Per my last emaaaail",
+    fall: "Per my last emaaaail",
   },
   student: {
     notice: ["I'm rating your customer service.", "Say hi to the internet.", "This is going in the group chat.", "Sir, this is a hotel."],
     heads: "Heads up!",
     duck: "lol",
     snot: "EW!",
+    fall: "Ratiooo",
   },
 } as const;
 

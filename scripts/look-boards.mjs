@@ -32,11 +32,15 @@ try {
   const only = process.argv[3]?.split(",");
   const want = (kind) => !only || only.includes(kind);
   let count = 0;
+  // Board figures are let go of once drawn: as many alive after the boards as before.
+  const live = () => page.evaluate(() => window.__next?.castArt?.live ?? 0);
+  const live0 = await live();
   for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "objects", "cast", "cast-fx", "cast-heads"])
     if (want(kind)) {
       save(kind === "objects" || kind.startsWith("cast") ? `${kind}.png` : `hammer-${kind}.png`, await render(kind));
       count++;
     }
+  if ((await live()) !== live0) throw new Error(`board figures left alive: ${(await live()) - live0}`);
   if (want("lobby")) {
     const frames = (await render("lobby")).split("\n");
     frames.forEach((f, i) => save(`lobby-look-${i + 1}.png`, f));

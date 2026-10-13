@@ -132,6 +132,20 @@ export async function registerHead(png, kind) {
 /** Outline overlap an expression plate needs to stand in for the neutral one. */
 export const ALIGN_MIN = 0.85;
 
+/**
+ * One item of the sync. Strict (npm run art:sync), a failure stops the sync; otherwise it is a warning and null, so one
+ * bad cut leaves that item on its fallback and the rest of the art, and `dev` and `build`, going.
+ */
+export async function tolerant(label, strict, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (strict) throw err;
+    console.warn(`art sync: ${label} skipped, it falls back (${err.message})`);
+    return null;
+  }
+}
+
 /** "ok" above the gate; below it "skip" (the neutral plate stands in) unless strict, then "refuse". */
 export function gateExpression(overlap, { strict = false } = {}) {
   if (overlap >= ALIGN_MIN) return "ok";
