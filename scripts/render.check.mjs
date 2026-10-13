@@ -540,11 +540,23 @@ const CAST_PEOPLE = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1
   (p) => existsSync(`art/incoming/cast/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`),
 );
 const rigs = new Map();
-/** A person's rig as the sync writes it (no files written). */
-const rigOf = async (person) => {
-  if (!rigs.has(person))
-    rigs.set(person, (await castRig(person, await keyOut(readFileSync(`art/incoming/cast/${person}.png`)), JSON.parse(readFileSync(`art/cuts/cast-${person}.json`, "utf8")))).rig);
+/** A person's rig as the sync writes it (no files written), with each layer's paint. */
+const cutOf = async (person) => {
+  if (!rigs.has(person)) rigs.set(person, await castRig(person, await keyOut(readFileSync(`art/incoming/cast/${person}.png`)), JSON.parse(readFileSync(`art/cuts/cast-${person}.json`, "utf8"))));
   return rigs.get(person);
+};
+const rigOf = async (person) => (await cutOf(person)).rig;
+/** The triangles of a layer's mesh whose cell holds paint: the mesh's empty border never shows. */
+const paintedTriangles = (layer, rgba, W) => {
+  const out = [];
+  for (let i = 0; i < layer.indices.length; i += 3) {
+    const a = layer.indices[i];
+    const [x0, y0] = [layer.positions[a * 2], layer.positions[a * 2 + 1]];
+    let paint = false;
+    for (let y = Math.max(0, y0); y < y0 + 14 && !paint; y++) for (let x = Math.max(0, x0); x < Math.min(W, x0 + 14) && !paint; x++) paint = rgba[(y * W + x) * 4 + 3] > 0;
+    if (paint) out.push(i);
+  }
+  return out;
 };
 const roleOf = (person) => person.slice(0, -2);
 /** Every act each role plays (the hidden one aside: it is drawn as a silhouette of the idle). */
@@ -588,13 +600,14 @@ test("every painting carries every bone's end onto its solved joint in every act
 
 // Linear skinning stretches the paint where two bones meet in a sharp pose (Hammer's own long-sleeved suit, through these
 // acts, stretches an arm's edge up to 5.8 times). What turning the arms to his stance must not do is make that worse.
-test("turning a painting's arms to Hammer's stance never stretches its arms or torso more than the untouched painting does", async () => {
+test("turning a painting's arms to Hammer's stance never stretches its painted arms or torso more than the untouched painting does", async () => {
   for (const person of CAST_PEOPLE) {
-    const rig = await rigOf(person);
+    const { rig, layers, W } = await cutOf(person);
     const turned = castSkeleton(rig);
     const untouched = skeletonFrom({ joints: rig.joints, sole: rig.root[1], rootX: rig.root[0] }, []);
     for (const name of ["armNear", "armFar", "torso"]) {
       const layer = rig.layers[name];
+      const tris = paintedTriangles(layer, layers[name].rgba, W);
       const out = new Float32Array(layer.positions.length);
       const worst = (skel) => {
         let w = 0;
@@ -603,7 +616,7 @@ test("turning a painting's arms to Hammer's stance never stretches its arms or t
             const solved = solve(poseOf(person, act, t), -1, castHeadScale(0.22, rig.head), rig.head, skel);
             skinLayer(out, layer, rig, solved);
             const K = bodyScale(solved, rig);
-            for (let i = 0; i < layer.indices.length; i += 3)
+            for (const i of tris)
               for (const [a, b] of [[0, 1], [1, 2], [2, 0]]) {
                 const p = layer.indices[i + a],
                   q = layer.indices[i + b];
