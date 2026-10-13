@@ -3,12 +3,14 @@ import { ART_BASE, HEAD_PLATE_FACING, type Registry } from "../art/registry";
 import type { CastPerson } from "../sim/level";
 import type { Solved } from "../sim/rig/fk";
 import type { Skeleton } from "../sim/rig/skeleton";
-import { castSkeleton, taperHead } from "./cast-art";
+import { RIM, castSkeleton, taperHead } from "./cast-art";
 import { LAYER_Z, bodyScale, layerTexture, skinLayer, type CastHead, type LayerName, type RigFile, type RigLayer } from "./skin";
 
 /** One person's painting, loaded once and shared by everyone who wears it. */
 export type CastArt = { person: CastPerson; rig: RigFile; skeleton: Skeleton; head: CastHead; textures: Map<string, Texture> };
 export type PaintOpts = { recolor: string | null; dazed: boolean; hat: boolean; silhouette: boolean };
+/** The rim light on a member: which side, how strong, and how far the edge peeks out in the figure's own px. */
+export type Rim = { side: 1 | -1; k: number; px: number };
 
 const MIPMAPS = { autoGenerateMipmaps: true };
 /** The far arm and leg a shade back, as on Hammer. */
@@ -91,6 +93,9 @@ export class PaintedFigure {
   protected readonly parts: Part[] = [];
   protected readonly head = new Container({ label: "head" });
   protected readonly headMesh: Mesh;
+  /** A warm copy of the whole figure, behind it: only the edge it peeks out by shows. */
+  protected readonly rim = new Container({ label: "rim" });
+  protected readonly rimHead = new Container({ label: "rim-head" });
   private readonly headGrid: ReturnType<typeof plateGrid>;
   private readonly headPositions: Float32Array;
   private readonly headGeometry: MeshGeometry;
@@ -99,6 +104,9 @@ export class PaintedFigure {
 
   constructor(protected readonly art: CastArt) {
     this.container.sortableChildren = true;
+    this.rim.zIndex = -1;
+    this.rim.visible = false;
+    this.container.addChild(this.rim);
     LAYER_Z.forEach((name, z) => {
       const layer = art.rig.layers![name]!;
       const n = layer.positions.length / 2;
@@ -112,6 +120,9 @@ export class PaintedFigure {
       const mesh = new Mesh({ geometry, texture: art.textures.get(layer.file!) ?? Texture.EMPTY });
       mesh.zIndex = z;
       this.container.addChild(mesh);
+      const edge = new Mesh({ geometry, texture: art.textures.get(layer.sil ?? "") ?? Texture.EMPTY });
+      edge.tint = RIM.color;
+      this.rim.addChild(edge);
       this.parts.push({ name, layer, mesh, geometry, positions });
     });
     const plate = art.head;
@@ -122,9 +133,13 @@ export class PaintedFigure {
     this.head.zIndex = HEAD_Z;
     this.head.addChild(this.headMesh);
     this.container.addChild(this.head);
+    const edgeHead = new Mesh({ geometry: this.headGeometry, texture: art.textures.get(plate.sil) ?? Texture.EMPTY });
+    edgeHead.tint = RIM.color;
+    this.rimHead.addChild(edgeHead);
+    this.rim.addChild(this.rimHead);
   }
 
-  apply(solved: Solved, o: PaintOpts): void {
+  apply(solved: Solved, o: PaintOpts, rim: Rim | null = null): void {
     const { art } = this;
     for (const p of this.parts) {
       skinLayer(p.positions, p.layer, art.rig, solved);
@@ -145,6 +160,15 @@ export class PaintedFigure {
     this.head.position.set(pl.x, pl.y);
     this.head.rotation = pl.rotation;
     this.head.scale.set(pl.scaleX * HEAD_PLATE_FACING * own, pl.scaleY * own);
+    this.rimHead.position.copyFrom(this.head.position);
+    this.rimHead.rotation = this.head.rotation;
+    this.rimHead.scale.copyFrom(this.head.scale);
+    // The lamp's side of the figure gets a thin warm edge; never on the projector's sheet.
+    this.rim.visible = !!rim && !o.silhouette;
+    if (rim) {
+      this.rim.position.set(rim.side * rim.px, 0);
+      this.rim.alpha = rim.k;
+    }
     const face = o.dazed && plate.silly ? plate.silly : layerTexture(plate, o.recolor);
     this.headMesh.texture = art.textures.get(face) ?? this.headMesh.texture;
     this.headMesh.tint = o.silhouette ? SIL : 0xffffff;

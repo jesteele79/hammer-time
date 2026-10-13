@@ -646,3 +646,16 @@ test("a painted head grows above its jaw and keeps its painted neck below it, th
     assert.ok(Math.abs(big[4] - (neckPoint[0] - h.neck.x)) < 1e-6 && Math.abs(big[5] - (neckPoint[1] - h.neck.y)) < 1e-6, `${person}: the neck below the jaw stays as painted`);
   }
 });
+
+import { RIM, rimFor } from "../src/render/cast-art.ts";
+
+test("the rim light takes the nearest lamp's side, is stronger nearer it, and is gone past its reach", () => {
+  const lamps = [{ x: 1000, y: -500 }, { x: 3000, y: -500 }];
+  const a = rimFor(1400, -150, lamps);
+  assert.equal(a.side, -1, "the lamp to his left lights his left");
+  assert.equal(rimFor(2700, -150, lamps).side, 1);
+  assert.ok(rimFor(1100, -150, lamps).k > a.k, "stronger nearer the lamp");
+  assert.ok(a.k > 0 && a.k <= RIM.max);
+  assert.equal(rimFor(1000 + RIM.reach + 10, -500, [lamps[0]]), null);
+  assert.equal(rimFor(0, 0, []), null);
+});

@@ -137,9 +137,13 @@ export async function startLook(
   scene.layers.play.addChild(shieldGlow);
   // The lamps light the play layer's children as they are now, so everything it holds comes first.
   const lighting = createLighting(scene, render.quality, [...lightsOf(LOBBY), ...lightsOf(STASH)]);
-  render.onQuality = (q) => lighting.setQuality(q);
   const props = new Props(scene.layers.play, particles, scene.ambient);
   const cast = new Cast(scene.layers.play, scene.ambient, registry);
+  cast.setQuality(render.quality);
+  render.onQuality = (q) => {
+    lighting.setQuality(q);
+    cast.setQuality(q);
+  };
   const flyers = new Flyers(scene.layers.play, particles);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
@@ -622,7 +626,7 @@ export async function startLook(
     props.sync(prev, cur, alpha, simDt);
     // The cast draws just behind him too: nothing of them is ever over his face.
     cast.container.zIndex = y - 0.6;
-    cast.sync(prev, cur, alpha, time, game.level.furniture);
+    cast.sync(prev, cur, alpha, time, game.level.furniture, game.level.lights);
     // Their flying props too (the hat, the glasses, the cup): between the cast and the carts, never over his face.
     flyers.container.zIndex = y - 0.55;
     flyers.update(simDt, (fx, fy) => topUnder(fx, fy));

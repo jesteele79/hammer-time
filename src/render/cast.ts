@@ -8,8 +8,9 @@ import { solve, type Solved } from "../sim/rig/fk";
 import { groundShift } from "../sim/rig/ground";
 import { HERO_HEIGHT, type JointName } from "../sim/rig/skeleton";
 import type { Point, Snapshot } from "../sim/types";
-import { castHeadScale } from "./cast-art";
-import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
+import type { Quality } from "./app";
+import { RIM, castHeadScale, rimFor } from "./cast-art";
+import { loadCastArt, PaintedFigure, type CastArt, type Rim } from "./cast-body";
 import { between } from "./interp";
 import { PALETTE, tones } from "./palette";
 
@@ -374,6 +375,8 @@ export class Cast {
   private readonly views = new Map<number, View>();
   private readonly crowns = new Map<number, { x: number; y: number; facing: 1 | -1 }>();
   private readonly arts = new Map<CastPerson, CastArt | null>();
+  /** The rim light is off at the low quality tier. */
+  private rimOn = true;
 
   constructor(
     layer: Container,
@@ -391,6 +394,10 @@ export class Cast {
     await Promise.all([...new Set(persons)].map(async (p) => this.arts.set(p, reg ? await loadCastArt(reg, p) : null)));
   }
 
+  setQuality(q: Quality): void {
+    this.rimOn = q !== "low";
+  }
+
   /** Who draws from their painting and who as the stand-in, for the checks. */
   artState(): { painted: CastPerson[]; standIn: CastPerson[] } {
     const all = [...this.arts];
@@ -398,13 +405,13 @@ export class Cast {
   }
 
   /** The painting where it loaded, the stand-in where it did not. */
-  private draw(v: View, s: Solved, o: FigureOpts, recolor: string | null, dazed: boolean): void {
+  private draw(v: View, s: Solved, o: FigureOpts, recolor: string | null, dazed: boolean, rim: Rim | null = null): void {
     if (!v.painted) return drawFigure(v.body, s, v.look, o);
-    v.painted.apply(s, { recolor, dazed, hat: o.hat && o.role === "bellhop", silhouette: o.silhouette });
+    v.painted.apply(s, { recolor, dazed, hat: o.hat && o.role === "bellhop", silhouette: o.silhouette }, rim);
     drawCarried(v.carried, s, o);
   }
 
-  sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, screens: Furniture[]): void {
+  sync(prev: Snapshot, cur: Snapshot, alpha: number, time: number, screens: Furniture[], lights: readonly { x: number; y: number }[] = []): void {
     const s = between(prev, cur, alpha);
     const seen = new Set<number>();
     for (const n of s.cast) {
@@ -474,7 +481,10 @@ export class Cast {
       v.root.scale.set(k * (1 + (SQUASH.x - 1) * q), k * (1 + (SQUASH.y - 1) * q));
       v.root.zIndex = n.y;
       v.shadow.ellipse(0, -dy, SHADOW_RX * v.look.build, 14).fill({ color: 0x000000, alpha: 0.3 });
-      this.draw(v, solved, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed);
+      const lit = this.rimOn ? rimFor(n.x, n.y - n.h / 2, lights) : null;
+      // The root is scaled by k: the edge's offset is in world px.
+      const rim = lit && { ...lit, px: RIM.offset / k };
+      this.draw(v, solved, { role: n.role, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed, rim);
       if (dazed) {
         const c = solved.crown;
         for (let i = 0; i < STARS.n; i++) {

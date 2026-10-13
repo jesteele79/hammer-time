@@ -43,3 +43,21 @@ export function taperHead(verts: ArrayLike<number>, head: CastHead, g: number, b
   }
   return out;
 }
+
+/** The rim light (R2b §6.2): how far a lamp reaches, the edge's strength at the lamp, how far the edge peeks out (world px), its color. */
+export const RIM = { reach: 1300, max: 0.85, offset: 3, color: 0xffd38a } as const;
+
+/** Which side of a cast member the nearest lamp lights, and how strongly; null with no lamp in reach. */
+export function rimFor(x: number, y: number, lights: readonly { x: number; y: number }[]): { side: 1 | -1; k: number } | null {
+  let best: { x: number; y: number } | null = null;
+  let d = Infinity;
+  for (const l of lights) {
+    const dd = Math.hypot(l.x - x, l.y - y);
+    if (dd < d) {
+      d = dd;
+      best = l;
+    }
+  }
+  if (!best || d >= RIM.reach) return null;
+  return { side: best.x >= x ? 1 : -1, k: RIM.max * (1 - d / RIM.reach) };
+}
