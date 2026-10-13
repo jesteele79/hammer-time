@@ -58,9 +58,11 @@ const BUMPABLE: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice
 const sameLevel = (n: Npc, h: HeroState) => Math.abs(h.y - n.level) < 60;
 
 /** Something to stand on at `x` within a step of `y`: a floor or a platform. */
+/** How far up or down the floor a step ahead may be and still be footing: a 30-degree stair, not a drop. */
+const SUPPORT_STEP = 60;
 export function supportAt(stage: Stage, x: number, y: number): boolean {
-  const f = floorAt(stage, x, y - 24);
-  if (f !== null && Math.abs(f - y) <= 24) return true;
+  const f = floorAt(stage, x, y - SUPPORT_STEP);
+  if (f !== null && Math.abs(f - y) <= SUPPORT_STEP) return true;
   return stage.platforms.some((p) => x >= p.x0 && x <= p.x1 && Math.abs(p.y - y) <= 24);
 }
 

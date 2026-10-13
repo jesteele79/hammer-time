@@ -96,6 +96,12 @@ export function cuesFor(e: GameEvent): Cue[] {
       if (e.down && e.role === "office") names.push("splash");
       return names;
     }
+    case "heatZone":
+      return e.kind === "flattop" ? ["sizzle"] : ["frost"];
+    case "doorSwing":
+      return e.hard ? ["bang"] : ["swish"];
+    case "dishes":
+      return ["shatter", "smash"];
     case "missileHit":
       return e.kind === "coffee" ? ["splash"] : [];
     default:

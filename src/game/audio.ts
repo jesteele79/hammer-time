@@ -243,6 +243,24 @@ export class AudioBus {
   chime() {
     [1760, 2217].forEach((f, i) => this.blip(f, 0.09, "sine", 0.08, undefined, i * 0.1));
   }
+  /** A flat-top under his shoes. */
+  sizzle() {
+    this.noise(0.35, 0.09, 5200, "highpass", 2400);
+  }
+  /** The walk-in's cold breath. */
+  frost() {
+    this.noise(0.4, 0.05, 2600, "bandpass", 1200);
+    this.blip(1320, 0.12, "sine", 0.03, 990);
+  }
+  /** A swinging door banging open. */
+  bang() {
+    this.noise(0.1, 0.16, 500, "lowpass");
+    this.blip(110, 0.12, "square", 0.08, 70);
+  }
+  /** A page turning. */
+  page() {
+    this.noise(0.08, 0.05, 3000, "bandpass", 1500);
+  }
   /** A paper plane leaving the hand. */
   paper() {
     this.noise(0.12, 0.08, 1800, "bandpass", 900);

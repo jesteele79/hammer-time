@@ -58,8 +58,7 @@ export const T = { notice: 0.6, getup: 0.6, bump: 0.3, bumpGap: 1.5, slip: 0.4, 
 export const STOMP = { tolerance: 24, bounce: 900, held: 1300 } as const;
 /** Cast ids start here: a swing's victims list holds carts and cast alike, so they never meet. */
 export const CAST_ID = 1001;
-/** A fall this far above the level's bottom edge is gone: off the screen by then (the Game's rule for him too). */
-export const FALL_MARGIN = 200;
+export { FALL_MARGIN } from "./constants";
 
 export type Npc = {
   id: number;
@@ -122,7 +121,10 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
   return (level.cast ?? []).map((s, k) => {
     const role = roleOf(s.person);
     const c = CAST[role];
-    const cart = s.cart === undefined ? null : (targets.find((t) => Math.abs(t.x - s.cart!) < 1)?.id ?? null);
+    const target = s.cart === undefined ? undefined : targets.find((t) => Math.abs(t.x - s.cart!) < 1);
+    // A busser's cart carries what he pushes: dirty dishes, or the dock's trash.
+    if (target && s.load) target.load = s.load;
+    const cart = target?.id ?? null;
     return {
       id: CAST_ID + k,
       spawn: s.id,

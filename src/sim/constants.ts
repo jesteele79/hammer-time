@@ -38,3 +38,5 @@ export const SNAP = 24;
 export const LAND_T = 0.09;
 /** Head height as a fraction of HERO_HEIGHT: the owner kept 0.26 on 2026-10-10. The sim samples the mallet at this scale. */
 export const HEAD_SCALE = 0.26;
+/** A fall this far above the level's bottom edge is gone: off the screen by then (him, the cast and the carts). */
+export const FALL_MARGIN = 200;

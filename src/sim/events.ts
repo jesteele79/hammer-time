@@ -58,6 +58,12 @@ export type GameEvent =
   /** The tally counted another whole second of the clock into points. */
   | { type: "tallyTick"; seconds: number }
   | { type: "clear" }
+  /** He stepped onto a flat-top or into the walk-in. */
+  | { type: "heatZone"; kind: "flattop" | "freezer"; x: number; y: number }
+  /** A swinging door swung: banged open by its server's rush or slammed by the mallet (`hard`), or pushed through. */
+  | { type: "doorSwing"; id: string; x: number; y: number; dir: 1 | -1; hard: boolean }
+  /** A dish cart's dishes crashed. */
+  | { type: "dishes"; x: number; y: number }
   /** The shift moved on: the next venue's card is up. */
   | { type: "venue"; id: LevelId }
   /** He walked into a stash he had already cleaned out. */

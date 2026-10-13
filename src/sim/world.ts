@@ -10,9 +10,10 @@ import { stepMissiles, type Missile } from "./missiles";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
 import { stepTargets } from "./targets";
+import { stepHeatZones, stepSwingDoors, type HeatZone, type SwingDoor } from "./hazards";
 import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
 
-export type WorldOptions = HeroOptions & { targets?: Target[]; cast?: Npc[] };
+export type WorldOptions = HeroOptions & { targets?: Target[]; cast?: Npc[]; swingDoors?: SwingDoor[] };
 
 export type World = {
   stage: Stage;
@@ -35,6 +36,10 @@ export type World = {
   swing: Point[];
   /** Hits waiting for the next step: where each came from. */
   hits: number[];
+  /** The level's swinging doors. */
+  swingDoors: SwingDoor[];
+  /** The heat zone he stood on last step. */
+  zone: HeatZone | null;
   /** A hit from something at `fromX`, applied at the start of the next step. */
   hit(fromX: number): void;
   step(input: Input): void;
@@ -57,6 +62,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     events: [],
     swing: [],
     hits: [],
+    swingDoors: opts.swingDoors ?? [],
+    zone: null,
     hit(fromX) {
       world.hits.push(fromX);
     },
@@ -74,10 +81,12 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       fireSnot(h, world, events);
       deliverLecture(h, events);
       stepSnot(world, STEP, events);
-      stepTargets(world.targets, world.stage, STEP);
+      stepTargets(world.targets, world.stage, STEP, events);
       stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
+      stepSwingDoors(world, STEP, events);
       stepHeat(h, input, STEP, events);
+      world.zone = stepHeatZones(h, world.stage, STEP, world.zone, events);
       stepIdle(h, input, STEP, events);
       world.events = events;
       world.time += STEP;
@@ -92,6 +101,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         puddles: world.puddles.map((p) => ({ ...p })),
         cast: world.cast.map((n) => ({ ...n })),
         missiles: world.missiles.map((m) => ({ ...m })),
+        doors: world.swingDoors.map((d) => ({ ...d })),
       };
     },
   };

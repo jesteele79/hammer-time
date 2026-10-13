@@ -14,6 +14,7 @@ import { floorAt } from "./physics";
 import { collectPickups, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { createCart, knock } from "./targets";
+import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
 
@@ -133,7 +134,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const at = k ?? level.spawn;
     Object.assign(world.hero, createHero(at, carry));
     restage();
-    world.targets = level.carts.map((x, i) => createCart(i + 1, x));
+    // Each cart stands on the floor under it: a raised dock's too.
+    world.targets = level.carts.map((x, i) => createCart(i + 1, x, floorAt(world.stage, x) ?? 0));
+    world.swingDoors = createSwingDoors(level.swingDoors ?? []);
+    world.zone = null;
     world.cast = opts.cast === false ? [] : createCast(level, world.targets);
     world.missiles = [];
     world.nextMissile = 0;
@@ -250,6 +254,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function enter(level: Level, at: Point) {
     game.level = level;
     restage();
+    world.swingDoors = createSwingDoors(level.swingDoors ?? []);
+    world.zone = null;
     world.snot = [];
     world.puddles = [];
     world.hits = [];

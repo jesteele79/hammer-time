@@ -750,3 +750,13 @@ test("the cast is drawn only near the view: inside it or within the pad, never f
   assert.ok(!onScreen(4200, 0, view), "far right");
   assert.ok(!onScreen(1500, 900, view), "far below");
 });
+
+import { cuesFor as cuesForVenues } from "../src/render/sound.ts";
+test("the venues' hazards sound: a sizzle on a flat-top, frost in the freezer, a door's bang or swish, the dishes' crash", () => {
+  assert.deepEqual(cuesForVenues({ type: "heatZone", kind: "flattop", x: 0, y: 0 }), ["sizzle"]);
+  assert.deepEqual(cuesForVenues({ type: "heatZone", kind: "freezer", x: 0, y: 0 }), ["frost"]);
+  assert.deepEqual(cuesForVenues({ type: "doorSwing", id: "k", x: 0, y: 0, dir: 1, hard: true }), ["bang"]);
+  assert.deepEqual(cuesForVenues({ type: "doorSwing", id: "k", x: 0, y: 0, dir: 1, hard: false }), ["swish"]);
+  assert.deepEqual(cuesForVenues({ type: "dishes", x: 0, y: 0 }), ["shatter", "smash"]);
+});
+

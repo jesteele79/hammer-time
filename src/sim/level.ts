@@ -1,7 +1,31 @@
-import type { FloorSegment, Platform, Point, Rect, Stage } from "./types";
+import type { HeatZone } from "./hazards";
+import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, Stage } from "./types";
 
-export type PlatformKind = "counter" | "sofa" | "landing" | "balcony" | "table" | "shelf";
-export type FloorKind = "marble" | "tile" | "stairs" | "escalator";
+export type { CartLoad };
+
+export type PlatformKind =
+  | "counter"
+  | "sofa"
+  | "landing"
+  | "balcony"
+  | "table"
+  | "shelf"
+  | "booth"
+  | "host"
+  | "pass"
+  | "steel"
+  | "flattop"
+  | "rack"
+  | "crates"
+  | "dumpster"
+  | "bench"
+  | "fountain"
+  | "tier"
+  | "serving"
+  | "tray"
+  | "deck"
+  | "ledge";
+export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
 export type LevelPlatform = Platform & { kind: PlatformKind };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
@@ -23,7 +47,21 @@ export type FurnitureKind =
   | "chairs"
   | "railing"
   | "corridor"
-  | "cart";
+  | "cart"
+  | "bar"
+  | "lamps"
+  | "freezer"
+  | "truck"
+  | "fountain"
+  | "lampPost"
+  | "sneeze"
+  | "slot";
+/** A low ceiling to slide under: the lobby's service corridor, or the kitchen's heat-lamp gantry. */
+export type LevelPass = Pass & { kind?: "service" | "gantry" };
+/** The kitchen's swinging door, and the spawn id of the server whose rush bangs it open. */
+export type SwingDoorSpec = { id: string; x: number; y: number; server: string };
+/** A venue's painted walls in walking order, and its standing pieces by name at the world x they stand beside (R3 §6). */
+export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number }[] };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
 export type CameraZone = { x0: number; x1: number; zoom: number };
@@ -46,13 +84,23 @@ export type CastSpawn = {
   recolor?: string;
   /** Drawn this much taller or shorter than the painting: a recolored repeat, within ±4 percent (R2b §5). */
   size?: number;
+  /** A busser's cart's load. */
+  load?: CartLoad;
 };
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 export type LevelId = "lobby" | "stash" | "restaurant" | "campus";
-export type Level = Omit<Stage, "floor" | "platforms"> & {
+export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
+  passes: LevelPass[];
+  /** Flat-tops and the walk-in freezer (R3 §3.1). */
+  heat?: HeatZone[];
+  swingDoors?: SwingDoorSpec[];
+  /** The word over a pit when the cast goes down it. */
+  pitWord?: string;
+  /** The painted walls and standing pieces (R3 §6). */
+  backdrop?: BackdropSpec;
   id: LevelId;
   name: string;
   world: string;
@@ -93,7 +141,26 @@ export function stageOf(level: Level, extraSolids: Rect[] = []): Stage {
     solids: extraSolids.length ? [...level.solids, ...extraSolids] : level.solids,
     passes: level.passes,
     bounds: level.bounds,
+    heat: level.heat,
   };
+}
+
+/**
+ * The gaps in a level's floor: where a fall leaves the world (the lobby's shaft, the restaurant's truck well). A pit lies
+ * between two flat floors at one height that no slope or other floor covers; the venue draws it dark.
+ */
+export function pitsOf(level: Pick<Level, "floor">): { x0: number; x1: number; y: number }[] {
+  const flats = level.floor.filter((f) => f.y0 === f.y1).sort((a, b) => a.x0 - b.x0);
+  const out: { x0: number; x1: number; y: number }[] = [];
+  for (let i = 1; i < flats.length; i++) {
+    const a = flats[i - 1];
+    const b = flats[i];
+    if (b.x0 - a.x1 < 40 || a.y0 !== b.y0) continue;
+    const mid = (a.x1 + b.x0) / 2;
+    if (level.floor.some((f) => f !== a && f !== b && mid >= f.x0 && mid <= f.x1)) continue;
+    out.push({ x0: a.x1, x1: b.x0, y: a.y0 });
+  }
+  return out;
 }
 
 const CLEAR = { door: 150, cart: 200, crate: 120, checkpoint: 120, belt: 150 } as const;

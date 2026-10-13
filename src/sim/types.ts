@@ -1,6 +1,7 @@
 import type { Npc } from "./cast";
 import type { Missile } from "./missiles";
 import type { Move } from "./moves";
+import type { HeatZone, SwingDoor } from "./hazards";
 import type { Puddle, Snot } from "./snot";
 
 export type Point = { x: number; y: number };
@@ -20,7 +21,12 @@ export type Stage = {
   solids: Solid[];
   passes: Pass[];
   bounds: Rect;
+  /** Flat-tops and the walk-in: heat on or off a second while he stands in one (R3). */
+  heat?: HeatZone[];
 };
+
+/** What a cart carries: the lobby's cases, a busser's dirty dishes, or the dock's trash. */
+export type CartLoad = "cases" | "dishes" | "trash";
 
 export type HeroMotion = "idle" | "walk" | "run" | "jump" | "fall" | "land" | "crouch" | "slide";
 
@@ -87,6 +93,9 @@ export type Target = {
   spin: number;
   /** How many staff this roll has bowled over (the chain). */
   chain: number;
+  load: CartLoad;
+  /** A dish cart's dishes are gone (they crash once). */
+  spilled: boolean;
 };
 
-export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[] };
+export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[] };
