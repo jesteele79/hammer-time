@@ -46,15 +46,16 @@ const SIL = "#14110f";
 /** Capsule radii in rest units; `build` scales them. */
 const R = { arm: 20, leg: 26, hand: 16, foot: 15, torsoTop: 44, torsoBottom: 40, head: 38 } as const;
 
+// The heads' shares: the owner picked 0.22 for the first bellhop on 2026-10-12, and it is everyone's start.
 export const LOOKS: Record<CastPerson, CastLook> = {
-  "bellhop-1": { height: 355, build: 1.05, skin: "#d7a27a", hair: "#9a9a9a", hairStyle: "short", top: "#b8282e", sleeves: "top", bottom: "#1c1d24", shoes: "#141414", gloves: true, mustache: true, braid: true },
-  "bellhop-2": { height: 315, build: 0.85, skin: "#ebc9a9", hair: "#3b2a22", hairStyle: "bun", top: "#b8282e", sleeves: "top", bottom: "#1c1d24", shoes: "#141414", gloves: true, braid: true },
-  "server-1": { height: 320, build: 0.8, skin: "#e2b48f", hair: "#2a1d16", hairStyle: "ponytail", top: "#f4f3ee", sleeves: "skin", vest: "#1a1a1a", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
-  "server-2": { height: 360, build: 0.75, skin: "#c9956a", hair: "#4a2e1a", hairStyle: "curly", top: "#f4f3ee", sleeves: "skin", vest: "#1a1a1a", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
-  "office-1": { height: 345, build: 1.1, skin: "#e8bf9c", hair: "#2b2320", hairStyle: "bald", top: "#9cc4ec", sleeves: "skin", tie: "#7a1f2b", bottom: "#c8b58c", shoes: "#5a3a1e", glasses: true, earbuds: true, lanyard: true },
-  "office-2": { height: 325, build: 0.85, skin: "#d9a98b", hair: "#1f1a18", hairStyle: "bob", top: "#5a5e68", sleeves: "top", bottom: "#1d1d1f", shoes: "#141414", earbuds: true, lanyard: true },
-  "student-1": { height: 315, build: 0.9, skin: "#c88f6a", hair: "#1c1612", hairStyle: "curly", top: "#5d6b3c", sleeves: "top", bottom: "#3f5e8f", shoes: "#f4f3ee", glasses: true, earbuds: true, backpack: "#6b1f2a" },
-  "student-2": { height: 335, build: 0.95, skin: "#f0cfae", hair: "#2a2a2e", hairStyle: "beanie", top: "#8a8d93", sleeves: "top", bottom: "#1f2024", shoes: "#f4f3ee", earbuds: true, backpack: "#1a1a1a" },
+  "bellhop-1": { height: 355, head: 0.22, build: 1.05, skin: "#d7a27a", hair: "#9a9a9a", hairStyle: "short", top: "#b8282e", sleeves: "top", bottom: "#1c1d24", shoes: "#141414", gloves: true, mustache: true, braid: true },
+  "bellhop-2": { height: 315, head: 0.22, build: 0.85, skin: "#ebc9a9", hair: "#3b2a22", hairStyle: "bun", top: "#b8282e", sleeves: "top", bottom: "#1c1d24", shoes: "#141414", gloves: true, braid: true },
+  "server-1": { height: 320, head: 0.22, build: 0.8, skin: "#e2b48f", hair: "#2a1d16", hairStyle: "ponytail", top: "#f4f3ee", sleeves: "skin", vest: "#1a1a1a", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
+  "server-2": { height: 360, head: 0.22, build: 0.75, skin: "#c9956a", hair: "#4a2e1a", hairStyle: "curly", top: "#f4f3ee", sleeves: "skin", vest: "#1a1a1a", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
+  "office-1": { height: 345, head: 0.22, build: 1.1, skin: "#e8bf9c", hair: "#2b2320", hairStyle: "bald", top: "#9cc4ec", sleeves: "skin", tie: "#7a1f2b", bottom: "#c8b58c", shoes: "#5a3a1e", glasses: true, earbuds: true, lanyard: true },
+  "office-2": { height: 325, head: 0.22, build: 0.85, skin: "#d9a98b", hair: "#1f1a18", hairStyle: "bob", top: "#5a5e68", sleeves: "top", bottom: "#1d1d1f", shoes: "#141414", earbuds: true, lanyard: true },
+  "student-1": { height: 315, head: 0.22, build: 0.9, skin: "#c88f6a", hair: "#1c1612", hairStyle: "curly", top: "#5d6b3c", sleeves: "top", bottom: "#3f5e8f", shoes: "#f4f3ee", glasses: true, earbuds: true, backpack: "#6b1f2a" },
+  "student-2": { height: 335, head: 0.22, build: 0.95, skin: "#f0cfae", hair: "#2a2a2e", hairStyle: "beanie", top: "#8a8d93", sleeves: "top", bottom: "#1f2024", shoes: "#f4f3ee", earbuds: true, backpack: "#1a1a1a" },
 };
 
 /** A look with the uniform's top (the vest where there is one) in the recolor's hue. */
