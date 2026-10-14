@@ -38,6 +38,13 @@ export function feelOf(e: GameEvent): Feel | null {
       return { hitstop: 0.03, trauma: 0.15 };
     case "bump":
       return { hitstop: 0, trauma: 0.05 };
+    // A boss hit pushes the camera in (spec §5.4); the defeat slows time (spec §9); a hop's landing shakes it (R3 §5.2).
+    case "pigHit":
+      return { hitstop: 0.04, trauma: 0.3, zoom: { amount: 1.12, seconds: 0.4 } };
+    case "pigDown":
+      return { hitstop: 0.08, trauma: 0.6, slowmo: { scale: 0.6, seconds: 0.3 } };
+    case "pigLand":
+      return { hitstop: 0, trauma: 0.5 };
     default:
       return null;
   }

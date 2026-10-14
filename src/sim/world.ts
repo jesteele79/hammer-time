@@ -7,13 +7,14 @@ import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
 import type { Input } from "./input";
 import { stepMissiles, type Missile } from "./missiles";
+import { stepPig, type Pig } from "./pig";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
 import { stepTargets } from "./targets";
 import { stepHeatZones, stepSwingDoors, type HeatZone, type SwingDoor } from "./hazards";
 import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
 
-export type WorldOptions = HeroOptions & { targets?: Target[]; cast?: Npc[]; swingDoors?: SwingDoor[] };
+export type WorldOptions = HeroOptions & { targets?: Target[]; cast?: Npc[]; swingDoors?: SwingDoor[]; pig?: Pig | null };
 
 export type World = {
   stage: Stage;
@@ -40,6 +41,8 @@ export type World = {
   swingDoors: SwingDoor[];
   /** The heat zone he stood on last step. */
   zone: HeatZone | null;
+  /** The gift shop's pig, or null. */
+  pig: Pig | null;
   /** A hit from something at `fromX`, applied at the start of the next step. */
   hit(fromX: number): void;
   step(input: Input): void;
@@ -64,6 +67,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     hits: [],
     swingDoors: opts.swingDoors ?? [],
     zone: null,
+    pig: opts.pig ?? null,
     hit(fromX) {
       world.hits.push(fromX);
     },
@@ -84,6 +88,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       stepTargets(world.targets, world.stage, STEP, events);
       stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
+      stepPig(world, STEP, prevY, input.held.jump, events);
       stepSwingDoors(world, STEP, events);
       stepHeat(h, input, STEP, events);
       world.zone = stepHeatZones(h, world.stage, STEP, world.zone, events);
@@ -102,6 +107,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         cast: world.cast.map((n) => ({ ...n })),
         missiles: world.missiles.map((m) => ({ ...m })),
         doors: world.swingDoors.map((d) => ({ ...d })),
+        pig: world.pig && { ...world.pig, arena: [world.pig.arena[0], world.pig.arena[1]] },
       };
     },
   };

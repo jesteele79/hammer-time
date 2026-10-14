@@ -104,4 +104,22 @@ export type GameEvent =
   | { type: "castSchooled"; id: number; x: number; y: number; points: number }
   /** The lecture landed on `schooled` students and `frozen` staff (once per lecture that lands on anyone). */
   | { type: "lectureLand"; x: number; y: number; schooled: number; frozen: number }
+  /** He crossed into the arena: the pig wakes ("PIG FIGHT"). */
+  | { type: "pigWake"; x: number; y: number }
+  /** A wind-up starts; `hop` when the attack it winds up for is a hop (the "BOING!" warning). */
+  | { type: "pigWindup"; x: number; y: number; hop: boolean }
+  | { type: "pigCharge"; x: number; y: number; dir: 1 | -1 }
+  | { type: "pigHop"; x: number; y: number; dir: 1 | -1 }
+  | { type: "pigLand"; x: number; y: number }
+  /** A hit that counted: what it was, and the pig's HP and counts after it. */
+  | { type: "pigHit"; by: "bonk" | "snot"; x: number; y: number; hp: number; bonks: number; snots: number }
+  /** A hit that would have ended it short of the rule: held at 1 HP. */
+  | { type: "pigHold"; word: "MORE BONKS" | "MORE SNOT"; x: number; y: number }
+  | { type: "pigDown"; x: number; y: number; points: number }
+  /** He landed on it from above and bounced off. */
+  | { type: "pigBounce"; x: number; y: number }
+  /** The lecture reached it: "It's a stuffed animal." */
+  | { type: "pigShrug"; x: number; y: number }
+  /** A refill pepper appeared at the arena's left edge. */
+  | { type: "pigRefill"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

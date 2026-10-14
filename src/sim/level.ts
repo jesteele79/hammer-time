@@ -62,6 +62,8 @@ export type LevelPass = Pass & { kind?: "service" | "gantry" };
 export type SwingDoorSpec = { id: string; x: number; y: number; server: string };
 /** A venue's painted walls in walking order, and its standing pieces by name at the world x they stand beside (R3 §6). */
 export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number }[] };
+/** The gift shop's fight: where the pig sleeps and the arena he is held in once it wakes (R3 §3.3, §5.1). */
+export type BossSpec = { x: number; arena: [number, number] };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
 export type CameraZone = { x0: number; x1: number; zoom: number };
@@ -113,6 +115,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   pitWord?: string;
   /** The painted walls and standing pieces (R3 §6). */
   backdrop?: BackdropSpec;
+  /** The pig's fight (the gift shop). */
+  boss?: BossSpec;
   id: LevelId;
   name: string;
   world: string;

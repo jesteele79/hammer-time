@@ -4,6 +4,7 @@ import type { GameEvent } from "./events";
 import { sweptHeadHits } from "./hits";
 import { HEAT, SNOT_FIRE_U, moveU } from "./moves";
 import { floorAt } from "./physics";
+import { hitPig, pigRect, type Pig } from "./pig";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
 import { knock } from "./targets";
@@ -59,7 +60,7 @@ export function fireSnot(h: HeroState, w: { snot: Snot[]; nextSnot: number }, ev
 
 /** Flight, hits on carts (hot snot goes through one), and puddles where it lands. */
 export function stepSnot(
-  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[] },
+  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[]; pig?: Pig | null },
   dt: number,
   events: GameEvent[],
 ): void {
@@ -89,6 +90,13 @@ export function stepSnot(
       events.push({ type: "splat", x: b.x, y: b.y, floor: false, hot: b.hot });
       if (b.pierce > 0) b.pierce--;
       else b.life = 0;
+    }
+    // The pig stops any snot, hot or not: it takes 1 if the hit counts, and nothing goes through or past it.
+    const pig = w.pig;
+    if (pig && b.life > 0 && pig.state !== "asleep" && sweptHeadHits(a, b, r, pigRect(pig))) {
+      b.life = 0;
+      hitPig(pig, "snot", 1, b.x, b.y, events);
+      events.push({ type: "splat", x: b.x, y: b.y, floor: false, hot: b.hot });
     }
     const floor = floorAt(w.stage, b.x, a.y);
     if (b.life > 0 && floor !== null && b.y >= floor) {
