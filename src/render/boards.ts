@@ -73,6 +73,11 @@ const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number;
     { x: 9000, y: 0, cx: 9400, cy: -350, zoom: 0.88 },
     { x: 13200, y: -473, cx: 13600, cy: -700, zoom: 0.88 },
   ],
+  arena: [
+    { x: 400, y: 0, cx: 800 },
+    { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
+    { x: 3200, y: -180, cx: 3700, cy: -380, zoom: 0.92 },
+  ],
 };
 
 const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [

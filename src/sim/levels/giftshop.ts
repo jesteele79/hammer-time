@@ -39,4 +39,21 @@ export const GIFTSHOP: Level = {
   music: "day",
   hints: { early: 560 },
   boss: { x: 2600, arena: [600, 3900] },
+  // The plush wall and the shirt wall; at the mid plane the plush shelf, the postcard spinner, the gift boxes, the gumball
+  // machine and the crate of plush; in front, the big teddy by the way in (clear of the sign) and the red-draped table past
+  // the exit (clear of its door).
+  backdrop: {
+    walls: ["arena-far-1", "arena-far-2"],
+    mid: [
+      { name: "arena-mid-1", x: 350 },
+      { name: "arena-mid-2", x: 1000 },
+      { name: "arena-mid-3", x: 2450 },
+      { name: "arena-mid-4", x: 3250 },
+      { name: "arena-mid-5", x: 3800 },
+    ],
+    fore: [
+      { name: "arena-fore-1", x: -150 },
+      { name: "arena-fore-2", x: 4500 },
+    ],
+  },
 };

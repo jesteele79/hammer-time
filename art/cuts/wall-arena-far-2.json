@@ -1,0 +1,5 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/arena-far-2.png (the shirts-and-caps wall). Each edge holds a whole wooden pilaster, outlined on both sides (0 to 77, 1460 to 1535), so the seams are their middles. floor is the row where the skirting meets the carpet, the middle of its ink line (762 to 764): a row above the plush wall's, measured on the grid. Check with: node scripts/art-grid.mjs wall/arena-far-2.",
+  "floor": 763,
+  "seams": [36, 1500]
+}

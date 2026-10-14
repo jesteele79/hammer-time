@@ -1,0 +1,36 @@
+Use case: precise-object-edit
+FINAL material edit of ITEM 19 arena-fore.png, EXACT native 1536 x 1024.
+Image 1: the ORIGINAL arena-fore.png, the ONLY geometry and ink source and ONLY edit target.
+Image 2: pig-body.png, soft matte plush fabric material reference only.
+Image 3: hammer-profile.png, black-ink drawing style reference only.
+Image 4: previous matte finish candidate, supporting MATERIAL-FINISH reference only. Never copy its slightly changed geometry or ink.
+
+COPY IMAGE 1'S ORIGINAL INK LAYER UNCHANGED:
+Every outer and inner outline, stitched seam, stitch, cloth fold, corner, wooden table edge and block foot stays at precisely the original pixel coordinates. Original shapes, bounds, scale, size, positions and spacing remain EXACTLY. No redraw, retracing, smoothing, thickening, thinning, moving or reshaping any line.
+Whole rear-view brown stuffed bear including ears, arms, feet, round tail and seams, and the original front-facing table corner with burgundy cloth, same geometry as Image 1. Keep the table's original full foot height and original top edge position, no two-pixel drift.
+Canvas remains native 1536 x 1024. No resize, upscale, downscale, crop, warp, rotation, reframing or movement, during or after editing.
+
+CHANGE ONLY SURFACE FILL FINISH:
+Brown bear is dry soft MATTE PLUSH FABRIC like Image 2, not inflated vinyl, rubber, leather or plastic. Same caramel/brown hue, original smooth silhouette, no added fur strands, shaggy edge, seams or detailed texture.
+Burgundy tablecloth is plain dry MATTE COTTON, never satin. Same red/burgundy family and exact folds.
+Wooden table is quiet matte brown with no varnished shine.
+Remove EVERY specular mark or shiny streak on ALL surfaces: white/cream glints, blobs, wet-looking bright spots, rim lights and bright pink glossy stripes. Refill them with the material's ordinary base color, without touching original black line pixels.
+Specifically remove the THIN BRIGHT STRIPE along the top cloth edge and thin bright fold-ridge highlights visible in Image 4. Use ordinary muted burgundy there. No narrow highlights on bear ear/limb/tail edges, cloth folds, tabletop edge or wooden feet.
+ONE flat shadow tone and ONE SOFT BROAD LOW-CONTRAST highlight tone per material. The highlight is a quiet large same-hue shading patch, only slightly lighter than the base, never a shiny stripe or concentrated spot. No white, cream, pale-yellow or bright-pink highlights anywhere. Flat cel patches, no blended gradients or painterly texture. Keep thick black ink intact.
+
+Background is ONE exact UNIFORM SOLID PURE DIGITAL #00FF00 fill, RGB(0,255,0), outside the unchanged silhouettes, including corners and margins. No noise, texture, gradient, vignette, floor, ground line, shadow, halo or reflection.
+Only the original two whole objects. No people, live animals, text, letters, numbers, labels, logos, signatures or other objects.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images. Where an item names a photo, use it for layout and mood only; the result must be an illustration, not a filtered photo.
+
+RULES FOR THE OBJECT SHEETS (every item named "-mid-" or "-fore-"):
+- Landscape, the widest size your image tool offers. PNG.
+- Only the listed objects, each whole, upright and seen straight from the front, spread across the picture with wide green space between them and around them. Nothing touches another object or the picture's edge.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no texture, no gradient.
+- No people, no text, letters, numbers or logos.
+
+CURRENT USER OVERRIDES:
+The general STYLE words "small white specular glints" do NOT apply here: NO glints or shine anywhere.
+The bear remains FROM BEHIND, exactly as Image 1 and Item 19 request.
+Image 1's native dimensions and geometry take precedence over creating a new object-sheet composition.

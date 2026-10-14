@@ -1,0 +1,5 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/arena-far-1.png (the plush wall under the neon halo). Each edge holds a whole wooden pilaster, outlined on both sides (0 to 73, 1464 to 1535), so the seams are their middles. floor is the row where the skirting meets the carpet, the middle of its ink line (763 to 766). Check with: node scripts/art-grid.mjs wall/arena-far-1.",
+  "floor": 764,
+  "seams": [36, 1500]
+}

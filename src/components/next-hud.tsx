@@ -86,6 +86,22 @@ export function NextHud({
           <SoundIcon muted={muted} />
         </button>
       </section>
+      {hud.boss && (
+        <section className="next-hud__boss" aria-label="The Pink Menace">
+          <span className="next-hud__boss-name">The Pink Menace</span>
+          <span className="next-hud__boss-bar" role="meter" aria-label="Its stuffing" aria-valuemin={0} aria-valuemax={hud.boss.max} aria-valuenow={hud.boss.hp}>
+            {Array.from({ length: hud.boss.max }, (_, i) => (
+              <i key={i} data-on={i < hud.boss!.hp} />
+            ))}
+          </span>
+          <span className="next-hud__boss-count" data-done={hud.boss.bonks >= hud.boss.need}>
+            Bonks {Math.min(hud.boss.bonks, hud.boss.need)}/{hud.boss.need}
+          </span>
+          <span className="next-hud__boss-count" data-done={hud.boss.snots >= hud.boss.need}>
+            Snots {Math.min(hud.boss.snots, hud.boss.need)}/{hud.boss.need}
+          </span>
+        </section>
+      )}
       <section className="next-hud__panel" aria-label="Hammer">
         <header className="next-hud__head">
           {hud.portrait && <img className="next-hud__portrait" src={hud.portrait} alt="" />}

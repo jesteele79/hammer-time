@@ -1,6 +1,7 @@
 import { Container, Graphics, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
 import { ASIDES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
+import type { TauntTarget } from "../game/taunts";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
 import { PATIENCE_MAX } from "../sim/damage";
@@ -25,6 +26,8 @@ import { LOBBY } from "../sim/levels/lobby";
 import { STASH } from "../sim/levels/stash";
 import { RESTAURANT } from "../sim/levels/restaurant";
 import { CAMPUS } from "../sim/levels/campus";
+import { GIFTSHOP } from "../sim/levels/giftshop";
+import { PIG_ID } from "../sim/pig";
 import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
@@ -40,6 +43,8 @@ import { Particles } from "./particles";
 import { HATTED, type CastRole } from "../sim/cast";
 import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
+import { fightFrame } from "./frame";
+import { PIG_HEIGHT, PigView } from "./pig";
 import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
@@ -52,8 +57,8 @@ import { installFonts } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
 
-/** The shift's venues in order (R3 §2): the restaurant and the campus join in R3a's later tasks. */
-const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS];
+/** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
+const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 const LEVELS = new Map<LevelId, Level>([...SHIFT, STASH].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** How long a pickup's line stays in the hint. */
@@ -62,6 +67,8 @@ const NOTE_T = 2;
 const SHIELD_LOOK = { up: 170, rx: 130, ry: 215, rings: 5, alpha: 0.22, color: 0xffcf3a, rim: 0xfff1a0, flicker: 2, sparkEvery: 0.08 } as const;
 /** Seconds the camera takes to settle into a zone's zoom. */
 const ZOOM_EASE = 0.5;
+/** In the pig fight, the share of the view's width he may stand from its middle while it frames both fighters. */
+const FRAME_REACH = 0.3;
 /** World px one walk or run cycle covers, so the feet don't skate. */
 const STRIDE = 280;
 const BLEND_T = 0.1;
@@ -149,6 +156,7 @@ export async function startLook(
     cast.setQuality(q);
   };
   const flyers = new Flyers(scene.layers.play, particles, scene.ambient);
+  const pigView = new PigView(scene.layers.play, particles);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -345,7 +353,7 @@ export async function startLook(
   };
 
   /** One of the owner's recordings for a besting, when the bus allows one; its caption is spoken. */
-  const taunt = (target: "staff" | "student") => {
+  const taunt = (target: TauntTarget) => {
     const id = sound.taunt(target);
     if (id) bubbles.say(TAUNT_LINES[id].text, 2);
     return !!id;
@@ -530,6 +538,37 @@ export async function startLook(
         particles.emit("glass", e.x, e.y, 18);
         words.say("CRASH!", e.x, e.y - 120, false, face, view);
         break;
+      case "pigWake":
+        words.say("PIG FIGHT", at.crown.x, at.crown.y - 120, true, face, view);
+        break;
+      case "pigWindup":
+        if (e.hop) speech.say(PIG_ID, "BOING!", 0.8);
+        break;
+      case "pigLand":
+        particles.emit("dust", e.x, e.y, 14);
+        break;
+      case "pigHit":
+        words.say(e.by === "bonk" ? "BONK!" : "SNOT!", e.x, e.y - 40, false, face, view);
+        pigView.hit(e.x, e.y);
+        speech.say(PIG_ID, "SQUEEEE!", 0.6);
+        // The sound bus rolls the shipped 45 percent for the pig (TAUNT_CHANCE) and keeps its gap between recordings.
+        taunt("pig");
+        break;
+      case "pigHold":
+        words.say(e.word, e.x, e.y - 60, true, face, view);
+        break;
+      case "pigDown":
+        words.say("STUFFING SETTLED", e.x, e.y - PIG_HEIGHT - 60, true, face, view);
+        pigView.down();
+        flyers.papers(e.x, e.y - 220, 1);
+        break;
+      case "pigShrug":
+        // A thought: only the owner's recordings are spoken.
+        bubbles.think("It's a stuffed animal.", 1.6);
+        break;
+      case "pigRefill":
+        particles.emit("glint", e.x, e.y, 6);
+        break;
       default:
         break;
     }
@@ -587,6 +626,7 @@ export async function startLook(
   /** Lets the drawn people, carts, flyers and bubbles go, for a new venue or a new shift. */
   function clearActors() {
     cast.clear();
+    pigView.clear();
     props.clear();
     flyers.clear();
     speech.clear();
@@ -687,6 +727,9 @@ export async function startLook(
     // Their flying props too (the hat, the glasses, the cup): between the cast and the carts, never over his face.
     flyers.container.zIndex = y - 0.55;
     flyers.update(simDt, (fx, fy) => topUnder(fx, fy));
+    // The pig and its tufts sort behind the cast: nothing of it is ever over his face.
+    pigView.sort(y - 0.7);
+    pigView.sync(prev.pig, cur.pig, alpha, simDt);
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -783,17 +826,21 @@ export async function startLook(
     const cam = scene.camera;
     const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
     cam.zoom += ((zone?.zoom ?? 1) - cam.zoom) * Math.min(1, dt / ZOOM_EASE);
-    cam.target = { x, y };
+    // In the fight the camera holds both fighters (the shipped boss camera); no look-ahead pulls it off them.
+    const pig = cur.pig;
+    const fighting = !!pig && pig.state !== "asleep" && pig.state !== "defeated";
+    cam.target = { x: fighting ? fightFrame(x, pig.x, scene.view().w * FRAME_REACH) : x, y };
     cam.facing = h.facing;
-    cam.moving = Math.abs(h.vx) > 40;
+    cam.moving = !fighting && Math.abs(h.vx) > 40;
     cam.falling = h.vy > 900;
     scene.update(dt);
     lighting.update(dt);
     views.get(game.level.id)?.venue.update(simDt);
     views.get(game.level.id)?.venue.setDoors(cur.doors);
+    views.get(game.level.id)?.venue.setChained(game.level.doors.some((d) => d.locked) && cur.pig?.state !== "defeated");
     words.update(simDt, face, scene.view());
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
-    speech.update(simDt, (id) => cast.crownOf(id), face, scene.view());
+    speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : cast.crownOf(id)), face, scene.view());
     particles.update(simDt, face);
     const hud = hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null);
     const key = hudKey(hud);
@@ -824,6 +871,7 @@ export async function startLook(
         events: { ...counts },
       };
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
+      window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.headTintChain = character.headTintChain();
@@ -943,6 +991,9 @@ export async function startLook(
       dismiss(spawn: string) {
         for (const n of world.cast) if (n.spawn === spawn) n.alive = false;
       },
+      pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }) {
+        if (world.pig) Object.assign(world.pig, o, o.state === "recover" ? { timer: 30, vx: 0 } : {});
+      },
     };
   return {
     stop() {
@@ -954,6 +1005,7 @@ export async function startLook(
       sound.destroy();
       objects.destroy();
       cast.destroy();
+      pigView.destroy();
       for (const v of views.values()) v.venue.destroy();
       if (window.__next) delete window.__next.dev;
       scene.destroy();

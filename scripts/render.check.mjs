@@ -906,3 +906,71 @@ test("the towel is turned from its plate at the same size whether the plate is s
   const half = { width: 620, height: 1322, source: { resolution: 0.5 } };
   assert.equal(towelDrawScale(half, 200), towelDrawScale(whole, 200) * 2);
 });
+
+import { PIG_FEEL, pigFace, pigPose } from "../src/sim/rig/pig.ts";
+import { fightFrame } from "../src/render/frame.ts";
+import { PIG } from "../src/sim/pig.ts";
+
+const pigCtx = (o = {}) => ({ state: "recover", t: 0, clock: 0, hurtT: 0, onGround: true, landT: null, ...o });
+
+test("the pig leans back 12 degrees in its wind-up and forward 18 in its charge, the whole of it about its middle", () => {
+  const lean = (p) => {
+    const s = solve(p, 1, 0.26);
+    return s.joints.neck.x - s.joints.pelvis.x;
+  };
+  const rest = lean(pigPose(pigCtx()));
+  assert.ok(lean(pigPose(pigCtx({ state: "windup", t: 1 }))) < rest - 20, "back, away from the way it faces");
+  assert.ok(lean(pigPose(pigCtx({ state: "charge", t: 0.3 }))) > rest + 30, "forward, into the charge");
+  assert.equal(pigPose(pigCtx({ state: "windup", t: 1 })).spin, PIG_FEEL.windupLean);
+  assert.equal(pigPose(pigCtx({ state: "charge", t: 0.5 })).spin, -PIG_FEEL.chargeLean);
+});
+
+test("it breathes at 0.5 Hz, stretches 0.9 by 1.15 in a hop's air, squashes 1.2 by 0.8 as it lands, and deflates to 0.85 over 1.2 s", () => {
+  const breath = pigPose(pigCtx({ state: "asleep", clock: 0.5 })).squash.y;
+  assert.ok(Math.abs(breath - (1 + PIG_FEEL.breath)) < 1e-6, `a breath's top a quarter of 2 s in: ${breath}`);
+  const squash = (o, x, y) => {
+    const s = pigPose(pigCtx(o)).squash;
+    assert.ok(Math.abs(s.x - x) < 1e-9 && Math.abs(s.y - y) < 1e-9, `${JSON.stringify(o)}: ${s.x} by ${s.y}`);
+  };
+  squash({ state: "hop", t: 0.3, onGround: false }, 0.9, 1.15);
+  squash({ state: "hop", t: 0.7, landT: 0 }, 1.2, 0.8);
+  squash({ state: "hop", t: 1, landT: PIG_FEEL.landT }, 1, 1);
+  assert.ok(Math.abs(pigPose(pigCtx({ state: "defeated", t: 1.2 })).squash.y - 0.85) < 1e-9);
+  assert.ok(pigPose(pigCtx({ state: "defeated", t: 0.6 })).squash.y > 0.85, "still going down halfway");
+});
+
+test("a hit wobbles it while the gap runs, and it stills when the gap is over", () => {
+  const spins = [];
+  for (let k = 1; k <= 40; k++) spins.push(pigPose(pigCtx({ hurtT: PIG.gap - k * (PIG.gap / 40) })).spin);
+  assert.ok(Math.max(...spins.map(Math.abs)) > 2, "it wobbles");
+  assert.equal(pigPose(pigCtx({ hurtT: 0 })).spin, 0);
+});
+
+test("the pig's faces: it squints asleep and winding up, bares its teeth charging and in a hop's air, winces hurt, and wears its X when down", () => {
+  const f = (o) => pigFace({ state: "recover", hurtT: 0, onGround: true, ...o });
+  assert.deepEqual(
+    [f({ state: "asleep" }), f({ state: "windup" }), f({ state: "charge" }), f({ state: "hop", onGround: false }), f({ state: "hop" }), f({}), f({ hurtT: 0.2 }), f({ state: "defeated", hurtT: 0.2 })],
+    ["squint", "squint", "charge", "charge", null, null, "hurt", "defeated"],
+  );
+});
+
+test("inside each state the pig never jumps: no joint, lean or tilt turns more than 9 degrees in a step", () => {
+  const step = 1 / 120;
+  for (const [state, seconds, extra] of [["asleep", 4], ["windup", 1.1], ["charge", 0.85], ["hop", 0.6, { onGround: false }], ["recover", 1.35], ["defeated", 2]]) {
+    let last = null;
+    for (let t = 0; t <= seconds; t += step) {
+      const p = pigPose(pigCtx({ state, t, clock: t, ...extra }));
+      if (last) {
+        for (const [j, v] of Object.entries(p.rot)) assert.ok(Math.abs(v - last.rot[j]) <= 9, `${state} t=${t.toFixed(3)}: ${j} jumps`);
+        assert.ok(Math.abs(p.spin - last.spin) <= 9 && Math.abs(p.headTilt - last.headTilt) <= 9, `${state} t=${t.toFixed(3)}: the body jumps`);
+      }
+      last = p;
+    }
+  }
+});
+
+test("the camera frames both fighters: between them while they are close, never letting him leave the middle of the view", () => {
+  assert.equal(fightFrame(1000, 1600, 600), 1300);
+  assert.equal(fightFrame(1000, 3600, 600), 1600, "the pig far right: he stays 600 px from the middle");
+  assert.equal(fightFrame(3000, 800, 600), 2400, "and far left");
+});

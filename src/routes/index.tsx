@@ -19,7 +19,7 @@ export const Route = createFileRoute("/")({
 });
 
 const flag = (v: unknown): true | undefined => (v === true || v === 1 || v === "1" ? true : undefined);
-const VENUES = ["restaurant", "campus"] as const;
+const VENUES = ["restaurant", "campus", "arena"] as const;
 type Venue = (typeof VENUES)[number];
 /** `&venue=` starts the shift at a later venue (R3a's play-test link, before the start screen). */
 const venueOf = (v: unknown): Venue | undefined => ((VENUES as readonly unknown[]).includes(v) ? (v as Venue) : undefined);

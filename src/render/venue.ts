@@ -6,6 +6,7 @@ import { SCENERY_Z } from "./backdrop";
 import { FLOOR, INK, THIN } from "./ink";
 import { campusFloor, campusFurniture, campusPlatform, drawBeltTrays } from "./venue-campus";
 import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
+import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
 import { label } from "./text";
@@ -49,6 +50,8 @@ export type VenueView = {
   setVisible(on: boolean): void;
   /** The swinging doors as the sim has them this frame. */
   setDoors(doors: readonly SwingDoor[]): void;
+  /** A locked exit's chain: on while the pig fights; switched off, it falls off the door and is gone. */
+  setChained(on: boolean): void;
   destroy(): void;
 };
 
@@ -72,11 +75,11 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   root.addChild(back, mid, front);
 
   // Each venue's own kinds first; the lobby's drawing for the rest.
-  for (const f of level.furniture) if (!restaurantFurniture(back, f) && !campusFurniture(back, f)) drawFurniture(back, f);
+  for (const f of level.furniture) if (!restaurantFurniture(back, f) && !campusFurniture(back, f) && !giftshopFurniture(back, f)) drawFurniture(back, f);
   for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
   else drawPass(back, p, root);
-  for (const p of level.platforms) if (!restaurantPlatform(mid, p) && !campusPlatform(mid, p)) drawPlatform(mid, p);
-  for (const f of level.floor) if (!restaurantFloor(front, f) && !campusFloor(front, f, level.floor)) drawFloor(front, f, level);
+  for (const p of level.platforms) if (!restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
+  for (const f of level.floor) if (!restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
   drawPits(back, level);
   const doorG = new Graphics();
   root.addChild(doorG);
@@ -99,6 +102,21 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
     root.addChild(g, card);
     clocks.set(k.id, g);
   }
+  // A locked exit wears its chain (R3 §5.2) until the pig is down; then it drops off the door and is gone.
+  const CHAIN_FALL = 0.6;
+  const chains = level.doors
+    .filter((d) => d.locked)
+    .map((d) => {
+      const g = new Graphics();
+      for (const a of [-90, 90]) g.moveTo(d.x + a, -380).lineTo(d.x - a, -120).stroke({ width: 14, color: "#8d939c" }).stroke({ width: 4, color: PALETTE.outline, alpha: 0.6 });
+      g.roundRect(d.x - 34, -280, 68, 60, 8).fill("#c9a24a").stroke(INK);
+      // Turned about the padlock as it falls.
+      g.pivot.set(d.x, -250);
+      g.position.set(d.x, -250);
+      root.addChild(g);
+      return { g, home: { x: d.x, y: -250 }, falling: -1 };
+    });
+  let chained = true;
   scene.layers.play.addChild(root);
 
   let t = 0;
@@ -122,6 +140,17 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
       doorG.clear();
       (level.swingDoors ?? []).forEach((spec, i) => drawSwingDoor(doorG, spec, poses[i].open, poses[i].dir));
     },
+    setChained(on) {
+      if (on === chained) return;
+      chained = on;
+      for (const c of chains) {
+        c.falling = on ? -1 : 0;
+        c.g.position.set(c.home.x, c.home.y);
+        c.g.rotation = 0;
+        c.g.alpha = 1;
+        c.g.visible = true;
+      }
+    },
     setDoorGlow(id) {
       glowing = id;
       for (const [k, d] of doors) d.glow.visible = k === id;
@@ -143,6 +172,14 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
       if (glowing) {
         const d = doors.get(glowing);
         if (d) d.glow.alpha = 0.65 + 0.35 * Math.sin(t * 6);
+      }
+      for (const c of chains) {
+        if (c.falling < 0 || !c.g.visible) continue;
+        c.falling += dt;
+        c.g.y = c.home.y + 900 * c.falling * c.falling;
+        c.g.rotation = 0.8 * c.falling;
+        c.g.alpha = Math.max(0, 1 - c.falling / CHAIN_FALL);
+        if (c.falling >= CHAIN_FALL) c.g.visible = false;
       }
     },
     setVisible(on) {

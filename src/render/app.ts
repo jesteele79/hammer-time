@@ -83,6 +83,8 @@ export type NextProbe = {
   /** Which cast paintings drew and which fell back to the stand-in. */
   castArt?: { painted: string[]; standIn: string[]; live: number; tints: { cast: number; flyers: number }; drawn: Record<number, { person: string; recolor: string | null }>; carts: { id: number; load: string }[] };
   cast?: { people: Record<number, { person: string; recolor: string | null }>; targets: { id: number; load: string }[]; acts: Record<string, string>; positions: Record<string, { x: number; y: number }>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
+  /** The gift shop's pig: its state, where it is, its HP and counts, and whether it is drawn or painted. */
+  pig?: { state: string; x: number; hp: number; bonks: number; snots: number; drawn: "drawn" | "painted" } | null;
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
   dev?: {
     teleport(x: number, y?: number): void;
@@ -97,6 +99,8 @@ export type NextProbe = {
     heal(): void;
     /** Sends one of the cast off the level by spawn id, so a check can watch a hazard without them in the way. */
     dismiss(spawn: string): void;
+    /** Sets the pig's HP, counts or state, for the checks. */
+    pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }): void;
   };
 };
 declare global {

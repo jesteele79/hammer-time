@@ -55,7 +55,7 @@ try {
     frames.forEach((f, i) => save(`cast-lobby-${i + 1}.png`, f));
     count += frames.length;
   }
-  for (const venue of ["restaurant", "campus"]) {
+  for (const venue of ["restaurant", "campus", "arena"]) {
     if (!want(venue)) continue;
     await page.goto(`${base}?next=1&board=1&venue=${venue}`);
     await page.waitForFunction((v) => window.__nextBoard && window.__next?.run?.level === v, venue, { timeout: 30000 });

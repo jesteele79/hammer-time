@@ -42,6 +42,13 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   swat: ["thud"],
   stomp: ["stomp"],
   lectureLand: ["harrumph"],
+  pigWake: ["power"],
+  pigCharge: ["bump"],
+  pigHop: ["bump"],
+  pigLand: ["thud"],
+  pigHit: ["thud"],
+  pigBounce: ["bump"],
+  pigDown: ["clear"],
 };
 const PICKUP_CUES: Record<string, Cue[]> = { can: ["coin"], nuts: ["power"], bucees: ["power", "oneUp"], pepper: ["power"] };
 /** The tally ticks once every ten seconds of clock it counts. */

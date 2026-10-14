@@ -1794,6 +1794,75 @@ button:focus-visible {
   text-align: center;
   color: var(--hud-gold);
 }
+/* The pig's bar (R3 §5.2): twelve gold segments on slate under the top bar, with the bonks and snots it still needs;
+   flush with the top bar's right edge and clear of the panel on the left. */
+.next-hud__boss {
+  position: absolute;
+  top: 68px;
+  right: 16px;
+  width: min(520px, calc(100% - 328px));
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  grid-template-areas: "name bonks snots" "bar bar bar";
+  gap: 6px 12px;
+  padding: 8px 12px 10px;
+  background: var(--hud-slate);
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
+}
+.next-hud__boss-name {
+  grid-area: name;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hud-gold);
+}
+.next-hud__boss-bar {
+  grid-area: bar;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+}
+.next-hud__boss-bar i {
+  height: 10px;
+  border-radius: 2px;
+  background: var(--hud-well);
+}
+.next-hud__boss-bar i[data-on="true"] {
+  background: var(--hud-gold);
+}
+.next-hud__boss-count {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hud-dim);
+  font-variant-numeric: tabular-nums;
+}
+.next-hud__boss-count[data-done="true"] {
+  color: var(--hud-text);
+}
+/* A phone held upright: the panel sits under the top bar, so the pig's bar goes under the panel. */
+@media (max-width: 600px) and (min-height: 481px) {
+  .next-hud__boss {
+    top: 247px;
+    left: 16px;
+    width: auto;
+  }
+}
+/* A phone on its side: under the top bar on the right, beside the panel. */
+@media (max-height: 480px) {
+  .next-hud__boss {
+    top: 52px;
+    right: 10px;
+    width: min(420px, calc(100% - 266px));
+    gap: 4px 10px;
+    padding: 6px 10px 8px;
+  }
+}
 /* The run along the top right: score, Coke Zero, lives as portraits, the Buc-ee's boost and the clock. */
 .next-hud__bar-top {
   position: absolute;

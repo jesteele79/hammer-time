@@ -56,7 +56,7 @@ export function NextGame({
   /** A lobby with nobody in it: the older checks' switch. */
   nocast?: boolean;
   /** Start the shift at a later venue (`&venue=`). */
-  start?: "restaurant" | "campus";
+  start?: "restaurant" | "campus" | "arena";
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);

@@ -1,0 +1,22 @@
+Use case: precise-object-edit
+Create arena-far-2.png as native widest landscape 1536 x 1024 PNG.
+Image 1 hammer-profile.png and Image 2 bellhop-1.png are style references. Image 3 is the gift-shop-front candidate to refine.
+
+Preserve its EXACT square-on geometry, whole wall, blank lower 100px, level wall base near y=768, empty grey carpet bottom quarter, two cropped plain dark wood half-pilasters, top and lower trim heights, high racks of folded blank t-shirts, plain caps and blank postcards.
+REMOVE all handle-like brass vertical bars from the fixed window glazing. This is fixed shopfront glass above a solid wood wall, no operable panels, doors or doorways. Window mullions are thin plain dark vertical lines without handles.
+Beyond glass there is only an uninterrupted dark navy lobby wall with brass sconces. Draw those sconces in the same CRISP BLACK-INK cartoon style as the merchandise: no blurred photorealistic lamps or blended light glow.
+Flatten every shaded material and light to discrete CEL COLOR PATCHES, exactly one shadow and one highlight tone per base color. Floor is empty plain grey commercial carpet in a SINGLE FLAT color, no gradient, grain, reflection or shadow. Keep edge-pilaster colors and light matching one another.
+No people, live animals, doors, open passages, corners or side walls anywhere. No text, numbers, logos, printed designs, symbols or labels.
+No resizing, upscaling or cropping.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images. Where an item names a photo, use it for layout and mood only; the result must be an illustration, not a filtered photo.
+
+RULES FOR THE WALLS (every item named "-far-"):
+- The widest landscape size your image tool offers (for example 1536 x 1024). PNG.
+- Seen straight on, as if the camera stands square to the wall: every horizontal line (ceiling, trim, wainscot, shelf, window sill, the wall's base) stays perfectly level across the whole picture. No perspective running off to the sides, no corners, no side walls.
+- The wall's base, where it meets the floor, is one straight level line about three-quarters of the way down the picture (about 768 px down on a 1024 px picture). Below that line the floor runs toward the viewer to the bottom edge: plain, in the venue's floor material, with nothing standing or lying on it.
+- The lowest part of the wall, from its base up to about waist height (roughly 100 px above the base line on a 1024 px picture), is plain wall: no furniture, counters, tables, benches, plants, doors or objects stand against it. Lamps, art, windows, shelves and signs hang higher up.
+- No doors or doorways anywhere (the game has its own doors, and a painted one would look like a way in). No balconies, ledges or anything that looks like a place to stand.
+- The venue's pilaster, cut exactly in half, at both side edges, matching in width, color and light; every horizontal line meets both edges at the same height.
+- No people and no animals (stuffed toys are fine where an item asks for them). No text, letters, numbers or logos anywhere: signs, labels, menus, flyers and screens are blank.

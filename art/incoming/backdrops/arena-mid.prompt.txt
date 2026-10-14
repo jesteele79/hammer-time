@@ -1,0 +1,18 @@
+Use case: precise-object-edit
+Refine arena-mid.png, native widest landscape PNG, preserving the complete image size without scaling or cropping.
+Images 1 and 2: original inked cartoon style. Image 3: current object sheet.
+
+Final correction: apply a SINGLE SOLID EXACT #00FF00 digital background fill. RGB must be zero red, 255 green, zero blue for every unobstructed background pixel. Redraw that background as a clean solid color rather than keeping any existing green texture, gradient, noise or dark corners. No floor or shadows whatsoever.
+Keep exactly five separately spaced whole upright groups: plush display shelf (bears, bunnies, ducks, cats and dogs, NO PIGS); spinning postcard rack with blank cards and blank header; wrapped gift stack with bows; red gumball machine; cardboard bin filled with small plush bears, bunnies and ducks, NO PIGS.
+Make the cardboard bin seen EXACTLY FROM THE FRONT: rectangular front face only, no oblique side faces, no three-quarter view. Keep the toys visible above its front rim. Make the postcard header straight level and front-facing, not tilted. All other groups also face directly front.
+Crisp thick black ink and completely flat cel shading: ONE shadow tone and ONE highlight tone per material, small white glints. Plain flat cardboard color and flat wood shadow fills, no diffuse gradients.
+Keep wide green gaps between groups and margins all around, with every top and base whole. No labels, letters, numerals, logos, people, live animals or other objects.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images. Where an item names a photo, use it for layout and mood only; the result must be an illustration, not a filtered photo.
+
+RULES FOR THE OBJECT SHEETS (every item named "-mid-" or "-fore-"):
+- Landscape, the widest size your image tool offers. PNG.
+- Only the listed objects, each whole, upright and seen straight from the front, spread across the picture with wide green space between them and around them. Nothing touches another object or the picture's edge.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no texture, no gradient.
+- No people, no text, letters, numbers or logos.

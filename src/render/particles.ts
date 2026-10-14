@@ -63,6 +63,8 @@ export const RECIPES = {
   coffee: { speed: [160, 520], angle: [190, 350], gravity: 1900, drag: 0.8, life: [0.3, 0.55], size: [8, 3], colors: ["#7a4a24", "#3d2412"], additive: false },
   water: { speed: [200, 520], angle: [200, 340], gravity: 1600, drag: 0.8, life: [0.3, 0.5], size: [7, 3], colors: ["#dff3ff", "#7cc8f0"], additive: false },
   paper: { speed: [80, 320], angle: [0, 360], gravity: 260, drag: 2.4, life: [0.7, 1.2], size: [9, 6], colors: ["#fbf7ee", "#d9d2c4"], additive: false },
+  // The pig's white fluff out of a seam (spec §5.6).
+  stuffing: { speed: [160, 420], angle: [200, 340], gravity: 1100, drag: 1.4, life: [0.5, 0.9], size: [12, 6], colors: ["#fff7f2", "#f7d4de"], additive: false },
 } satisfies Record<string, Recipe>;
 export type RecipeName = keyof typeof RECIPES;
 
