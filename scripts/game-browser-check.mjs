@@ -4,7 +4,12 @@ import { resolve } from "node:path";
 import assert from "node:assert/strict";
 import { checkedUrl } from "./browser-guard.mjs";
 
-const url = checkedUrl(process.argv[2] || "http://127.0.0.1:8080/");
+// The shipped game lives at ?classic=1 since `/` opened the new one (R3b); the base argument is unchanged.
+const url = (() => {
+  const u = new URL(checkedUrl(process.argv[2] || "http://127.0.0.1:8080/"));
+  u.searchParams.set("classic", "1");
+  return u.href;
+})();
 const capturePoses = process.argv.includes("--poses");
 const out = resolve("artifacts");
 mkdirSync(out, { recursive: true });

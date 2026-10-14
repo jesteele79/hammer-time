@@ -2,6 +2,10 @@
 
 Personal hospitality platformer.
 
+`/` opens the rebuilt game on its start screen (see "The rebuild" below). The
+shipped game described in the next sections stays playable at `/?classic=1`,
+Hungry Hungry Hammer included, until R4 replaces it.
+
 ```powershell
 npm install
 npm run dev
@@ -217,13 +221,14 @@ processing details, durations and hashes are in `public/voice/manifest.json`.
 Generation prompts, reference details, crop coordinates and asset hashes are
 in `public/scenery-assets.json` and `public/boss-prop-assets.json`.
 
-## The rebuild (`/?next=1`)
+## The rebuild (`/`)
 
-The game is being rebuilt as a modern renderer over a fixed-step sim (the
-design is `docs/superpowers/specs/2026-10-10-hammer-time-rebuild-design.md`).
-Until it replaces the shipped game it lives behind `/?next=1`: a PixiJS 8
-scene on WebGPU (WebGL 2 when WebGPU is missing, or with `&gl=1`) showing
-the hotel lobby as a playable level under the keyboard (arrows or WASD, Space
+The game is rebuilt as a modern renderer over a fixed-step sim (the design is
+`docs/superpowers/specs/2026-10-10-hammer-time-rebuild-design.md`). `/` opens
+it on its start screen; `/?next=1` goes straight into play (the checks use
+it), and `/?classic=1` is the shipped game. It is a PixiJS 8
+scene on WebGPU (WebGL 2 when WebGPU is missing, or with `&gl=1`) playing
+the shift (the lobby, the restaurant, the campus and the gift shop) under the keyboard (arrows or WASD, Space
 or Z to jump, Shift to run, Down to crouch and, at speed, slide, P or Escape
 for a break) or the touch pad. `&noart=1` runs the art fallback path;
 `&board=1` exposes the look-board renderer; `&dev=1` adds a practice hit on G
@@ -591,7 +596,7 @@ without touching the arm.
 
 ### The start screen
 
-At `/?next=1&title=1` (until `/` switches to the new game) the start
+At `/` (or `/?next=1&title=1`) the start
 screen (`src/components/next-start.tsx`) shows the title over the key art,
 where to start (the whole shift from the lobby, the restaurant, the campus, or
 pig practice at the gift shop), Clock in, the personal best, sound, the keys,
