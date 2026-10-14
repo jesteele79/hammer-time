@@ -218,11 +218,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
   }
 
-  /** The shipped pepper refill: while he is not hot and none is out, one 150 px inside the arena's left edge every 3 s. */
+  /**
+   * The shipped pepper refill: while he is not hot and none is out in the arena, one 150 px inside its left edge every 3 s.
+   * A pepper outside the arena (the ! crate's, slid away past the chained exit) is out of his reach and does not count.
+   */
   function refill(ev: GameEvent[]) {
     const p = world.pig;
     if (!p || p.state === "asleep" || p.state === "defeated" || p.refill > 0 || world.hero.hot) return;
-    if (game.pickups.some((k) => k.kind === "pepper" && !k.taken)) return;
+    if (game.pickups.some((k) => k.kind === "pepper" && !k.taken && k.x >= p.arena[0] && k.x <= p.arena[1])) return;
     const x = p.arena[0] + PIG.refillAt;
     const y = (floorAt(world.stage, x) ?? 0) - PICKUP_SIZE;
     game.pickups.push({ id: ++nextPickup, kind: "pepper", x, y, taken: false });

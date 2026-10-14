@@ -376,3 +376,15 @@ test("a scripted player beats the pig with three lives intact and clocks out", (
   assert.equal(g.run.lives, 3, "no life lost");
   assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `clocked out (${g.mode} at ${g.world.hero.x})`);
 });
+
+test("a pepper that slid out of the arena, past the chained exit, does not stop the refill", () => {
+  const g = shop();
+  play(g);
+  wake(g);
+  // The ! crate's pepper, slid all the way right and parked against the level's end: out of his reach while he is held in.
+  g.pickups.push({ id: 777, kind: "pepper", x: 4770, y: -PICKUP_SIZE, taken: false });
+  g.world.hero.hot = false;
+  g.world.pig.refill = 0.5;
+  const evs = stepsG(g, 0.6);
+  assert.deepEqual(of(evs, "pigRefill").map((e) => e.x), [600 + PIG.refillAt]);
+});
