@@ -854,7 +854,9 @@ every step; the old build serves `/` until R3.
   end to end; `/` switches to the new build; the old engine is deleted.
   R3a (the restaurant, the campus and the shift through them) done
   2026-10-13; R3b (the gift shop and the pig, the start screen, the lobby's
-  walls, the switch and the merge) next. The design is
+  walls) done 2026-10-14, when `/` switched to the new build and the branch
+  was merged into `main`, each on the owner's yes. The old engine stays at
+  `/?classic=1` until R4 deletes it. The design is
   `2026-10-13-r3-the-run-design.md`.
 - **R4 Hungry Hungry Hammer** (§11), the BUFFET door, the Side quests row.
 - **R5 Fare Darts** (§12), the AIRPORT SHUTTLE door.
