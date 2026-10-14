@@ -7,10 +7,11 @@ import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
-import { stageOf, type DoorSpec, type Level } from "./level";
+import { PICKUP_SIZE, stageOf, type DoorSpec, type Level } from "./level";
 import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
+import { PIG, createPig } from "./pig";
 import { collectPickups, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { createCart, knock } from "./targets";
@@ -137,6 +138,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // Each cart stands on the floor under it: a raised dock's too.
     world.targets = level.carts.map((x, i) => createCart(i + 1, x, floorAt(world.stage, x) ?? 0));
     world.swingDoors = createSwingDoors(level.swingDoors ?? []);
+    // The gift shop's pig sleeps at its spot, fresh, each time the venue is laid out.
+    world.pig = level.boss ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
     world.zone = null;
     world.cast = opts.cast === false ? [] : createCast(level, world.targets);
     world.missiles = [];
@@ -205,6 +208,18 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       h.patience = PATIENCE_MAX;
       h.hot = true;
     }
+  }
+
+  /** The shipped pepper refill: while he is not hot and none is out, one 150 px inside the arena's left edge every 3 s. */
+  function refill(ev: GameEvent[]) {
+    const p = world.pig;
+    if (!p || p.state === "asleep" || p.state === "defeated" || p.refill > 0 || world.hero.hot) return;
+    if (game.pickups.some((k) => k.kind === "pepper" && !k.taken)) return;
+    const x = p.arena[0] + PIG.refillAt;
+    const y = (floorAt(world.stage, x) ?? 0) - PICKUP_SIZE;
+    game.pickups.push({ id: ++nextPickup, kind: "pepper", x, y, taken: false });
+    p.refill = PIG.refill;
+    ev.push({ type: "pigRefill", x, y });
   }
 
   /** What the head, the mallet and the smash did to the crates and the bell this step. */
@@ -279,8 +294,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.door = game.level.doors.find((d) => Math.abs(h.x - d.x) <= DOOR_REACH && Math.abs(h.y - d.y) < 60) ?? null;
     // Only a man still on his feet clocks out: not one knocked flat, or out of time, thrown into the door.
     const standing = h.move?.kind !== "tumble" && !timedOut;
+    // A locked exit is chained until the pig is down.
+    const open = (d: DoorSpec) => !d.locked || !world.pig || world.pig.state === "defeated";
     const exit = standing
-      ? game.level.doors.find((d) => d.kind === "exit" && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
+      ? game.level.doors.find((d) => d.kind === "exit" && open(d) && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
       : undefined;
     if (exit) {
       exitDoor = exit;
@@ -423,6 +440,13 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       }
     };
     score(world.events);
+    // Waking the pig hands him the pepper and a moment's grace (its punch clock stands at the way in).
+    if (world.events.some((e) => e.type === "pigWake")) {
+      h.hot = true;
+      h.patience = PATIENCE_MAX;
+      h.invuln = Math.max(h.invuln, PIG.grace);
+    }
+    refill(ev);
     strikeCrates(ev);
     if (tryDoors(input, ev)) return;
     stepCrates(game.crates, STEP);

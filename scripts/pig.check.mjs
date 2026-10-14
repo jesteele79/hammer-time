@@ -6,6 +6,14 @@ import { PIG, PIG_ID, createPig, hitPig, stepPig } from "../src/sim/pig.ts";
 import { STOMP } from "../src/sim/cast.ts";
 import { CHARGE_MAX } from "../src/sim/moves.ts";
 import { feelOf } from "../src/sim/feel.ts";
+import { createGame } from "../src/sim/game.ts";
+import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+import { PATIENCE_MAX } from "../src/sim/damage.ts";
+import { hudOf } from "../src/render/hud.ts";
+import { drive } from "../src/sim/drive.ts";
+import { PICKUP_SIZE } from "../src/sim/level.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -233,4 +241,138 @@ test("the fight's feel: a hit pushes the camera in, the defeat slows time to 0.6
   assert.deepEqual(feelOf({ type: "pigHit", by: "snot", x: 0, y: 0, hp: 11, bonks: 0, snots: 1 }).zoom, { amount: 1.12, seconds: 0.4 });
   assert.deepEqual(feelOf({ type: "pigDown", x: 0, y: 0, points: 3000 }).slowmo, { scale: 0.6, seconds: 0.3 });
   assert.equal(feelOf({ type: "pigLand", x: 0, y: 0 }).trauma, 0.5);
+});
+
+/** A pig practice: the gift shop alone, after a lobby the run never visits. */
+const shop = (seed = 7) => createGame({ lobby: LOBBY, stash: STASH, venues: [GIFTSHOP] }, seed, { start: 1 });
+const play = (g) => { while (g.mode === "card") g.step(input()); };
+const stepsG = (g, seconds, held = {}) => { const out = []; for (let i = 0; i < Math.round(seconds / STEP); i++) { g.step(input(held)); out.push(...g.events); } return out; };
+/** Into the arena: he crosses its edge and the pig wakes. */
+const wake = (g) => { g.world.hero.x = 610; return stepsG(g, STEP); };
+
+test("the gift shop keeps the spec's shape: 4,400 px, 300 s, the arena 600 to 3900 with its clock at the door in, the shelves, the till and the chained exit", () => {
+  const L = GIFTSHOP;
+  assert.deepEqual([L.id, L.world, L.name, L.length, L.time, L.spawn.x], ["arena", "1-4", "The Pink Menace", 4400, 300, 300]);
+  assert.deepEqual(L.boss, { x: 2600, arena: [600, 3900] });
+  assert.deepEqual(L.crates.map((c) => [c.kind, c.x]), [["pepper", 500]]);
+  assert.deepEqual(L.checkpoints.map((k) => k.x), [600]);
+  assert.deepEqual(L.platforms.map((p) => [p.kind, p.x0, p.x1, -p.y]), [["plush", 1100, 1500, 180], ["plush", 1800, 2200, 360], ["till", 2900, 3500, 180]]);
+  const exit = L.doors.find((d) => d.kind === "exit");
+  assert.deepEqual([exit.x, exit.label, exit.locked], [4100, "CLOCK OUT", true]);
+  assert.deepEqual(L.camera.zones, [{ x0: 600, x1: 3900, zoom: 0.92 }]);
+  assert.ok(L.floor.every((f) => f.kind === "carpet" && f.y0 === 0 && f.y1 === 0), "one carpeted floor, no pit");
+});
+
+test("crossing into the arena wakes the pig, punches the clock there, and gives him the pepper and 1.2 s of grace, not its points", () => {
+  const g = shop();
+  play(g);
+  g.world.hero.patience = 1;
+  const score = g.run.score;
+  const evs = wake(g);
+  assert.equal(of(evs, "pigWake").length, 1);
+  assert.deepEqual(of(evs, "checkpoint").map((e) => e.id), ["arena"]);
+  const h = g.world.hero;
+  assert.deepEqual([h.hot, h.patience, g.run.checkpoint, g.run.score], [true, PATIENCE_MAX, "arena", score]);
+  assert.ok(h.invuln >= PIG.grace - STEP, `grace: ${h.invuln}`);
+});
+
+test("the exit stays shut while the pig fights and opens once it is down", () => {
+  const g = shop();
+  play(g);
+  wake(g);
+  Object.assign(g.world.hero, { x: 4060, vx: 0 });
+  stepsG(g, 1, { right: true });
+  assert.equal(g.mode, "play");
+  assert.ok(g.world.hero.x <= 3900 - g.world.hero.w / 2 + 1e-6, `held in the arena: ${g.world.hero.x}`);
+  g.world.pig.state = "defeated";
+  Object.assign(g.world.hero, { x: 3990, vx: 0 });
+  stepsG(g, 2, { right: true });
+  assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `clocked out: ${g.mode}`);
+});
+
+test("a pepper appears 150 px inside the arena's left edge every 3 s while he is not hot and none is out", () => {
+  const g = shop();
+  play(g);
+  wake(g);
+  const peppers = () => g.pickups.filter((p) => p.kind === "pepper" && !p.taken);
+  stepsG(g, 4);
+  assert.equal(peppers().length, 0, "he is hot from the wake: none");
+  g.world.hero.hot = false;
+  g.world.pig.refill = 0.5;
+  const evs = stepsG(g, 0.6);
+  assert.deepEqual(of(evs, "pigRefill").map((e) => [e.x, e.y]), [[600 + PIG.refillAt, -PICKUP_SIZE]]);
+  assert.deepEqual(peppers().map((p) => [p.x, p.y]), [[750, -PICKUP_SIZE]]);
+  assert.equal(of(stepsG(g, 4), "pigRefill").length, 0, "not while one is out");
+  Object.assign(g.world.hero, { x: 750, y: 0, vx: 0 });
+  stepsG(g, 0.2);
+  assert.deepEqual([peppers().length, g.world.hero.hot], [0, true]);
+  g.world.hero.hot = false;
+  const later = stepsG(g, 3.1);
+  assert.equal(of(later, "pigRefill").length, 1, "another once he has eaten it and is not hot");
+});
+
+test("a life lost in the fight brings back a fresh pig, asleep at its spot, and him at the arena's clock, where it wakes again", () => {
+  const g = shop();
+  play(g);
+  wake(g);
+  Object.assign(g.world.pig, { hp: 5, bonks: 3, snots: 4 });
+  g.world.hero.invuln = 0;
+  g.world.hero.patience = 1;
+  g.world.hit(g.world.hero.x + 100);
+  while (g.mode !== "card") g.step(input());
+  assert.deepEqual([g.world.pig.state, g.world.pig.hp, g.world.pig.x], ["asleep", 12, 2600]);
+  play(g);
+  g.step(input());
+  assert.deepEqual([g.world.pig.state, g.world.hero.x >= 600, g.world.hero.hot], ["windup", true, true]);
+  assert.equal(g.pickups.filter((p) => p.kind === "pepper" && !p.taken && p.x === 750).length, 0, "no refill pepper from before");
+});
+
+test("the HUD shows the pig's bar and counts while the fight is on, the hint names the rule; after it, the way out", () => {
+  const g = shop();
+  play(g);
+  assert.equal(hudOf(g, null).boss, null, "asleep: no bar");
+  wake(g);
+  Object.assign(g.world.pig, { hp: 9, bonks: 2, snots: 1 });
+  const hud = hudOf(g, null);
+  assert.deepEqual(hud.boss, { hp: 9, max: 12, bonks: 2, snots: 1, need: 3 });
+  assert.equal(hud.hint, "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left");
+  g.world.pig.state = "defeated";
+  assert.deepEqual([hudOf(g, null).boss, hudOf(g, null).hint], [null, "The chain is off · walk into CLOCK OUT"]);
+});
+
+test("the pig's defeat scores 3000", () => {
+  const g = shop();
+  play(g);
+  wake(g);
+  stepsG(g, 2);
+  Object.assign(g.world.pig, { hp: 1, bonks: 3, snots: 3, hurtT: 0 });
+  const before = g.run.score;
+  // His right edge clear of its left (its half 120 and his 55): touching it would cost him a pip and the swing.
+  Object.assign(g.world.hero, { x: g.world.pig.x - 200, facing: 1, hot: false });
+  g.world.pig.state = "recover";
+  g.world.pig.timer = 9;
+  const evs = [];
+  for (let i = 0; i < Math.round(1 / STEP) && !of(evs, "pigDown").length; i++) {
+    g.step(input(i === 0 ? { hammer: true } : {}, i === 0 ? { hammer: true } : {}));
+    evs.push(...g.events);
+  }
+  assert.equal(of(evs, "pigDown").length, 1);
+  assert.ok(g.run.score - before >= PIG.points, `scored ${g.run.score - before}`);
+});
+
+test("a scripted player beats the pig with three lives intact and clocks out", () => {
+  const g = shop(11);
+  play(g);
+  const evs = [];
+  let t = 0;
+  while (g.mode === "play" && t < 240) {
+    g.step(drive(g.level, g.world.hero, "floor", g.world));
+    evs.push(...g.events);
+    t += STEP;
+  }
+  const hits = of(evs, "pigHit");
+  assert.equal(of(evs, "pigDown").length, 1, `the pig went down (${g.world.pig.hp} HP left, ${t.toFixed(0)} s)`);
+  assert.ok(hits.filter((e) => e.by === "bonk").length >= 3 && hits.filter((e) => e.by === "snot").length >= 3, "by the rule");
+  assert.equal(g.run.lives, 3, "no life lost");
+  assert.ok(["walkoff", "tally", "clear"].includes(g.mode), `clocked out (${g.mode} at ${g.world.hero.x})`);
 });

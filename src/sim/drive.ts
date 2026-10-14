@@ -5,6 +5,7 @@ import { emptyInput, type Input } from "./input";
 import { stageOf, type Level } from "./level";
 import { lectureReach } from "./moves";
 import { floorAt } from "./physics";
+import { PIG } from "./pig";
 import type { HeroState } from "./types";
 import type { World } from "./world";
 
@@ -12,6 +13,8 @@ import type { World } from "./world";
 const LOOK = { gap: 220, wall: 260, landing: 200, pass: 300 } as const;
 /** How far ahead it sees trouble: staff to bonk, a cart to jump, a plane to swat. */
 const FIGHT = { staff: 420, cart: 520, plane: 300 } as const;
+/** How far left of the pig's nearest reach he waits (his right edge just clear of it), and the reach of his swing and his snot. */
+const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
 
 /**
  * A scripted player for the traversal test: run right, hop gaps and walls, slide the passes, and
@@ -21,6 +24,7 @@ const FIGHT = { staff: 420, cart: 520, plane: 300 } as const;
 export function drive(level: Level, h: HeroState, route: "floor" | "balcony", world?: World): Input {
   const i = emptyInput();
   i.held.right = i.held.run = true;
+  if (world && fightPig(world, h, i)) return i;
   const stage = stageOf(level);
   const gap = h.onGround && floorAt(stage, h.x + LOOK.gap, h.y - 60) === null;
   const wall = level.solids.some((s) => s.x - h.x > 0 && s.x - h.x < LOOK.wall && s.y < h.y - 10 && s.y + s.h > h.y - 290);
@@ -32,6 +36,25 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony", wo
   if ((wall || gap || landing || i.pressed.jump) && h.onGround && !pass) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
   return i;
+}
+
+/**
+ * The pig, as the shipped boss check fought it: wait in the corner its charges cannot reach, snot it from there, and
+ * bonk it when it stops beside him. True while the fight is on (it steers him; nothing else does).
+ */
+function fightPig(w: World, h: HeroState, i: Input): boolean {
+  const p = w.pig;
+  if (!p || p.state === "asleep" || p.state === "defeated") return false;
+  i.held.right = i.held.run = false;
+  const spot = p.arena[0] + PIG.keepLeft - PIG_FIGHT.wait;
+  if (h.x < spot - 20) i.held.right = true;
+  else if (h.x > spot + 20) i.held.left = true;
+  else if (h.facing < 0) i.held.right = true;
+  if (h.move || !h.onGround || h.facing < 0) return true;
+  const gap = p.x - p.w / 2 - h.x;
+  if (gap < PIG_FIGHT.bonk) i.held.hammer = i.pressed.hammer = true;
+  else if (h.sinus >= 1 && gap < PIG_FIGHT.snot) i.held.fire = i.pressed.fire = true;
+  return true;
 }
 
 /** Fights what is in front of him: a swing at staff or a plane within reach, a jump over a cart rolling at him, a lecture at students. */

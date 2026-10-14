@@ -299,6 +299,7 @@ test("the lobby's exit now leads to the restaurant's card", () => {
 });
 
 import { CAMPUS } from "../src/sim/levels/campus.ts";
+import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
 
 test("the campus keeps the spec's shape: its length, two clocks, the bands, an early pepper, no pit", () => {
   const K = CAMPUS;
@@ -359,17 +360,19 @@ test("a scripted player clears the campus by the floor and by the deck: alive, i
   }
 });
 
-test("the shift runs lobby, restaurant, campus, then it is over", () => {
-  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT, CAMPUS] }, 7);
+test("the shift runs lobby, restaurant, campus, the gift shop, then it is over", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT, CAMPUS, GIFTSHOP] }, 7);
   const seen = [g.level.id];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     while (g.mode === "card") g.step(input());
+    // The gift shop's door opens once the pig is down.
+    if (g.world.pig) g.world.pig.state = "defeated";
     const exit = g.level.doors.find((d) => d.kind === "exit");
     Object.assign(g.world.hero, { x: exit.x - 120, y: exit.y, vx: 0, vy: 0 });
     for (let k = 0; k < Math.round(20 / STEP) && g.mode !== "card" && g.mode !== "clear"; k++) g.step(input({ right: true }));
     seen.push(g.mode === "clear" ? "clear" : g.level.id);
   }
-  assert.deepEqual(seen, ["lobby", "restaurant", "campus", "clear"]);
+  assert.deepEqual(seen, ["lobby", "restaurant", "campus", "arena", "clear"]);
 });
 
 test("the professor on the library stairs turns his page before he walks into Hammer on the landing below", () => {

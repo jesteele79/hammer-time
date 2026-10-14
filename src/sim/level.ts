@@ -24,16 +24,18 @@ export type PlatformKind =
   | "serving"
   | "tray"
   | "deck"
-  | "ledge";
-export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt";
+  | "ledge"
+  | "plush"
+  | "till";
+export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt" | "carpet";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
 export type LevelPlatform = Platform & { kind: PlatformKind };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
 export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number };
 export type DoorKind = "stash" | "return" | "exit" | "closed";
-/** `closed` doors say what opens them; `x` is the door's middle, `y` the floor in front of it. */
-export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string };
+/** `closed` doors say what opens them; `x` is the door's middle, `y` the floor in front of it; a `locked` exit is chained until the pig is down. */
+export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string; locked?: boolean };
 export type CheckpointSpec = { id: string; x: number; y: number };
 export type SignSpec = { x: number; y: number; label: string; note?: string };
 export type FurnitureKind =
@@ -55,7 +57,8 @@ export type FurnitureKind =
   | "fountain"
   | "lampPost"
   | "sneeze"
-  | "slot";
+  | "slot"
+  | "spotlight";
 /** A low ceiling to slide under: the lobby's service corridor, or the kitchen's heat-lamp gantry. */
 export type LevelPass = Pass & { kind?: "service" | "gantry" };
 /** The kitchen's swinging door, and the spawn id of the server whose rush bangs it open. */
@@ -105,7 +108,7 @@ export type LevelLight = { x: number; y: number; radius: number; intensity: numb
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
-export type LevelId = "lobby" | "stash" | "restaurant" | "campus";
+export type LevelId = "lobby" | "stash" | "restaurant" | "campus" | "arena";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */

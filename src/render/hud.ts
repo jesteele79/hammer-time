@@ -4,6 +4,7 @@ import { overlapsRect } from "../sim/geometry";
 import type { Game } from "../sim/game";
 import { heatZoneAt } from "../sim/hazards";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
+import { PIG } from "../sim/pig";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -36,6 +37,8 @@ export type HudPayload = {
   saved: boolean;
   /** The most pressing thing to know, one line. */
   hint: string;
+  /** The pig's bar (R3 §5.2) while the fight is on: its HP and the bonks and snots it still needs. */
+  boss: { hp: number; max: number; bonks: number; snots: number; need: number } | null;
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -51,6 +54,9 @@ export function hintOf(game: Game): string {
     return `${d.label} · ${d.opens ?? "closed"}`;
   }
   if (h.crouch) return "Stay low · release ↓ when clear to stand";
+  const pig = game.world.pig;
+  if (pig?.state === "defeated") return "The chain is off · walk into CLOCK OUT";
+  if (pig && pig.state !== "asleep") return "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left";
   if (game.level.id === "stash") {
     const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
     return cleanedOut ? "Staff stash · cleaned out · ↓ at the cart to go back" : "Staff stash · ↓ at the cart to go back";
@@ -96,6 +102,7 @@ export function pickupNote(kind: PickupKind, h: { charge: number }): string {
 /** `note` is a pickup's line, shown in place of the hint while it lasts. */
 export function hudOf(game: Game, portrait: string | null, saved = false, note: string | null = null): HudPayload {
   const h = game.world.hero;
+  const pig = game.world.pig;
   const clocked = game.level.time > 0;
   const time = clocked ? Math.ceil(game.run.time) : null;
   return {
@@ -120,6 +127,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     lecture: h.lectureCd <= 0,
     saved,
     hint: note ?? hintOf(game),
+    boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
   };
 }
 
@@ -142,4 +150,5 @@ export const hudKey = (p: HudPayload) =>
     p.saved,
     p.hint,
     p.venue,
+    p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
   ].join("|");
