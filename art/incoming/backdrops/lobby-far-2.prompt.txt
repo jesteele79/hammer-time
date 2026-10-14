@@ -1,0 +1,24 @@
+Use case: precise-object-edit
+lobby-far-2.png, native widest landscape 1536 x 1024 PNG. No scaling, resizing or cropping.
+Images 1 and 2: inked caricature style. Image 3 venue-lobby.jpg: mood/layout only. Image 4 lobby-far-1.png: matching frame and floor palette. Image 5: current elevator wall target.
+
+Preserve all target geometry and content: edge half cream-marble pilasters with thin brass, level wall base near y=744 matching Image 4, high narrow night windows, brass sconces, crystal chandelier from top, thin level brass picture rail, two countryside/mountain/river landscapes ending above the blank lower wall. No buildings, doors, doorways, people or animals.
+FLATTEN THE COLOR FILLS:
+- Replace the floor with ONE PLAIN FLAT dark-brown-grey polished marble tone matching Image 4's dark floor base color. Remove every angular reflected highlight stripe and every vertical reflected column shadow. No patterns, grain, veins, reflections, gradients, floor marks or objects.
+- Plain cream marble uses a base flat tone, exactly one flat shadow tone and exactly one flat highlight tone, with no softly blended lighting or texture.
+- Brass and crystal use discrete flat cel colors and small white glints, never blurred glows or 3D lighting.
+- Landscape art uses clear flat outlined shapes with one shadow and one highlight per base color; no painterly gradients.
+Copy the edge halves' light and colors so they match one another, and keep their horizontal top/base trim rows aligned with Image 4. Front-facing only, all wall lines level. No floors above the base, balconies, ledges, furniture, corners, side walls or entrances.
+No text, letters, labels, numbers or logos anywhere.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images. Where an item names a photo, use it for layout and mood only; the result must be an illustration, not a filtered photo.
+
+RULES FOR THE WALLS (every item named "-far-"):
+- The widest landscape size your image tool offers (for example 1536 x 1024). PNG.
+- Seen straight on, as if the camera stands square to the wall: every horizontal line (ceiling, trim, wainscot, shelf, window sill, the wall's base) stays perfectly level across the whole picture. No perspective running off to the sides, no corners, no side walls.
+- The wall's base, where it meets the floor, is one straight level line about three-quarters of the way down the picture (about 768 px down on a 1024 px picture). Below that line the floor runs toward the viewer to the bottom edge: plain, in the venue's floor material, with nothing standing or lying on it.
+- The lowest part of the wall, from its base up to about waist height (roughly 100 px above the base line on a 1024 px picture), is plain wall: no furniture, counters, tables, benches, plants, doors or objects stand against it. Lamps, art, windows, shelves and signs hang higher up.
+- No doors or doorways anywhere (the game has its own doors, and a painted one would look like a way in). No balconies, ledges or anything that looks like a place to stand.
+- The venue's pilaster, cut exactly in half, at both side edges, matching in width, color and light; every horizontal line meets both edges at the same height.
+- No people and no animals (stuffed toys are fine where an item asks for them). No text, letters, numbers or logos anywhere: signs, labels, menus, flyers and screens are blank.

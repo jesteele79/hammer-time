@@ -1,0 +1,5 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/lobby-far-2.png (the chandelier and the two landscapes). Each edge holds a whole cream pilaster, outlined on both sides (0 to 63, 1472 to 1535; the gold strip beside each belongs to the panel), so the seams are their middles. floor is the row where the wainscot's base meets the floor, the middle of its ink line (740 to 742), measured on the grid. Check with: node scripts/art-grid.mjs wall/lobby-far-2.",
+  "floor": 741,
+  "seams": [31, 1504]
+}

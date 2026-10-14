@@ -67,10 +67,7 @@ export const LOBBY: Level = {
     { kind: "bell", x: 1920, y: -240, w: 60, h: 60 },
     { kind: "elevators", x: 5450, y: -520, w: 1100, h: 520 },
     { kind: "shaft", x: 5900, y: -520, w: 330, h: 520 },
-    { kind: "planter", x: 6330, y: -170, w: 130, h: 170 },
-    { kind: "planter", x: 8350, y: -170, w: 130, h: 170 },
     { kind: "porte", x: 8900, y: -440, w: 400, h: 440 },
-    { kind: "planter", x: 10500, y: -170, w: 130, h: 170 },
     { kind: "chairs", x: 12100, y: -330, w: 800, h: 330 },
     { kind: "chairs", x: 13300, y: -330, w: 800, h: 330 },
     { kind: "screen", x: 14250, y: -520, w: 400, h: 520 },
@@ -95,6 +92,24 @@ export const LOBBY: Level = {
   ],
   music: "day",
   hints: { early: 1500 },
+  // The lobby's three walls in walking order; against them a palm by the doors, a floor lamp by the desk, a lamp on its
+  // table under the mezzanine, the lilies in the shuttle bay and the rope line at the conference wing; in front, a potted
+  // tree past the desk (clear of its punch clock) and a column in the wing. The inked corridor photo and the drawn
+  // columns and palms are its fallback; its painted palm takes the place of the drawn potted palms it once stood.
+  backdrop: {
+    walls: ["lobby-far-1", "lobby-far-2", "lobby-far-3"],
+    mid: [
+      { name: "lobby-mid-1", x: 700 },
+      { name: "lobby-mid-2", x: 3300 },
+      { name: "lobby-mid-3", x: 7600 },
+      { name: "lobby-mid-4", x: 10900 },
+      { name: "lobby-mid-5", x: 12900 },
+    ],
+    fore: [
+      { name: "lobby-fore-1", x: 2950 },
+      { name: "lobby-fore-2", x: 11300 },
+    ],
+  },
   // The cast (the R2b design §5): the bellhops behind their carts, servers on patrols, the office workers
   // by the elevators and behind the screen, the students at the rail and on a table.
   cast: [

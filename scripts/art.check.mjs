@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import {
   keyOut,
@@ -924,4 +924,20 @@ test("a pig face from another painting is refused when strict and skipped otherw
   await assert.rejects(castRig("pig", keyed, cuts, { faces: { hurt: other }, strict: true }), /overlap/);
   const loose = await castRig("pig", keyed, cuts, { faces: { hurt: other }, strict: false });
   assert.equal(loose.rig.head.faces?.hurt, undefined);
+});
+
+import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
+
+test("every wall painting has its cut file", () => {
+  for (const f of readdirSync("art/incoming/backdrops").filter((n) => /-far-\d+\.png$/.test(n)))
+    assert.ok(existsSync(`art/cuts/wall-${f.replace(/\.png$/, "")}.json`), `${f} has no cut`);
+});
+
+test("every venue's walls and standing pieces are synced: each one its level names is in the registry", () => {
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  for (const level of [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP]) {
+    assert.ok(level.backdrop, `${level.id} names its painted walls`);
+    for (const w of level.backdrop.walls) assert.ok(reg.walls?.[w], `${level.id}: wall ${w}`);
+    for (const p of [...level.backdrop.mid, ...level.backdrop.fore]) assert.ok(reg.pieces?.[p.name], `${level.id}: piece ${p.name}`);
+  }
 });

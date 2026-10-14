@@ -1,0 +1,21 @@
+Use case: precise-object-edit
+FINAL refinement of lobby-fore.png, WIDEST native landscape PNG, retain the complete very wide approximately 3:1 canvas. No post-generation resize, upscale, downscale, crop or warp.
+Image 1 hammer-profile.png and Image 2 bellhop-1.png are original inked style references.
+Image 3 venue-lobby.jpg is only hotel materials and mood.
+Image 4 is the TWO-OBJECT EDIT TARGET. Keep its EXACT successful shapes, layout, upright FRONT VIEW and height relationship.
+
+Only one large broad-leaf plant with woody trunk in one plain brass pot, and one complete tall cream marble column with simple cap, long straight shaft and whole base. Column stays clearly TALLEST, its top at least 120px above the plant crown. Everything whole inside the frame; cap/base level; no perspective. Green margin around all sides and wide green gap between the two objects.
+Final change is COLOR FILLS ONLY:
+Apply ONE absolutely PURE UNIFORM SOLID #00FF00 background fill, exact RGB(0,255,0), everywhere outside the silhouettes, including every corner, gap and margin. Zero noise, texture, shade, gradient, vignette, corner darkening or green variation. No floor, ground line, shadow, reflection or halo.
+Replace all remaining soft material shading with fully FLAT CEL base colors, ONE solid shadow tone and ONE solid highlight tone per material, thick crisp black ink and small white glints. No extra intermediate tones, marble veins, realistic texture, diffuse blending, painterly or 3D rendering.
+Keep the natural saturated greens, plain brass gold and warm off-white cream matched to the finished character.
+No added objects, flowers, extra pots, props, people, animals, writing, letters, numbers, labels, logos or signatures.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images. Where an item names a photo, use it for layout and mood only; the result must be an illustration, not a filtered photo.
+
+RULES FOR THE OBJECT SHEETS (every item named "-mid-" or "-fore-"):
+- Landscape, the widest size your image tool offers. PNG.
+- Only the listed objects, each whole, upright and seen straight from the front, spread across the picture with wide green space between them and around them. Nothing touches another object or the picture's edge.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no texture, no gradient.
+- No people, no text, letters, numbers or logos.
