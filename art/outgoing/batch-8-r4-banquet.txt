@@ -1,0 +1,74 @@
+HAMMER TIME — ART BATCH 8: THE BANQUET (R4, HUNGRY HUNGRY HAMMER)
+Four paintings for the side quest behind the lobby's BUFFET door: a nurse (the fourth eater), the ballroom, the round
+banquet table and the food. The design is docs/superpowers/specs/2026-10-14-r4-hungry-hungry-hammer-design.md §10.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image (the food sheet is the one exception).
+- No text, letters, numbers, logos, signatures or watermarks anywhere (badges and labels are blank).
+- The whole subject inside the frame with margin all round.
+- PNG.
+
+------------------------------------------------------------------------------------------------------------------
+ITEM 1: THE NURSE (pose-locked like the cast)
+
+Attach:
+  Image 1: art/incoming/hammer/body-affliction.png (Hammer's full body: THE POSE, FRAMING AND DRAWING STYLE TO COPY)
+  Image 2: art/outgoing/references/hammer-profile.png (the drawing style)
+  Image 3: art/incoming/cast/bellhop-1.png (a finished cast member: the pose, finish and placement done right)
+  Image 4: art/outgoing/references/nurse-scrubs.png (the scrubs' cut and fit only; not the person, not the pose)
+
+She is NOT the man in Images 1 and 2. She will be cut into parts and animated exactly like Image 1 and like the twelve
+people already in art/incoming/cast/, so her body must copy Image 1's pose, camera, framing and drawing style
+precisely, while having her own face, build, height and clothes.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait) and the same placement in the frame: the soles at the same height near the bottom, the figure centered with green margin all round. She is a little shorter than Image 1: the soles stay where Image 1's are; only the top of her head sits lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat, no cap. No props, nothing in the hands.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no scenery, no texture, no gradient.
+
+nurse.png
+A hospital nurse: a brisk, wiry woman in her early forties, a little shorter than Image 1, dark brown hair pulled back tight into a high bun, sharp eyebrows, a narrow-eyed don't-touch-anything look (lips closed). Teal scrub top with short sleeves and a V-neck, matching teal scrub trousers, a white long-sleeved undershirt showing at the neck only (her forearms bare), a retractable badge reel clipped at her chest with a blank white badge, a small pocket of pens (no letters), white nursing clogs. Nothing in her hands.
+Save to: art/incoming/cast/
+
+------------------------------------------------------------------------------------------------------------------
+ITEMS 2 TO 4: THE BALLROOM, THE TABLE AND THE FOOD (one camera for all three)
+
+Attach:
+  art/outgoing/references/hammer-profile.png (the drawing style)
+  art/incoming/backdrops/lobby-far-1.png and art/incoming/backdrops/lobby-mid.png (the hotel's painted walls and objects: the finish, line weight and palette these must match)
+  art/incoming/cast/bellhop-1.png (a finished game character: the inked finish)
+
+THE CAMERA (all three items): the game looks down at a round banquet table from a raised camera, as if from a
+balcony, at about 30 degrees below level. So a round thing lying flat (the tabletop, a plate) looks like a wide oval
+about twice as wide as it is deep, and the patterned carpet is foreshortened the same way. Straight on: the room's
+back wall runs perfectly level across the picture, no tilt, no fisheye, no vanishing toward the sides.
+
+2. ballroom.png (save to art/incoming/backdrops/)
+A grand hotel ballroom set for a banquet, seen by THE CAMERA, at the widest landscape size available.
+- The back wall across the top fifth to quarter of the picture: deep red velvet drapes with gold swags and tassels, gold-framed wainscot below them, warm wall sconces, and a long buffet table against the wall with a white cloth, silver chafing dishes and a tall silver coffee urn.
+- Below the wall, filling the rest of the picture down to the bottom edge: an ornate burgundy-and-gold banquet carpet with a repeating medallion pattern, foreshortened by the camera.
+- The middle of the carpet EMPTY: a wide open area in the center where the game places a round table and four people. No tables, chairs, people or objects anywhere on the carpet.
+- Warm, even light from chandeliers above (a soft warm pool of light on the middle of the carpet is fine). The very bottom of a chandelier's crystals may hang into the top edge.
+- Both side edges plain drapes and plain carpet, nothing cut in half at the edges, so the game can widen the picture.
+- No people, no text.
+
+3. banquet-table.png (save to art/incoming/props/)
+One round banquet table seen by THE CAMERA, on flat bright green (#00FF00), the whole table in frame with green margin all round, at the widest landscape size available.
+- A crisp white tablecloth over a round top, falling straight to the floor all round in soft vertical folds; a thin gold trim running round the edge of the top.
+- In the exact middle of the top: a low round silver lazy Susan about a fifth of the table's width, with four small silver chafing dishes round its rim, lids off and empty.
+- The rest of the top plain empty white cloth: no plates, no food, no glasses, no cutlery, no centerpiece, no candles.
+- The tabletop a wide oval about twice as wide as it is deep, its edge sharp and clean all the way round.
+- No chairs, no people, no floor, no shadow on the green.
+
+4. food-sheet.png (save to art/incoming/props/)
+One sheet: a 4 by 4 grid of sixteen dishes, each seen by THE CAMERA (from above at about 30 degrees, a round plate looking like an oval twice as wide as it is deep), each on its own plain round white plate except where noted, all the same size, evenly spaced in the grid with wide flat green (#00FF00) between them, nothing touching a neighbor or the edge, the same lighting, square image at the largest size available. Bold simple shapes and strong colors that still read when small. In this order, left to right then top to bottom:
+Row 1: shrimp cocktail (a glass coupe with shrimp hanging on the rim); a bread basket with rolls; deviled eggs (six halves); a kolache pastry.
+Row 2: a bowl of caramel corn puffs; a ribeye steak with grill marks; chicken fried steak with white gravy; a brisket plate with sliced brisket, pickles and onion.
+Row 3: shrimp and grits in a bowl; a club sandwich cut in quarters with toothpicks; a slice of cherry pie; a slice of cheesecake with strawberry on top.
+Row 4: a cup of banana pudding with vanilla wafers; a red hot sauce bottle standing up (no plate, no label text); a white folded paper to-go box (no plate); a black leather check folder with a white receipt sticking out (no plate, no writing).

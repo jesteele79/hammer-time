@@ -1,0 +1,59 @@
+HAMMER TIME — R4, THE CODEX PROMPTS
+
+These are for Codex in its mode that works on this laptop (it reads the brief and the reference images from the repo
+and saves its images straight into art/incoming/). Paste each into a new Codex chat. The two can run at the same time.
+The brief they point at: art/outgoing/batch-8-r4-banquet.txt.
+
+
+1. THE NURSE (batch 8, item 1)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-8-r4-banquet.txt in full. It is the brief. Make ITEM 1 only, and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png, and the other people in art\incoming\cast\ (bellhop-2, server-1, server-2, office-1, office-2, student-1, student-2, cook-1, busser-1, lunch-1, prof-1) — the pose and style done right. The nurse must match them for style, finish and placement in the frame.
+   - Image 4: art\outgoing\references\nurse-scrubs.png — the scrubs' cut and fit only. Not the person, not the pose.
+
+3. Make nurse.png. Use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: she has her own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+
+4. Before you keep her, put her side by side with Image 1 and bellhop-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and empty. The far arm and hand visible just behind the near one, with a green gap between the near forearm and the belly.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's; only the top of her head sits lower.
+   - The hair in a high bun, nothing else on her head; the badge reel and the pens are the only extras; nothing held, nothing in the hands.
+   - Teal scrubs (not green like Image 4), white clogs.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text or letters anywhere; the badge is blank.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Clearly a different person from everyone already in art\incoming\cast\, and not looking like the man in Image 1.
+
+5. Save the keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\nurse.png, and the exact prompt you used for it as nurse.prompt.txt in the same folder.
+
+6. Stop. In a few lines, tell me how many tries it took and anything on the checklist you could not get right.
+
+
+2. THE BALLROOM, THE TABLE AND THE FOOD (batch 8, items 2 to 4)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-8-r4-banquet.txt in full. It is the brief. Make ITEMS 2 TO 4, and follow its STYLE, RULES and THE CAMERA blocks word for word.
+
+2. Study these images:
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\backdrops\lobby-far-1.png and art\incoming\backdrops\lobby-mid.png — the hotel's painted walls and objects: the finish, line weight and palette to match.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish everything must match.
+
+3. Make the three items one at a time, in this order: ballroom.png, banquet-table.png, food-sheet.png. Use your built-in image generation; the ballroom and the table at the widest landscape size it offers, the food sheet square at the largest size it offers. Do not upscale or resize afterward.
+   Once the ballroom is kept, attach it to the table's generation as the reference for THE CAMERA's angle and the light; once the table is kept, attach both to the food sheet's generation the same way. A plate on the food sheet must look like it could lie flat on that tabletop, seen from the same angle.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - ballroom.png: the back wall level across the top fifth to quarter (drapes, gold swags, the buffet against the wall); carpet from there to the bottom edge; the middle of the carpet completely empty; no people, tables, chairs or objects on the carpet; nothing cut in half at the side edges; no text.
+   - banquet-table.png: one round table, the top a wide oval about twice as wide as it is deep with a sharp clean edge all round; the white cloth to the floor; the gold trim; the low silver lazy Susan with four small open chafing dishes in the exact middle; the rest of the top empty; the whole table on flat bright green (#00FF00) with margin; no shadow on the green; no chairs or people.
+   - food-sheet.png: exactly sixteen cells in a 4 by 4 grid, in the brief's order; every cell the same size; each dish on its own white plate except the hot sauce, the to-go box and the check folder; every plate an oval at THE CAMERA's angle; nothing touching a neighbor or the edge; flat bright green (#00FF00) between; no text or letters, even on the bottle and the receipt.
+   - All three: the same inked cartoon style as bellhop-1.png and the lobby's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\ballroom.png, C:\Users\jeste\Desktop\hammer-time\art\incoming\props\banquet-table.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\food-sheet.png (create the props folder), and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. When all three are saved, stop. List each file, how many tries it took, and anything on the checklist you could not get right.
