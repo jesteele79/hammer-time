@@ -1399,3 +1399,19 @@ async function syncHat(registry, name, hatFile, outDir) {
   registry.cast.hats[name] = { file: `cast/${name}-hat.png`, worn: `cast/${name}-hat-worn.png`, width: meta.width, height: meta.height, pivot: { x: base.x, y: base.y }, span: base.span };
   console.log(`${name}'s hat: ${meta.width}x${meta.height}, its base at ${base.x},${base.y}, ${base.span} wide`);
 }
+
+/**
+ * A painted picture as the game is served it: lossy WebP at quality 90 over a lossless alpha, about a tenth of the PNG's
+ * bytes for a shift of a few shades the eye cannot find at the size the game draws it.
+ */
+export function toWebp(png) {
+  return sharp(png).webp({ quality: 90, alphaQuality: 100, effort: 4 }).toBuffer();
+}
+
+/** Every string naming a PNG in a registry or a rig, renamed to its WebP; everything else as it was. */
+export function webpPaths(value) {
+  if (typeof value === "string") return value.endsWith(".png") ? value.slice(0, -4) + ".webp" : value;
+  if (Array.isArray(value)) return value.map(webpPaths);
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, webpPaths(v)]));
+  return value;
+}

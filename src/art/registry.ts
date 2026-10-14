@@ -63,7 +63,7 @@ export const HEAD_PLATE_FACING: 1 | -1 = -1;
 export const MALLET_PLATE_FACING: 1 | -1 = 1;
 /** The neutral plate as registered on 2026-10-10, for the solver when no registry is loaded. */
 export const HEAD_PLATE_DEFAULT: HeadPlate = {
-  file: "hammer/head-neutral.png",
+  file: "hammer/head-neutral.webp",
   width: 934,
   height: 1285,
   neck: { x: 509, y: 1276 },

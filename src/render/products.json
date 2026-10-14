@@ -1,0 +1,6 @@
+{
+  "can": { "file": "/coke-zero.webp", "box": [149, 81, 876, 1444], "height": 84 },
+  "nuts": { "file": "/nuts-bag.webp", "box": [149, 58, 1074, 1230], "height": 84 },
+  "bucees": { "file": "/buccees-pickup.webp", "box": [33, 34, 1053, 1413], "height": 88 },
+  "beaver": { "file": "/beaver.png", "box": [0, 0, 475, 502], "height": 58 }
+}

@@ -1,4 +1,6 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
+import { ART_BASE } from "../art/registry";
+import PRODUCT_TABLE from "./products.json" with { type: "json" };
 import { CRATE, type Crate } from "../sim/crates";
 import type { CrateKind } from "../sim/level";
 import type { Pickup, PickupKind } from "../sim/rewards";
@@ -36,13 +38,10 @@ const BURSTS: Record<PickupKind, RecipeName> = { can: "frost", nuts: "crumbs", b
  * game's pictures in public/, cropped to what is painted, and how tall each stands in the world
  * (about a quarter of his height). The beaver marks the Buc-ee's case.
  */
-const PRODUCTS = {
-  can: { file: "/coke-zero.webp", box: [149, 81, 876, 1444], height: 84 },
-  nuts: { file: "/nuts-bag.webp", box: [149, 58, 1074, 1230], height: 84 },
-  bucees: { file: "/buccees-pickup.webp", box: [33, 34, 1053, 1413], height: 88 },
-  beaver: { file: "/beaver.png", box: [0, 0, 475, 502], height: 58 },
-} as const;
+const PRODUCTS = PRODUCT_TABLE as Record<"can" | "nuts" | "bucees" | "beaver", { file: string; box: [number, number, number, number]; height: number }>;
 type Product = keyof typeof PRODUCTS;
+/** The sync's small copy of a pickup, already cut to what is painted. */
+const productCopy = (k: Product) => `${ART_BASE}products/${k}.webp`;
 const productTextures = new Map<Product, Texture>();
 /** The can stencilled on the Coke Zero crate stands this tall. */
 const CRATE_CAN = 56;
@@ -53,12 +52,17 @@ export async function loadProducts(): Promise<number> {
     (Object.keys(PRODUCTS) as Product[]).map(async (k) => {
       if (productTextures.has(k)) return;
       try {
-        const p = PRODUCTS[k];
-        const t = await Assets.load<Texture>(p.file);
-        const [x0, y0, x1, y1] = p.box;
-        productTextures.set(k, new Texture({ source: t.source, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0) }));
+        productTextures.set(k, await Assets.load<Texture>(productCopy(k)));
       } catch {
-        // The drawn stand-in stays.
+        try {
+          // No small copy: the original, cut to its box.
+          const p = PRODUCTS[k];
+          const t = await Assets.load<Texture>(p.file);
+          const [x0, y0, x1, y1] = p.box;
+          productTextures.set(k, new Texture({ source: t.source, frame: new Rectangle(x0, y0, x1 - x0, y1 - y0) }));
+        } catch {
+          // The drawn stand-in stays.
+        }
       }
     }),
   );

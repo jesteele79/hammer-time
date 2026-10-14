@@ -124,9 +124,9 @@ export async function startLook(
   scene.camera.x = game.level.spawn.x;
   scene.camera.focusY = scene.camera.y = -HERO_HEIGHT * 0.55;
 
-  await installFonts();
-  const products = await loadProducts();
-  let registry = await loadRegistry();
+  // None of these needs another: on a phone each round trip saved is a fraction of a second.
+  const [, products, loaded] = await Promise.all([installFonts(), loadProducts(), loadRegistry()]);
+  let registry = loaded;
   if (opts.noart) registry = stripped(registry);
   const reduced = scene.reducedMotion;
   const particles = new Particles(scene.layers.fx, reduced ? 400 : 600, reduced);
@@ -151,7 +151,6 @@ export async function startLook(
   const flyers = new Flyers(scene.layers.play, particles, scene.ambient);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
-  await character.ready;
   type Views = { venue: VenueView; backdrop: Backdrop };
   const views = new Map<LevelId, Views>();
   const loading = new Map<LevelId, Promise<void>>();
@@ -175,8 +174,9 @@ export async function startLook(
     }
     return p;
   };
-  await prepare(game.level);
-  await prepare(STASH);
+  // He and the level he starts in load side by side; the stash, behind a door, follows (its door holds until it is in).
+  await Promise.all([character.ready, prepare(game.level)]);
+  void prepare(STASH);
   // The rest of the shift loads one venue after another while he plays.
   void SHIFT.reduce((p, l) => p.then(() => prepare(l)), Promise.resolve());
   const headPlate = registry.hammer.heads.neutral!;

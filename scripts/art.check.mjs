@@ -760,3 +760,56 @@ test("Hammer's heads and props are stored at the body's texture scale, their pla
   const icon = await sharp(`public/art/${reg.hammer.portrait.file}`).metadata();
   assert.ok(icon.width <= 256, `the life icon is ${icon.width} wide`);
 });
+
+import { toWebp, webpPaths } from "./art-cut.mjs";
+
+test("the published art is WebP: a painted layer stays within a few shades of its PNG, its edges keep their alpha, and it is far smaller", async () => {
+  const png = readFileSync("art/incoming/cast/bellhop-1.png");
+  const keyed = (await keyOut(png)).png;
+  const webp = await toWebp(keyed);
+  assert.ok(webp.length * 4 < keyed.length, `${keyed.length} -> ${webp.length} bytes`);
+  const a = await sharp(keyed).ensureAlpha().raw().toBuffer();
+  const b = await sharp(webp).ensureAlpha().raw().toBuffer();
+  let sum = 0,
+    n = 0,
+    alphaOff = 0;
+  for (let i = 0; i < a.length; i += 4) {
+    alphaOff = Math.max(alphaOff, Math.abs(a[i + 3] - b[i + 3]));
+    if (a[i + 3] < 250) continue;
+    for (let c = 0; c < 3; c++) sum += Math.abs(a[i + c] - b[i + c]);
+    n += 3;
+  }
+  assert.ok(sum / n < 5, `mean shift ${(sum / n).toFixed(2)} of 255`);
+  assert.ok(alphaOff <= 2, `alpha off by ${alphaOff}`);
+});
+
+test("every stored picture a registry or a rig names is renamed to its WebP, and nothing else is touched", () => {
+  const before = { a: "hammer/head-neutral.png", b: { c: ["cast/x-torso.png", "cast/x-rig.json"], d: 3, e: null }, f: "png" };
+  assert.deepEqual(webpPaths(before), { a: "hammer/head-neutral.webp", b: { c: ["cast/x-torso.webp", "cast/x-rig.json"], d: 3, e: null }, f: "png" });
+});
+
+test("after the sync no registry or rig names a PNG, and every picture they name is there", () => {
+  const files = [];
+  const walk = (v) => (typeof v === "string" ? files.push(v) : v && typeof v === "object" && Object.values(v).forEach(walk));
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  walk(reg);
+  for (const f of files.filter((f) => f.endsWith("-rig.json"))) walk(JSON.parse(readFileSync(`public/art/${f}`, "utf8")));
+  const pictures = files.filter((f) => /\.(png|webp)$/.test(f));
+  assert.ok(pictures.length > 200, `${pictures.length} pictures named`);
+  assert.deepEqual(pictures.filter((f) => f.endsWith(".png")), [], "no PNG is named");
+  assert.deepEqual(pictures.filter((f) => !existsSync(`public/art/${f}`)), [], "every named picture is there");
+});
+
+test("the pickups are served as small copies cut to what is painted, each at least twice as tall as the game ever draws it", async () => {
+  const table = JSON.parse(readFileSync("src/render/products.json", "utf8"));
+  for (const [name, p] of Object.entries(table)) {
+    const file = `public/art/products/${name}.webp`;
+    assert.ok(existsSync(file), file);
+    const meta = await sharp(file).metadata();
+    const [x0, y0, x1, y1] = p.box;
+    assert.equal(meta.height, Math.min(720, y1 - y0), `${name} height`);
+    assert.ok(Math.abs(meta.width / meta.height - (x1 - x0) / (y1 - y0)) < 0.01, `${name} keeps its shape`);
+    // On a tall phone at three times its pixels, his 340 is about 1270 screen px: a pickup p.height tall is drawn this tall.
+    assert.ok(meta.height >= Math.min(y1 - y0, 2 * (p.height / 340) * 1270) * 0.95, `${name}: ${meta.height} stored for ${Math.round((p.height / 340) * 1270)} drawn`);
+  }
+});

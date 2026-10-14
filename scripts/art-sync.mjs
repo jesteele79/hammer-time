@@ -5,7 +5,7 @@
 //   --strict  refuse a misaligned expression plate instead of skipping it (art:sync, tests)
 //   --accept  re-record one owner file the owner regenerated on purpose
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import sharp from "sharp";
 import {
@@ -23,6 +23,8 @@ import {
   castRig,
   tolerant,
   syncHats,
+  toWebp,
+  webpPaths,
   wallCrop,
   sheetPieces,
   paddedLayer,
@@ -271,7 +273,8 @@ async function backdrops(registry) {
       mkdirSync(join(OUT, "backdrops"), { recursive: true });
       writeFileSync(target, keyedFree);
     } else if (existsSync(photo)) {
-      if (!existsSync(target)) await ink(photo, target, 1920);
+      // Inking a photo is slow: one already inked, and published, is kept.
+      if (!existsSync(target) && !existsSync(target.replace(/\.png$/, ".webp"))) await ink(photo, target, 1920);
     } else continue;
     registry.backdrops[venue] = { far: outFile };
     console.log(`backdrop ${venue}: ${existsSync(owner) ? "owner art" : "inked photo"}`);
@@ -312,6 +315,51 @@ async function walls(registry) {
 }
 
 
+/** How tall a pickup's copy is stored: more than twice the most the game draws it (on a tall phone at three times its pixels). */
+const PRODUCT_HEIGHT = 720;
+
+/** The pickups' pictures in public/ cut to what is painted and stored small, for the game (the shipped game keeps the originals). */
+async function products() {
+  const table = JSON.parse(readFileSync("src/render/products.json", "utf8"));
+  mkdirSync(join(OUT, "products"), { recursive: true });
+  for (const [name, p] of Object.entries(table)) {
+    const src = join("public", p.file);
+    if (!existsSync(src)) continue;
+    const [x0, y0, x1, y1] = p.box;
+    const png = await sharp(src).extract({ left: x0, top: y0, width: x1 - x0, height: y1 - y0 }).resize({ height: Math.min(PRODUCT_HEIGHT, y1 - y0), kernel: "lanczos3" }).png().toBuffer();
+    writeFileSync(join(OUT, `products/${name}.png`), png);
+  }
+}
+
+/**
+ * Every picture the sync wrote, published as WebP (a tenth of the bytes, the same to the eye at the size the game draws
+ * it): each PNG under public/art converted and removed, and the names in the rigs and the registry renamed.
+ */
+async function publish(registry) {
+  const pngs = [];
+  const rigs = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith(".png")) pngs.push(p);
+      else if (e.name.endsWith("-rig.json")) rigs.push(p);
+    }
+  };
+  walk(OUT);
+  // Eight at a time: the encoder's own threads do the rest.
+  for (let i = 0; i < pngs.length; i += 8)
+    await Promise.all(
+      pngs.slice(i, i + 8).map(async (p) => {
+        writeFileSync(p.slice(0, -4) + ".webp", await toWebp(readFileSync(p)));
+        unlinkSync(p);
+      }),
+    );
+  for (const p of rigs) writeFileSync(p, JSON.stringify(webpPaths(JSON.parse(readFileSync(p, "utf8")))));
+  console.log(`published ${pngs.length} pictures as WebP`);
+  return webpPaths(registry);
+}
+
 const registry = { version: 1, hammer: { heads: {}, bodies: {}, props: {}, portrait: null }, cast: { bodies: {}, hats: {} }, backdrops: {}, walls: {}, pieces: {} };
 mkdirSync(join(OUT, "hammer"), { recursive: true });
 guard(ownerFiles());
@@ -321,5 +369,6 @@ await bodies(registry);
 await cast(registry);
 await backdrops(registry);
 await walls(registry);
-writeFileSync(join(OUT, "registry.json"), JSON.stringify(registry, null, 2) + "\n");
+await products();
+writeFileSync(join(OUT, "registry.json"), JSON.stringify(await publish(registry), null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);

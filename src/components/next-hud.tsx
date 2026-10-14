@@ -72,7 +72,7 @@ export function NextHud({
         </span>
         {hud.star > 0 && (
           <span className="next-hud__star" aria-label={`Buc-ee's shield, ${hud.star} seconds`}>
-            <img src="/beaver.png" alt="" />
+            <img src="/art/products/beaver.webp" alt="" />
             {hud.star}
           </span>
         )}
