@@ -52,6 +52,8 @@ export type Registry = {
   /** The venues' painted walls and standing pieces by name. Missing from an older sync. */
   walls?: Record<string, Wall>;
   pieces?: Record<string, Piece>;
+  /** The pig (R3 §6.3): its rig, cut like a cast body's, and its stuffing tufts. */
+  pig?: { rig: string; span: number; stuffing: Piece[] };
 };
 
 export const ART_BASE = "/art/";

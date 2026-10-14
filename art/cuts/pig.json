@@ -1,0 +1,67 @@
+{
+  "note": "Coordinates are pixels of the keyed crop of art/incoming/pig/pig-body.png (927x1292). Seven layers. The head with both ears is in front of the body (its chin line runs from the mouth to the notch at the back of the neck); the near arm (the lower one) is in front of everything; the near leg (the right-hand one) wears its cuff over the belly; the far arm and the far leg come out from behind the body's outline, and the tail sits behind its right edge. The tail rides the body's bone. Each part hidden behind another is painted in from its own visible fabric so a turn never opens a hole. Check with: node scripts/art-grid.mjs pig.",
+  "space": "crop",
+  "order": ["armNear", "head", "legNear", "torso", "tail", "legFar", "armFar"],
+  "z": ["armFar", "legFar", "tail", "torso", "legNear", "head", "armNear"],
+  "rig": {
+    "sole": 1283,
+    "rootX": 520,
+    "match": [],
+    "joints": {
+      "pelvis": [520, 980],
+      "chest": [500, 700],
+      "neck": [470, 415],
+      "shoulderNear": [395, 528],
+      "elbowNear": [290, 640],
+      "wristNear": [180, 728],
+      "shoulderFar": [300, 520],
+      "elbowFar": [170, 568],
+      "wristFar": [55, 600],
+      "hipNear": [570, 1010],
+      "kneeNear": [570, 1120],
+      "ankleNear": [565, 1205],
+      "toeNear": [425, 1265],
+      "heelNear": [668, 1270],
+      "hipFar": [365, 1010],
+      "kneeFar": [362, 1110],
+      "ankleFar": [350, 1190],
+      "toeFar": [188, 1245],
+      "heelFar": [418, 1245]
+    },
+    "bones": [["pelvis", "hipNear"], ["pelvis", "chest"], ["chest", "neck"], ["shoulderNear", "elbowNear"], ["elbowNear", "wristNear"], ["shoulderFar", "elbowFar"], ["elbowFar", "wristFar"], ["hipNear", "kneeNear"], ["kneeNear", "ankleNear"], ["ankleNear", "toeNear"], ["hipFar", "kneeFar"], ["kneeFar", "ankleFar"], ["ankleFar", "toeFar"]],
+    "skin": {
+      "torso": { "chain": ["pelvis", "chest", "neck"], "parent": ["pelvis", "hipNear"], "start": [-30, 30], "blend": [80] },
+      "tail": { "chain": ["pelvis", "chest"], "blend": [] },
+      "armNear": { "chain": ["shoulderNear", "elbowNear", "wristNear"], "parent": ["chest", "neck"], "start": [0, 50], "blend": [50] },
+      "armFar": { "chain": ["shoulderFar", "elbowFar", "wristFar"], "parent": ["chest", "neck"], "start": [0, 50], "blend": [50] },
+      "legNear": { "chain": ["hipNear", "kneeNear", "ankleNear", "toeNear"], "parent": ["pelvis", "hipNear"], "start": [0, 60], "blend": [30, 16] },
+      "legFar": { "chain": ["hipFar", "kneeFar", "ankleFar", "toeFar"], "parent": ["pelvis", "hipNear"], "start": [0, 60], "blend": [30, 16] }
+    }
+  },
+  "layers": {
+    "armNear": { "polygon": [[226, 598], [288, 546], [336, 500], [360, 484], [386, 477], [418, 483], [442, 502], [452, 534], [450, 568], [434, 596], [404, 644], [368, 694], [322, 734], [272, 772], [236, 786], [188, 794], [146, 782], [119, 752], [116, 708], [128, 673], [160, 651], [198, 620]] },
+    "head": { "polygon": [[0, 0], [700, 0], [700, 372], [632, 383], [560, 398], [470, 416], [380, 430], [315, 446], [270, 446], [232, 437], [196, 412], [178, 382], [160, 360], [0, 360]] },
+    "legNear": { "polygon": [[476, 1078], [498, 1060], [540, 1055], [592, 1055], [640, 1066], [662, 1086], [660, 1150], [674, 1190], [688, 1240], [686, 1292], [440, 1292], [428, 1280], [424, 1274], [418, 1268], [416, 1262], [414, 1256], [413, 1250], [412, 1244], [414, 1238], [417, 1232], [418, 1226], [418, 1220], [420, 1214], [424, 1210], [426, 1204], [432, 1190], [445, 1176], [470, 1160], [488, 1150], [482, 1110]], "ink": { "over": ["legFar"], "px": 3 } },
+    "torso": {
+      "polygon": [[150, 300], [700, 300], [870, 600], [860, 820], [840, 830], [836, 950], [796, 1016], [712, 1090], [658, 1104], [560, 1098], [500, 1114], [460, 1114], [440, 1113], [420, 1111], [400, 1109], [380, 1105], [360, 1100], [340, 1094], [320, 1087], [300, 1081], [248, 1050], [150, 990], [150, 700], [160, 690], [200, 640], [227, 598], [232, 570], [243, 540], [249, 520], [256, 500], [264, 480], [272, 460], [278, 440], [150, 440]],
+      "ink": { "over": ["armFar", "legFar"], "px": 6 },
+      "fill": [
+        { "polygon": [[240, 330], [640, 330], [640, 420], [560, 420], [470, 436], [380, 450], [300, 462], [240, 452]], "from": [[300, 455], [620, 420], [640, 520], [300, 520]] },
+        { "polygon": [[240, 470], [460, 470], [462, 600], [420, 690], [360, 730], [300, 775], [250, 805], [200, 805], [203, 790], [207, 750], [212, 700], [218, 650], [225, 600]], "from": [[460, 470], [640, 470], [645, 600], [590, 700], [490, 760], [430, 760], [430, 600]] },
+        { "polygon": [[470, 1040], [680, 1040], [680, 1098], [600, 1110], [540, 1116], [480, 1119], [470, 1100]], "from": [[480, 1000], [670, 1000], [670, 1040], [480, 1040]] }
+      ]
+    },
+    "tail": { "polygon": [[836, 810], [927, 810], [927, 970], [836, 970]] },
+    "legFar": {
+      "polygon": [[170, 1140], [290, 1040], [450, 1040], [450, 1150], [440, 1200], [440, 1275], [170, 1275]],
+      "fill": [
+        { "polygon": [[290, 990], [450, 990], [450, 1125], [290, 1125]], "from": [[300, 1120], [425, 1120], [425, 1170], [300, 1170]] },
+        { "polygon": [[408, 1208], [423, 1208], [422, 1230], [419, 1246], [408, 1250]], "from": [[370, 1200], [408, 1200], [408, 1240], [370, 1240]] }
+      ]
+    },
+    "armFar": {
+      "polygon": [[0, 540], [40, 532], [120, 498], [200, 462], [250, 440], [290, 434], [290, 610], [232, 604], [200, 616], [150, 634], [100, 656], [60, 656], [0, 640]],
+      "fill": [{ "polygon": [[250, 440], [340, 440], [340, 610], [215, 610]], "from": [[150, 470], [228, 470], [228, 600], [150, 610]] }]
+    }
+  }
+}

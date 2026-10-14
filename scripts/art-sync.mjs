@@ -20,6 +20,7 @@ import {
   skinWeights,
   LAYER_Z,
   layerZ,
+  bodyLayers,
   castRig,
   tolerant,
   syncHats,
@@ -243,6 +244,49 @@ async function cast(registry) {
   await syncHats(registry, { inDir: CAST_IN, outDir: OUT, strict });
 }
 
+const PIG_IN = "art/incoming/pig";
+const PIG_FACES = ["squint", "charge", "hurt", "defeated"];
+/** The tufts are painted about 350 px across and drawn under 100: stored at half size. */
+const TUFT_SCALE = 0.5;
+
+/** The pig (R3 §6.3): its body cut like a cast painting on its own cut, its four face edits on the head, and its stuffing tufts. */
+async function pig(registry) {
+  const file = join(PIG_IN, "pig-body.png");
+  if (!existsSync(file)) return;
+  const cutsFile = "art/cuts/pig.json";
+  if (!existsSync(cutsFile)) {
+    console.warn(`pig: painted but not cut yet (no ${cutsFile}); the drawn pig stands in`);
+    return;
+  }
+  // A bad cut or face leaves the drawn pig (or its plain face) standing in and the rest of the art going.
+  await tolerant("pig", strict, async () => {
+    const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
+    const faces = {};
+    for (const name of PIG_FACES) {
+      const f = join(PIG_IN, `pig-${name}.png`);
+      if (existsSync(f)) faces[name] = await keyOut(readFileSync(f));
+    }
+    const { rig, images, layers, W, H } = await castRig("pig", await keyOut(readFileSync(file)), cuts, { faces, strict });
+    for (const [name, png] of images) writeFileSync(join(OUT, name), png);
+    const rigFile = "cast/pig-rig.json";
+    writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
+    const stuffing = [];
+    const tufts = join(PIG_IN, "pig-stuffing.png");
+    if (existsSync(tufts))
+      for (const [i, p] of (await sheetPieces(await keyOut(readFileSync(tufts)))).entries()) {
+        const name = `cast/pig-stuffing-${i + 1}.png`;
+        writeFileSync(join(OUT, name), await scaled(p.png, p.width, TUFT_SCALE));
+        stuffing.push({ file: name, width: Math.round(p.width * TUFT_SCALE), height: Math.round(p.height * TUFT_SCALE), base: { x: Math.round(p.base.x * TUFT_SCALE), y: Math.round(p.base.y * TUFT_SCALE) } });
+      }
+    registry.pig = { rig: rigFile, span: rig.span, stuffing };
+    console.log(`pig: ${bodyLayers(cuts).length} layers and the head, ${Object.keys(rig.head.faces ?? {}).length} faces, ${stuffing.length} tufts`);
+    if (overlay) {
+      const sheet = await Promise.all(layerZ(cuts).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer()));
+      await drawLayers("pig", sheet);
+    }
+  });
+}
+
 /** The layers side by side on a dark ground, painted-in parts and all, for checking the cuts by eye. */
 async function drawLayers(costume, sheet) {
   const metas = await Promise.all(sheet.map((png) => sharp(png).metadata()));
@@ -367,6 +411,7 @@ await heads(registry);
 await props(registry);
 await bodies(registry);
 await cast(registry);
+await pig(registry);
 await backdrops(registry);
 await walls(registry);
 await products();

@@ -282,11 +282,14 @@ const DROPPED = -2;
 /** The order they are drawn in, back to front. */
 export const LAYER_Z = ["armFar", "legFar", "legNear", "torso", "armNear"];
 /**
- * A cast body's cut adds its head: claimed after the torso, so the collar stays with the jacket,
- * and drawn behind it, so the neck runs on down under the collar however the head turns.
+ * A cast body's cut adds its head: claimed after the torso, so the collar stays with the jacket, and drawn behind it,
+ * so the neck runs on down under the collar however the head turns. A cut may name its own lists instead (the pig's):
+ * `order` front to back for claiming the painted pixels, `z` back to front for drawing, the head among them.
  */
-export const layerOrder = (cuts) => (cuts.layers.head ? ["armNear", "torso", "head", "legNear", "legFar", "armFar"] : LAYER_ORDER);
-export const layerZ = (cuts) => (cuts.layers.head ? ["armFar", "legFar", "legNear", "head", "torso", "armNear"] : LAYER_Z);
+export const layerOrder = (cuts) => cuts.order ?? (cuts.layers.head ? ["armNear", "torso", "head", "legNear", "legFar", "armFar"] : LAYER_ORDER);
+export const layerZ = (cuts) => cuts.z ?? (cuts.layers.head ? ["armFar", "legFar", "legNear", "head", "torso", "armNear"] : LAYER_Z);
+/** The skinned layers, back to front: all but the head. */
+export const bodyLayers = (cuts) => layerZ(cuts).filter((n) => n !== "head");
 const OUTLINE = [16, 16, 16];
 const OUTLINE_PX = 3;
 
@@ -1029,11 +1032,12 @@ export async function castHeadPlate(rgba, W, H, neck, scale, crop = null) {
  * A cast body as the game loads it, from its keyed painting and its cut: the five skinned layers
  * (meshes and weights in the crop's pixels, textures at TEXTURE_SCALE), the head as a plate turning
  * on the painted neck joint, a white silhouette of each for the rim light, and `share`, the painted
- * head's height (crown to neck joint) over the whole figure's. A face edit (`silly`, keyed) is aligned
- * back onto the painting and cut the same way; one that does not fit is skipped, or refused when strict.
+ * head's height (crown to neck joint) over the whole figure's. The face edits (`silly`, the cast's knocked-silly
+ * face, and `faces`, the pig's four by name, each keyed) are aligned back onto the painting and cut the same way;
+ * one that does not fit is skipped, or refused when strict. A cut naming its own layers (`z`) skins those.
  * Returns the rig and the images to write, by their names under public/art.
  */
-export async function castRig(person, keyed, cuts, { silly = null, strict = false } = {}) {
+export async function castRig(person, keyed, cuts, { silly = null, faces = {}, strict = false } = {}) {
   const { W, H, layers } = await separateLayers(keyed, cuts);
   const { rig } = cuts;
   const images = new Map();
@@ -1045,8 +1049,9 @@ export async function castRig(person, keyed, cuts, { silly = null, strict = fals
     bones: rig.bones,
     ...(rig.match ? { match: rig.match } : {}),
     layers: {},
+    ...(cuts.z ? { z: cuts.z } : {}),
   };
-  for (const name of LAYER_Z) {
+  for (const name of bodyLayers(cuts)) {
     const { rgba } = layers[name];
     const alpha = new Uint8Array(W * H);
     for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3] > 0 ? 1 : 0;
@@ -1106,7 +1111,7 @@ export async function castRig(person, keyed, cuts, { silly = null, strict = fals
     for (const [hex, spec] of recolors) {
       const mean = maskMean(data, recolorMask(data, W, H, spec));
       const tag = hex.slice(1);
-      for (const name of LAYER_Z) {
+      for (const name of bodyLayers(cuts)) {
         const l = out.layers[name];
         const rgba = recolorLayer(layers[name].rgba, recolorMask(layers[name].rgba, W, H, spec, name), hex, mean);
         const file = `cast/${person}-${tag}-${name}.png`;
@@ -1120,18 +1125,24 @@ export async function castRig(person, keyed, cuts, { silly = null, strict = fals
       (out.head.recolors ??= {})[hex] = file;
     }
   }
-  if (silly) {
-    const a = await alignTo(keyed.png, silly.png);
+  // The face edits, each aligned back onto the painting, cut the same way and framed exactly like the plain head:
+  // the cast's knocked-silly face, and the pig's four. One that does not fit is skipped, or refused when strict.
+  const edits = { ...(silly ? { silly } : {}), ...faces };
+  for (const [name, edit] of Object.entries(edits)) {
+    const a = await alignTo(keyed.png, edit.png);
     const verdict = gateExpression(a.overlap, { strict });
-    const why = `${person}-silly.png: outline overlap ${a.overlap.toFixed(2)}, expected at least ${ALIGN_MIN}; make it again as an edit of ${person}.png`;
+    const why = `${person}-${name}.png: outline overlap ${a.overlap.toFixed(2)}, expected at least ${ALIGN_MIN}; make it again as an edit of ${person}.png`;
     if (verdict === "refuse") throw new Error(why);
-    if (verdict === "skip") console.warn(`${why} (skipped; the plain face stands in)`);
-    else {
-      const { layers: edited } = await separateLayers(await alignOnto(keyed, silly, a), cuts);
-      const plate = await castHeadPlate(edited.head.rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
-      out.head.silly = `cast/${person}-head-silly.png`;
-      images.set(out.head.silly, plate.png);
+    if (verdict === "skip") {
+      console.warn(`${why} (skipped; the plain face stands in)`);
+      continue;
     }
+    const { layers: edited } = await separateLayers(await alignOnto(keyed, edit, a), cuts);
+    const plate = await castHeadPlate(edited.head.rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+    const file = `cast/${person}-head-${name}.png`;
+    images.set(file, plate.png);
+    if (name === "silly") out.head.silly = file;
+    else (out.head.faces ??= {})[name] = file;
   }
   return { rig: out, images, layers, W, H, head };
 }

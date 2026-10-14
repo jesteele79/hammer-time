@@ -15,6 +15,8 @@ import {
   skinWeights,
   LAYER_Z,
   layerZ,
+  layerOrder,
+  bodyLayers,
   castRig,
   hatBase,
   recolorMask,
@@ -523,6 +525,10 @@ test("every cast painting in art/incoming/cast has its cut", () => {
   for (const p of PERSONS) if (existsSync(`${CAST_IN}/${p}.png`)) assert.ok(existsSync(`art/cuts/cast-${p}.json`), `${p} is painted but not cut`);
 });
 
+test("the pig's painting has its cut", () => {
+  assert.ok(!existsSync(`${PIG_IN}/pig-body.png`) || existsSync("art/cuts/pig.json"));
+});
+
 test("a hat sits on its base's middle, whatever hangs below it", async () => {
   // A pillbox 200 x 120 with a thin chin strap hanging 60 px below its left end, on clear ground.
   const W = 240,
@@ -812,4 +818,110 @@ test("the pickups are served as small copies cut to what is painted, each at lea
     // On a tall phone at three times its pixels, his 340 is about 1270 screen px: a pickup p.height tall is drawn this tall.
     assert.ok(meta.height >= Math.min(y1 - y0, 2 * (p.height / 340) * 1270) * 0.95, `${name}: ${meta.height} stored for ${Math.round((p.height / 340) * 1270)} drawn`);
   }
+});
+
+const PIG_IN = "art/incoming/pig";
+const PIG_FACES = ["squint", "charge", "hurt", "defeated"];
+let pigCache = null;
+/** The pig keyed and cut, with its painting's pixels. */
+const pigOf = async () => {
+  if (!pigCache) {
+    const keyed = await keyOut(readFileSync(`${PIG_IN}/pig-body.png`));
+    const cuts = JSON.parse(readFileSync("art/cuts/pig.json", "utf8"));
+    const { data } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    pigCache = { keyed, cuts, data, ...(await separateLayers(keyed, cuts)) };
+  }
+  return pigCache;
+};
+
+test("a cut may name its own layers: the cast's keep the old lists, the pig's are its own", () => {
+  assert.deepEqual(layerZ({ layers: { head: {} } }), ["armFar", "legFar", "legNear", "head", "torso", "armNear"]);
+  assert.deepEqual(bodyLayers({ layers: { head: {} } }), ["armFar", "legFar", "legNear", "torso", "armNear"]);
+  assert.deepEqual(layerZ({ layers: {}, z: ["a", "head", "b"] }), ["a", "head", "b"]);
+  assert.deepEqual(bodyLayers({ layers: {}, z: ["a", "head", "b"] }), ["a", "b"]);
+  assert.deepEqual(layerOrder({ layers: {}, order: ["b", "head", "a"] }), ["b", "head", "a"]);
+});
+
+test("the pig is cut into seven layers, its head in front of its body, that put its painting back together at rest", async () => {
+  const { W, H, layers, owner, data, cuts } = await pigOf();
+  const z = layerZ(cuts);
+  assert.deepEqual(z, ["armFar", "legFar", "tail", "torso", "legNear", "head", "armNear"]);
+  let wrong = 0,
+    extra = 0,
+    lost = 0;
+  for (let i = 0; i < W * H; i++) {
+    let top = null;
+    for (const name of z) if (layers[name].rgba[i * 4 + 3] > 0) top = name;
+    if (owner[i] < 0) {
+      if (top) extra++;
+      if (data[i * 4 + 3] >= 128) lost++;
+      continue;
+    }
+    const px = layers[top].rgba.subarray(i * 4, i * 4 + 4);
+    if (px[0] !== data[i * 4] || px[1] !== data[i * 4 + 1] || px[2] !== data[i * 4 + 2] || px[3] !== data[i * 4 + 3]) wrong++;
+  }
+  assert.equal(wrong, 0, "the frontmost layer shows the painted pixel");
+  assert.equal(extra, 0, "nothing is drawn where the painting is empty");
+  assert.ok(lost < 40, `${lost} painted pixels belong to no layer`);
+  for (const name of z) assert.ok(layers[name].rgba.some((v, i) => i % 4 === 3 && v > 0), `${name} has paint`);
+});
+
+test("the pig's layers are meshed and skinned: every painted pixel in a cell, weights summing to one", async () => {
+  const { W, H, layers, cuts } = await pigOf();
+  for (const name of bodyLayers(cuts)) {
+    const alpha = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) alpha[i] = layers[name].rgba[i * 4 + 3] > 0 ? 1 : 0;
+    const mesh = buildMesh(alpha, W, H, 14);
+    const { weights } = skinWeights(mesh.positions, cuts.rig, name);
+    for (let v = 0; v < mesh.positions.length / 2; v++) {
+      const sum = weights[v * 4] + weights[v * 4 + 1] + weights[v * 4 + 2] + weights[v * 4 + 3];
+      assert.ok(Math.abs(sum - 1) < 1e-6, `pig ${name} vertex ${v} weights sum to ${sum}`);
+    }
+  }
+});
+
+test("the pig's joints lie on its painting, its sole is its near foot's lowest row, and it keeps its own arms", async () => {
+  const { W, H, data, cuts } = await pigOf();
+  const painted = (x, y) => x >= 0 && y >= 0 && x < W && y < H && data[(y * W + x) * 4 + 3] >= 128;
+  for (const [name, [x, y]] of Object.entries(cuts.rig.joints)) {
+    let on = false;
+    for (let dy = -14; dy <= 14 && !on; dy++) for (let dx = -14; dx <= 14 && !on; dx++) on = painted(Math.round(x) + dx, Math.round(y) + dy);
+    assert.ok(on, `${name} at ${x},${y} is off the painting`);
+  }
+  const [tx] = cuts.rig.joints.toeNear,
+    [hx] = cuts.rig.joints.heelNear;
+  let lowest = -1;
+  for (let y = H - 1; y >= 0 && lowest < 0; y--) for (let x = Math.min(tx, hx); x <= Math.max(tx, hx); x++) if (painted(x, y)) lowest = y;
+  assert.ok(Math.abs(cuts.rig.sole - lowest) <= 3, `sole ${cuts.rig.sole}, near foot's lowest row ${lowest}`);
+  assert.deepEqual(cuts.rig.match, [], "its stubby arms are never turned to Hammer's stance");
+});
+
+test("the pig's rig: six skinned layers in its own order, the head plate, four faces framed exactly like it, and three tufts", async () => {
+  const { keyed, cuts } = await pigOf();
+  const faces = {};
+  for (const name of PIG_FACES) faces[name] = await keyOut(readFileSync(`${PIG_IN}/pig-${name}.png`));
+  const { rig, images } = await castRig("pig", keyed, cuts, { faces, strict: true });
+  assert.deepEqual(rig.z, cuts.z);
+  assert.deepEqual(Object.keys(rig.layers), bodyLayers(cuts));
+  assert.deepEqual(rig.match, []);
+  assert.deepEqual(Object.keys(rig.head.faces).sort(), [...PIG_FACES].sort());
+  const plain = await sharp(images.get(rig.head.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (const [name, file] of Object.entries(rig.head.faces)) {
+    const face = await sharp(images.get(file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    assert.deepEqual([face.info.width, face.info.height], [plain.info.width, plain.info.height], `${name}: framed like the head`);
+    let changed = 0;
+    for (let i = 0; i < face.data.length; i += 4) if (Math.abs(face.data[i] - plain.data[i]) + Math.abs(face.data[i + 1] - plain.data[i + 1]) > 60) changed++;
+    assert.ok(changed > 50, `${name}: the face is changed (${changed} px)`);
+  }
+  assert.ok(rig.head.share > 0.28 && rig.head.share < 0.36, `the head ${rig.head.share} of the pig`);
+  const tufts = await sheetPieces(await keyOut(readFileSync(`${PIG_IN}/pig-stuffing.png`)));
+  assert.equal(tufts.length, 3, "three tufts");
+});
+
+test("a pig face from another painting is refused when strict and skipped otherwise", async () => {
+  const { keyed, cuts } = await pigOf();
+  const other = await keyOut(readFileSync("art/incoming/hammer/body-affliction.png"));
+  await assert.rejects(castRig("pig", keyed, cuts, { faces: { hurt: other }, strict: true }), /overlap/);
+  const loose = await castRig("pig", keyed, cuts, { faces: { hurt: other }, strict: false });
+  assert.equal(loose.rig.head.faces?.hurt, undefined);
 });

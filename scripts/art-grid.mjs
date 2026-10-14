@@ -1,10 +1,10 @@
 // Zooms into a keyed body plate with a labelled grid in the keyed crop's pixels, for measuring
 // joints and cut lines by eye. The rig's joints, bones and layer outlines (fills dashed) from the
 // body's cut file are drawn over it when they exist: art/cuts/hammer-body.json for Hammer's
-// costumes, art/cuts/cast-<person>.json for a cast painting.
+// costumes, art/cuts/cast-<person>.json for a cast painting, art/cuts/pig.json for the pig.
 // A venue's wall is named wall/<name>: its painting as it is (no green to key), its cut's seams red and its floor line cyan.
-// Usage: node scripts/art-grid.mjs <costume | cast/<person> | wall/<name>> [x y w h] [scale] [--bare]
-//   writes artifacts/grid-<costume>.png, artifacts/grid-cast-<person>.png or artifacts/grid-wall-<name>.png
+// Usage: node scripts/art-grid.mjs <costume | cast/<person> | pig | wall/<name>> [x y w h] [scale] [--bare]
+//   writes artifacts/grid-<costume>.png, artifacts/grid-cast-<person>.png, artifacts/grid-pig.png or artifacts/grid-wall-<name>.png
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import sharp from "sharp";
 import { keyOut } from "./art-cut.mjs";
@@ -15,10 +15,11 @@ const target = args[0] ?? "affliction";
 // A cast painting is named cast/<person>: its plate and its own cut file.
 const person = target.startsWith("cast/") ? target.slice(5) : null;
 const wall = target.startsWith("wall/") ? target.slice(5) : null;
+const pig = target === "pig";
 const wallPng = wall ? readFileSync(`art/incoming/backdrops/${wall}.png`) : null;
 const keyed = wallPng
   ? { png: wallPng, ...(await sharp(wallPng).metadata()) }
-  : await keyOut(readFileSync(person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`));
+  : await keyOut(readFileSync(pig ? "art/incoming/pig/pig-body.png" : person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`));
 const [x0, y0, w, h] = args.length >= 5 ? args.slice(1, 5).map(Number) : [0, 0, keyed.width, keyed.height];
 const scale = Number(args[5] ?? (args.length >= 5 ? 2 : 1));
 const W = Math.round(w * scale),
@@ -49,11 +50,11 @@ if (!bare && wallCut && existsSync(wallCut)) {
   for (const s of cut.seams) shapes.push(`<line x1="${px(s)}" y1="0" x2="${px(s)}" y2="${H}" stroke="#ff3b3b" stroke-width="3"/>`);
   shapes.push(`<line x1="0" y1="${py(cut.floor)}" x2="${W}" y2="${py(cut.floor)}" stroke="#3bfff0" stroke-width="3"/>`);
 }
-const cutsFile = person ? `art/cuts/cast-${person}.json` : "art/cuts/hammer-body.json";
+const cutsFile = pig ? "art/cuts/pig.json" : person ? `art/cuts/cast-${person}.json` : "art/cuts/hammer-body.json";
 if (!bare && !wall && existsSync(cutsFile)) {
   const cuts = JSON.parse(readFileSync(cutsFile, "utf8"));
-  const colors = { head: "#c08cff", torso: "#ff3b3b", armNear: "#ffd23b", armFar: "#3bb0ff", legNear: "#ff7ad9", legFar: "#3bfff0" };
-  const layers = { ...(cuts.layers ?? {}), ...(person ? {} : (cuts.overrides?.[target]?.layers ?? {})) };
+  const colors = { head: "#c08cff", torso: "#ff3b3b", armNear: "#ffd23b", armFar: "#3bb0ff", legNear: "#ff7ad9", legFar: "#3bfff0", tail: "#ffffff" };
+  const layers = { ...(cuts.layers ?? {}), ...(person || pig ? {} : (cuts.overrides?.[target]?.layers ?? {})) };
   const outline = (poly, c, dashed) => {
     const pts = poly.map(([x, y]) => `${px(x)},${py(y)}`).join(" ");
     shapes.push(`<polygon points="${pts}" fill="none" stroke="${c}" stroke-width="2" stroke-dasharray="${dashed ? "6 4" : ""}"/>`);
