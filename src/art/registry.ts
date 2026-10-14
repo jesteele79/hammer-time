@@ -16,6 +16,8 @@ export type HeadPlate = {
   face: Rect;
   /** The nose tip: snot leaves from just ahead of it. */
   nose: Point;
+  /** The stored file's size as a share of the plate's pixels, which every number above is in; 1 when missing. */
+  scale?: number;
 };
 /** A painted body: its skinned layers and bones live in the rig file; `span` is its sole-to-neck height in crop pixels. */
 export type Body = { rig: string; span: number };
@@ -29,6 +31,8 @@ export type Prop = {
   span?: number;
   /** The hat as worn: cut at its base, the strap left off (same top-left, so the same pivot). */
   worn?: string;
+  /** The stored file's size as a share of the pixels `width`, `height`, `pivot` and `tip` are in; 1 when missing. */
+  scale?: number;
 };
 /** A venue's painted wall, cropped at its seams: `floor` is the row where it meets the floor; `top` and `bottom` its top and bottom rows' colors, which carry it on above and below. */
 export type Wall = { file: string; width: number; height: number; floor: number; top: string; bottom?: string };

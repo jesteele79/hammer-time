@@ -157,22 +157,17 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
   let rig: RigFile | null = null;
   const skinned: Skinned[] = [];
   const textures = new Map<string, Texture>();
-  const load = (file: string) =>
-    Assets.load<Texture>({ src: ART_BASE + file, data: MIPMAPS }).then((t) => textures.set(file, t));
+  // A plate stored at a share of its pixels loads at that resolution, so its size and every point on it read in plate pixels.
+  const load = (file: string, scale = 1) =>
+    Assets.load<Texture>({ src: ART_BASE + file, data: { ...MIPMAPS, resolution: scale } }).then((t) => textures.set(file, t));
 
   const plates = Object.values(heads).filter((p): p is HeadPlate => !!p);
-  const ready = (async () => {
-    const res = await fetch(ART_BASE + body.rig, { cache: "no-cache" });
-    if (!res.ok) throw new Error(`body rig ${body.rig}: ${res.status}`);
-    rig = (await res.json()) as RigFile;
-    const layers = rig.layers ?? {};
+  /** What only an event shows (the other faces, the towel, the watch): loaded once he is on screen. */
+  const later = async () => {
     await Promise.all([
-      ...LAYER_Z.map((name) => layers[name]?.file && load(layers[name].file)),
-      ...LAYER_Z.flatMap((name) => Object.values(layers[name]?.variants ?? {}).map(load)),
-      ...plates.map((p) => load(p.file)),
-      mallet ? load(mallet.file) : null,
-      towelPlate ? load(towelPlate.file) : null,
-      watchPlate ? load(watchPlate.file) : null,
+      ...plates.filter((p) => p !== neutral).map((p) => load(p.file, p.scale).catch(() => fallback(`${p.file} did not load; the neutral face stands in`))),
+      towelPlate ? load(towelPlate.file, towelPlate.scale).catch(() => fallback(`${towelPlate.file} did not load; no towel`)) : null,
+      watchPlate ? load(watchPlate.file, watchPlate.scale).catch(() => fallback(`${watchPlate.file} did not load; no watch`)) : null,
     ]);
     const watchTexture = watchPlate && textures.get(watchPlate.file);
     if (watchSprite && watchTexture) {
@@ -190,6 +185,19 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
       towel.holder.zIndex = TOWEL_Z;
       container.addChild(towel.holder);
     }
+  };
+  const ready = (async () => {
+    const res = await fetch(ART_BASE + body.rig, { cache: "no-cache" });
+    if (!res.ok) throw new Error(`body rig ${body.rig}: ${res.status}`);
+    rig = (await res.json()) as RigFile;
+    const layers = rig.layers ?? {};
+    // The first frame needs the body, the neutral face and the mallet in his fist; the rest follows.
+    await Promise.all([
+      ...LAYER_Z.map((name) => layers[name]?.file && load(layers[name].file)),
+      ...LAYER_Z.flatMap((name) => Object.values(layers[name]?.variants ?? {}).map((f) => load(f))),
+      load(neutral.file, neutral.scale),
+      mallet ? load(mallet.file, mallet.scale) : null,
+    ]);
     LAYER_Z.forEach((name, z) => {
       const layer = layers[name];
       if (!layer?.file || !layer.indices) return;
@@ -221,6 +229,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
       skinned.push(entry);
     });
     if (malletSprite && mallet) malletSprite.texture = textures.get(mallet.file) ?? Texture.EMPTY;
+    void later();
   })();
 
   let headPlate: HeadPlate = neutral;
@@ -296,7 +305,9 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
         towel.holder.zIndex = over ? TOWEL_OVER_Z : TOWEL_Z;
         towel.tint = ambient;
       }
-      const wanted = (opts.noart && expression !== "neutral" ? undefined : heads[expression]) ?? neutral;
+      const asked = (opts.noart && expression !== "neutral" ? undefined : heads[expression]) ?? neutral;
+      // A face still loading shows as the neutral one.
+      const wanted = textures.has(asked.file) ? asked : neutral;
       if (wanted !== headPlate || head.texture === Texture.EMPTY) {
         headPlate = wanted;
         head.texture = textures.get(wanted.file) ?? Texture.EMPTY;

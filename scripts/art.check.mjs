@@ -747,3 +747,16 @@ test("a hat painting that cannot be cut is skipped with a warning: the other hat
   assert.equal(registry.cast.hats.cook, undefined, "the cook's is skipped: he plays bareheaded");
   await assert.rejects(syncHats({ cast: { bodies: {}, hats: {} } }, { inDir, outDir, strict: true }), "a strict sync still stops on it");
 });
+
+test("Hammer's heads and props are stored at the body's texture scale, their plate pixels kept; the life icon is small", async () => {
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  const plates = [...Object.values(reg.hammer.heads), ...["mallet", "towel", "wristwatch"].map((n) => reg.hammer.props[n]).filter(Boolean)];
+  assert.ok(plates.length >= 7, `heads and props registered: ${plates.length}`);
+  for (const p of plates) {
+    const meta = await sharp(`public/art/${p.file}`).metadata();
+    assert.equal(p.scale, 0.5, `${p.file} records its scale`);
+    assert.ok(Math.abs(meta.width - p.width * p.scale) <= 1 && Math.abs(meta.height - p.height * p.scale) <= 1, `${p.file}: ${meta.width}x${meta.height} for a ${p.width}x${p.height} plate`);
+  }
+  const icon = await sharp(`public/art/${reg.hammer.portrait.file}`).metadata();
+  assert.ok(icon.width <= 256, `the life icon is ${icon.width} wide`);
+});

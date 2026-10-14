@@ -898,3 +898,11 @@ test("the swinging door's drawn pose holds still at rest, so it is drawn once, a
   assert.ok(doorPoses(specs, mid)[0].open > 0.99 && doorPoses(specs, mid)[0].dir === 1, JSON.stringify(doorPoses(specs, mid)));
   assert.deepEqual(doorPoses([], rest), [], "a venue with no door draws none");
 });
+
+import { towelDrawScale } from "../src/render/towel.ts";
+
+test("the towel is turned from its plate at the same size whether the plate is stored whole or at half scale", () => {
+  const whole = { width: 620, height: 1322, source: { resolution: 1 } };
+  const half = { width: 620, height: 1322, source: { resolution: 0.5 } };
+  assert.equal(towelDrawScale(half, 200), towelDrawScale(whole, 200) * 2);
+});

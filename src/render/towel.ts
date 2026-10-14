@@ -107,6 +107,11 @@ export class Towel {
 }
 
 /** The towel plate turned to run along a rope: its top (where it hangs from) at the start, `width` world px across. */
+/** How much the towel plate's stored image is scaled to turn it `width` wide: a plate stored at half scale is drawn twice as large. */
+export function towelDrawScale(plate: { width: number; source: { resolution: number } }, width: number): number {
+  return (width * RES) / plate.width / plate.source.resolution;
+}
+
 export function towelTexture(plate: Texture, width: number, make: (canvas: HTMLCanvasElement) => Texture): Texture {
   const k = (width * RES) / plate.width;
   const canvas = document.createElement("canvas");
@@ -114,7 +119,8 @@ export function towelTexture(plate: Texture, width: number, make: (canvas: HTMLC
   canvas.height = Math.max(1, Math.round(plate.width * k));
   const ctx = canvas.getContext("2d")!;
   // (x, y) on the plate lands at (y, x): the hanging point first, the plate's width across the rope.
-  ctx.setTransform(0, k, k, 0, 0, 0);
+  const d = towelDrawScale(plate, width);
+  ctx.setTransform(0, d, d, 0, 0, 0);
   ctx.drawImage(plate.source.resource as CanvasImageSource, 0, 0);
   return make(canvas);
 }

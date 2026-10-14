@@ -35,6 +35,8 @@ import { ink } from "./ink.mjs";
 const OUT = "public/art";
 const HAMMER_IN = "art/incoming/hammer";
 const MANIFEST = "art/manifest.json";
+/** The life icon's stored width: it shows a few dozen CSS px across, three times that on a phone. */
+const ICON_WIDTH = 256;
 const EXPRESSIONS = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const COSTUMES = ["affliction", "scrubs", "suit", "banquet"];
 const args = process.argv.slice(2);
@@ -112,16 +114,18 @@ async function heads(registry) {
       reg = registerAligned(neutralReg, a, { width: keyed.width, height: keyed.height });
     }
     const outFile = `hammer/head-${name}.png`;
-    writeFileSync(join(OUT, outFile), keyed.png);
-    registry.hammer.heads[name] = { file: outFile, ...reg };
+    // Stored at the body's texture scale: the game draws a head well under half its painted size, even on a phone.
+    writeFileSync(join(OUT, outFile), await scaled(keyed.png, keyed.width, TEXTURE_SCALE));
+    registry.hammer.heads[name] = { file: outFile, ...reg, scale: TEXTURE_SCALE };
     console.log(`head ${name}: ${reg.width}x${reg.height}, neck ${reg.neck.x},${reg.neck.y}, nose ${reg.nose.x},${reg.nose.y}`);
   }
   const tq = join(HAMMER_IN, "head-three-quarter.png");
   if (existsSync(tq)) {
     const keyed = await keyOut(readFileSync(tq));
     const reg = await registerHead(keyed.png, "three-quarter");
-    writeFileSync(join(OUT, "hammer/head-three-quarter.png"), keyed.png);
-    registry.hammer.portrait = { file: "hammer/head-three-quarter.png", ...reg };
+    // Only ever the life icon on the HUD and the cards: a few dozen pixels across.
+    writeFileSync(join(OUT, "hammer/head-three-quarter.png"), await scaled(keyed.png, keyed.width, ICON_WIDTH / keyed.width));
+    registry.hammer.portrait = { file: "hammer/head-three-quarter.png", ...reg, scale: ICON_WIDTH / keyed.width };
   }
 }
 
@@ -136,8 +140,8 @@ async function props(registry) {
     if (!existsSync(file)) continue;
     const keyed = await keyOut(readFileSync(file));
     const outFile = `hammer/${name}.png`;
-    writeFileSync(join(OUT, outFile), keyed.png);
-    registry.hammer.props[name] = { file: outFile, width: keyed.width, height: keyed.height, ...PROP_ANCHORS[name] };
+    writeFileSync(join(OUT, outFile), await scaled(keyed.png, keyed.width, TEXTURE_SCALE));
+    registry.hammer.props[name] = { file: outFile, width: keyed.width, height: keyed.height, ...PROP_ANCHORS[name], scale: TEXTURE_SCALE };
     console.log(`prop ${name}: ${keyed.width}x${keyed.height}`);
   }
 }
