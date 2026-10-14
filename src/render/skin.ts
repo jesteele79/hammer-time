@@ -5,6 +5,8 @@ import { NECK_REST_Y, type JointName } from "../sim/rig/skeleton";
 /** The body's layers, drawn back to front. */
 export const LAYER_Z = ["armFar", "legFar", "legNear", "torso", "armNear"] as const;
 export type LayerName = (typeof LAYER_Z)[number];
+/** A cast body's draw order, back to front, its head among the layers: behind the torso, so the collar covers its neck. */
+export const CAST_Z = ["armFar", "legFar", "legNear", "head", "torso", "armNear"] as const;
 
 /** A layer's mesh in the body crop's pixels, with up to four bone influences per vertex. */
 export type RigLayer = {
@@ -34,7 +36,9 @@ export type RigFile = {
   root: [number, number];
   joints: Record<string, [number, number]>;
   bones: [JointName, JointName][];
-  layers?: Partial<Record<LayerName, RigLayer>>;
+  layers?: Partial<Record<string, RigLayer>>;
+  /** Its cut's draw order, back to front, the head among them (the pig's); the cast's when missing. */
+  z?: string[];
   /** The bones a painted cast body turns to Hammer's stance (ARM_BONES when missing). */
   match?: [JointName, JointName][];
   /** A cast body's head, cut from its painting (Hammer's heads are separate plates). */
@@ -53,10 +57,17 @@ export type CastHead = HeadPlate & {
   sil: string;
   /** The face edit, knocked silly, framed exactly like the plate. */
   silly?: string;
+  /** The face edits by name, each framed exactly like the plate: the pig's. */
+  faces?: Record<string, string>;
   recolors?: Record<string, string>;
   /** Where its hat sits (its base's middle) and how wide it is, plate pixels; `name` is whose hat, the bellhops' when missing. */
   hat?: { x: number; y: number; width: number; name?: string };
 };
+
+/** A rig's draw order with its head among its layers: its cut's own (the pig's), or the cast's. */
+export const drawOrder = (rig: Pick<RigFile, "z">): readonly string[] => rig.z ?? CAST_Z;
+/** A rig's skinned layers, back to front. */
+export const bodyLayersOf = (rig: Pick<RigFile, "z">): string[] => drawOrder(rig).filter((n) => n !== "head");
 
 /** A layer's or a head's texture in a recolor when it has one, its own otherwise. */
 export const layerTexture = (part: { file?: string; recolors?: Record<string, string> }, recolor: string | null): string =>

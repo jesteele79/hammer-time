@@ -4,11 +4,11 @@ import type { CastPerson } from "../sim/level";
 import type { Solved } from "../sim/rig/fk";
 import type { Skeleton } from "../sim/rig/skeleton";
 import { RIM, castSkeleton, growAbove, taperHead } from "./cast-art";
-import { LAYER_Z, bodyScale, layerTexture, skinLayer, type CastHead, type LayerName, type RigFile, type RigLayer } from "./skin";
+import { bodyLayersOf, bodyScale, drawOrder, layerTexture, skinLayer, type CastHead, type RigFile, type RigLayer } from "./skin";
 
-/** One person's painting, loaded once and shared by everyone who wears it. */
+/** One person's painting (or the pig's), loaded once and shared by everyone who wears it. */
 export type CastArt = {
-  person: CastPerson;
+  person: CastPerson | "pig";
   rig: RigFile;
   skeleton: Skeleton;
   head: CastHead;
@@ -16,7 +16,8 @@ export type CastArt = {
   /** The hat their cut seats (the bellhops' or the cook's), worn (cut at its base) and whole (to fly off). */
   hat: { worn: Texture; whole: Texture; plate: Prop } | null;
 };
-export type PaintOpts = { recolor: string | null; dazed: boolean; hat: boolean; silhouette: boolean };
+/** `face` is a face edit by name, worn over the plain face (the pig's). */
+export type PaintOpts = { recolor: string | null; dazed: boolean; hat: boolean; silhouette: boolean; face?: string | null };
 /** The rim light on a member: which side, how strong, and how far the edge peeks out in the figure's own px. */
 export type Rim = { side: 1 | -1; k: number; px: number };
 
@@ -26,9 +27,7 @@ const MIPMAPS = { autoGenerateMipmaps: true };
  * the legs', and a tint starting at that cut showed as a seam across the thigh (Hammer's far leg is bare skin).
  */
 const FAR_SHADE = 0xe2dad2;
-const FAR_LAYERS = new Set<LayerName>(["armFar"]);
-/** The head between the near leg and the torso: the collar covers where its neck runs on, however it turns. */
-const HEAD_Z = 2.5;
+const FAR_LAYERS: ReadonlySet<string> = new Set(["armFar"]);
 /** On the projector's sheet every part is this dark. */
 const SIL = 0x14110f;
 
@@ -38,16 +37,18 @@ function filesOf(rig: RigFile): string[] {
   const add = (p: { file?: string; sil?: string; silly?: string; recolors?: Record<string, string> }) => {
     for (const f of [p.file, p.sil, p.silly, ...Object.values(p.recolors ?? {})]) if (f) files.add(f);
   };
-  for (const name of LAYER_Z) add(rig.layers?.[name] ?? {});
-  if (rig.head) add(rig.head);
+  for (const name of bodyLayersOf(rig)) add(rig.layers?.[name] ?? {});
+  if (rig.head) {
+    add(rig.head);
+    for (const f of Object.values(rig.head.faces ?? {})) files.add(f);
+  }
   return [...files];
 }
 
 const loads = new Map<string, Promise<CastArt | null>>();
 
-/** A person's rig and textures, or null when their painting is not registered or does not load: the stand-in draws them. */
-export function loadCastArt(registry: Registry, person: CastPerson): Promise<CastArt | null> {
-  const body = registry.cast?.bodies[person];
+/** A body's rig and textures, or null when it is not registered or does not load: its stand-in draws it. */
+export function loadRigArt(registry: Registry, body: { rig: string } | undefined, person: CastPerson | "pig"): Promise<CastArt | null> {
   if (!body) return Promise.resolve(null);
   let load = loads.get(body.rig);
   if (!load) {
@@ -56,7 +57,7 @@ export function loadCastArt(registry: Registry, person: CastPerson): Promise<Cas
         const res = await fetch(ART_BASE + body.rig, { cache: "no-cache" });
         if (!res.ok) throw new Error(`${res.status}`);
         const rig = (await res.json()) as RigFile;
-        if (!rig.head || !LAYER_Z.every((n) => rig.layers?.[n]?.file)) throw new Error("no head, or a layer missing");
+        if (!rig.head || !bodyLayersOf(rig).every((n) => rig.layers?.[n]?.file)) throw new Error("no head, or a layer missing");
         const textures = new Map<string, Texture>();
         await Promise.all(filesOf(rig).map((f) => Assets.load<Texture>({ src: ART_BASE + f, data: MIPMAPS }).then((t) => textures.set(f, t))));
         const plate = rig.head.hat ? registry.cast?.hats?.[rig.head.hat.name ?? "bellhop"] : undefined;
@@ -80,7 +81,12 @@ export function loadCastArt(registry: Registry, person: CastPerson): Promise<Cas
   return load;
 }
 
-type Part = { name: LayerName; layer: RigLayer; mesh: Mesh; geometry: MeshGeometry; positions: Float32Array };
+/** A person's painting, or null: the stand-in draws them. */
+export const loadCastArt = (registry: Registry, person: CastPerson) => loadRigArt(registry, registry.cast?.bodies[person], person);
+/** The pig's painting, cut like a cast body's (R3 §6.3). */
+export const loadPigArt = (registry: Registry) => loadRigArt(registry, registry.pig, "pig");
+
+type Part = { name: string; layer: RigLayer; mesh: Mesh; geometry: MeshGeometry; positions: Float32Array };
 
 /** A grid over a head plate, `cell` plate px square, with its UVs: what the head's taper bends. */
 function plateGrid(w: number, h: number, cell = 8) {
@@ -106,8 +112,9 @@ function plateGrid(w: number, h: number, cell = 8) {
 }
 
 /**
- * One cast member's painting: five skinned layers bent by their skeleton, and their head plate turned on the neck,
- * grown above the jaw to the size the owner picked while the neck keeps fitting the collar.
+ * One cast member's painting (or the pig's): its skinned layers bent by its skeleton, and its head plate turned on the
+ * neck, grown above the jaw to the size the owner picked while the neck keeps fitting the collar. They draw in the
+ * rig's own order, the head among them.
  */
 export class PaintedFigure {
   /** How many figures are alive: the checks see that none is kept after its cast member is gone. */
@@ -133,7 +140,9 @@ export class PaintedFigure {
     this.rim.zIndex = -1;
     this.rim.visible = false;
     this.container.addChild(this.rim);
-    LAYER_Z.forEach((name, z) => {
+    const order = drawOrder(art.rig);
+    order.forEach((name, z) => {
+      if (name === "head") return;
       const layer = art.rig.layers![name]!;
       const n = layer.positions.length / 2;
       const uvs = new Float32Array(n * 2);
@@ -156,7 +165,7 @@ export class PaintedFigure {
     this.headPositions = taperHead(this.headGrid.verts, plate, 1);
     this.headGeometry = new MeshGeometry({ positions: this.headPositions, uvs: this.headGrid.uvs, indices: this.headGrid.indices });
     this.headMesh = new Mesh({ geometry: this.headGeometry, texture: art.textures.get(plate.file) ?? Texture.EMPTY });
-    this.head.zIndex = HEAD_Z;
+    this.head.zIndex = order.indexOf("head");
     this.head.addChild(this.headMesh);
     if (art.hat && plate.hat) {
       const { worn, plate: hp } = art.hat;
@@ -210,7 +219,7 @@ export class PaintedFigure {
       this.rim.position.set(rim.side * rim.px, 0);
       this.rim.alpha = rim.k;
     }
-    const face = o.dazed && plate.silly ? plate.silly : layerTexture(plate, o.recolor);
+    const face = (o.face && plate.faces?.[o.face]) || (o.dazed && plate.silly) || layerTexture(plate, o.recolor);
     this.headMesh.texture = art.textures.get(face) ?? this.headMesh.texture;
     this.headMesh.tint = o.silhouette ? SIL : 0xffffff;
     if (this.hat && art.hat && plate.hat) {

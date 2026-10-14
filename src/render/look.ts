@@ -176,6 +176,8 @@ export async function startLook(
         venue.setVisible(false);
         backdrop.setVisible(false);
         if (!opts.nocast) await cast.preload((level.cast ?? []).map((s) => s.person));
+        // The pig's painting loads with its venue; the drawn pig stands in if it fails.
+        if (level.boss && !opts.noart) await pigView.load(registry);
         views.set(level.id, { venue, backdrop });
       })();
       loading.set(level.id, p);
@@ -901,7 +903,8 @@ export async function startLook(
         feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
-      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live, tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
+      // The cast's painted figures alive: the pig's own figure, kept while the gift shop is loaded, is not one of them.
+      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live - (pigView.kind === "painted" ? 1 : 0), tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
       window.__next.cast = {
         people: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.id, { person: n.person, recolor: n.recolor }])),
         targets: cur.targets.map((t) => ({ id: t.id, load: t.load })),

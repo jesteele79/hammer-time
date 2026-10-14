@@ -55,6 +55,17 @@ try {
     frames.forEach((f, i) => save(`cast-lobby-${i + 1}.png`, f));
     count += frames.length;
   }
+  if (want("pig")) {
+    // The pig in every state and face, and its charge and hop frame by frame: drawn from the gift shop, which loads it.
+    await page.goto(`${base}?next=1&board=1&venue=arena`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run?.level === "arena", null, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const before = await live();
+    save("pig.png", await render("pig"));
+    save("pig-steps.png", await render("pig-steps"));
+    count += 2;
+    if ((await live()) !== before) throw new Error(`pig board figures left alive: ${(await live()) - before}`);
+  }
   for (const venue of ["restaurant", "campus", "arena"]) {
     if (!want(venue)) continue;
     await page.goto(`${base}?next=1&board=1&venue=${venue}`);

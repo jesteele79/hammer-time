@@ -20,13 +20,13 @@
       "hipNear": [570, 1010],
       "kneeNear": [570, 1120],
       "ankleNear": [565, 1205],
-      "toeNear": [425, 1265],
-      "heelNear": [668, 1270],
+      "toeNear": [430, 1276],
+      "heelNear": [650, 1276],
       "hipFar": [365, 1010],
       "kneeFar": [362, 1110],
       "ankleFar": [350, 1190],
-      "toeFar": [188, 1245],
-      "heelFar": [418, 1245]
+      "toeFar": [200, 1254],
+      "heelFar": [405, 1254]
     },
     "bones": [["pelvis", "hipNear"], ["pelvis", "chest"], ["chest", "neck"], ["shoulderNear", "elbowNear"], ["elbowNear", "wristNear"], ["shoulderFar", "elbowFar"], ["elbowFar", "wristFar"], ["hipNear", "kneeNear"], ["kneeNear", "ankleNear"], ["ankleNear", "toeNear"], ["hipFar", "kneeFar"], ["kneeFar", "ankleFar"], ["ankleFar", "toeFar"]],
     "skin": {

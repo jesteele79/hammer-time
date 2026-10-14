@@ -974,3 +974,44 @@ test("the camera frames both fighters: between them while they are close, never 
   assert.equal(fightFrame(1000, 3600, 600), 1600, "the pig far right: he stays 600 px from the middle");
   assert.equal(fightFrame(3000, 800, 600), 2400, "and far left");
 });
+
+import { bodyLayersOf, drawOrder } from "../src/render/skin.ts";
+
+test("a rig draws in its cut's order with its head among its layers; the cast's rigs draw as before", () => {
+  assert.deepEqual([...drawOrder({})], ["armFar", "legFar", "legNear", "head", "torso", "armNear"]);
+  assert.deepEqual(bodyLayersOf({}), ["armFar", "legFar", "legNear", "torso", "armNear"]);
+  const z = ["armFar", "legFar", "tail", "torso", "legNear", "head", "armNear"];
+  assert.deepEqual([...drawOrder({ z })], z);
+  assert.deepEqual(bodyLayersOf({ z }), ["armFar", "legFar", "tail", "torso", "legNear", "armNear"]);
+});
+
+const pigRig = async () => {
+  if (!rigs.has("pig")) rigs.set("pig", await castRig("pig", await keyOut(readFileSync("art/incoming/pig/pig-body.png")), JSON.parse(readFileSync("art/cuts/pig.json", "utf8"))));
+  return rigs.get("pig").rig;
+};
+const PIG_STATES = [["asleep", true], ["windup", true], ["charge", true], ["hop", false], ["hop", true], ["recover", true], ["defeated", true]];
+
+test("the pig's painting carries every bone's end onto its solved joint in every state, facing either way", async () => {
+  const rig = await pigRig();
+  const skel = castSkeleton(rig);
+  const ends = { positions: rig.bones.flatMap(([, c]) => rig.joints[c]), bones: rig.bones.flatMap((_, b) => [b, 0, 0, 0]), weights: rig.bones.flatMap(() => [1, 0, 0, 0]) };
+  const out = new Float32Array(ends.positions.length);
+  for (const [state, onGround] of PIG_STATES)
+    for (const t of [0.05, 0.3, 0.9])
+      for (const facing of [-1, 1]) {
+        const solved = solve(pigPose({ state, t, clock: t, hurtT: 0, onGround, landT: onGround && state === "hop" ? 0.1 : null }), facing, castHeadScale(rig.head.share, rig.head), rig.head, skel);
+        skinLayer(out, ends, rig, solved);
+        rig.bones.forEach(([, c], b) => {
+          const d = Math.hypot(out[b * 2] - solved.joints[c].x, out[b * 2 + 1] - solved.joints[c].y);
+          assert.ok(d < 0.5, `pig ${state} t=${t} facing ${facing}: ${c} is ${d.toFixed(2)} px off`);
+        });
+      }
+});
+
+test("the pig stands its near sole on the floor at rest, and its head crowns it at HERO_HEIGHT before the 420 px scale", async () => {
+  const rig = await pigRig();
+  const s = solve(REST_POSE, -1, castHeadScale(rig.head.share, rig.head), rig.head, castSkeleton(rig));
+  const sole = Math.max(s.joints.toeNear.y, s.joints.heelNear.y);
+  assert.ok(Math.abs(sole + groundShift(s, "planted")) < 1, `the near sole ${(sole + groundShift(s, "planted")).toFixed(2)} px off the floor`);
+  assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 0.5, `crown at ${s.crown.y}`);
+});

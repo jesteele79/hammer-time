@@ -1,7 +1,13 @@
-import { ColorMatrixFilter, Container, Graphics } from "pixi.js";
+import { Assets, ColorMatrixFilter, Container, Graphics, Sprite, Texture } from "pixi.js";
+import { ART_BASE, type Registry } from "../art/registry";
 import type { Pig } from "../sim/pig";
+import { solve } from "../sim/rig/fk";
+import { groundShift } from "../sim/rig/ground";
 import { pigFace, pigPose, type PigClipCtx, type PigFace } from "../sim/rig/pig";
 import { blend, type Pose } from "../sim/rig/pose";
+import { HERO_HEIGHT } from "../sim/rig/skeleton";
+import { castHeadScale } from "./cast-art";
+import { loadPigArt, PaintedFigure, type CastArt } from "./cast-body";
 import { PALETTE } from "./palette";
 import type { Particles } from "./particles";
 
@@ -13,6 +19,9 @@ const BLEND_T = 0.12;
 const FLASH_T = 0.08;
 const DUST_EVERY = 0.06;
 const DEG = Math.PI / 180;
+/** A tuft of stuffing out of a hit, flying, turning and fading behind him. */
+type Tuft = { s: Sprite; vx: number; vy: number; spin: number; life: number };
+const TUFT = { width: 90, life: 1, fade: 0.3, gravity: 1800 } as const;
 
 /** Every drawn pixel white, its alpha kept: the hit flash. */
 function whiteFlash(): ColorMatrixFilter {
@@ -53,13 +62,19 @@ export function drawPigStandIn(g: Graphics, face: PigFace | null): void {
  */
 export class PigView {
   readonly container = new Container({ label: "pig" });
-  /** The drawn pig until the painting is in (Task 5), and for good if it never is. */
+  /** The drawn pig until the painting is in, and for good if it never is. */
   kind: "drawn" | "painted" = "drawn";
   private readonly body = new Container({ label: "pig-body" });
   private readonly standIn = new Graphics();
   private readonly flash = whiteFlash();
   /** The tufts fly beside it and sort with it. */
-  protected readonly tuftLayer = new Container({ label: "pig-tufts" });
+  private readonly tuftLayer = new Container({ label: "pig-tufts" });
+  private art: CastArt | null = null;
+  private figure: PaintedFigure | null = null;
+  private tuftTextures: Texture[] = [];
+  private readonly tufts: Tuft[] = [];
+  /** The floor it stands on: in a hop's air it is not grounded. */
+  private floorY = 0;
   private state: Pig["state"] | null = null;
   private stateT = 0;
   private landT: number | null = null;
@@ -82,17 +97,37 @@ export class PigView {
     parent.addChild(this.container, this.tuftLayer);
   }
 
+  /** The painting and its tufts, once: the drawn pig stands in until they are in, and for good if they never are. */
+  async load(registry: Registry): Promise<void> {
+    if (this.art) return;
+    const art = await loadPigArt(registry);
+    if (!art) return;
+    this.art = art;
+    this.figure = new PaintedFigure(art);
+    this.body.removeChild(this.standIn);
+    this.body.addChild(this.figure.container);
+    this.kind = "painted";
+    try {
+      this.tuftTextures = await Promise.all((registry.pig?.stuffing ?? []).map((p) => Assets.load<Texture>(ART_BASE + p.file)));
+    } catch (err) {
+      console.warn(`pig: its tufts did not load, plain fluff stands in (${(err as Error).message})`);
+    }
+  }
+
   /** Sorts it and its tufts among the play layer's children: the caller puts them behind him. */
   sort(z: number): void {
     this.container.zIndex = this.tuftLayer.zIndex = z;
   }
 
   sync(prev: Pig | null, cur: Pig | null, alpha: number, dt: number): void {
+    // Tufts in flight finish even once the pig is gone.
+    this.stepTufts(dt);
     this.container.visible = !!cur;
     if (!cur) {
       this.crownAt = null;
       return;
     }
+    this.floorY = cur.floor;
     this.clock += dt;
     if (cur.state !== this.state) {
       this.from = this.last;
@@ -123,8 +158,25 @@ export class PigView {
     this.draw(pose, pigFace(ctx), cur.facing);
   }
 
-  /** The drawn pig: turned about its middle, squashed from its feet, mirrored to face right. */
+  /**
+   * The painted pig, solved on its own skeleton (the solve turns, squashes and mirrors it, so the body only scales it to
+   * 420 px), its feet planted while it is on its floor; or the drawn pig: turned about its middle, squashed from its
+   * feet, mirrored to face right.
+   */
   protected draw(pose: Pose, face: PigFace | null, facing: 1 | -1): void {
+    if (this.figure && this.art) {
+      const head = this.art.head;
+      const solved = solve(pose, facing, castHeadScale(head.share, head), head, this.art.skeleton);
+      const k = PIG_HEIGHT / HERO_HEIGHT;
+      const dy = this.here.y >= this.floorY - 0.5 ? groundShift(solved, "planted") : 0;
+      this.body.pivot.set(0, 0);
+      this.body.rotation = 0;
+      this.body.position.set(0, dy * k);
+      this.body.scale.set(k);
+      this.figure.apply(solved, { recolor: null, dazed: false, hat: false, silhouette: false, face }, null);
+      this.crownAt = { x: this.here.x + solved.crown.x * k, y: this.here.y + (solved.crown.y + dy) * k, facing };
+      return;
+    }
     const mid = -PIG_HEIGHT * 0.4;
     drawPigStandIn(this.standIn, face);
     this.body.pivot.set(0, mid);
@@ -134,17 +186,50 @@ export class PigView {
     this.crownAt = { x: this.here.x, y: this.here.y - PIG_HEIGHT * pose.squash.y, facing };
   }
 
-  /** A hit: the white flash and a puff of stuffing where it landed. */
+  /** A hit: the white flash, a puff of stuffing and a tuft where it landed. */
   hit(x: number, y: number): void {
     this.flashT = FLASH_T;
     this.particles.emit("stuffing", x, y, 10);
+    this.throwTuft(x, y);
   }
 
   /** Beaten: stuffing out at two seams. */
   down(): void {
     const { x, y } = this.here;
-    this.particles.emit("stuffing", x - 70, y - PIG_HEIGHT * 0.55, 16);
-    this.particles.emit("stuffing", x + 90, y - PIG_HEIGHT * 0.35, 16);
+    const seams = [
+      { x: x - 70, y: y - PIG_HEIGHT * 0.55 },
+      { x: x + 90, y: y - PIG_HEIGHT * 0.35 },
+    ];
+    for (const s of seams) {
+      this.particles.emit("stuffing", s.x, s.y, 16);
+      this.throwTuft(s.x, s.y);
+    }
+  }
+
+  /** A tuft of stuffing out of the pig, flying, turning and fading behind him; with no tuft pictures, only the fluff puffs. */
+  private throwTuft(x: number, y: number): void {
+    if (!this.tuftTextures.length) return;
+    const tex = this.tuftTextures[Math.floor(Math.random() * this.tuftTextures.length)];
+    const s = new Sprite(tex);
+    s.anchor.set(0.5);
+    s.scale.set(TUFT.width / tex.width);
+    s.position.set(x, y);
+    this.tuftLayer.addChild(s);
+    const side = Math.random() < 0.5 ? -1 : 1;
+    this.tufts.push({ s, vx: side * (80 + Math.random() * 160), vy: -(500 + Math.random() * 300), spin: side * (2 + Math.random() * 3), life: TUFT.life });
+  }
+
+  private stepTufts(dt: number): void {
+    for (const t of this.tufts) {
+      t.vy += TUFT.gravity * dt;
+      t.s.x += t.vx * dt;
+      t.s.y += t.vy * dt;
+      t.s.rotation += t.spin * dt;
+      t.life -= dt;
+      t.s.alpha = Math.max(0, Math.min(1, t.life / TUFT.fade));
+      if (t.life <= 0) t.s.destroy();
+    }
+    for (let i = this.tufts.length - 1; i >= 0; i--) if (this.tufts[i].life <= 0) this.tufts.splice(i, 1);
   }
 
   /** Where a bubble over it hangs from. */
@@ -158,9 +243,13 @@ export class PigView {
     this.from = this.last = null;
     this.flashT = 0;
     this.container.filters = null;
+    for (const t of this.tufts) t.s.destroy();
+    this.tufts.length = 0;
   }
 
   destroy(): void {
-    this.container.destroy({ children: true });
+    this.figure?.destroy();
+    if (!this.container.destroyed) this.container.destroy({ children: true });
+    if (!this.tuftLayer.destroyed) this.tuftLayer.destroy({ children: true });
   }
 }

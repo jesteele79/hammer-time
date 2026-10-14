@@ -14,9 +14,11 @@ import { FAR_FLOOR, HERO_HEIGHT } from "../sim/rig/skeleton";
 import { CAMPUS } from "../sim/levels/campus";
 import { LOBBY } from "../sim/levels/lobby";
 import { RESTAURANT } from "../sim/levels/restaurant";
+import { createPig, type Pig, type PigState } from "../sim/pig";
 import { DAZED, LOOKS, drawCarried, drawFigure, recolored, star } from "./cast";
 import { castHeadScale, hatWorldWidth } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt } from "./cast-body";
+import { PigView } from "./pig";
 import { drawCart, drawMissile, drawPuddle } from "./props";
 import { Particles } from "./particles";
 import { wordStar } from "./words";
@@ -28,7 +30,7 @@ import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -569,6 +571,72 @@ export function createBoards(
     return frames.join("\n");
   };
 
+  /** The pig in every state and face, or (`steps`) its charge and its hop every 1/60 s for half a second: R3 §8's boards. */
+  const pigBoard = async (steps: boolean) => {
+    const cell = steps ? 300 : 600;
+    const k = steps ? 0.6 : 1;
+    // The hop's own arc: 1733 px/s up, 5778 px/s² down (the sim's numbers for 260 px in 0.6 s).
+    const arc = (t: number) => Math.max(0, 1733 * t - 2889 * t * t);
+    type PigCell = [name: string, state: PigState, t: number, o: Partial<Pig>, lift: number];
+    const cells: PigCell[] = steps
+      ? [
+          ...Array.from({ length: 30 }, (_, i): PigCell => [`charge ${i}`, "charge", i / 60, {}, 0]),
+          ...Array.from({ length: 30 }, (_, i): PigCell => [`hop ${i}`, "hop", i / 60, { onGround: false }, arc(i / 60)]),
+        ]
+      : [
+          ["asleep", "asleep", 1, {}, 0],
+          ["wind-up", "windup", 0.3, {}, 0],
+          ["charge 0.1", "charge", 0.1, {}, 0],
+          ["charge 0.2", "charge", 0.2, {}, 0],
+          ["hop, air", "hop", 0.2, { onGround: false }, 40],
+          ["hop, landed", "hop", 0, {}, 0],
+          ["recover", "recover", 0.5, {}, 0],
+          ["hit", "recover", 0.02, { hurtT: 0.37 }, 0],
+          ["down 0.6", "defeated", 0.6, {}, 0],
+          ["down 1.2", "defeated", 1.2, {}, 0],
+          ["face: plain", "recover", 0, {}, 0],
+          ["face: squint", "windup", 0, {}, 0],
+          ["face: charge", "charge", 0, {}, 0],
+          ["face: hurt", "recover", 0, { hurtT: 0.3 }, 0],
+          ["face: defeated", "defeated", 0, {}, 0],
+        ];
+    const cols = steps ? 10 : 5;
+    const rows = Math.ceil(cells.length / cols);
+    // The hop's rows stand taller, so each frame's rise stays in its own cell.
+    const rowH = (r: number) => (steps && r >= 3 ? cell + 170 : cell);
+    const rowTop = (r: number) => 20 + Array.from({ length: r }, (_, i) => rowH(i)).reduce((a, b) => a + b, 0);
+    const width = cols * cell + 40;
+    const height = rowTop(rows) + 20;
+    const board = new Container();
+    board.addChild(new Graphics().rect(0, 0, width, height).fill("#20242b"));
+    const views: PigView[] = [];
+    for (const [i, [name, state, t, o, lift]] of cells.entries()) {
+      const cx = 20 + (i % cols) * cell + cell / 2;
+      const row = Math.floor(i / cols);
+      const floor = rowTop(row) + rowH(row) - 30;
+      board.addChild(new Graphics().rect(cx - cell / 2 + 10, floor, cell - 20, 2).fill("#5b6270"));
+      const caption = label(name, "ui", steps ? 16 : 20);
+      caption.position.set(cx - cell / 2 + 12, rowTop(row) + 10);
+      board.addChild(caption);
+      // Its own view, held in its state for `t` (its clocks stepped at 60 a second), then scaled about its feet.
+      const pig: Pig = { ...createPig({ x: cx, arena: [-1e6, 1e6] }, floor), state, facing: -1, ...o, y: floor - lift * k };
+      const v = new PigView(board, particles);
+      await v.load(registry);
+      v.sync(null, pig, 1, 0);
+      for (let n = 0; n < Math.round(t * 60); n++) v.sync(null, pig, 1, 1 / 60);
+      if (name === "hit") {
+        v.hit(cx, floor - 200 * k);
+        v.sync(null, pig, 1, 0);
+      }
+      v.container.scale.set(k);
+      views.push(v);
+    }
+    const out = await snapshot(board, width, height);
+    for (const v of views) v.destroy();
+    if (!board.destroyed) board.destroy({ children: true });
+    return out;
+  };
+
   return {
     async render(spec) {
       resolution = spec.resolution ?? 2;
@@ -649,6 +717,10 @@ export function createBoards(
           if (!frames) throw new Error(`no venue frames for ${lv.id}`);
           return levelFrames(frames, lv.id);
         }
+        case "pig":
+          return pigBoard(false);
+        case "pig-steps":
+          return pigBoard(true);
       }
     },
   };
