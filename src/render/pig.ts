@@ -101,7 +101,8 @@ export class PigView {
   async load(registry: Registry): Promise<void> {
     if (this.art) return;
     const art = await loadPigArt(registry);
-    if (!art) return;
+    // A look stopped while it loaded has let the view go.
+    if (!art || this.container.destroyed) return;
     this.art = art;
     this.figure = new PaintedFigure(art);
     this.body.removeChild(this.standIn);

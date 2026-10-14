@@ -678,3 +678,27 @@ test("the last venue's tally ends the shift; a shift started at a later venue st
   assert.deepEqual([g.level.id, g.run.lives, g.run.score], ["campus", 3, 0]);
   assert.equal(createGame(shiftOf(), 7, { start: 9 }).level.id, "campus", "a start past the end is the last venue");
 });
+
+test("a game made for the start screen waits on the title: nothing steps, no clock runs, and a chosen start opens on its card", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf(), venues: [{ ...mini(), id: "restaurant", world: "1-2" }] }, 7, { title: true });
+  assert.equal(g.mode, "title");
+  const x = g.world.hero.x;
+  stepsG(g, 2, { right: true });
+  assert.deepEqual([g.mode, g.world.hero.x, g.run.time], ["title", x, 420]);
+  g.newRun(9, 1);
+  assert.deepEqual([g.mode, g.level.id, g.start, g.run.lives], ["card", "restaurant", 1, 3]);
+});
+
+test("back to the title from a shift's end, and from there a new shift where it is chosen", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  g.run.lives = 1;
+  knockOut(g);
+  until(g, (x) => x.mode === "over", 10);
+  assert.equal(g.mode, "over");
+  g.toTitle();
+  assert.equal(g.mode, "title");
+  assert.deepEqual(g.events.map((e) => e.type === "mode" && e.mode), ["title"]);
+  g.newRun(3, 0);
+  assert.deepEqual([g.mode, g.run.lives, g.run.score], ["card", 3, 0]);
+});

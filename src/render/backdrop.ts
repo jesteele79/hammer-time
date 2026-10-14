@@ -107,6 +107,8 @@ export type Backdrop = { setVisible(on: boolean): void; update(face: Rect | null
  */
 export async function loadBackdrop(scene: Scene, level: Level, registry: Registry): Promise<Backdrop> {
   const planes = { sky: new Container(), far: new Container(), mid: new Container(), fore: new Container() };
+  // Hidden until its venue is shown: one loading in the background must not show its walls over the venue he is in.
+  for (const c of Object.values(planes)) c.visible = false;
   scene.layers.sky.addChild(planes.sky);
   scene.layers.far.addChild(planes.far);
   scene.layers.mid.addChild(planes.mid);

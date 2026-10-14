@@ -19,7 +19,7 @@ import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
 
-export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear";
+export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title";
 /** The lobby and its stash, and the venues after the lobby in the shift's order (R3 §2). */
 export type Levels = { lobby: Level; stash: Level; venues?: Level[] };
 
@@ -46,6 +46,8 @@ export type Game = {
   step(input: Input): void;
   newRun(seed: number, start?: number): void;
   togglePause(): void;
+  /** Back to the start screen: the game holds, nothing steps, until a new run is chosen. */
+  toTitle(): void;
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
@@ -67,8 +69,8 @@ const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x 
  * A run of the lobby: the world, plus everything the shipped engine kept around it (src/game/engine.ts):
  * the seeded pickups and the crates, score, cans, lives and the clock, punch clocks, deaths and respawn.
  */
-/** `cast: false` runs the lobby with nobody in it (the older browser checks). */
-export function createGame(levels: Levels, seed: number, opts: { cast?: boolean; start?: number } = {}): Game {
+/** `cast: false` runs the lobby with nobody in it (the older browser checks); `title` holds it on the start screen. */
+export function createGame(levels: Levels, seed: number, opts: { cast?: boolean; start?: number; title?: boolean } = {}): Game {
   const shift = [levels.lobby, ...(levels.venues ?? [])];
   const clampStart = (s: number | undefined) => Math.min(shift.length - 1, Math.max(0, Math.floor(s ?? 0)));
   const start = clampStart(opts.start);
@@ -103,6 +105,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     step,
     newRun,
     togglePause,
+    toTitle,
   };
 
   function setMode(mode: GameMode, ev: GameEvent[], seconds = 0) {
@@ -164,6 +167,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.run = createRun(s);
     stashStock = null;
     begin({ charge: 0, patience: RUN.patience }, (game.events = []));
+  }
+
+  function toTitle() {
+    game.events = [];
+    setMode("title", game.events);
   }
 
   /** A break, or back from one: the mode event goes into a fresh events list for the caller to drain. */
@@ -491,5 +499,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   begin({ charge: 0, patience: RUN.patience }, game.events);
   game.events = [];
+  // On the start screen the game holds on the title until a start is chosen; the first venue is laid out behind it.
+  if (opts.title) game.mode = "title";
   return game;
 }

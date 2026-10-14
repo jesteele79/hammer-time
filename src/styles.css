@@ -1616,7 +1616,8 @@ button:focus-visible {
 /* The shell's colours, shared by the HUD, the cards and the touch pad. */
 .next-hud,
 .next-veil,
-.next-touch {
+.next-touch,
+.next-start {
   --hud-slate: rgb(20 25 32 / 0.86);
   --hud-edge: rgb(233 184 102 / 0.38);
   --hud-gold: #e9b866;
@@ -2160,6 +2161,345 @@ button:focus-visible {
 .next-veil__button:focus-visible {
   outline: 3px solid #f3ead8;
   outline-offset: 3px;
+}
+/* A quieter second choice on a card: outlined in gold. */
+.next-veil__button--quiet {
+  margin-left: 10px;
+  background: transparent;
+  color: #e9b866;
+  box-shadow: inset 0 0 0 2px #e9b866;
+}
+/* The start screen (R3 §7): the title over the key art, where to start, and the tools, in the shell's slate and gold. */
+.next-start {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "top top" "hero venues" "quests venues";
+  gap: 16px 24px;
+  padding: 16px 24px 20px;
+  background: var(--hud-ink);
+  color: var(--hud-text);
+  font-family: "Inter", system-ui, sans-serif;
+}
+.next-start__top {
+  grid-area: top;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.next-start__edition {
+  margin-right: auto;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-gold);
+}
+.next-start__best {
+  font-size: 13px;
+  color: var(--hud-dim);
+}
+.next-start__best b {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--hud-text);
+}
+.next-start__tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--hud-edge);
+  border-radius: 8px;
+  background: var(--hud-slate);
+  color: var(--hud-text);
+  font: 600 13px "Inter", system-ui, sans-serif;
+}
+.next-start__quality select {
+  border: 0;
+  background: transparent;
+  color: var(--hud-text);
+  font: inherit;
+}
+.next-start__keys {
+  position: absolute;
+  top: 64px;
+  right: 24px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  max-width: min(520px, calc(100% - 48px));
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--hud-slate);
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
+}
+.next-start__hero {
+  grid-area: hero;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.next-start__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.next-start__title {
+  position: relative;
+  width: 100%;
+  padding: 48px 24px 22px;
+  background: linear-gradient(to top, rgb(13 17 24 / 0.92) 0%, rgb(13 17 24 / 0.6) 60%, rgb(13 17 24 / 0) 100%);
+  text-shadow: 0 2px 12px rgb(0 0 0 / 0.6);
+}
+.next-start__eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-gold);
+}
+.next-start__title h1 {
+  margin: 4px 0 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: clamp(40px, 7vw, 92px);
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.next-start__title h1 span {
+  color: var(--hud-gold);
+}
+.next-start__tagline {
+  margin: 8px 0 14px;
+  font-size: 16px;
+}
+.next-start__go {
+  min-width: 200px;
+  height: 52px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--hud-gold);
+  color: var(--hud-ink);
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.next-start__go:focus-visible,
+.next-start__venue:focus-visible,
+.next-start__quest:focus-visible {
+  outline: 3px solid var(--hud-text);
+  outline-offset: 3px;
+}
+.next-start__venues {
+  grid-area: venues;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-content: center;
+  min-height: 0;
+}
+.next-start__venue {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "img img" "code name" "code detail";
+  gap: 0 8px;
+  min-height: 44px;
+  padding: 8px 8px 10px;
+  text-align: left;
+  background: var(--hud-slate);
+  border: 1px solid var(--hud-edge);
+  border-radius: 12px;
+  color: var(--hud-text);
+}
+.next-start__venue[aria-pressed="true"] {
+  border-color: var(--hud-gold);
+  box-shadow: inset 0 0 0 2px var(--hud-gold);
+}
+.next-start__venue img {
+  grid-area: img;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-bottom: 6px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.next-start__code {
+  grid-area: code;
+  align-self: center;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--hud-gold);
+}
+.next-start__venue b {
+  grid-area: name;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.next-start__venue small {
+  grid-area: detail;
+  font-size: 12px;
+  color: var(--hud-dim);
+}
+.next-start__quests {
+  grid-area: quests;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.next-start__quests-k {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hud-dim);
+}
+.next-start__quest {
+  display: grid;
+  padding: 8px 14px;
+  background: var(--hud-slate);
+  border: 1px solid var(--hud-edge);
+  border-radius: 10px;
+  color: var(--hud-text);
+  text-decoration: none;
+}
+.next-start__quest b {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  text-transform: uppercase;
+}
+.next-start__quest small {
+  font-size: 12px;
+  color: var(--hud-dim);
+}
+/* A phone upright: one column, the key art a band with the title under it (over it, it hid Hammer and the pig), the starts two by two. */
+@media (max-width: 899px) and (orientation: portrait) {
+  .next-start {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas: "top" "hero" "venues" "quests";
+    align-content: start;
+    gap: 10px;
+    padding: 12px 16px 16px;
+  }
+  .next-start__edition,
+  .next-start__tagline {
+    display: none;
+  }
+  .next-start__hero {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .next-start__art {
+    position: static;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+  }
+  .next-start__title {
+    padding: 10px 0 0;
+    background: none;
+    text-shadow: none;
+  }
+  .next-start__title h1 {
+    margin-bottom: 10px;
+  }
+  .next-start__venues {
+    gap: 8px;
+  }
+  .next-start__venue img {
+    aspect-ratio: 2 / 1;
+  }
+  .next-start__venue b {
+    font-size: 16px;
+  }
+}
+/* A phone on its side: the key art behind everything, the title in a row with Clock in, the four starts in one row. */
+@media (max-height: 499px) {
+  .next-start {
+    isolation: isolate;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas: "top" "hero" "venues" "quests";
+    align-content: start;
+    gap: 8px;
+    padding: 8px 16px 10px;
+  }
+  .next-start__edition,
+  .next-start__tagline {
+    display: none;
+  }
+  .next-start__hero {
+    position: static;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .next-start__art {
+    position: fixed;
+    z-index: -1;
+    opacity: 0.35;
+  }
+  .next-start__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 16px;
+    padding: 0;
+    background: none;
+  }
+  .next-start__eyebrow {
+    width: 100%;
+  }
+  .next-start__title h1 {
+    font-size: 40px;
+  }
+  .next-start__go {
+    height: 44px;
+    min-width: 160px;
+    font-size: 19px;
+  }
+  .next-start__venues {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .next-start__venue {
+    padding: 6px 6px 8px;
+  }
+  .next-start__venue b {
+    font-size: 15px;
+  }
+  .next-start__venue small {
+    display: none;
+  }
 }
 /* Hot: the pepper's pips burn orange. */
 .next-hud__row dd[data-hot="true"] .next-hud__pip--patience {

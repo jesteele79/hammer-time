@@ -30,7 +30,7 @@ import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -80,6 +80,14 @@ const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number;
     { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
     { x: 3200, y: -180, cx: 3700, cy: -380, zoom: 0.92 },
   ],
+};
+
+/** Each start's picture on the start screen: where he stands and where the camera looks. */
+const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }>> = {
+  lobby: { x: 1100, y: 0, cx: 1600 },
+  restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },
+  campus: { x: 7250, y: -120, cx: 8100, cy: -420, zoom: 0.88 },
+  arena: { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
 };
 
 const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [
@@ -716,6 +724,24 @@ export function createBoards(
           const frames = VENUE_FRAMES[lv.id];
           if (!frames) throw new Error(`no venue frames for ${lv.id}`);
           return levelFrames(frames, lv.id);
+        }
+        case "thumb": {
+          const lv = currentLevel();
+          return levelFrames([START_FRAMES[lv.id]!], lv.id);
+        }
+        case "keyart": {
+          // Hammer and the pig face off at the lobby's entrance, nothing between them: the pig in its wind-up behind him in
+          // the sort, facing him (the start screen renders it without the cast).
+          const view = new PigView(scene.layers.play, particles);
+          await view.load(registry);
+          const pig: Pig = { ...createPig({ x: 960, arena: [-1e6, 1e6] }, 0), state: "windup", facing: -1 };
+          view.sync(null, pig, 1, 0);
+          for (let i = 0; i < 18; i++) view.sync(null, pig, 1, 1 / 60);
+          view.sort(-0.7);
+          // Framed high enough that the signs over the entrance are whole.
+          const frame = await levelFrames([{ x: 450, y: 0, cx: 720, cy: -310, zoom: 1.15 }], "lobby");
+          view.destroy();
+          return frame;
         }
         case "pig":
           return pigBoard(false);

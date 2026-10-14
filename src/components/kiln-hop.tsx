@@ -74,7 +74,8 @@ function readBest(key = BEST_KEY) {
   }
 }
 
-export function KilnHop() {
+/** `quest` opens a side quest as soon as the game is ready: the new start screen's Hungry Hungry Hammer card. */
+export function KilnHop({ quest }: { quest?: "hungry" } = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null),
     playRef = useRef<HTMLDivElement>(null),
     frameRef = useRef<HTMLDivElement>(null),
@@ -86,6 +87,12 @@ export function KilnHop() {
   const [ready, setReady] = useState(false);
   const [questBest, setQuestBest] = useState({ hungry: 0 });
   const [venue, setVenue] = useState(0);
+  const questStarted = useRef(false);
+  useEffect(() => {
+    if (!ready || !quest || questStarted.current) return;
+    questStarted.current = true;
+    gameRef.current?.newQuest(quest);
+  }, [ready, quest]);
   const chooseVenue = (next: number) => {
     setVenue(next);
     gameRef.current?.setStartingVenue(next);

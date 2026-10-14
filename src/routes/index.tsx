@@ -14,6 +14,10 @@ export const Route = createFileRoute("/")({
     dev: flag(search.dev),
     nocast: flag(search.nocast),
     venue: venueOf(search.venue),
+    // The start screen (until the switch, behind ?next=1&title=1), and the shipped game's side quest from it.
+    title: flag(search.title),
+    classic: flag(search.classic),
+    quest: search.quest === "hungry" ? ("hungry" as const) : undefined,
   }),
   component: Home,
 });
@@ -25,6 +29,6 @@ type Venue = (typeof VENUES)[number];
 const venueOf = (v: unknown): Venue | undefined => ((VENUES as readonly unknown[]).includes(v) ? (v as Venue) : undefined);
 
 function Home() {
-  const { next, gl, noart, board, dev, nocast, venue } = Route.useSearch();
-  return next ? <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} start={venue} /> : <KilnHop />;
+  const { next, gl, noart, board, dev, nocast, venue, title, quest } = Route.useSearch();
+  return next ? <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} start={venue} title={!!title} /> : <KilnHop quest={quest} />;
 }

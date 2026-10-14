@@ -31,7 +31,7 @@ import { PIG_ID } from "../sim/pig";
 import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
-import type { RenderApp } from "./app";
+import type { Quality, RenderApp } from "./app";
 import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
@@ -105,6 +105,12 @@ export type Look = {
   /** His face on the screen, in CSS px, as last drawn: the cards keep clear of it. */
   face(): Rect | null;
   setMuted(on: boolean): void;
+  /** A shift from the start screen, at the shift's venue `at` (the gift shop is pig practice). */
+  start(at: number): void;
+  /** Back to the start screen. */
+  toTitle(): void;
+  /** The start screen's quality choice: a tier kept on this device, or null to let the game choose (and step down). */
+  setQuality(q: Quality | null): void;
 };
 
 /** Where things are this frame, in world px, for the effects. */
@@ -117,12 +123,13 @@ type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point
  */
 export async function startLook(
   render: RenderApp,
-  opts: { noart?: boolean; board?: boolean; dev?: boolean; nocast?: boolean; start?: LevelId; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
+  opts: { noart?: boolean; board?: boolean; dev?: boolean; nocast?: boolean; start?: LevelId; title?: boolean; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
   const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1) }, newSeed(), {
     cast: !opts.nocast,
+    title: !!opts.title,
     start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.start)),
   });
   const world = game.world;
@@ -166,18 +173,25 @@ export async function startLook(
    * A level's venue, backdrop and cast paintings, built once; the game holds while the level he is in is not ready.
    * Every painting its cast wears loads before it shows, so nobody pops from stand-in to painting.
    */
+  /** Set once the look stops: the background loading builds nothing more, and lets go of what it was building. */
+  let stopped = false;
   const prepare = (level: Level): Promise<void> => {
     let p = loading.get(level.id);
     if (!p) {
       p = (async () => {
         const backdrop = await loadBackdrop(scene, level, registry);
+        if (stopped) return;
         const venue = drawVenue(scene, level);
         venue.root.tint = multiplyTint(venue.root.tint, scene.ambient);
         venue.setVisible(false);
         backdrop.setVisible(false);
         if (!opts.nocast) await cast.preload((level.cast ?? []).map((s) => s.person));
         // The pig's painting loads with its venue; the drawn pig stands in if it fails.
-        if (level.boss && !opts.noart) await pigView.load(registry);
+        if (level.boss && !opts.noart && !stopped) await pigView.load(registry);
+        if (stopped) {
+          venue.destroy();
+          return;
+        }
         views.set(level.id, { venue, backdrop });
       })();
       loading.set(level.id, p);
@@ -188,7 +202,7 @@ export async function startLook(
   await Promise.all([character.ready, prepare(game.level)]);
   void prepare(STASH);
   // The rest of the shift loads one venue after another while he plays.
-  void SHIFT.reduce((p, l) => p.then(() => prepare(l)), Promise.resolve());
+  void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve());
   const headPlate = registry.hammer.heads.neutral!;
 
   const vignette = new Sprite(vignetteTexture());
@@ -1000,6 +1014,7 @@ export async function startLook(
     };
   return {
     stop() {
+      stopped = true;
       app.ticker.remove(tick);
       delete window.__nextBoard;
       window.removeEventListener("keydown", onKey);
@@ -1035,6 +1050,26 @@ export async function startLook(
     },
     setMuted(on) {
       sound.setMuted(on);
+    },
+    start(at) {
+      forgetPresses();
+      game.newRun(newSeed(), at);
+      prev = cur = world.snapshot();
+      clearActors();
+    },
+    toTitle() {
+      forgetPresses();
+      game.toTitle();
+      for (const e of game.events) feel(e);
+    },
+    setQuality(q) {
+      try {
+        if (q) localStorage.setItem("hammer-time-quality", q);
+        else localStorage.removeItem("hammer-time-quality");
+      } catch {
+        // Private windows refuse storage: the choice lasts the session.
+      }
+      if (q) render.setQuality(q);
     },
   };
 }

@@ -1,4 +1,5 @@
 import type { GameMode } from "@/sim/game";
+import { KEYS } from "./next-keys";
 
 export type VeilInfo = {
   venue: string;
@@ -11,21 +12,9 @@ export type VeilInfo = {
   back: boolean;
   /** The shift's first card, not one after a venue. */
   first: boolean;
+  /** Pig practice: scored on its own, no best kept. */
+  practice: boolean;
 };
-
-/** The keys, for the break card: the keyboard's whole set on one card. */
-const KEYS: [string, string][] = [
-  ["← →", "move"],
-  ["Shift", "run"],
-  ["Space", "jump"],
-  ["↓", "duck, doors"],
-  ["H", "swing"],
-  ["F", "snot"],
-  ["E", "lecture"],
-  ["T", "towel"],
-  ["Q", "smash"],
-  ["P", "break"],
-];
 
 function Lives({ n, portrait }: { n: number; portrait: string | null }) {
   return (
@@ -38,6 +27,16 @@ function Lives({ n, portrait }: { n: number; portrait: string | null }) {
 
 function Scores({ info }: { info: VeilInfo }) {
   const best = Math.max(info.best, info.score);
+  // Practice keeps no best: its score alone.
+  if (info.practice)
+    return (
+      <dl className="next-veil__scores">
+        <div>
+          <dt>Score</dt>
+          <dd>{String(info.score).padStart(6, "0")}</dd>
+        </div>
+      </dl>
+    );
   return (
     <dl className="next-veil__scores">
       <div>
@@ -63,6 +62,7 @@ export function NextVeil({
   place = "bottom",
   onResume,
   onNewRun,
+  onTitle,
 }: {
   mode: GameMode | null;
   info: VeilInfo;
@@ -70,7 +70,14 @@ export function NextVeil({
   place?: "top" | "bottom";
   onResume: () => void;
   onNewRun: () => void;
+  /** Back to the start screen, when there is one. */
+  onTitle?: () => void;
 }) {
+  const toTitle = onTitle && (
+    <button type="button" className="next-veil__button next-veil__button--quiet" onClick={onTitle}>
+      Start screen
+    </button>
+  );
   if (mode === "card")
     return (
       <div className="next-veil next-veil--card" data-place={place}>
@@ -111,20 +118,22 @@ export function NextVeil({
           <button type="button" className="next-veil__button" onClick={onNewRun}>
             Try again
           </button>
+          {toTitle}
         </section>
       </div>
     );
   if (mode === "clear")
     return (
       <div className="next-veil" data-place={place}>
-        <section className="next-veil__card" role="dialog" aria-label="Shift over">
-          <p className="next-veil__eyebrow">World {info.world}</p>
-          <h2 className="next-veil__title">Shift over</h2>
-          <p className="next-veil__line">Clocked out with time to spare.</p>
+        <section className="next-veil__card" role="dialog" aria-label={info.practice ? "Practice over" : "Shift over"}>
+          <p className="next-veil__eyebrow">{info.practice ? "Pig practice" : `World ${info.world}`}</p>
+          <h2 className="next-veil__title">{info.practice ? "Practice over" : "Shift over"}</h2>
+          <p className="next-veil__line">{info.practice ? "The pig is stuffed. Now try the whole shift." : "Clocked out with time to spare."}</p>
           <Scores info={info} />
           <button type="button" className="next-veil__button" onClick={onNewRun}>
             Play again
           </button>
+          {toTitle}
         </section>
       </div>
     );

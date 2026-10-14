@@ -1,21 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Quality } from "@/render/app";
 import type { HudPayload } from "@/render/hud";
 import type { Look } from "@/render/look";
 import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
 import { NextHud } from "./next-hud";
+import { NextStart, type Start } from "./next-start";
 import { NextTouch } from "./next-touch";
 import { NextVeil } from "./next-veil";
 
 /** Where the rebuild keeps its best score, apart from the shipped game's. */
 const BEST_KEY = "hammer-time-best-next";
+/** The shipped game's Hungry Hungry Hammer best, shown on its side-quest card. */
+const HUNGRY_BEST_KEY = "hammer-time-best-hungry";
+const QUALITY_KEY = "hammer-time-quality";
+const QUALITIES: readonly Quality[] = ["ultra", "high", "medium", "low"];
 const TOUCH_QUERY = "(pointer: coarse), (max-width: 899px)";
 
-const readBest = () => {
+const readNumber = (key: string) => {
   try {
-    return Number(localStorage.getItem(BEST_KEY)) || 0;
+    return Number(localStorage.getItem(key)) || 0;
   } catch {
     return 0;
+  }
+};
+const readQuality = (): Quality | null => {
+  try {
+    const q = localStorage.getItem(QUALITY_KEY) as Quality | null;
+    return q && QUALITIES.includes(q) ? q : null;
+  } catch {
+    return null;
   }
 };
 const writeBest = (n: number) => {
@@ -39,7 +53,7 @@ function useMedia(query: string) {
   return on;
 }
 
-/** The rebuild's canvas and its shell: the HUD, the cards and the touch pad. Pixi is browser-only, so everything loads after mount. */
+/** The rebuild's canvas and its shell: the start screen, the HUD, the cards and the touch pad. Pixi is browser-only, so everything loads after mount. */
 export function NextGame({
   forceWebgl = false,
   noart = false,
@@ -47,6 +61,7 @@ export function NextGame({
   dev = false,
   nocast = false,
   start,
+  title = false,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
@@ -57,6 +72,8 @@ export function NextGame({
   nocast?: boolean;
   /** Start the shift at a later venue (`&venue=`). */
   start?: "restaurant" | "campus" | "arena";
+  /** On the start screen first; the game loads behind it. */
+  title?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -67,8 +84,19 @@ export function NextGame({
   const [back, setBack] = useState(false);
   const [first, setFirst] = useState(true);
   const [best, setBest] = useState(0);
+  const [hungryBest, setHungryBest] = useState(0);
   const [muted, setMuted] = useState(false);
   const [place, setPlace] = useState<"top" | "bottom">("bottom");
+  const [ready, setReady] = useState(false);
+  const [pending, setPending] = useState<Start | null>(null);
+  const [practice, setPractice] = useState(start === "arena");
+  const [quality, setQualityState] = useState<Quality | null>(null);
+  // The start screen shows once the page is live: a tap on a card the server drew, before then, would be lost.
+  const [live, setLive] = useState(false);
+  // Read by the callbacks and by the look once it is up: what was chosen before it was ready still reaches it.
+  const practiceRef = useRef(practice);
+  const mutedRef = useRef(false);
+  const qualityChosen = useRef<{ q: Quality | null } | null>(null);
   const touch = useMedia(TOUCH_QUERY);
   const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear";
 
@@ -84,7 +112,12 @@ export function NextGame({
     return () => clearInterval(timer);
   }, [carded, mode]);
 
-  useEffect(() => setBest(readBest()), []);
+  useEffect(() => {
+    setLive(true);
+    setBest(readNumber(BEST_KEY));
+    setHungryBest(readNumber(HUNGRY_BEST_KEY));
+    setQualityState(readQuality());
+  }, []);
 
   const onHud = useCallback((h: HudPayload) => {
     hudNow.current = h;
@@ -94,9 +127,10 @@ export function NextGame({
     if (m === "card") {
       setBack(lastMode.current === "dying");
       // The shift's first card; a card after a venue's tally says the shift goes on.
-      setFirst(lastMode.current === null || lastMode.current === "clear" || lastMode.current === "over");
+      setFirst(lastMode.current === null || lastMode.current === "clear" || lastMode.current === "over" || lastMode.current === "title");
     }
-    if (m === "over" || m === "clear") {
+    // Pig practice keeps no best (R3 §2).
+    if ((m === "over" || m === "clear") && !practiceRef.current) {
       const score = hudNow.current?.score ?? 0;
       setBest((b) => {
         if (score <= b) return b;
@@ -119,12 +153,15 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, start, onHud, onMode });
+      const started = await startLook(render, { noart, board, dev, nocast, start, title, onHud, onMode });
       if (cancelled) {
         started.stop();
         return render.destroy();
       }
       look.current = started;
+      if (mutedRef.current) started.setMuted(true);
+      if (qualityChosen.current) started.setQuality(qualityChosen.current.q);
+      setReady(true);
       dispose = () => {
         look.current = null;
         started.stop();
@@ -135,9 +172,31 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, start, onHud, onMode]);
+  }, [forceWebgl, noart, board, dev, nocast, start, title, onHud, onMode]);
 
+  // A start chosen while the game still loaded begins once it is ready, and only once.
+  useEffect(() => {
+    if (ready && pending) {
+      look.current?.start(pending.at);
+      setPending(null);
+    }
+  }, [ready, pending]);
+
+  const begin = (s: Start) => {
+    practiceRef.current = s.id === "arena";
+    setPractice(s.id === "arena");
+    if (look.current) look.current.start(s.at);
+    else setPending(s);
+  };
+  const toggleMute = () => {
+    setMuted((m) => {
+      mutedRef.current = !m;
+      look.current?.setMuted(!m);
+      return !m;
+    });
+  };
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
+  const onTitle = live && (mode === "title" || (title && mode === null));
   const veiled = mode === "pause" || mode === "over" || mode === "clear";
   const info = {
     venue: hud?.venue ?? "Hotel lobby",
@@ -148,32 +207,42 @@ export function NextGame({
     portrait: hud?.portrait ?? null,
     back,
     first,
+    practice,
   };
   return (
     <>
       <div ref={host} className="next-stage" style={{ position: "fixed", inset: 0, background: "#0d1118" }} />
-      <NextHud
-        hud={hud}
-        touch={touch && !veiled}
-        muted={muted}
-        onPause={() => look.current?.togglePause()}
-        onMute={() => {
-          setMuted((m) => {
-            look.current?.setMuted(!m);
-            return !m;
-          });
-        }}
-      />
-      {touch && !veiled && mode !== "card" && hud && (
-        <NextTouch onPress={press} ready={{ fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }} />
+      {onTitle ? (
+        <NextStart
+          ready={ready}
+          best={best}
+          hungryBest={hungryBest}
+          muted={muted}
+          quality={quality}
+          onMute={toggleMute}
+          onQuality={(q) => {
+            setQualityState(q);
+            qualityChosen.current = { q };
+            look.current?.setQuality(q);
+          }}
+          onStart={begin}
+        />
+      ) : (
+        <>
+          <NextHud hud={hud} touch={touch && !veiled} muted={muted} onPause={() => look.current?.togglePause()} onMute={toggleMute} />
+          {touch && !veiled && mode !== "card" && hud && (
+            <NextTouch onPress={press} ready={{ fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }} />
+          )}
+          <NextVeil
+            mode={mode}
+            info={info}
+            place={place}
+            onResume={() => look.current?.togglePause()}
+            onNewRun={() => look.current?.newRun()}
+            onTitle={title ? () => look.current?.toTitle() : undefined}
+          />
+        </>
       )}
-      <NextVeil
-        mode={mode}
-        info={info}
-        place={place}
-        onResume={() => look.current?.togglePause()}
-        onNewRun={() => look.current?.newRun()}
-      />
     </>
   );
 }
