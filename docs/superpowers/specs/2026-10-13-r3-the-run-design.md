@@ -311,6 +311,15 @@ the floor. The exit door at 4100, chained shut until the pig is down. Crossing i
 - **HUD**: a 12-segment health bar in slate and gold under the top bar with the bonk and snot counts
   ("BONKS 2/3", "SNOTS 3/3"), as the shipped game showed; the hint line names the rule.
 
+As built in R3b (2026-10-14): as above, with the plan's decisions: the pig keeps 540 px off the
+arena's left edge (the corner its charges cannot reach, where the pepper refills) and 50 off its
+right; it collides as 240 by 400 (drawn 420 with its ears), so his jump does not clear it from the
+floor; a lost life restarts the fight (a fresh pig, him at the arena's clock with the pepper and
+grace); the wake's pepper gives no points. The pig's bar sits under the top bar flush with its right
+edge on a laptop, under the panel on an upright phone and beside it on a phone on its side, clear of
+his face at all three. The lecture's "It's a stuffed animal." is his thought, not a spoken line.
+The big teddy stands at -150 and the red-draped table at 4500, clear of the sign and of CLOCK OUT.
+
 ## 6. The art
 
 ### 6.1 The walls (batch 2, rewritten)
@@ -333,6 +342,10 @@ his x, eased), rising with him on the library steps and the dock. Each wall's pa
 below it in its bottom row's color, and a painted venue gets solid ground under its floors. The
 gift shop's and the lobby's walls come in R3b.
 
+As built in R3b (2026-10-14): the gift shop's two walls and the lobby's three are cut and in the
+game, so every venue of the shift stands on painted walls. A venue loading in the background keeps
+its walls hidden until it is shown (they had shown over the venue he was in while its pieces loaded).
+
 ### 6.2 The standing pieces
 
 The `-mid` and `-fore` sheets are cut into separate objects at sync (each a separate shape on the green,
@@ -344,6 +357,10 @@ As built in R3a (2026-10-13): a sheet's shapes join when their paint comes withi
 joined the restaurant's olive tree to the bar stool beside its trunk). The restaurant's six mid pieces
 and two fore pieces and the campus's six mid and two fore pieces are in.
 
+As built in R3b (2026-10-14): the gift shop's five mid and two fore pieces and the lobby's five mid
+and two fore pieces are in. The lobby's three code-drawn potted palms on the floor are gone with its
+drawn columns; its potted tree stands at 2950, clear of the desk's punch clock.
+
 ### 6.3 The pig
 
 `pig-body.png` is cut like a cast painting into seven layers (far arm, far leg, near leg, body, near arm,
@@ -352,6 +369,13 @@ same code as Hammer and the cast. Its states are clips over that skeleton (§5.2
 edits are aligned onto the body (`alignOnto`, as for the cast's face edits) and swapped whole on the head;
 the stuffing tufts become particle sprites. Missing art falls back to the code-drawn pig of the main spec
 §7.2.
+
+As built in R3b (2026-10-14): as above. The cut names its own claim and draw orders (the head in front
+of the body, unlike the cast's); where a limb goes behind the body the body keeps its whole outline
+(its edge on the line's core and the rest of the dark line taken by ink) and the limb's hidden root is
+painted in from its own fabric; the near toe and the far heel are parted along their own outlines. Its
+toe and heel joints sit 7 crop px above each sole, the cast's spacing, so its painted feet stand on the
+floor line.
 
 ### 6.4 The new cast
 
@@ -372,6 +396,15 @@ anything hangs below it, flying whole). Each painting is accepted or refused fir
 - **The merge** into `main`, with the owner's yes at the time.
 - The old engine (`src/game/engine.ts`, `rig.ts`, `hero.ts`, `scenery.ts`, `sprites.ts`, `thought.ts`,
   `layout.ts`, `people.ts`) and its checks stay until R4.
+
+As built in R3b (2026-10-14): the start screen is at `/?next=1&title=1` until the switch. It keeps the
+shipped one's words and flow (pick where to start, then "Clock in"; "Four venues. Zero patience."), its
+quality choices are Auto (the game steps down by itself), High, Medium and Low, kept on the device, and
+Hungry Hungry Hammer opens the old game straight on the banquet table. The key art is rendered by the
+game at the lobby's entrance (Hammer and the pig facing off, the cast left out); on an upright phone
+the title sits under it. The screen appears once the page is live, so an early tap is never lost; the
+game loads behind it and a start chosen before it is ready begins as soon as it is. Pig practice ends on
+"Practice over" and keeps no best; "Start screen" beside "Play again" and "Try again" goes back.
 
 ## 8. The halves and the checks
 

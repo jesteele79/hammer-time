@@ -389,16 +389,57 @@ before the pig, with paper the main threat:
   where the two meet; the second punch clock is past it.
 - **The library steps:** three flights and their landings, ledges beside
   them, students firing down the steps and a second professor on the
-  stairs, up to the terrace, a delivery case and the LIBRARY doors, the
-  shift's end for now.
+  stairs, up to the terrace, a delivery case and the LIBRARY doors into
+  the gift shop.
 
-Both venues stand in front of the owner's painted walls (three each, in
-walking order, cropped at their pilasters by `art/cuts/wall-<name>.json`)
-with painted pieces standing against them and in front of the play, cut from
-the owner's sheets at sync; the walls are scaled to span the venue and rise
-with the ground he stands on. A venue whose walls are not all in keeps its
-inked photo. `node scripts/art-grid.mjs wall/<name>` draws a wall with its
-seams and floor line.
+### The gift shop (1-4)
+
+The gift shop (`src/sim/levels/giftshop.ts`, "The Pink Menace") runs 4,400 px
+on grey carpet with 300 seconds on the clock: a ! crate by the door, then the
+arena from 600 to 3900, its punch clock at the way in, two plush shelves (180
+and 360 high) and the cash counter (180) to get above the pig, a spotlight in
+the middle, and CLOCK OUT at 4100, chained shut until the pig is down.
+
+- **The pig** (`src/sim/pig.ts`) sleeps until he crosses into the arena; then
+  "PIG FIGHT", he gets the pepper (hot, full patience) and 1.2 s of grace, and
+  he is held between the arena's edges. Its pattern is the shipped one at the
+  new scale: a wind-up (1.1 s, then 0.9, 0.7 at half its HP) facing him, or
+  away from an arena end; a charge (880 px/s, 1040 at half HP) or, every third
+  attack, a hop ("BOING!" first); then a 1.35 s rest, the window.
+- **12 HP**: the mallet 1 once a swing, a snot 1 hot or not (it stops every
+  snot), the super smash 2 as a bonk, 0.38 s between hits that count. Short of
+  3 bonks or 3 snots it holds at 1 HP with MORE BONKS or MORE SNOT; down, it is
+  3000 points, "STUFFING SETTLED", time slows, and the chain falls off the exit.
+- Landing on it bounces him off; walking into it costs a pip outside grace; the
+  lecture only makes him think "It's a stuffed animal." While he is not hot and
+  no pepper is out, one appears just inside the arena's left edge every 3 s; the
+  pig's charges never reach that corner. A lost life restarts the fight.
+- The HUD shows the pig's twelve-segment bar with its bonks and snots, and the
+  hint names the rule; the camera frames both fighters. `src/sim/drive.ts`
+  fights it from the corner and wins with three lives intact (in
+  `pig.check.mjs`).
+
+**The pig's painting** (`art/incoming/pig/`) is cut by `art/cuts/pig.json`
+into seven layers on a skeleton of its own (far arm, far leg and tail behind
+the body, then the near leg, the head with its ears, and the near arm) and bent
+like the cast (`src/sim/rig/pig.ts`: breathing, the wind-up's lean back, the
+charge's lean forward with its legs cycling, the hop's stretch and landing
+squash, the deflation). It wears the squint, charge, hurt and defeated face
+edits by state, flashes white on a hit and throws one of the owner's stuffing
+tufts. Without its painting, or with `&noart=1`, the code-drawn pig stands in.
+`node scripts/art-grid.mjs pig` draws its cut over the painting.
+
+### The walls
+
+Every venue of the shift stands in front of the owner's painted walls (the
+lobby's three, the restaurant's three, the campus's three and the gift shop's
+two, in walking order, cropped at their pilasters by
+`art/cuts/wall-<name>.json`) with painted pieces standing against them and in
+front of the play, cut from the owner's sheets at sync; the walls are scaled to
+span the venue and rise with the ground he stands on. A venue whose walls are
+not all in keeps its inked photo (the lobby its drawn columns and palms too).
+`node scripts/art-grid.mjs wall/<name>` draws a wall with its seams and floor
+line.
 
 ### The lobby's cast
 
@@ -497,7 +538,7 @@ without touching the arm.
 ### The shift
 
 - **A shift** runs the venues in order: the lobby (1-1), the restaurant
-  (1-2), the campus (1-3); the gift shop and the pig follow in R3b. It
+  (1-2), the campus (1-3) and the gift shop with the pig (1-4). It
   starts on the lobby's card with three lives, two patience pips and 420
   seconds. Each venue has its own clock (420 seconds), its own punch clocks
   and its own seeded pickups and crates; under 80 seconds the clock turns
@@ -506,10 +547,10 @@ without touching the arm.
   into 50 points a second, then the next venue's card ("Your shift goes
   on"). Score, lives, cans, the smash charge, patience pips and the pepper
   carry on; he arrives cool with full snot, and a Buc-ee's shield ends at
-  the exit. After the last venue the card is "Shift over", with the score
-  and the best. Until the start screen offers it (R3b),
-  `/?next=1&venue=restaurant` and `&venue=campus` start a fresh shift
-  there, for play-testing.
+  the exit. After the gift shop the card is "Shift over", with the score
+  and the best. `/?next=1&venue=restaurant`, `&venue=campus` and
+  `&venue=arena` start a fresh shift there straight into play, for the
+  checks.
 - **Pickups** are laid out fresh each run by the shipped seeded rule (anchors
   on floors and platforms, Buc-ee's and nuts first, the rest cans), and each
   route always gets a can, nuts and a Buc-ee's. They are the real products
@@ -548,6 +589,23 @@ without touching the arm.
   kept in this browser) sit in the lower half, clear of his face. On phones
   and touch screens a ten-button pad runs along the bottom.
 
+### The start screen
+
+At `/?next=1&title=1` (until `/` switches to the new game) the start
+screen (`src/components/next-start.tsx`) shows the title over the key art,
+where to start (the whole shift from the lobby, the restaurant, the campus, or
+pig practice at the gift shop), Clock in, the personal best, sound, the keys,
+the quality (Auto steps down by itself; High, Medium and Low are kept on the
+device) and a Side quests row whose Hungry Hungry Hammer card opens the shipped
+game on the banquet table (`/?classic=1&quest=hungry`). The game loads
+behind it, so clocking in is quick; a start chosen before it is ready begins as
+soon as it is. A later start begins like a fresh shift there. Pig practice ends
+on "Practice over" and keeps no best. "Start screen" beside Play again and Try
+again comes back to it. Its pictures are rendered by the game:
+`BROWSER_SMOKE_CHANNEL=chrome node scripts/start-art.mjs http://127.0.0.1:8090/`
+writes `public/start/` after the art changes, and
+`art/incoming/brand/key-art.png` replaces the key art when it exists.
+
 ```powershell
 npm run test:next
 $env:BROWSER_SMOKE_CHANNEL='chrome'
@@ -557,6 +615,8 @@ node scripts/moves-browser.check.mjs http://127.0.0.1:8090/
 node scripts/acts-browser.check.mjs http://127.0.0.1:8090/
 node scripts/cast-browser.check.mjs http://127.0.0.1:8090/
 node scripts/shift-browser.check.mjs http://127.0.0.1:8090/
+node scripts/pig-browser.check.mjs http://127.0.0.1:8090/
+node scripts/next-start.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
@@ -595,7 +655,13 @@ and punch clocks, the heat zones, the swinging door, carts on their floor
 and down pits, footing on stairs, the new people's fights, each venue's
 shape and reach, the seeded rewards on every route, and a scripted player
 clearing the restaurant by its floor route, its counters and pot rack checked
-for reach, and the campus by both routes). The rig checks also sweep
+for reach, and the campus by both routes) and the pig checks in
+`pig.check.mjs` (its pattern and timings, the direction lock and the arena's
+ends, the half-HP speed-up, the hit gap and the bonk-and-snot rule, the mallet,
+the snot and the smash on it, the stomp bounce and contact, the shrug, the
+arena holding him, a pig beaten in the air, the gift shop's shape, the wake's
+gifts, the refill, the chained exit, a life lost mid-fight, the bar, and a
+scripted win). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks
@@ -610,7 +676,11 @@ the restaurant, then loses its last lives down the truck well and tries again
 from the lobby; the shift check walks the lobby into the restaurant with the
 pepper carried, stands on a flat-top and in the walk-in, waits out the
 swinging door, rides the campus's conveyor up and walks through the LIBRARY
-doors into "Shift over"; the moves browser check
+doors into the gift shop, downs the pig and walks through CLOCK OUT into
+"Shift over"; the pig browser check wakes the pig, fits its bar on three
+shapes, loses a life mid-fight and beats it; the start screen check fits it on
+three shapes, starts each place fresh, keeps practice out of the best and
+leaves for the side quest while it loads; the moves browser check
 swings, bonks a cart, fires and splats snot, towels off and smashes, and
 checks the sounds; the acts browser check waits for the watch check, the tap
 and the harrumph, lectures, takes the two pips' hits and the lost life, and
@@ -629,7 +699,9 @@ corridor and the exit), `stash.png`, `cast.png` (every person in every act),
 `cast-fx.png` (the burst, the stars, the hat, the glass, the cup, the plane,
 the puddles and the confetti), `cast-lobby-1..6.png` (the cast in its six
 scenes), and `restaurant-look-1..6.png` and `campus-look-1..6.png` (each
-venue in six frames: `restaurant` and `campus` in the board list); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
+venue in six frames: `restaurant` and `campus` in the board list),
+`arena-look-1..3.png` (the gift shop), `pig.png` (the pig in every state and
+face) and `pig-steps.png` (its charge and hop frame by frame); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
 `cast-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
 argument to `look-boards.mjs` names the boards to render, comma separated.
 

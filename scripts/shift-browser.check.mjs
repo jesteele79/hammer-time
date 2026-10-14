@@ -1,6 +1,6 @@
 // Plays the shift across its venues at /?next=1&dev=1: the lobby's exit into the restaurant's card, a flat-top, the
 // walk-in and the swinging door, the restaurant's exit into the campus's card, the tray return's ride up, the library's
-// doors into "Shift over", and play again from the lobby.
+// doors into the gift shop's card, the pig down and CLOCK OUT into "Shift over", and play again from the lobby.
 // Usage: node scripts/shift-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -142,10 +142,22 @@ try {
   await shot("shift-conveyor.png");
   await drawnAsTheyAre("the campus's deck");
 
-  // The library's doors end the shift.
-  r = await clockOut(15880, -900, "clear");
+  // The library's doors lead to the gift shop's card, seen on the phone's tall shape as the others are.
+  await page.setViewportSize({ width: 390, height: 844 });
+  r = await clockOut(15880, -900, "arena");
+  assert.deepEqual([r.mode, r.level], ["card", "arena"]);
+  for (const words of ["World 1-4", "The Pink Menace", "Your shift goes on"]) await page.waitForSelector(`.next-veil__card >> text=${words}`, { timeout: 2000 });
+  await cardClearNow("veil-arena");
+  await waitFor((x) => x.mode === "play", 6000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+
+  // The pig down, CLOCK OUT ends the shift.
+  await page.evaluate(() => window.__next.dev.pig({ state: "defeated" }));
+  r = await clockOut(3950, 0, "clear");
   assert.equal(r.mode, "clear");
   await page.waitForSelector("text=Shift over", { timeout: 2000 });
+  const scores = await page.locator(".next-veil__scores").innerText();
+  assert.match(scores, /Score[\s\S]*\d{6}[\s\S]*Best[\s\S]*\d{6}/i, `the shift's score and the best: ${scores}`);
   await shot("shift-over.png");
   await cardClearOfFace("veil-shift-over");
   await page.click("text=Play again");
@@ -157,7 +169,7 @@ try {
 
   assert.deepEqual(errors, []);
   writeFileSync(resolve(out, "shift-check.json"), JSON.stringify({ run: await run(), errors }, null, 2));
-  console.log("PASS: the lobby into the restaurant, a flat-top, the walk-in, the swinging door, into the campus, the conveyor, Shift over and play again; no errors.");
+  console.log("PASS: the lobby into the restaurant, a flat-top, the walk-in, the swinging door, into the campus, the conveyor, into the gift shop, the pig down, Shift over and play again; no errors.");
 } catch (err) {
   console.error("Shift check failure", errors);
   await page?.screenshot({ path: resolve(out, "shift-failure.png") });

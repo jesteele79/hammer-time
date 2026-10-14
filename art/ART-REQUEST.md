@@ -147,6 +147,13 @@ visible stitched panels, broad snout, upright pear body, short limbs.
 Checks: all six the same height and the same pink; the snout the same shape in
 each; seams in the same places.
 
+Status (2026-10-14, R3b): replaced by one painting and its edits (R3 design §6.3, briefed in
+`art/outgoing/batch-r3-codex.txt` section 3): `pig/pig-body.png` in velour, every limb clear of the
+body, is cut by `art/cuts/pig.json` into seven layers on a skeleton of its own and bent like the
+cast; `pig-squint`, `pig-charge`, `pig-hurt` and `pig-defeated` are face edits swapped whole on
+its head; `pig-stuffing.png`'s three tufts fly from its hits. All in and in the game, in the gift
+shop. Check a new pig painting with `node scripts/art-grid.mjs pig`.
+
 ## 4. Backdrops (one per venue)
 
 Wide scenes, no people, no text, painted in the ink style. These sit at the
@@ -193,9 +200,12 @@ Status (2026-10-13, R3a): the venues' walls are now three straight-on walls a ve
 (`<venue>-far-1..3.png`, each cut at its edge pilasters) with `-mid` and `-fore` sheets of
 standing pieces, briefed in `art/outgoing/batch-2-backdrops.txt` and
 `art/outgoing/batch-r3-codex.txt` sections 4 and 5. In and in the game: the restaurant's
-three walls, its mid and fore sheets; the campus's three walls, its mid and fore sheets. Still
-open: the gift shop's walls and sheets (`arena-*`), and the lobby's
-(`lobby-far-1..3`, `lobby-mid`, `lobby-fore`), which replace the lobby's inked photo in R3b.
+three walls, its mid and fore sheets; the campus's three walls, its mid and fore sheets.
+
+Status (2026-10-14, R3b): the gift shop's two walls (`arena-far-1`, `-2`) and its sheets (five mid
+pieces, two fore), and the lobby's three walls (`lobby-far-1..3`) and its sheets (five mid, two
+fore) are cut and in the game; the lobby's inked photo and drawn columns are now only its
+fallback. Every venue of the shift stands on painted walls.
 
 ## 5. The cast
 
