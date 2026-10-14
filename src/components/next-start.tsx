@@ -23,9 +23,11 @@ const pad = (n: number) => String(n).padStart(6, "0");
 /**
  * The start screen (R3 §7) in the shell's slate and gold: the title over the key art, where to start (the whole shift,
  * the restaurant, the campus, or pig practice), "Clock in", the best, mute, the keys, the quality, and the side quests.
- * The game loads behind it: a start picked before it is ready begins as soon as it is.
+ * The game loads behind it: a start picked before it is ready begins as soon as it is. It is drawn at once; its buttons
+ * wait, disabled, until the page is live, so no tap is lost.
  */
 export function NextStart({
+  live,
   ready,
   best,
   hungryBest,
@@ -35,6 +37,8 @@ export function NextStart({
   onQuality,
   onStart,
 }: {
+  /** The page's script is running: until then a tap would be lost. */
+  live: boolean;
   ready: boolean;
   best: number;
   hungryBest: number;
@@ -59,15 +63,15 @@ export function NextStart({
         <span className="next-start__best">
           Personal best <b>{pad(best)}</b>
         </span>
-        <button type="button" className="next-start__tool" aria-pressed={muted} onClick={onMute}>
+        <button type="button" className="next-start__tool" aria-pressed={muted} onClick={onMute} disabled={!live}>
           {muted ? "Sound off" : "Sound on"}
         </button>
-        <button type="button" className="next-start__tool" aria-expanded={keys} onClick={() => setKeys((k) => !k)}>
+        <button type="button" className="next-start__tool" aria-expanded={keys} onClick={() => setKeys((k) => !k)} disabled={!live}>
           Keys
         </button>
         <label className="next-start__tool next-start__quality">
           Quality
-          <select value={quality ?? "auto"} onChange={(e) => onQuality(e.target.value === "auto" ? null : (e.target.value as Quality))}>
+          <select value={quality ?? "auto"} onChange={(e) => onQuality(e.target.value === "auto" ? null : (e.target.value as Quality))} disabled={!live}>
             {QUALITIES.map((q) => (
               <option key={q.label} value={q.value ?? "auto"}>
                 {q.label}
@@ -94,14 +98,14 @@ export function NextStart({
             Hammer <span>Time.</span>
           </h1>
           <p className="next-start__tagline">Bonk the staff. Dodge the paper. Settle it with the pig.</p>
-          <button type="button" className="next-start__go" onClick={clockIn} aria-busy={waiting}>
+          <button type="button" className="next-start__go" onClick={clockIn} aria-busy={waiting} disabled={!live}>
             {waiting ? "Getting Hammer ready…" : "Clock in"}
           </button>
         </div>
       </section>
       <nav className="next-start__venues" aria-label="Choose where to start">
         {STARTS.map((s) => (
-          <button key={s.id} type="button" className="next-start__venue" aria-label={`Start at ${s.name}`} aria-pressed={chosen.id === s.id} onClick={() => setChosen(s)} onDoubleClick={() => onStart(s)}>
+          <button key={s.id} type="button" className="next-start__venue" aria-label={`Start at ${s.name}`} aria-pressed={chosen.id === s.id} onClick={() => setChosen(s)} onDoubleClick={() => onStart(s)} disabled={!live}>
             <img src={`/start/${s.id}.webp`} alt="" draggable={false} />
             <span className="next-start__code">{s.code}</span>
             <b>{s.name}</b>

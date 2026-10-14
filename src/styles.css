@@ -2304,6 +2304,12 @@ button:focus-visible {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+/* Until the page is live its buttons wait, dimmed: a tap then would be lost. */
+.next-start button:disabled,
+.next-start select:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
 .next-start__go:focus-visible,
 .next-start__venue:focus-visible,
 .next-start__quest:focus-visible {

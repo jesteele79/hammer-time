@@ -91,7 +91,7 @@ export function NextGame({
   const [pending, setPending] = useState<Start | null>(null);
   const [practice, setPractice] = useState(start === "arena");
   const [quality, setQualityState] = useState<Quality | null>(null);
-  // The start screen shows once the page is live: a tap on a card the server drew, before then, would be lost.
+  // The page is live once mounted: until then the server-drawn start screen's buttons are disabled, since a tap would be lost.
   const [live, setLive] = useState(false);
   // Read by the callbacks and by the look once it is up: what was chosen before it was ready still reaches it.
   const practiceRef = useRef(practice);
@@ -196,7 +196,7 @@ export function NextGame({
     });
   };
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
-  const onTitle = live && (mode === "title" || (title && mode === null));
+  const onTitle = mode === "title" || (title && mode === null);
   const veiled = mode === "pause" || mode === "over" || mode === "clear";
   const info = {
     venue: hud?.venue ?? "Hotel lobby",
@@ -214,6 +214,7 @@ export function NextGame({
       <div ref={host} className="next-stage" style={{ position: "fixed", inset: 0, background: "#0d1118" }} />
       {onTitle ? (
         <NextStart
+          live={live}
           ready={ready}
           best={best}
           hungryBest={hungryBest}
