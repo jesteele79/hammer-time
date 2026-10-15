@@ -832,3 +832,20 @@ test("practice from the start screen: a round on its own that never touches a sh
   shift.newQuest(7);
   assert.equal(shift.mode, "questTally", "no practice over a door's tally");
 });
+
+test("a robbery sets off the rival's payback: the bellhop's suitcase, the student's paper", () => {
+  const b = alone();
+  b.rivals.bellhop.plate.push("ribeye");
+  b.hammer.aim = screenDeg(1, sub(SEATS.bellhop.plate, P));
+  press(b, "jump");
+  const bevs = run(b, 1.5, { jump: true });
+  assert.equal(of(bevs, "hhRob").length, 1);
+  assert.ok(of(bevs, "hhSuitcase").some((e) => e.on) && b.suitcases.length === 1, "his suitcase slides out");
+  const s = alone();
+  s.rivals.student.plate.push("club");
+  s.hammer.aim = screenDeg(1, sub(SEATS.student.plate, P));
+  press(s, "jump");
+  const sevs = run(s, 3, { jump: true });
+  assert.equal(of(sevs, "hhRob").length, 1);
+  assert.equal(of(sevs, "hhPlane").length, 1, "the student throws paper");
+});

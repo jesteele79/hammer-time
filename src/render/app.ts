@@ -1,4 +1,5 @@
 import { Application, RendererType, UPDATE_PRIORITY, type Ticker } from "pixi.js";
+import type { GameEvent } from "../sim/events";
 import type { FoodKind } from "../sim/quests/hungry/food";
 import { refreshFrom, shouldStepDown } from "./quality";
 
@@ -98,6 +99,8 @@ export type NextProbe = {
   dev?: {
     teleport(x: number, y?: number): void;
     hit(): void;
+    /** An event as if the sim had sent it (its sound, feel and look): the voice check's taunts. */
+    event(e: GameEvent): void;
     charge(): void;
     give(kind: "can" | "nuts" | "bucees" | "pepper"): void;
     /** Takes everything in the level he is in, as if he had cleaned it out. */

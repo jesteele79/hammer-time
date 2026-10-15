@@ -49,7 +49,7 @@ import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { createScene } from "./scene";
-import { createSound, heard } from "./sound";
+import { createSound, heard, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
@@ -252,6 +252,11 @@ export async function startLook(
   /** A break or back from one: the Game's mode event goes through the feel like any other. */
   const pause = () => {
     game.togglePause();
+    // A break stops the recording, and its caption goes with it (spec §13).
+    if (game.mode === "pause") {
+      sound.stopVoice();
+      bubbles.cut();
+    }
     for (const e of game.events) feel(e);
   };
   const onKey = (e: KeyboardEvent) => {
@@ -429,6 +434,10 @@ export async function startLook(
 
   const show = (e: GameEvent, at: Frame) => {
     const { face, view, facing } = at;
+    // Besting someone offers a recording; the bus rolls its pool's shipped chance and keeps its gap.
+    const pool = tauntFor(e);
+    if (e.type === "castHit" && pool) comeback(e.role);
+    else if (pool) taunt(pool);
     switch (e.type) {
       case "hit":
         if (e.by === "mallet") {
@@ -559,7 +568,6 @@ export async function startLook(
           flyers.book(e.x, e.y - 60, e.dir);
           flyers.papers(e.x, e.y - 80, e.dir);
         }
-        if (e.role !== "student" && e.down) comeback(e.role);
         break;
       }
       case "castFreeze":
@@ -570,10 +578,6 @@ export async function startLook(
         break;
       case "lectureLand":
         words.say(e.schooled ? "SCHOOLED!" : "LISTEN UP!", e.x + facing * 120, e.y - 20, false, face, view);
-        taunt(e.schooled ? "student" : "staff");
-        break;
-      case "castFlee":
-        taunt("student");
         break;
       case "castFell":
         words.say(game.level.pitWord ?? "OUT OF ORDER", e.x, e.y - 400, true, face, view);
@@ -584,10 +588,7 @@ export async function startLook(
         break;
       case "swat":
         particles.emit("paper", e.x, e.y, 14);
-        if (e.kind === "plane") {
-          words.say("SWAT!", e.x, e.y - 50, false, face, view);
-          taunt("student");
-        }
+        if (e.kind === "plane") words.say("SWAT!", e.x, e.y - 50, false, face, view);
         break;
       case "missileHit":
         if (e.kind !== "plane") particles.emit("coffee", e.x, e.y, 12);
@@ -614,8 +615,6 @@ export async function startLook(
         words.say(e.by === "bonk" ? "BONK!" : "SNOT!", e.x, e.y - 40, false, face, view);
         pigView.hit(e.x, e.y);
         speech.say(PIG_ID, "SQUEEEE!", 0.6);
-        // The sound bus rolls the shipped 45 percent for the pig (TAUNT_CHANCE) and keeps its gap between recordings.
-        taunt("pig");
         break;
       case "pigHold":
         words.say(e.word, e.x, e.y - 60, true, face, view);
@@ -1315,6 +1314,10 @@ export async function startLook(
       hit() {
         world.hit(world.hero.x + world.hero.facing * PRACTICE_HIT);
       },
+      /** An event as if the sim had sent it: its sound, its feel and its look (the voice check's taunts). */
+      event(e: GameEvent) {
+        feel(e);
+      },
       charge() {
         world.hero.charge = CHARGE_MAX;
       },
@@ -1391,6 +1394,7 @@ export async function startLook(
     },
     setMuted(on) {
       sound.setMuted(on);
+      if (on) bubbles.cut();
     },
     start(at) {
       starts++;

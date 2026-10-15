@@ -1,10 +1,13 @@
 # Hammer Time
 
-Personal hospitality platformer.
-
-`/` opens the rebuilt game on its start screen (see "The rebuild" below). The
-shipped game described in the next sections stays playable at `/?classic=1`,
-Hungry Hungry Hammer included, until R4 replaces it.
+Hammer Time is a 2D hotel platformer. Hammer, in his Affliction shirt with a
+mallet in his fist, works a shift against the clock: the lobby, the
+restaurant, the campus and the gift shop, through bellhops, servers, office
+workers, cooks, professors and students who come at him, to the Pink Menace,
+the gift shop's giant plush pig. He fights with the mallet, his snot, a lecture
+and the super smash, keeps cool with the towel and Coke Zero, and once a shift
+can slip through the lobby's BUFFET door into Hungry Hungry Hammer, a
+sixty-second fight over a banquet table.
 
 ```powershell
 npm install
@@ -15,224 +18,44 @@ On Windows, `./startup.ps1` starts a background preview. On Linux or macOS,
 `sh startup.sh` starts the same preview. Both use the app environment wrapper
 and preserve the existing Grok platform integrations.
 
-## Controls
-
-| Action                   | Keyboard                                  |
-| ------------------------ | ----------------------------------------- |
-| Move                     | Arrows or A / D                           |
-| Jump (hold for height)   | Space or Z                                |
-| Run                      | Shift                                     |
-| Crouch / slide           | Down or S; hold while running to slide    |
-| Mallet swing; swat paper | H or X                                    |
-| Snot rocket              | F; three charges that refill              |
-| Lecture                  | E or L, standing                          |
-| Towel off                | T, while standing and warm                |
-| Super smash              | Q, at 10 charge                           |
-| Staff stash              | Down while standing on its marked cart    |
-| Side quest door          | Down on the floor in front of the door    |
-| Pause                    | Escape or P                               |
-
-Touch controls support simultaneous movement and actions. Landscape gives a
-larger playfield on phones.
-
-## Hammer's moves
-
-Hammer is a cut-out rig built from the approved photography. The face, head and
-shirt pixels are never edited, the head stays level when the body leans, and no
-drawn frame puts an arm or the mallet over his face (a test sweeps every pose).
-
-- **Mallet.** The arm loads behind and over his head, then the strike cuts
-  from overhead to the front between physics steps, so the arm never crosses
-  his face. A swoosh traces the full arc and contact follows it too. He leans
-  and steps into the blow; hits launch staff off their feet with a comic word
-  and a hit-stop. The real shoulder, elbow and wrist each have a joint, and the
-  sleeve travels with the shoulder.
-- **Super smash.** A hop, a long overhead load, then a slam that fires on
-  touchdown with "HAMMER TIME!" He folds forward and sinks into a squat: the
-  hips drop and sit back, the pelvis tips, both knees bend while the shoes stay
-  flat where they stand, and the mallet head lands on the floor in front of
-  his toes. The floor shockwave starts at the mallet head.
-- **Snot rocket.** He rears back to load his sinuses, then snaps forward and
-  honks; no hand comes up to the face. Snot is always loaded: three charges
-  that refill over about a second and a half each. Pepper from a ! crate makes
-  it hot: faster, bigger, and it goes through one staffer. Snot that lands on
-  the floor leaves a puddle that trips walking staff.
-- **Lecture.** He plants his feet and wags the mallet at whoever is in front.
-  Students he schools stop throwing paper and sulk; staff stop and take it for
-  a moment. Venting also drops his heat.
-- **Towel off.** The towel comes out of his back pocket, mops the bald crown
-  and back of the head, gets flicked out behind him in a spray of sweat, goes
-  back in the pocket and leaves a glint. Heat drains while he wipes; at full
-  heat a kettle whistle blows and steam rises off his head.
-- **Impatience.** Left standing on the floor with no input and nothing within
-  reach (no staffer within 120 px, no paper in the air, no awake pig), he
-  checks his watch at 2.5 seconds (the far forearm comes out front, the watch
-  at chest height, never above the collar), taps his front toe from 5 seconds,
-  and at 8 seconds harrumphs and thinks "Any day now." The cycle repeats. Any
-  input, a respawn or a new level resets it.
-
-## Start screen
-
-The full-screen launch menu shows Hammer facing the Pink Menace, using the
-approved original cutouts. Four illustrated starting-point buttons select the
-full shift, restaurant, campus or pig practice. Clock in launches that choice.
-The menu includes signature pickups, a stored personal best, mute and an
-expandable How to play section. The game HUD and touch pad appear after launch.
-Keyboard activation of menu buttons selects or opens that control without
-accidentally starting the game; Enter or Space outside a control starts the
-selected run. Small phones can scroll the menu. A Side quests row under the
-venues starts a practice round of Hungry Hungry Hammer and shows its stored
-best; practice never touches a run.
-
-## Side quests: Hungry Hungry Hammer
-
-Hungry Hungry Hippos at a banquet table. Enter it from the BUFFET door in the
-hotel lobby (Down on the floor in front of it; once per run) or practice it
-from the start screen.
-
-| Action                          | Keyboard                    |
-| ------------------------------- | --------------------------- |
-| Dive along the table            | Space, F or Jump; tap       |
-| Charged dive (rob a plate)      | Hold up to half a second    |
-| Bonk the near end of the table  | H or X                      |
-| Duck under paper                | Down                        |
-| Continue from the tally         | Enter, Space or Continue    |
-
-- **The round.** Sixty seconds. Food drops from the chute in waves:
-  appetizers, then entrees from 20 seconds, then desserts, with the dessert
-  cart crashing in at 42 seconds and spilling eight plates. Coke Zero, nuts,
-  a Buc-ee's bag, hot sauce, a to-go box and the check each drop once.
-- **The dive.** Hammer dives along the front of the table, far hand first,
-  and stops at the first food his hand reaches, eating everything within 10 px
-  of it. A tap reaches up to 90 px, plus 10 px for every plate he has eaten,
-  up to 250. Holding the button stretches the dive to 250 by half a second,
-  with a marker on the cloth showing where it will stop; a charged dive with a
-  clear path to a rival's plate robs the top item for its value plus a
-  100-point YOINK (specials on it pay out as if eaten).
-- **The rivals.** A student, a bellhop and a nurse grab food that settles
-  near them after a reaction delay, faster the angrier they get. Robbed, the
-  student winds up ("Heads up!") and throws paper down the table (duck under
-  it or swat it; a hit costs 150), the
-  bellhop drops a suitcase that stops food and dives for four seconds, and an
-  angry nurse slaps a hand that reaches into her zone.
-- **The server** walks behind the table bussing plates ("Are we still working
-  on that?"). Bonk him when he is near Hammer's end and his tray spills four
-  extra plates and he leaves for fifteen seconds; the same swing stuns a rival
-  leaning into range and slams suitcases off the table.
-- **Scoring.** The plate total plus combo bonuses (grabs within 1.2 seconds:
-  x2 from the fifth, x3 from the tenth). The check costs 400; the to-go box
-  doubles the next five grabs. Grades: COMPED 3000, GOOD TIPPER 2000, SPLIT
-  THE CHECK 1200, WATER ONLY below.
-- **Rewards on return** to the lobby: the score, Coke Zero eaten, smash charge
-  from nuts, a Buc-ee's boost, and hot snot from hot sauce or a full belly
-  (GOOD TIPPER or better: patience back to three). The door then says THANK
-  YOU for the rest of the run.
-
-The food is drawn procedurally (plates with tags) until the requested food
-sprite sheet exists; the Coke Zero, nuts and Buc-ee's photos are the approved
-pickups. Every Hammer line in the quest is a thought bubble.
-
-## Routes and surroundings
-
-The shift runs through a hotel lobby, restaurant service area and campus dining
-commons, then a stuffed-pig boss arena. The visual start menu starts any venue or
-boss practice directly. The three regular routes are roughly twice their
-previous length, with multiple checkpoints and a 420-second time allowance.
-
-Servers warn before rushing. Hotel staff take an extra hit and can be knocked
-along the floor. Office workers remain a smaller part of the cast. Each staffer
-opens with a line ("Is Pepsi okay?", "There's a daily resort fee."), and Hammer
-answers mallet hits with the supplied recordings, captioned, or a written jab.
-Nineteen adult college students across the routes exchange sarcastic dialogue
-with Hammer and telegraph paper airplanes. Student bodies stay outside combat;
-the planes are hazards you can duck, jump over or swat with the mallet, and a
-lecture shuts a student's paper supply off.
-
-Counters and crates use wood grain, steel trim, seams and lighting. Thin
-shelves show their exact landing surface. Suspended service ducts have a clear
-32-unit passage for the 30-unit crouched body; releasing Down underneath keeps
-Hammer low until standing is safe. Stepped shelves reach elevated supplies.
-Dark floor gaps and concrete edges make drop hazards easier to see.
-
-Coke Zero, nuts and Buc-ee's positions vary each new run, using safe floor and
-shelf anchors. Geometry and essential pepper crates remain fixed. Each regular
-route includes all three reward types; deaths preserve that run's layout.
-
-## The Pink Menace
-
-The giant pale pink pig is based on the supplied stuffed-toy photograph:
-broad protruding snout, upright pear-shaped body, short limbs and stitched
-velour panels. It warns before charging or hopping, locks its attack direction
-during the warning, and pauses to recover. Its health bar shows 12 HP and the
-required combo: at least three mallet bonks and three snot hits. Extra damage
-cannot bypass that combination. Super smash helps but does not erase the boss;
-Buc-ee's protects Hammer without instantly defeating it.
-
-The arena supplies pepper on entry and a refill near its left edge after damage
-cools the snot back down. The exit stays locked until the pig is defeated. Boss
-practice lets you learn the timing without replaying the full shift.
-
-## Character and audio
-
-The original face and Affliction shirt textures are unchanged. Animation moves
-limbs around that artwork (`src/game/rig.ts` holds the joints and pose
-keyframes, `src/game/hero.ts` draws them). The mallet drawing and collision use
-the same joints. The approved photographic Coke Zero, nuts, Buc-ee's and towel
-assets are also unchanged. PNG masters and smaller gameplay WebPs are retained.
-
-Coke Zero reduces heat; 100 cans earn a life. Nuts add three smash charge.
-Buc-ee's gives ten seconds of invincibility. Running, jumping and attacking
-build heat. Toweling off cools Hammer while hazards continue moving. The HUD
-shows snot charges and patience (the hits he can take before the next one
-costs a life); on his last nerve a vein pops beside his head.
-
-`public/absolute-bullshit.mp3` is untouched. The derived `damage-voice.wav`
-removes leading/trailing silence, preloads on the title screen, and decodes
-after the first interaction. Accepted damage immediately starts Web Audio
-playback, ducks music and suppresses repeats during immunity. Staff, paper and
-boss contacts share this path. Pause, mute and teardown stop the voice.
-
-Hammer's lines live in one table (`src/game/lines.ts`), each a `Line` with
-text and an optional recording. Only the six recordings are spoken, and a
-recording is captioned only when it actually plays: a student greeting, a
-lecture payoff, a paper swat or a pig hit that lands a recording shows that
-recording's words. Every other Hammer line is a thought bubble: a scalloped
-cloud above and behind his head with two puffs trailing toward the back of his
-head. A thought waits while a recording's caption is up, and a recording cut
-short by damage, pause or mute takes its caption with it. Thoughts, recording
-captions and "ABSOLUTE BULLSHIT" all sit above and behind his head; near the
-top or the sides of the screen they move behind his face, then below it, and
-are never drawn over his face. Staff, students and the pig keep speech bubbles.
-
-Five additional supplied recordings preload alongside it. Staff mallet contacts
-(office and hospitality) have a 35% chance of "They need to get fired," "They
-can't take feedback" or "They get all butt hurt." Student encounters, lectures
-and successful paper swats have a 50% chance of "They got a problem" or "Go grow
-some man balls." Accepted pig bonks and snots have a 45% chance of any of the
-five. Each pool cycles a shuffled bag before
-repeating; cooldown is at least 3.5 seconds, and lines never overlap or queue.
-Damage interrupts a taunt immediately with "absolute bullshit." Muting and
-pausing stop both kinds of voice. Optional clip failures never block starting.
-
-Original M4As are preserved under `public/voice/source/`. Derived mono WAVs trim
-only outside silence and normalize peaks for consistent volume. File mapping,
-processing details, durations and hashes are in `public/voice/manifest.json`.
-
-Generation prompts, reference details, crop coordinates and asset hashes are
-in `public/scenery-assets.json` and `public/boss-prop-assets.json`.
-
-## The rebuild (`/`)
-
-The game is rebuilt as a modern renderer over a fixed-step sim (the design is
-`docs/superpowers/specs/2026-10-10-hammer-time-rebuild-design.md`). `/` opens
-it on its start screen; `/?next=1` goes straight into play (the checks use
-it), `/?quest=hungry` opens Hungry Hungry Hammer's practice, and `/?classic=1` is the shipped game. It is a PixiJS 8
+The game is a modern renderer over a fixed-step sim (the design is
+`docs/superpowers/specs/2026-10-10-hammer-time-rebuild-design.md`), rebuilt in
+phases R0 to R4 over the first game, which is gone since R4. `/` opens it on
+its start screen; `/?next=1` goes straight into play (the checks use it),
+`/?quest=hungry` opens Hungry Hungry Hammer's practice, and an old
+`/?classic=1` link opens the start screen. It is a PixiJS 8
 scene on WebGPU (WebGL 2 when WebGPU is missing, or with `&gl=1`) playing
 the shift (the lobby, the restaurant, the campus and the gift shop) under the keyboard (arrows or WASD, Space
 or Z to jump, Shift to run, Down to crouch and, at speed, slide, P or Escape
 for a break) or the touch pad. `&noart=1` runs the art fallback path;
 `&board=1` exposes the look-board renderer; `&dev=1` adds a practice hit on G
 and a teleport, a hit and a full smash on `window.__next.dev`, for the checks.
+
+## Voice
+
+Hammer's lines live in one table (`src/game/lines.ts`), each a `Line` with
+text and an optional recording. Only the six recordings are spoken, and a
+recording is captioned only when it plays; every other Hammer line is a
+thought. The cast and the pig speak in bubbles.
+
+`public/absolute-bullshit.mp3` is untouched; its derived `damage-voice.wav`
+(outside silence trimmed) decodes on the first key and plays the moment he is
+hurt. The five other recordings are taunts, rolled by the audio bus
+(`src/game/audio.ts`, `src/game/taunts.ts`): knocking a staffer out, or
+freezing staff with a lecture, has a 35% chance of "They need to get fired,"
+"They can't take feedback" or "They get all butt hurt" (otherwise, now and
+then, a written comeback as a thought); schooling a student, running one off or
+swatting a plane a 50% chance of "They got a problem" or "Go grow some man
+balls"; a bonk or a snot on the pig a 45% chance of any of the five. Each pool
+cycles a shuffled bag before repeating, at least 3.5 seconds apart, never
+overlapping or queued. Being hurt cuts a taunt off with "absolute bullshit,"
+and muting stops both.
+
+Original M4As are preserved under `public/voice/source/`. Derived mono WAVs trim
+only outside silence and normalize peaks for consistent volume. File mapping,
+processing details, durations and hashes are in `public/voice/manifest.json`.
+
+## How it is built
 
 - `src/sim` steps the world at 120 Hz over plain objects: the spec's game-feel
   constants, floors with slopes, one-way platforms, solids and passes,
@@ -265,7 +88,7 @@ and a teleport, a hit and a full smash on `window.__next.dev`, for the checks.
   against the display's own rate, never back up; force one with
   `localStorage.setItem("hammer-time-quality", "medium")`.
 
-### Moves in the rebuild
+## Moves
 
 Hammer's moves keep the shipped keys and rules (`src/sim/moves.ts`) on the
 new body. When several move keys land at once one move starts, in the order
@@ -301,7 +124,7 @@ running move is never restarted.
   steams and sweats twice as fast, and near 100 he boils over: then he cannot
   run at all until he cools below 70. The towel (T) or a Coke Zero cools him.
 
-### His other acts, his body and the HUD
+## His other acts, his body and the HUD
 
 - **E, the lecture:** on the ground he plants his feet, points the mallet at
   whoever is in front and wags it (0.8 s), thinking a lecture line. A fifth of
@@ -329,7 +152,7 @@ Comic words, thoughts and captions are placed off his face every frame, and
 particles that reach his face are dropped. Sound is the shipped game's effects
 and music through its `AudioBus`, silent until the first key or tap.
 
-### The lobby (1-1)
+## The lobby (1-1)
 
 The lobby (`src/sim/levels/lobby.ts`) runs 16,400 px in three acts:
 
@@ -354,7 +177,7 @@ is stocked once a run: what he takes stays gone, across visits and lost
 lives, and its clock never runs. Walking into it cleaned out, he thinks
 "Can't keep one shelf stocked." and then says "They need to get fired."
 
-### The restaurant (1-2)
+## The restaurant (1-2)
 
 The restaurant (`src/sim/levels/restaurant.ts`) runs 15,800 px in three
 acts, and its enemy is heat as much as the staff:
@@ -378,7 +201,7 @@ acts, and its enemy is heat as much as the staff:
   Hammer, 500 and "DELIVERY REFUSED" for staff knocked in), the truck's bed,
   a server on her break, the dumpster and the DELIVERIES gate out.
 
-### The campus (1-3)
+## The campus (1-3)
 
 The campus (`src/sim/levels/campus.ts`) runs 16,400 px, the busiest venue
 before the pig, with paper the main threat:
@@ -398,7 +221,7 @@ before the pig, with paper the main threat:
   stairs, up to the terrace, a delivery case and the LIBRARY doors into
   the gift shop.
 
-### The gift shop (1-4)
+## The gift shop (1-4)
 
 The gift shop (`src/sim/levels/giftshop.ts`, "The Pink Menace") runs 4,400 px
 on grey carpet with 300 seconds on the clock: a ! crate by the door, then the
@@ -435,7 +258,7 @@ edits by state, flashes white on a hit and throws one of the owner's stuffing
 tufts. Without its painting, or with `&noart=1`, the code-drawn pig stands in.
 `node scripts/art-grid.mjs pig` draws its cut over the painting.
 
-### Hungry Hungry Hammer (the BUFFET door)
+## Hungry Hungry Hammer (the BUFFET door)
 
 The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
 ONLY door (not in the air, mid-move or knocked down), shows its card ("Side quest / Hungry Hungry Hammer / The
@@ -497,7 +320,7 @@ The chute, the dessert cart, the suitcase, the paper, the plates, the tray and t
 Without a painting (or with `&noart=1`) a warm wall and drawn carpet, a drawn table, plates with three-letter tags and
 the drawn stand-ins take their places.
 
-### The walls
+## The walls
 
 Every venue of the shift stands in front of the owner's painted walls (the
 lobby's three, the restaurant's three, the campus's three and the gift shop's
@@ -509,7 +332,7 @@ not all in keeps its inked photo (the lobby its drawn columns and palms too).
 `node scripts/art-grid.mjs wall/<name>` draws a wall with its seams and floor
 line.
 
-### The lobby's cast
+## The lobby's cast
 
 Eleven people work the lobby (`src/sim/cast.ts`, `cast-behavior.ts`,
 `missiles.ts`; placed in `levels/lobby.ts`; the design is
@@ -550,7 +373,7 @@ bowls whoever it lands on: the chain pays 100, 200, 400, 800, 1000, 2000, 4000
 and 8000, the eighth a life. Points otherwise: a knockdown 100, a slip 150, a
 schooling 150, a freeze 50, a swatted plane 50, a shield bowl 200, a student
 run off 100, a fall down the shaft 500. Hammer's six recordings answer the cast
-as they did the shipped game's. `/?next=1&nocast=1` plays the lobby without
+(see Voice). `/?next=1&nocast=1` plays the lobby without
 them (the older checks use it). `scripts/cast-browser.check.mjs` plays the
 fights in the browser and the boards `cast.png`, `cast-fx.png` and
 `cast-lobby-1..6.png` show every person in every act, the effects and the
@@ -607,7 +430,7 @@ recolored from masks in each painting's cut; a mask region may name the
 layers it reaches, so a garment painted in behind an arm changes color
 without touching the arm.
 
-### The shift
+## The shift
 
 - **A shift** runs the venues in order: the lobby (1-1), the restaurant
   (1-2), the campus (1-3) and the gift shop with the pig (1-4). It
@@ -661,7 +484,7 @@ without touching the arm.
   kept in this browser) sit in the lower half, clear of his face. On phones
   and touch screens a ten-button pad runs along the bottom.
 
-### The start screen
+## The start screen
 
 At `/` (or `/?next=1&title=1`) the start
 screen (`src/components/next-start.tsx`) shows the title over the key art,
@@ -678,14 +501,25 @@ again comes back to it. Its pictures are rendered by the game:
 writes `public/start/` after the art changes, and
 `art/incoming/brand/key-art.png` replaces the key art when it exists.
 
+## Validation
+
 ```powershell
+npm run typecheck
 npm run test:next
+npm run build
+```
+
+For browser checks, use installed Chrome (or Playwright's bundled Chromium)
+against the dev server:
+
+```powershell
 $env:BROWSER_SMOKE_CHANNEL='chrome'
 node scripts/next-browser.check.mjs http://127.0.0.1:8090/
 node scripts/run-browser.check.mjs http://127.0.0.1:8090/
 node scripts/moves-browser.check.mjs http://127.0.0.1:8090/
 node scripts/acts-browser.check.mjs http://127.0.0.1:8090/
 node scripts/cast-browser.check.mjs http://127.0.0.1:8090/
+node scripts/cast-art-browser.check.mjs http://127.0.0.1:8090/
 node scripts/shift-browser.check.mjs http://127.0.0.1:8090/
 node scripts/pig-browser.check.mjs http://127.0.0.1:8090/
 node scripts/next-start.check.mjs http://127.0.0.1:8090/
@@ -788,64 +622,6 @@ frame by frame) and `banquet-food.png` (every dish as the table draws it); the c
 `cast-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
 argument to `look-boards.mjs` names the boards to render, comma separated.
 
-## Validation
-
-```powershell
-npm run typecheck
-npm run test:game
-npm run build
-```
-
-The 72 game checks (47 in `gameplay.check.mjs`, 25 in `hungry.check.mjs`)
-cover protected files, mallet hits/misses, immediate voice
-scheduling and immunity, checkpoint recovery, projectile single-hit behavior,
-distinct rewards, seeded pickup placement, all passages and supply routes,
-hospitality behavior, paper telegraph/duck/swat/contact, and boss combo rules,
-refills and exit lock. Rig checks cover the untouched rest pose, face clearance
-for every drawn pose (now including snot, towel, watch check with a far-arm
-probe and a collar check, foot tap and the squatting slam), the mallet arc,
-planted feet through the squat (including every drawn slam frame on the
-ground), the mallet meeting the floor at the slam in both directions, and the
-banquet dive (face clearance at every extension and reach, the far hand at
-tabletop height); mechanic checks cover snot charges, hot snot, puddle slips,
-lectures and the super smash landing. Line checks cover the single table (only
-the six recordings carry clips), the spoken-or-thought caption switch, student
-greetings, captions staying in step with the voice, and placement of thoughts,
-recording captions and the damage line across the whole view. Idle checks
-cover the watch, tap and harrumph timing, cancellation by input, staff, paper
-and the pig, spoken captions surviving the harrumph, and reset on a new level. Voice checks cover supplied-file integrity, shuffled
-target pools/crossover, chance skips, cooldown/no overlap, actual event triggers,
-and damage priority. A physics playthrough clears the extended route geometry
-with staff active; paper timing is tested separately. Another playthrough
-clears the full boss using movement and attack inputs with three lives intact.
-Hungry Hungry Hammer checks cover the food physics, waves, the cart and the
-specials, tap and charged reach, held and mashed buttons, eating, the check,
-the to-go box, combos, rivals' reactions and anger, every payback, the server
-and the bonk, the 60-second round, grades and rewards, and the engine host:
-the door round trip with rewards, door conditions, practice records and
-pause.
-
-For browser checks, use installed Chrome or Playwright's bundled Chromium:
-
-```powershell
-$env:BROWSER_SMOKE_CHANNEL='chrome'
-node scripts/browser-smoke.mjs http://127.0.0.1:8080/ artifacts/game-dev.png
-node scripts/game-browser-check.mjs http://127.0.0.1:8080/ --poses
-node scripts/surroundings.check.mjs http://127.0.0.1:8080/
-node scripts/start-screen.check.mjs http://127.0.0.1:8080/
-node scripts/pig-boss.check.mjs http://127.0.0.1:8080/
-node scripts/voice-browser.check.mjs http://127.0.0.1:8080/
-node scripts/quest-browser.check.mjs http://127.0.0.1:8080/
-```
-
-These checks capture desktop, portrait and landscape views, character actions,
-the idle watch check, the super slam (development builds), all venue
-selectors, paper defense, a complete boss fight, boss phone HUD, pause and ten
-touch controls. `--poses` also renders a pose board: every move, the watch
-check, the foot tap, the slam frame by frame, the banquet dive and thought
-bubbles at the view edges. The quest check plays a practice round (dive,
-bonk, duck, pause, phones, tally, stored best) and, in development builds,
-the BUFFET door round trip in a real run. Repeat against production preview on port 8081,
-omitting `--poses`, which imports the development renderer. Captures and verdicts
-are saved under `artifacts/`. Voice browser checks use actual Web Audio decoding
-and playback during student and pig encounters, and verify damage, pause and mute.
+`node scripts/browser-smoke.mjs <url>` audits the page on a desktop and a
+phone; run it against the production preview (`npm run preview:restart`) as
+well as the dev server.

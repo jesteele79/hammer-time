@@ -357,6 +357,27 @@ function tumble(u: number): Pose {
   });
 }
 
+const turnAbout = (p: Point, o: Point, deg: number): Point => {
+  const c = Math.cos(deg * DEG);
+  const s = Math.sin(deg * DEG);
+  return { x: o.x + (p.x - o.x) * c - (p.y - o.y) * s, y: o.y + (p.x - o.x) * s + (p.y - o.y) * c };
+};
+/** How far a hip and knee bend lifts the near ankle toward the hip (rest units): the squat's depth. */
+function squatLift(hip: number, knee: number): number {
+  const H = JOINTS.hipNear.rest;
+  const K = JOINTS.kneeNear.rest;
+  const A = JOINTS.ankleNear.rest;
+  const knee1 = turnAbout(K, H, hip);
+  const ankle = turnAbout({ x: knee1.x + A.x - K.x, y: knee1.y + A.y - K.y }, knee1, hip + knee);
+  return ankle.y - A.y;
+}
+/** A leg squatting `lift` with its ankle straight under where it stood and its shoe as flat as it stood. */
+function squatLeg(leg: "near" | "far", lift: number) {
+  const A = leg === "near" ? JOINTS.ankleNear.rest : JOINTS.ankleFar.rest;
+  const T = leg === "near" ? JOINTS.toeNear.rest : JOINTS.toeFar.rest;
+  return legTo(leg, { x: A.x, y: A.y + lift }, angleOf(A, T), 1);
+}
+
 export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
   swing: (u) =>
     pose({
@@ -369,20 +390,22 @@ export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
       lean: at(SWING.lean, u),
     }),
   super: (u) => {
-    const hip = at(SUPER.hip, u);
-    const knee = at(SUPER.knee, u);
+    // The keyed bend sets how deep he squats; each leg then reaches its own floor by IK, so neither shoe lifts or slides.
+    const lift = squatLift(at(SUPER.hip, u), at(SUPER.knee, u));
+    const near = squatLeg("near", lift);
+    const far = squatLeg("far", lift);
     return pose({
       rot: {
         shoulderNear: at(SUPER.shoulderNear, u),
         elbowNear: at(SUPER.elbowNear, u),
         wristNear: at(SUPER.wristNear, u),
         shoulderFar: at(SUPER.shoulderFar, u),
-        hipNear: hip,
-        kneeNear: knee,
-        hipFar: hip * 0.9,
-        kneeFar: knee * 0.95,
-        ankleNear: -(hip + knee),
-        ankleFar: -(hip * 0.9 + knee * 0.95),
+        hipNear: near.hip,
+        kneeNear: near.knee,
+        ankleNear: near.ankle,
+        hipFar: far.hip,
+        kneeFar: far.knee,
+        ankleFar: far.ankle,
       },
       lean: at(SUPER.lean, u),
     });

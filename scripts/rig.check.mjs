@@ -783,3 +783,22 @@ test("the coil leans him back and bends his knees, never crossing his face; the 
   assert.ok(coilPose(1).lean < 0);
   assert.deepEqual([diveK(0), diveK(80), diveK(DIVE.tipBy), diveK(900)], [0, 0.5, 1, 1]);
 });
+
+test("on the ground the slam's squat keeps both soles on their floor lines and never slides a shoe", () => {
+  for (const facing of [1, -1]) {
+    const from = {};
+    for (let k = 0; k <= 54; k++) {
+      const u = SUPER_CUT[1] + ((1 - SUPER_CUT[1]) * k) / 54;
+      const s = solve(ACTIONS.super(u), facing, 0.26);
+      const dy = groundShift(s, "planted");
+      const lift = FAR_FLOOR * s.scale * s.squash.y;
+      for (const name of ["heelNear", "toeNear", "heelFar", "toeFar"]) {
+        const q = s.joints[name];
+        const line = name.endsWith("Far") ? -lift : 0;
+        from[name] ??= q.x;
+        assert.ok(Math.abs(q.y + dy - line) <= 3, `facing ${facing}, u ${u.toFixed(2)}: ${name} is ${(line - q.y - dy).toFixed(1)} px off its floor line`);
+        assert.ok(Math.abs(q.x - from[name]) <= 4, `facing ${facing}, u ${u.toFixed(2)}: ${name} slides ${(q.x - from[name]).toFixed(1)} px`);
+      }
+    }
+  }
+});

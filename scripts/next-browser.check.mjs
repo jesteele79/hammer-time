@@ -122,12 +122,16 @@ try {
     if (m.type() === "error") errors.push(m.text());
     if (m.type() === "warning") warnings.push(m.text());
   });
-  // The plain address opens the new game on its start screen (the shipped game is at ?classic=1), and no flags leak into it.
+  // The plain address opens the game on its start screen, and no flags leak into it.
   await page.goto(base);
   await page.waitForSelector(".next-start", { timeout: 30000 });
   await page.waitForFunction(() => window.__next?.run?.mode === "title", {}, { timeout: 30000 });
   await page.waitForLoadState("networkidle");
   assert.equal(new URL(page.url()).search, "", `the plain address keeps no search: ${page.url()}`);
+  // The shipped game is gone (R4): an old ?classic=1 link opens the start screen too.
+  await page.goto(`${base}?classic=1`);
+  await page.waitForSelector(".next-start", { timeout: 15000 });
+  await page.waitForFunction(() => window.__next?.run?.mode === "title", {}, { timeout: 30000 });
 
   await booted(`${base}?next=1&nocast=1`);
   verdict.renderer = await page.evaluate(() => window.__next.renderer);

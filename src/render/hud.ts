@@ -49,7 +49,7 @@ export type HudPayload = {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** The shipped game's hint (src/game/engine.ts hint()), first match wins, without the cast's lines. */
+/** The shipped game's hint (its engine's hint(), gone since R4), first match wins, without the cast's lines. */
 export function hintOf(game: Game): string {
   const h = game.world.hero;
   const d = game.door;

@@ -74,6 +74,8 @@ export type Sound = {
   voice(id: TauntId): void;
   /** One of the five taunts for a besting, when the bus allows one (the shipped chance and gap); which one played, or null. */
   taunt(target: TauntTarget): TauntId | null;
+  /** Whatever recording is playing stops (a break). */
+  stopVoice(): void;
   /** Schedules the music's next notes: once a frame. */
   tick(): void;
   destroy(): void;
@@ -81,6 +83,28 @@ export type Sound = {
   played: Record<string, number>;
   unlocked: boolean;
 };
+
+/**
+ * The pool of the owner's recordings an event offers a taunt from: only besting someone does (the shipped rule, R2b §3.4):
+ * a staffer put out, a lecture that freezes staff or schools a student, a student run off, a swatted plane, a hit on
+ * the pig. The bus then rolls the pool's chance.
+ */
+export function tauntFor(e: GameEvent): TauntTarget | null {
+  switch (e.type) {
+    case "castHit":
+      return e.down && e.role !== "student" ? "staff" : null;
+    case "lectureLand":
+      return e.schooled ? "student" : e.frozen ? "staff" : null;
+    case "castFlee":
+      return "student";
+    case "swat":
+      return e.kind === "plane" ? "student" : null;
+    case "pigHit":
+      return "pig";
+    default:
+      return null;
+  }
+}
 
 /** The cues an event asks for: the table, with the events whose cue depends on what they carry. */
 /** How far past the view an off-screen swing of the kitchen door is still heard (world px). */
@@ -197,6 +221,9 @@ export function createSound(): Sound {
       const id = sound.unlocked ? bus.taunt(target) : null;
       if (id) played[`voice:${id}`] = (played[`voice:${id}`] ?? 0) + 1;
       return id;
+    },
+    stopVoice() {
+      bus.stopVoice();
     },
     tick() {
       // Music asked for before the first key starts once the key unlocks sound.

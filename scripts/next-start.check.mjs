@@ -53,6 +53,31 @@ try {
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.run?.mode === "title");
   assert.equal(await page.evaluate(() => window.__next.drawing), false, "the canvas rests under the start screen");
+  // The start screen on its own: no HUD and no pad under it, the whole shift chosen; Enter on a place chooses it, Keys
+  // opens and closes the keys by mouse and keyboard, Sound turns over; none of them clocks in.
+  assert.equal(await page.locator(".next-hud, .next-touch").count(), 0, "no HUD or touch pad on the start screen");
+  const pressed = (name) => page.getByRole("button", { name: `Start at ${name}` }).getAttribute("aria-pressed");
+  assert.equal(await pressed("Hotel lobby"), "true", "the whole shift is chosen to begin with");
+  await page.getByRole("button", { name: "Start at Campus" }).focus();
+  await page.keyboard.press("Enter");
+  assert.deepEqual([await pressed("Campus"), await pressed("Hotel lobby")], ["true", "false"], "Enter on a place chooses it");
+  const keysButton = page.getByRole("button", { name: "Keys" });
+  await keysButton.click();
+  assert.equal(await keysButton.getAttribute("aria-expanded"), "true");
+  assert.ok(await page.locator(".next-start__keys").isVisible(), "the keys show");
+  await keysButton.click();
+  assert.equal(await keysButton.getAttribute("aria-expanded"), "false", "and close by mouse");
+  await keysButton.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await keysButton.getAttribute("aria-expanded"), "true", "and open by keyboard");
+  await page.keyboard.press("Enter");
+  assert.equal(await keysButton.getAttribute("aria-expanded"), "false");
+  await page.getByRole("button", { name: "Sound on" }).click();
+  assert.equal(await page.getByRole("button", { name: "Sound off" }).getAttribute("aria-pressed"), "true", "sound goes off");
+  await page.getByRole("button", { name: "Sound off" }).click();
+  assert.ok(await page.getByRole("button", { name: "Sound on" }).isVisible(), "and back on");
+  assert.equal(await page.evaluate(() => window.__next.run.mode), "title", "nothing clocked in");
+  await page.getByRole("button", { name: "Start at Hotel lobby" }).click();
   // The keyboard drives the start screen: the arrows move through the quality list, Space presses Clock in.
   await page.locator(".next-start__quality select").focus();
   await page.keyboard.press("ArrowDown");

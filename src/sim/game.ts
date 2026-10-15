@@ -75,7 +75,7 @@ const EXIT_REACH = 60;
 const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad;
 
 /**
- * A run of the lobby: the world, plus everything the shipped engine kept around it (src/game/engine.ts):
+ * A run of the lobby: the world, plus everything the shipped game's engine kept around it:
  * the seeded pickups and the crates, score, cans, lives and the clock, punch clocks, deaths and respawn.
  */
 /** `cast: false` runs the lobby with nobody in it (the older browser checks); `title` holds it on the start screen. */

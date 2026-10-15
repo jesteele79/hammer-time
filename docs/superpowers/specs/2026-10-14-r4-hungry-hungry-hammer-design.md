@@ -288,6 +288,15 @@ wide).
   (`dceedffdc12c32138e81bb63787cac7ae5d97fcd`).
 - `README.md` drops the shipped game's sections; "The rebuild" becomes the game's own description.
 
+As built in R4 (2026-10-15, the owner's yes): as above, every old check ported or retired by name in the plan's ledger.
+The voice checks moved to `scripts/voice.check.mjs` (in `test:next`) and `voice-browser.check.mjs` was rewritten for
+the game: each of the six recordings heard playing with its caption. The shipped caption rules, which the rebuild had
+lost (main spec §13), came back with it: a thought waits while a recording's caption is up, and a break or mute stops
+the recording and takes its caption. New checks: every crate in every level opens to a head bump, a lost life keeps
+the score, a robbery sets off its payback, the start screen's own controls; the slam's squat now keeps both shoes on
+the floor (its legs reach the floor by IK). Not ported: ducking a paper plane, which the shift's planes never allowed
+(they are below a crouched head by the time they reach him); left to the owner.
+
 ## 12. Order of work and checks
 
 One plan, executed inline with TDD and the ledger, one fresh reviewer on the most capable model at the end:

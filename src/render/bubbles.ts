@@ -4,7 +4,7 @@ import { PALETTE } from "./palette";
 import { overlaps, placeWord } from "./words";
 
 const EDGE = 16;
-/** The shipped layout's offsets (src/game/thought.ts) at the new scale: above and behind his crown. */
+/** The shipped game's thought offsets at the new scale: above and behind his crown. */
 const BEHIND = 68;
 const ABOVE = 40;
 const GAP = 20;
@@ -112,14 +112,55 @@ export class Speech {
   }
 }
 
+/**
+ * What Hammer's bubble holds, by the shipped caption rules (spec §13): a thought, or the caption of a recording he
+ * speaks. A thought never talks over a recording's caption, and a recording that stops takes its caption with it.
+ */
+export class Caption {
+  text: string | null = null;
+  spoken = false;
+  life = 0;
+
+  /** False when it waits: a recording's caption is up. */
+  think(text: string, seconds: number): boolean {
+    if (this.spoken && this.text !== null) return false;
+    this.set(text, seconds, false);
+    return true;
+  }
+
+  say(text: string, seconds: number): void {
+    this.set(text, seconds, true);
+  }
+
+  /** The recording stopped (a break, mute): its caption goes; a thought stays. */
+  cut(): void {
+    if (this.spoken) this.clear();
+  }
+
+  clear(): void {
+    this.text = null;
+    this.spoken = false;
+    this.life = 0;
+  }
+
+  step(dt: number): void {
+    this.life = Math.max(0, this.life - dt);
+    if (this.life <= 0) this.clear();
+  }
+
+  private set(text: string, seconds: number, spoken: boolean) {
+    this.text = text;
+    this.spoken = spoken;
+    this.life = seconds;
+  }
+}
+
 /** Hammer's thoughts (clouds) and the caption of a recording he speaks (a box), one at a time. */
 export class Bubbles {
   private readonly root = new Container({ label: "bubbles" });
   private readonly shape = new Graphics();
   private readonly words: BitmapText;
-  private life = 0;
-  private spoken = false;
-  private current: string | null = null;
+  private readonly caption = new Caption();
 
   constructor(layer: Container) {
     this.words = new BitmapText({
@@ -133,41 +174,43 @@ export class Bubbles {
   }
 
   get text(): string | null {
-    return this.current;
+    return this.caption.text;
   }
 
   think(text: string, seconds: number): void {
-    this.show(text, seconds, false);
+    if (this.caption.think(text, seconds)) this.show();
   }
 
   say(text: string, seconds: number): void {
-    this.show(text, seconds, true);
+    this.caption.say(text, seconds);
+    this.show();
+  }
+
+  /** The recording stopped: its caption goes with it. */
+  cut(): void {
+    this.caption.cut();
+    if (!this.caption.text) this.root.visible = false;
   }
 
   /** Gone at once: into or out of the banquet, nothing he thought on the far side of the door is left hanging. */
   clear(): void {
-    this.life = 0;
-    this.current = null;
+    this.caption.clear();
     this.root.visible = false;
   }
 
-  private show(text: string, seconds: number, spoken: boolean) {
-    this.current = text;
-    this.spoken = spoken;
-    this.life = seconds;
-    this.words.text = text;
-    this.words.tint = spoken ? SPOKEN : THOUGHT;
+  private show() {
+    this.words.text = this.caption.text ?? "";
+    this.words.tint = this.caption.spoken ? SPOKEN : THOUGHT;
   }
 
   update(dt: number, at: { crown: Point; face: Rect; facing: 1 | -1; view: Rect }): void {
-    this.life = Math.max(0, this.life - dt);
-    if (this.life <= 0) this.current = null;
-    this.root.visible = this.current !== null;
-    if (!this.current) return;
+    this.caption.step(dt);
+    this.root.visible = this.caption.text !== null;
+    if (!this.caption.text) return;
     const size = { w: this.words.width + 2 * TEXT.padX, h: this.words.height + 2 * TEXT.padY };
     const { box, puffs } = bubbleLayout(size, at.crown, at.facing, at.face, at.view);
     const g = this.shape.clear();
-    if (this.spoken) {
+    if (this.caption.spoken) {
       g.roundRect(box.x, box.y, box.w, box.h, 14).fill(PAPER).stroke({ width: 4, color: INK });
     } else {
       // Four lobes across the box, then the box's middle filled over their inner edges.
@@ -178,6 +221,6 @@ export class Bubbles {
       for (const p of puffs) g.circle(p.x, p.y, p.r).fill(PAPER).stroke({ width: 3, color: INK });
     }
     this.words.position.set(box.x + TEXT.padX, box.y + TEXT.padY);
-    this.root.alpha = Math.min(1, this.life / FADE);
+    this.root.alpha = Math.min(1, this.caption.life / FADE);
   }
 }

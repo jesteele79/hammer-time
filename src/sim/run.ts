@@ -1,7 +1,7 @@
 import type { GameEvent } from "./events";
 
 /**
- * The shipped run's numbers (src/game/engine.ts): lives, the patience a run starts with, what each
+ * The shipped game's run numbers: lives, the patience a run starts with, what each
  * pickup is worth, the clock's hurry, and the seconds of each card and beat, in seconds not frames.
  */
 export const RUN = {

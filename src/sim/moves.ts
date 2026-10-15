@@ -6,7 +6,7 @@ import type { HeroState, Rect } from "./types";
 export type MoveKind = "swing" | "super" | "snot" | "wipe" | "lecture" | "watch" | "tap" | "hurt" | "tumble";
 export type Move = { kind: MoveKind; t: number; fired: boolean; burst: boolean; lastU: number; stroke: number; victims: number[]; held: number };
 
-// The shipped game's timings (src/game/combat.ts, src/game/rig.ts); the watch and tap are its idle beats.
+// The shipped game's timings (its combat and rig); the watch and tap are its idle beats.
 export const MOVE_SECONDS: Record<MoveKind, number> = {
   swing: 0.42,
   super: 0.66,
@@ -58,7 +58,7 @@ export const tiredFactor = (heat: number) =>
   1 - (1 - STAMINA.floor) * Math.min(1, Math.max(0, (heat - STAMINA.from) / (100 - STAMINA.from)));
 
 /**
- * The shipped lecture (src/game/engine.ts `deliverLecture`): 1.4 s from one to the next, delivered
+ * The shipped game's lecture (its engine's `deliverLecture`): 1.4 s from one to the next, delivered
  * a fifth of the way in, 15 heat off, and its reach in front of him (-8..112 by +-52 at 50 px tall).
  */
 export const LECTURE = { cooldown: 1.4, deliver: 0.2, cool: 15, ahead: 762, behind: 54, half: 354 } as const;

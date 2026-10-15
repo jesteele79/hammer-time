@@ -702,3 +702,44 @@ test("back to the title from a shift's end, and from there a new shift where it 
   g.newRun(3, 0);
   assert.deepEqual([g.mode, g.run.lives, g.run.score], ["card", 3, 0]);
 });
+
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+import { CAMPUS } from "../src/sim/levels/campus.ts";
+import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
+
+test("a lost life keeps the shift's score", () => {
+  const g = createGame({ lobby: mini(), stash: stashOf() }, 7);
+  play(g);
+  g.run.score = 1234;
+  g.world.hero.x = 3400;
+  knockOut(g);
+  until(g, (x) => x.mode === "card");
+  assert.equal(g.run.lives, 2);
+  play(g);
+  assert.equal(g.run.score, 1234);
+});
+
+test("every crate in every level opens to a head bump from what stands under it, with room to stand there", () => {
+  for (const level of [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, STASH]) {
+    for (const c of level.crates) {
+      const at = `${level.id} ${c.id}`;
+      const g = createGame({ lobby: { ...level, cast: [], carts: [] }, stash: STASH }, 7);
+      play(g);
+      const h = g.world.hero;
+      // The highest thing under it: a floor, a shelf, or the top of a counter or a desk.
+      const tops = [
+        ...(g.level.solids ?? []).filter((s) => s.x <= c.x && c.x <= s.x + s.w && s.y > c.y).map((s) => s.y),
+        ...(g.level.platforms ?? []).filter((p) => p.x0 <= c.x && c.x <= p.x1 && p.y > c.y).map((p) => p.y),
+      ];
+      const under = floorAt(stageOf(g.level), c.x, c.y + 1);
+      const floor = Math.min(...tops, under ?? Infinity);
+      assert.ok(Number.isFinite(floor), `${at}: something to stand on under it`);
+      Object.assign(h, { x: c.x, y: floor, vx: 0, vy: 0 });
+      stepsG(g, 0.2);
+      assert.ok(h.onGround && Math.abs(h.y - floor) < 2 && Math.abs(h.x - c.x) < 4, `${at}: he stands under it, at ${h.x.toFixed(0)}, ${h.y.toFixed(0)}`);
+      g.step(input({ jump: true }, { jump: true }));
+      const evs = [...g.events, ...stepsG(g, 0.9, { jump: true })];
+      assert.ok(evs.some((e) => (e.type === "crate" && e.id === c.id) || (e.type === "canPop" && Math.abs(e.x - c.x) < 1)), `${at}: the bump opens it`);
+    }
+  }
+});

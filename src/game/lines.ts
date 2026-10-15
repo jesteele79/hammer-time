@@ -1,5 +1,7 @@
-import type { EnemyRole } from "./levels";
 import type { TauntId } from "./taunts";
+
+/** The shipped game's three staff roles, which its lines are keyed by. */
+export type EnemyRole = "server" | "hotel" | "office";
 
 /**
  * One of Hammer's lines. Only the six recordings carry a clip; a line without

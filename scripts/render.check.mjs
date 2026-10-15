@@ -1078,3 +1078,45 @@ test("what a staffer carries breaks on the hit that knocks it from his hands, no
   assert.deepEqual(hit("lunch", "server", false, true), ["splash"]);
   assert.deepEqual(hit("prof", "office", false, true), ["page"]);
 });
+
+import { tauntFor } from "../src/render/sound.ts";
+import { Caption } from "../src/render/bubbles.ts";
+
+test("only besting someone offers a recording: a staffer knocked out, a lecture that lands, a student run off, a swatted plane, a hit on the pig", () => {
+  const hit = (role, down) => ({ type: "castHit", id: 1, role, job: role, by: "mallet", x: 0, y: 0, dir: 1, down, points: 100, drops: false });
+  assert.equal(tauntFor(hit("server", true)), "staff");
+  assert.equal(tauntFor(hit("bellhop", true)), "staff");
+  assert.equal(tauntFor(hit("office", true)), "staff");
+  assert.equal(tauntFor(hit("server", false)), null, "a hit short of the last");
+  assert.equal(tauntFor(hit("student", true)), null, "a student put out runs off, and the flee speaks");
+  assert.equal(tauntFor({ type: "castFlee", id: 1, x: 0, y: 0, points: 100 }), "student");
+  assert.equal(tauntFor({ type: "lectureLand", x: 0, y: 0, schooled: 1, frozen: 2 }), "student");
+  assert.equal(tauntFor({ type: "lectureLand", x: 0, y: 0, schooled: 0, frozen: 1 }), "staff");
+  assert.equal(tauntFor({ type: "lectureLand", x: 0, y: 0, schooled: 0, frozen: 0 }), null, "a lecture to nobody");
+  assert.equal(tauntFor({ type: "swat", kind: "plane", x: 0, y: 0, points: 50 }), "student");
+  assert.equal(tauntFor({ type: "swat", kind: "pan", x: 0, y: 0, points: 50 }), null);
+  for (const by of ["bonk", "snot"]) assert.equal(tauntFor({ type: "pigHit", by, x: 0, y: 0, hp: 5, bonks: 1, snots: 0 }), "pig");
+  for (const type of ["swing", "jump", "hurt", "castBump", "castFreeze", "castSchooled", "chain", "pigBounce"]) assert.equal(tauntFor({ type }), null, type);
+});
+
+test("captions follow the voice: a thought waits while a recording's caption is up; a stopped recording takes its caption", () => {
+  const c = new Caption();
+  assert.equal(c.think("HAMMER TIME.", 1.1), true);
+  assert.deepEqual([c.text, c.spoken], ["HAMMER TIME.", false]);
+  c.say("They can't take feedback.", 2);
+  assert.deepEqual([c.text, c.spoken], ["They can't take feedback.", true], "a recording's caption replaces a thought");
+  assert.equal(c.think("Any day now.", 1.6), false, "a thought waits for the recording");
+  assert.equal(c.text, "They can't take feedback.");
+  c.say("ABSOLUTE BULLSHIT", 1.6);
+  assert.equal(c.text, "ABSOLUTE BULLSHIT", "the damage line cuts in with its own");
+  c.cut();
+  assert.equal(c.text, null, "a recording stopped by a break or by mute takes its caption");
+  c.think("Ahh. Better.", 1.2);
+  c.cut();
+  assert.equal(c.text, "Ahh. Better.", "a thought is no recording: a cut leaves it");
+  c.step(1.3);
+  assert.equal(c.text, null, "it runs out");
+  c.say("They need to get fired.", 2);
+  c.step(2.01);
+  assert.equal(c.think("Any day now.", 1.6), true, "with nothing spoken, thoughts show");
+});
