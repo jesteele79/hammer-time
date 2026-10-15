@@ -50,6 +50,9 @@ export function NextHud({
   onMute?: () => void;
 }) {
   if (!hud) return null;
+  // The banquet's round (R4 §9): its own score, clock and rows in the shift's places.
+  const q = hud.quest;
+  const score = q ? q.score : hud.score;
   const full = hud.charge >= hud.chargeMax;
   const lives = Math.max(0, hud.lives);
   // A mouse press must not leave a button focused: Space would then press it instead of jumping.
@@ -57,28 +60,38 @@ export function NextHud({
   return (
     <div className={touch ? "next-hud next-hud--touch" : "next-hud"}>
       <section className="next-hud__bar-top" aria-label="Run">
-        <span className="next-hud__score" aria-label={`Score ${hud.score}`}>
-          {String(hud.score).padStart(6, "0")}
+        <span className="next-hud__score" aria-label={`Score ${score}`}>
+          {String(score).padStart(6, "0")}
         </span>
-        <span className="next-hud__cans" aria-label={`${hud.cans} Coke Zero`}>
-          <CanIcon />
-          {String(hud.cans).padStart(2, "0")}
-        </span>
-        <span className="next-hud__lives" aria-label={`${lives} ${lives === 1 ? "life" : "lives"}`}>
-          {Array.from({ length: lives > LIFE_PIPS ? 1 : lives }, (_, i) =>
-            hud.portrait ? <img key={i} src={hud.portrait} alt="" /> : <i key={i} />,
-          )}
-          {lives > LIFE_PIPS && <b>×{lives}</b>}
-        </span>
-        {hud.star > 0 && (
+        {!q && (
+          <span className="next-hud__cans" aria-label={`${hud.cans} Coke Zero`}>
+            <CanIcon />
+            {String(hud.cans).padStart(2, "0")}
+          </span>
+        )}
+        {!q && (
+          <span className="next-hud__lives" aria-label={`${lives} ${lives === 1 ? "life" : "lives"}`}>
+            {Array.from({ length: lives > LIFE_PIPS ? 1 : lives }, (_, i) =>
+              hud.portrait ? <img key={i} src={hud.portrait} alt="" /> : <i key={i} />,
+            )}
+            {lives > LIFE_PIPS && <b>×{lives}</b>}
+          </span>
+        )}
+        {!q && hud.star > 0 && (
           <span className="next-hud__star" aria-label={`Buc-ee's shield, ${hud.star} seconds`}>
             <img src="/art/products/beaver.webp" alt="" />
             {hud.star}
           </span>
         )}
-        <span className="next-hud__clock" data-hurry={hud.hurry} aria-label={hud.time === null ? "No clock" : `${hud.time} seconds left`}>
-          {hud.time === null ? "–" : clock(hud.time)}
-        </span>
+        {q ? (
+          <span className="next-hud__clock" data-hurry={q.time <= 10} aria-label={`${q.time} seconds left`}>
+            {clock(q.time)}
+          </span>
+        ) : (
+          <span className="next-hud__clock" data-hurry={hud.hurry} aria-label={hud.time === null ? "No clock" : `${hud.time} seconds left`}>
+            {hud.time === null ? "–" : clock(hud.time)}
+          </span>
+        )}
         <button type="button" className="next-hud__button" aria-label="Pause" onPointerDown={noFocus} onClick={onPause}>
           <PauseIcon />
         </button>
@@ -86,7 +99,7 @@ export function NextHud({
           <SoundIcon muted={muted} />
         </button>
       </section>
-      {hud.boss && (
+      {!q && hud.boss && (
         <section className="next-hud__boss" aria-label="The Pink Menace">
           <span className="next-hud__boss-name">The Pink Menace</span>
           <span className="next-hud__boss-bar" role="meter" aria-label="Its stuffing" aria-valuemin={0} aria-valuemax={hud.boss.max} aria-valuenow={hud.boss.hp}>
@@ -106,44 +119,65 @@ export function NextHud({
         <header className="next-hud__head">
           {hud.portrait && <img className="next-hud__portrait" src={hud.portrait} alt="" />}
           <div>
-            <div className="next-hud__venue">{hud.venue}</div>
-            <div className="next-hud__mode">World {hud.world}</div>
+            <div className="next-hud__venue">{q ? "Hungry Hungry Hammer" : hud.venue}</div>
+            <div className="next-hud__mode">{q ? "The Banquet" : `World ${hud.world}`}</div>
           </div>
         </header>
-        <dl className="next-hud__rows">
-          <div className="next-hud__row">
-            <dt>Patience</dt>
-            <dd aria-label={`${hud.patience} of ${hud.patienceMax}`} data-hot={hud.hot}>
-              {Array.from({ length: hud.patienceMax }, (_, i) => (
-                <i key={i} className="next-hud__pip next-hud__pip--patience" style={fill(i < hud.patience ? 1 : 0)} />
-              ))}
-            </dd>
-          </div>
-          <div className="next-hud__row">
-            <dt>Heat</dt>
-            <dd aria-label={`${Math.round(hud.heat)} percent`}>
-              <span className="next-hud__bar" data-level={level(hud.heat)} data-slowed={hud.slowed}>
-                <b style={{ width: `${hud.heat}%` }} />
-              </span>
-            </dd>
-          </div>
-          <div className="next-hud__row">
-            <dt>Snot</dt>
-            <dd aria-label={`${Math.floor(hud.sinus)} of ${hud.sinusMax}`}>
-              {Array.from({ length: hud.sinusMax }, (_, i) => (
-                <i key={i} className="next-hud__pip next-hud__pip--snot" style={fill(hud.sinus - i)} />
-              ))}
-            </dd>
-          </div>
-          <div className="next-hud__row">
-            <dt>Smash</dt>
-            <dd className="next-hud__segs" data-full={full} aria-label={`${hud.charge} of ${hud.chargeMax}`}>
-              {Array.from({ length: hud.chargeMax }, (_, i) => (
-                <i key={i} className="next-hud__seg" data-on={i < hud.charge} />
-              ))}
-            </dd>
-          </div>
-        </dl>
+        {q ? (
+          <dl className="next-hud__rows">
+            <div className="next-hud__row">
+              <dt>Reach</dt>
+              <dd aria-label={`${q.reach} of ${q.reachMax}`}>
+                <span className="next-hud__bar next-hud__bar--reach">
+                  <b style={{ width: `${(100 * q.reach) / q.reachMax}%` }} />
+                  <i style={{ left: `${(100 * q.reachBase) / q.reachMax}%` }} />
+                </span>
+              </dd>
+            </div>
+            <div className="next-hud__row">
+              <dt>Combo</dt>
+              <dd className="next-hud__combo" data-mult={q.mult}>
+                {q.mult > 1 ? `×${q.mult} · ` : ""}
+                {q.combo} in a row · {q.chomps} chomped
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <dl className="next-hud__rows">
+            <div className="next-hud__row">
+              <dt>Patience</dt>
+              <dd aria-label={`${hud.patience} of ${hud.patienceMax}`} data-hot={hud.hot}>
+                {Array.from({ length: hud.patienceMax }, (_, i) => (
+                  <i key={i} className="next-hud__pip next-hud__pip--patience" style={fill(i < hud.patience ? 1 : 0)} />
+                ))}
+              </dd>
+            </div>
+            <div className="next-hud__row">
+              <dt>Heat</dt>
+              <dd aria-label={`${Math.round(hud.heat)} percent`}>
+                <span className="next-hud__bar" data-level={level(hud.heat)} data-slowed={hud.slowed}>
+                  <b style={{ width: `${hud.heat}%` }} />
+                </span>
+              </dd>
+            </div>
+            <div className="next-hud__row">
+              <dt>Snot</dt>
+              <dd aria-label={`${Math.floor(hud.sinus)} of ${hud.sinusMax}`}>
+                {Array.from({ length: hud.sinusMax }, (_, i) => (
+                  <i key={i} className="next-hud__pip next-hud__pip--snot" style={fill(hud.sinus - i)} />
+                ))}
+              </dd>
+            </div>
+            <div className="next-hud__row">
+              <dt>Smash</dt>
+              <dd className="next-hud__segs" data-full={full} aria-label={`${hud.charge} of ${hud.chargeMax}`}>
+                {Array.from({ length: hud.chargeMax }, (_, i) => (
+                  <i key={i} className="next-hud__seg" data-on={i < hud.charge} />
+                ))}
+              </dd>
+            </div>
+          </dl>
+        )}
       </section>
       {hud.saved && (
         <div className="next-hud__saved" role="status">

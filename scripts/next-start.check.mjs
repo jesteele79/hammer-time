@@ -1,7 +1,7 @@
 // The start screen at `/?next=1&title=1`: it fits a laptop, a phone upright and a phone on its side without scrolling or
 // anything off the screen; each start begins where it says (pig practice at the gift shop), "Start screen" comes back to
-// it, the quality choice is kept, a start chosen while the game still loads begins once, and leaving for the side quest
-// while it loads leaves no errors.
+// it, the quality choice is kept, a start chosen while the game still loads begins once, and the side quest chosen while
+// it loads opens the banquet on the same page with no errors.
 // Usage: BROWSER_SMOKE_CHANNEL=chrome node scripts/next-start.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -19,10 +19,14 @@ const fits = async (page, w, h) => {
   const r = await page.evaluate(() => {
     const doc = document.scrollingElement;
     const boxes = [...document.querySelectorAll(".next-start button, .next-start a, .next-start select, .next-start h1")].map((e) => e.getBoundingClientRect());
-    return { sw: doc.scrollWidth, sh: doc.scrollHeight, out: boxes.filter((b) => b.left < 0 || b.top < 0 || b.right > innerWidth + 0.5 || b.bottom > innerHeight + 0.5).length };
+    // Clock in clear of the cards: a start screen too tall for the phone squeezes the hero until its button rides over them.
+    const go = document.querySelector(".next-start__go").getBoundingClientRect();
+    const over = [...document.querySelectorAll(".next-start__venue, .next-start__quest")].map((e) => e.getBoundingClientRect()).filter((b) => go.left < b.right && go.right > b.left && go.top < b.bottom && go.bottom > b.top).length;
+    return { sw: doc.scrollWidth, sh: doc.scrollHeight, out: boxes.filter((b) => b.left < 0 || b.top < 0 || b.right > innerWidth + 0.5 || b.bottom > innerHeight + 0.5).length, over };
   });
   assert.ok(r.sw <= w && r.sh <= h, `${w}x${h}: no scrolling (${r.sw}x${r.sh})`);
   assert.equal(r.out, 0, `${w}x${h}: everything on the screen`);
+  assert.equal(r.over, 0, `${w}x${h}: Clock in over a card`);
 };
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -86,12 +90,11 @@ try {
   await page.locator(".next-start__quality select").selectOption("auto");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), null);
   await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 3000 });
-  // The side quest, clicked while the game still loads: the old game opens on the banquet table, and nothing errs.
+  // The side quest, clicked while the game still loads: the banquet opens on this page once it is ready, and nothing errs.
   await page.goto(url);
-  await page.getByRole("link", { name: "Play Hungry Hungry Hammer" }).click();
-  // The router writes its flags back as true.
-  await page.waitForURL(/classic=(1|true)&quest=hungry/);
-  await page.waitForTimeout(3000);
+  await page.getByRole("button", { name: "Play Hungry Hungry Hammer" }).click();
+  await page.waitForFunction(() => window.__next?.run?.mode === "questCard" || window.__next?.run?.mode === "quest");
+  await page.waitForTimeout(1500);
   await page.screenshot({ path: resolve(out, "start-hungry.png") });
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log("PASS: the start screen fits all three sizes, starts each place fresh, keeps practice out of the best, and leaves cleanly.");

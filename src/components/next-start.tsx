@@ -22,7 +22,8 @@ const pad = (n: number) => String(n).padStart(6, "0");
 
 /**
  * The start screen (R3 §7) in the shell's slate and gold: the title over the key art, where to start (the whole shift,
- * the restaurant, the campus, or pig practice), "Clock in", the best, mute, the keys, the quality, and the side quests.
+ * the restaurant, the campus, or pig practice), "Clock in", the best, mute, the keys, the quality, and the side quests
+ * (Hungry Hungry Hammer, played here as practice, R4 §8).
  * The game loads behind it: a start picked before it is ready begins as soon as it is. It is drawn at once; its buttons
  * wait, disabled, until the page is live, so no tap is lost.
  */
@@ -30,23 +31,27 @@ export function NextStart({
   live,
   ready,
   best,
-  hungryBest,
+  banquetBest,
   muted,
   quality,
   onMute,
   onQuality,
   onStart,
+  onQuest,
 }: {
   /** The page's script is running: until then a tap would be lost. */
   live: boolean;
   ready: boolean;
   best: number;
-  hungryBest: number;
+  /** Hungry Hungry Hammer's own best, door rounds and practice alike. */
+  banquetBest: number;
   muted: boolean;
   quality: Quality | null;
   onMute: () => void;
   onQuality: (q: Quality | null) => void;
   onStart: (s: Start) => void;
+  /** The Side quests card: a practice round of Hungry Hungry Hammer, on this page. */
+  onQuest: () => void;
 }) {
   const [chosen, setChosen] = useState<Start>(STARTS[0]);
   const [keys, setKeys] = useState(false);
@@ -115,10 +120,11 @@ export function NextStart({
       </nav>
       <section className="next-start__quests" aria-label="Side quests">
         <span className="next-start__quests-k">Side quests</span>
-        <a className="next-start__quest" href="/?classic=1&quest=hungry" aria-label="Play Hungry Hungry Hammer">
+        <button type="button" className="next-start__quest" aria-label="Play Hungry Hungry Hammer" onClick={onQuest} disabled={!live}>
+          <img src="/start/banquet.webp" alt="" draggable={false} />
           <b>Hungry Hungry Hammer</b>
-          <small>Banquet table · best {pad(hungryBest)}</small>
-        </a>
+          <small>Banquet table · best {pad(banquetBest)}</small>
+        </button>
       </section>
     </div>
   );

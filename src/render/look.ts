@@ -760,11 +760,14 @@ export async function startLook(
   };
   const enterBanquet = () => {
     speech.clear();
+    bubbles.clear();
     showBanquetView(true);
     banqueting = true;
   };
   /** Out of the banquet: the shift's level shown again where he stands. */
   const leaveBanquet = (x: number, y: number) => {
+    speech.clear();
+    bubbles.clear();
     showBanquetView(false);
     showLevel(game.level, x, y);
     banqueting = false;
@@ -1069,8 +1072,11 @@ export async function startLook(
       snapCamera(x, y);
     }
     objects.sync(game.pickups, game.crates, simDt);
-    const door = game.mode === "play" && game.door && (game.door.kind === "stash" || game.door.kind === "return") ? game.door.id : null;
-    views.get(game.level.id)?.venue.setDoorGlow(door);
+    // A door he can use glows: the stash's, the cart back, and the BUFFET until it is spent.
+    const d = game.door;
+    const usable = !!d && (d.kind === "stash" || d.kind === "return" || (d.kind === "quest" && !game.run.spent.includes(d.id)));
+    views.get(game.level.id)?.venue.setDoorGlow(game.mode === "play" && usable ? d!.id : null);
+    views.get(game.level.id)?.venue.setSpent(game.run.spent);
     // The level's theme while he plays (the stash has its own), silence otherwise; a repeat changes nothing.
     sound.music(game.mode === "play" ? game.level.music : null);
     afterFrame(simDt, game.level.time > 0 && game.run.time < RUN.hurry);

@@ -1,6 +1,7 @@
 // Renders the start screen's pictures from the game itself and stores them in public/start/ (committed): the key art (the
-// lobby with Hammer and the pig) and a picture of each place a shift can start. The owner's art/incoming/brand/key-art.png
-// replaces the rendered key art when it exists. Run it after the art changes, against the dev server.
+// lobby with Hammer and the pig), a picture of each place a shift can start, and the banquet's for the Side quests card.
+// The owner's art/incoming/brand/key-art.png replaces the rendered key art when it exists. Run it after the art changes,
+// against the dev server.
 // Usage: BROWSER_SMOKE_CHANNEL=chrome node scripts/start-art.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -26,7 +27,13 @@ try {
   const owner = "art/incoming/brand/key-art.png";
   await webp(existsSync(owner) ? readFileSync(owner) : await shot("lobby", "keyart"), 1600, "key-art.webp");
   for (const venue of ["lobby", "restaurant", "campus", "arena"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
-  console.log("PASS: wrote public/start/key-art.webp and four pictures of where a shift starts.");
+  // The banquet's card: the round at the entrees, drawn by the game.
+  await page.goto(`${base}?next=1&board=1&quest=hungry`);
+  await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 60000 });
+  await page.waitForTimeout(800);
+  const thumb = await page.evaluate(() => window.__nextBoard.render({ kind: "banquet-thumb", resolution: 1 }));
+  await webp(Buffer.from(thumb.split(",").pop(), "base64"), 640, "banquet.webp");
+  console.log("PASS: wrote public/start/key-art.webp, four pictures of where a shift starts and the banquet's.");
 } finally {
   await browser.close();
 }

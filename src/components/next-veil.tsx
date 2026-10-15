@@ -1,5 +1,7 @@
+import type { HudPayload } from "@/render/hud";
 import type { GameMode } from "@/sim/game";
-import { KEYS } from "./next-keys";
+import { FOODS } from "@/sim/quests/hungry/food";
+import { BANQUET_KEYS, KEYS } from "./next-keys";
 
 export type VeilInfo = {
   venue: string;
@@ -14,6 +16,9 @@ export type VeilInfo = {
   first: boolean;
   /** Pig practice: scored on its own, no best kept. */
   practice: boolean;
+  /** Hungry Hungry Hammer while it is up (its card, round, break or tally), and its own best (R4). */
+  quest: HudPayload["quest"];
+  banquetBest: number;
 };
 
 function Lives({ n, portrait }: { n: number; portrait: string | null }) {
@@ -53,8 +58,9 @@ function Scores({ info }: { info: VeilInfo }) {
 
 /**
  * The shell's cards in slate and gold: the venue card before play, the break, game over and the
- * clear. They sit in the half of the screen his face is not in, over a scrim that fades out before
- * it (spec §2.1); on a phone on its side they fold into one compact row.
+ * clear, and the banquet's card and tally. They sit in the half of the screen his face is not in,
+ * over a scrim that fades out before it (spec §2.1); on a phone on its side they fold into one
+ * compact row.
  */
 export function NextVeil({
   mode,
@@ -63,15 +69,21 @@ export function NextVeil({
   onResume,
   onNewRun,
   onTitle,
+  onContinue,
+  onQuestAgain,
 }: {
   mode: GameMode | null;
   info: VeilInfo;
-  /** The half of the screen away from his face. */
-  place?: "top" | "bottom";
+  /** The half of the screen away from his face: the right half at the banquet on a wide screen. */
+  place?: "top" | "bottom" | "right";
   onResume: () => void;
   onNewRun: () => void;
   /** Back to the start screen, when there is one. */
   onTitle?: () => void;
+  /** The BUFFET door's tally: back to the lobby. */
+  onContinue?: () => void;
+  /** Practice's tally: another round. */
+  onQuestAgain?: () => void;
 }) {
   const toTitle = onTitle && (
     <button type="button" className="next-veil__button next-veil__button--quiet" onClick={onTitle}>
@@ -95,7 +107,7 @@ export function NextVeil({
         <section className="next-veil__card" role="dialog" aria-label="On break">
           <h2 className="next-veil__title">On break</h2>
           <p className="next-veil__keys">
-            {KEYS.map(([key, what]) => (
+            {(info.quest ? BANQUET_KEYS : KEYS).map(([key, what]) => (
               <span key={key} className="next-hud__key">
                 <kbd>{key}</kbd>
                 {what}
@@ -108,6 +120,64 @@ export function NextVeil({
         </section>
       </div>
     );
+  if (mode === "questCard")
+    return (
+      <div className="next-veil next-veil--card" data-place={place}>
+        <section className="next-veil__card" aria-live="polite">
+          <p className="next-veil__eyebrow">Side quest</p>
+          <h2 className="next-veil__title">Hungry Hungry Hammer</h2>
+          <p className="next-veil__line">The Banquet</p>
+        </section>
+      </div>
+    );
+  if (mode === "questTally" && info.quest?.result) {
+    const r = info.quest.result;
+    const best = Math.max(info.banquetBest, r.score);
+    const lines = [
+      `Plate ${r.plate} from ${r.grabs} grabs`,
+      `Combo bonus +${r.comboBonus} (best ${r.bestCombo} in a row)`,
+      ...(r.robbed ? [`Robbed other plates ${r.robbed} time${r.robbed > 1 ? "s" : ""}`] : []),
+      ...(r.paper ? [`Paper to the face: ${r.paper} (-${r.paper * 150})`] : []),
+      ...(r.specials.length ? [`Specials: ${r.specials.map((k) => FOODS[k].name).join(", ")}`] : []),
+      ...(r.bill ? ["Picked up the check: -400"] : []),
+      ...(r.full ? ["Full belly: the pepper on the way back"] : []),
+    ];
+    return (
+      <div className="next-veil" data-place={place}>
+        <section className="next-veil__card next-veil__card--tally" role="dialog" aria-label={r.grade}>
+          <p className="next-veil__eyebrow">Side quest</p>
+          <h2 className="next-veil__title">{r.grade}</h2>
+          <dl className="next-veil__scores">
+            <div>
+              <dt>Score</dt>
+              <dd>{String(r.score).padStart(6, "0")}</dd>
+            </div>
+            <div>
+              <dt>{r.score >= best && r.score > 0 ? "New best" : "Best"}</dt>
+              <dd>{String(best).padStart(6, "0")}</dd>
+            </div>
+          </dl>
+          <ul className="next-veil__lines">
+            {lines.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+          {info.quest.door ? (
+            <button type="button" className="next-veil__button" onClick={onContinue}>
+              Back to the lobby
+            </button>
+          ) : (
+            <>
+              <button type="button" className="next-veil__button" onClick={onQuestAgain}>
+                Play again
+              </button>
+              {toTitle}
+            </>
+          )}
+        </section>
+      </div>
+    );
+  }
   if (mode === "over")
     return (
       <div className="next-veil next-veil--over" data-place={place}>

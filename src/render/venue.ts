@@ -46,6 +46,8 @@ export type VenueView = {
   punch(id: string): void;
   /** Every clock in `ids` punched, the rest fresh: after a respawn. */
   setPunched(ids: readonly string[]): void;
+  /** The once-a-shift doors already used (the BUFFET's banquet, R4 §7): each shows its THANK YOU card. */
+  setSpent(ids: readonly string[]): void;
   update(dt: number): void;
   setVisible(on: boolean): void;
   /** The swinging doors as the sim has them this frame. */
@@ -89,7 +91,7 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   const steps = new Graphics();
   root.addChild(steps);
 
-  const doors = new Map<string, { glow: Graphics }>();
+  const doors = new Map<string, { glow: Graphics; thanks: Container | null }>();
   for (const d of level.doors) doors.set(d.id, drawDoor(root, d));
   const clocks = new Map<string, Graphics>();
   for (const k of level.checkpoints) {
@@ -154,6 +156,9 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
     setDoorGlow(id) {
       glowing = id;
       for (const [k, d] of doors) d.glow.visible = k === id;
+    },
+    setSpent(ids) {
+      for (const [k, d] of doors) if (d.thanks) d.thanks.visible = ids.includes(k);
     },
     punch(id) {
       const g = clocks.get(id);
@@ -605,7 +610,7 @@ function drawSign(root: Container, s: SignSpec) {
 }
 
 /** A door with its lintel sign; closed doors carry a card saying what opens them. Returns its glow arrow. */
-function drawDoor(root: Container, d: DoorSpec): { glow: Graphics } {
+function drawDoor(root: Container, d: DoorSpec): { glow: Graphics; thanks: Container | null } {
   const g = new Graphics();
   const brass = tones(PALETTE.brass);
   const x = d.x - DOOR.w / 2;
@@ -654,13 +659,31 @@ function drawDoor(root: Container, d: DoorSpec): { glow: Graphics } {
     text.position.set(d.x, top + 140);
     root.addChild(card, text);
   }
+  // A side quest's door hangs a THANK YOU card once it has been used this shift.
+  let thanks: Container | null = null;
+  if (d.kind === "quest") {
+    thanks = new Container();
+    const card = new Graphics();
+    const text = label("THANK YOU", "display", 30);
+    const w = Math.min(DOOR.w - 30, text.width + 36);
+    if (text.width > w - 36) text.scale.set((w - 36) / text.width);
+    card.roundRect(d.x - w / 2, top + 110, w, 52, 6).fill(COLORS.card);
+    card.roundRect(d.x - w / 2, top + 110, w, 52, 6).stroke(THIN);
+    card.moveTo(d.x - 30, top + 110).lineTo(d.x, top + 80).lineTo(d.x + 30, top + 110).stroke({ width: 2, color: PALETTE.outline });
+    text.tint = PALETTE.outline;
+    text.anchor.set(0.5);
+    text.position.set(d.x, top + 136);
+    thanks.addChild(card, text);
+    thanks.visible = false;
+    root.addChild(thanks);
+  }
   const glow = new Graphics();
   const ay = (d.kind === "return" ? d.y - 300 : top) - 18 - DOOR.lintel - 40;
   glow.poly([d.x - 34, ay - 50, d.x + 34, ay - 50, d.x + 34, ay - 14, d.x + 56, ay - 14, d.x, ay + 30, d.x - 56, ay - 14, d.x - 34, ay - 14]).fill(COLORS.gold);
   glow.poly([d.x - 34, ay - 50, d.x + 34, ay - 50, d.x + 34, ay - 14, d.x + 56, ay - 14, d.x, ay + 30, d.x - 56, ay - 14, d.x - 34, ay - 14]).stroke(INK);
   glow.visible = false;
   root.addChild(glow);
-  return { glow };
+  return { glow, thanks };
 }
 
 /** The stash's way back: a brass luggage cart with a tag on its arch. */

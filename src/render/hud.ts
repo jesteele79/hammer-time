@@ -5,6 +5,7 @@ import type { Game } from "../sim/game";
 import { heatZoneAt } from "../sim/hazards";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
+import { HUNGRY, baseReach, hungryHint, type HungryResult } from "../sim/quests/hungry/hungry";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -39,6 +40,11 @@ export type HudPayload = {
   hint: string;
   /** The pig's bar (R3 §5.2) while the fight is on: its HP and the bonks and snots it still needs. */
   boss: { hp: number; max: number; bonks: number; snots: number; need: number } | null;
+  /**
+   * The banquet (R4 §9) while its card, its round or its tally is up; null in the shift. `reach` is where his dive stops
+   * (his tap's, or the charge so far), `reachBase` his tap's; `door` when it was opened from the BUFFET door.
+   */
+  quest: { score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; result: HungryResult | null } | null;
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -106,6 +112,21 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const pig = game.world.pig;
   const clocked = game.level.time > 0;
   const time = clocked ? Math.ceil(game.run.time) : null;
+  const q = game.quest;
+  const quest = q
+    ? {
+        score: Math.max(0, Math.round(q.score.plate + q.score.bonus)),
+        time: Math.max(0, Math.ceil(HUNGRY.round - q.time)),
+        reach: Math.round(q.hammer.dive?.phase === "coil" ? q.hammer.dive.reach : baseReach(q)),
+        reachBase: baseReach(q),
+        reachMax: HUNGRY.reach.charged,
+        combo: q.score.chain,
+        mult: q.score.chain >= HUNGRY.combo.triple ? 3 : q.score.chain >= HUNGRY.combo.double ? 2 : 1,
+        chomps: q.score.eaten,
+        door: !!game.questDoor,
+        result: q.result,
+      }
+    : null;
   return {
     venue: game.level.name,
     world: game.level.world,
@@ -127,8 +148,9 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     slowed: h.heat > STAMINA.from,
     lecture: h.lectureCd <= 0,
     saved,
-    hint: note ?? hintOf(game),
+    hint: q ? hungryHint(q) : (note ?? hintOf(game)),
     boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
+    quest,
   };
 }
 
@@ -152,4 +174,5 @@ export const hudKey = (p: HudPayload) =>
     p.hint,
     p.venue,
     p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
+    p.quest ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.result ? 1 : 0].join(",") : "",
   ].join("|");

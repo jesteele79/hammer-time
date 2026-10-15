@@ -1054,3 +1054,19 @@ test("the banquet's feel: the bonk that catches something, the clash and the car
   assert.ok(feelOf({ type: "hhClash", x: 0, y: 0 }).trauma >= 0.3);
   assert.ok(feelOf({ type: "hhCart", x: 0, y: 0 }).trauma >= 0.5);
 });
+
+test("the HUD in the round: its score and clock, his reach from his tap's to 1180 as it charges, the combo, the chomps, the door or practice; none in the shift", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 3, { cast: false, title: true });
+  assert.equal(hudOf(g, null).quest, null);
+  g.newQuest(5);
+  while (g.mode !== "quest") g.step(emptyInput());
+  const q = g.quest;
+  q.score.plate = 640;
+  q.score.bonus = 60;
+  q.score.chain = 6;
+  q.score.eaten = 9;
+  q.time = 12.2;
+  const hud = hudOf(g, null).quest;
+  assert.deepEqual(hud, { score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, result: null });
+  assert.equal(hudOf(g, null).hint, "Tap Space to dive · hold to reach farther and rob a plate · ← → aim · H bonks the server");
+});

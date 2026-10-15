@@ -14,7 +14,8 @@ export const Route = createFileRoute("/")({
     dev: flag(search.dev),
     nocast: flag(search.nocast),
     venue: venueOf(search.venue),
-    // ?title=1 puts ?next=1 on the start screen; ?classic=1 is the shipped game, and its side quest from the start screen.
+    // ?title=1 puts ?next=1 on the start screen; ?classic=1 is the shipped game; ?quest=hungry opens Hungry Hungry Hammer's
+    // practice from the new game's start screen (with ?classic=1, the shipped game's own banquet, until R4 deletes it).
     title: flag(search.title),
     classic: flag(search.classic),
     quest: search.quest === "hungry" ? ("hungry" as const) : undefined,
@@ -32,5 +33,7 @@ function Home() {
   const { next, classic, gl, noart, board, dev, nocast, venue, title, quest } = Route.useSearch();
   // `/` is the new game on its start screen; `?next=1` goes straight into play (the checks); `?classic=1` is the shipped game.
   if (classic) return <KilnHop quest={quest} />;
-  return <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} start={venue} title={!next || !!title} />;
+  // A quest link holds the game on the start screen behind it: practice opens from there, ?next=1 or not.
+  const banquet = classic ? undefined : quest;
+  return <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} start={venue} title={!next || !!title || !!banquet} quest={banquet} />;
 }

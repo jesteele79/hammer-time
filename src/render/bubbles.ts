@@ -144,6 +144,13 @@ export class Bubbles {
     this.show(text, seconds, true);
   }
 
+  /** Gone at once: into or out of the banquet, nothing he thought on the far side of the door is left hanging. */
+  clear(): void {
+    this.life = 0;
+    this.current = null;
+    this.root.visible = false;
+  }
+
   private show(text: string, seconds: number, spoken: boolean) {
     this.current = text;
     this.spoken = spoken;

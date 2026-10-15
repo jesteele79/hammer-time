@@ -11,8 +11,8 @@ import { NextVeil } from "./next-veil";
 
 /** Where the rebuild keeps its best score, apart from the shipped game's. */
 const BEST_KEY = "hammer-time-best-next";
-/** The shipped game's Hungry Hungry Hammer best, shown on its side-quest card. */
-const HUNGRY_BEST_KEY = "hammer-time-best-hungry";
+/** Hungry Hungry Hammer's best, door rounds and practice alike (R4 §1, decision 6). */
+const BANQUET_BEST_KEY = "hammer-time-best-banquet";
 const QUALITY_KEY = "hammer-time-quality";
 const QUALITIES: readonly Quality[] = ["ultra", "high", "medium", "low"];
 const TOUCH_QUERY = "(pointer: coarse), (max-width: 899px)";
@@ -32,9 +32,9 @@ const readQuality = (): Quality | null => {
     return null;
   }
 };
-const writeBest = (n: number) => {
+const writeNumber = (key: string, n: number) => {
   try {
-    localStorage.setItem(BEST_KEY, String(n));
+    localStorage.setItem(key, String(n));
   } catch {
     // Private windows refuse storage; the best lasts the session.
   }
@@ -62,6 +62,7 @@ export function NextGame({
   nocast = false,
   start,
   title = false,
+  quest,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
@@ -74,6 +75,8 @@ export function NextGame({
   start?: "restaurant" | "campus" | "arena";
   /** On the start screen first; the game loads behind it. */
   title?: boolean;
+  /** Straight into a side quest's practice once the game is ready (`/?quest=hungry`, R4 §8). */
+  quest?: "hungry";
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -84,11 +87,13 @@ export function NextGame({
   const [back, setBack] = useState(false);
   const [first, setFirst] = useState(true);
   const [best, setBest] = useState(0);
-  const [hungryBest, setHungryBest] = useState(0);
+  const [banquetBest, setBanquetBest] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [place, setPlace] = useState<"top" | "bottom">("bottom");
+  const [place, setPlace] = useState<"top" | "bottom" | "right">("bottom");
   const [ready, setReady] = useState(false);
   const [pending, setPending] = useState<Start | null>(null);
+  // A practice round asked for before the game was ready: by the Side quests card, or by the page's own link.
+  const [pendingQuest, setPendingQuest] = useState(!!quest);
   const [practice, setPractice] = useState(start === "arena");
   const [quality, setQualityState] = useState<Quality | null>(null);
   // The page is live once mounted: until then the server-drawn start screen's buttons are disabled, since a tap would be lost.
@@ -98,24 +103,29 @@ export function NextGame({
   const mutedRef = useRef(false);
   const qualityChosen = useRef<{ q: Quality | null } | null>(null);
   const touch = useMedia(TOUCH_QUERY);
-  const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear";
+  const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear" || mode === "questCard" || mode === "questTally";
+  // The banquet's card, its tally, or a break in its round.
+  const atBanquet = mode === "questCard" || mode === "questTally" || (mode === "pause" && !!hud?.quest);
 
-  // While a card shows, keep it in the half of the screen away from his face (he may lie low after a fall).
+  // While a card shows, keep it in the half of the screen away from his face (he may lie low after a fall); at the
+  // banquet on a screen wider than tall, the right half, his face being at the table's left end.
   useEffect(() => {
     if (!carded) return;
     const update = () => {
       const f = look.current?.face();
-      if (f) setPlace(f.y + f.h / 2 > innerHeight / 2 ? "top" : "bottom");
+      if (!f) return;
+      if (atBanquet && innerWidth > innerHeight && f.x + f.w / 2 < innerWidth / 2) setPlace("right");
+      else setPlace(f.y + f.h / 2 > innerHeight / 2 ? "top" : "bottom");
     };
     update();
     const timer = setInterval(update, 200);
     return () => clearInterval(timer);
-  }, [carded, mode]);
+  }, [carded, mode, atBanquet]);
 
   useEffect(() => {
     setLive(true);
     setBest(readNumber(BEST_KEY));
-    setHungryBest(readNumber(HUNGRY_BEST_KEY));
+    setBanquetBest(readNumber(BANQUET_BEST_KEY));
     setQualityState(readQuality());
   }, []);
 
@@ -134,7 +144,7 @@ export function NextGame({
       const score = hudNow.current?.score ?? 0;
       setBest((b) => {
         if (score <= b) return b;
-        writeBest(score);
+        writeNumber(BEST_KEY, score);
         return score;
       });
     }
@@ -182,6 +192,30 @@ export function NextGame({
     }
   }, [ready, pending]);
 
+  // A practice round asked for while the game loaded begins once it is ready, from the start screen.
+  useEffect(() => {
+    if (ready && pendingQuest) {
+      look.current?.newQuest();
+      setPendingQuest(false);
+    }
+  }, [ready, pendingQuest]);
+
+  // The banquet's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
+  const questResult = hud?.quest?.result ?? null;
+  useEffect(() => {
+    if (mode !== "questTally" || !questResult) return;
+    const score = questResult.score;
+    setBanquetBest((b) => {
+      if (score <= b) return b;
+      writeNumber(BANQUET_BEST_KEY, score);
+      return score;
+    });
+  }, [mode, questResult]);
+
+  const playQuest = () => {
+    if (look.current) look.current.newQuest();
+    else setPendingQuest(true);
+  };
   const begin = (s: Start) => {
     practiceRef.current = s.id === "arena";
     setPractice(s.id === "arena");
@@ -197,7 +231,7 @@ export function NextGame({
   };
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
   const onTitle = mode === "title" || (title && mode === null);
-  const veiled = mode === "pause" || mode === "over" || mode === "clear";
+  const veiled = mode === "pause" || mode === "over" || mode === "clear" || mode === "questTally";
   const info = {
     venue: hud?.venue ?? "Hotel lobby",
     world: hud?.world ?? "1-1",
@@ -208,7 +242,11 @@ export function NextGame({
     back,
     first,
     practice,
+    quest: hud?.quest ?? null,
+    banquetBest,
   };
+  // Practice's tally always offers the start screen (it was opened from there, or from its link straight in).
+  const titleBack = title || (!!hud?.quest && !hud.quest.door);
   return (
     <>
       <div ref={host} className="next-stage" style={{ position: "fixed", inset: 0, background: "#0d1118" }} />
@@ -217,7 +255,7 @@ export function NextGame({
           live={live}
           ready={ready}
           best={best}
-          hungryBest={hungryBest}
+          banquetBest={banquetBest}
           muted={muted}
           quality={quality}
           onMute={toggleMute}
@@ -227,12 +265,17 @@ export function NextGame({
             look.current?.setQuality(q);
           }}
           onStart={begin}
+          onQuest={playQuest}
         />
       ) : (
         <>
           <NextHud hud={hud} touch={touch && !veiled} muted={muted} onPause={() => look.current?.togglePause()} onMute={toggleMute} />
-          {touch && !veiled && mode !== "card" && hud && (
-            <NextTouch onPress={press} ready={{ fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }} />
+          {touch && !veiled && mode !== "card" && mode !== "questCard" && hud && (
+            <NextTouch
+              onPress={press}
+              // At the banquet only the arrows, Jump and Hammer do anything: nothing else lights.
+              ready={hud.quest ? { fire: false, lecture: false, super: false } : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }}
+            />
           )}
           <NextVeil
             mode={mode}
@@ -240,7 +283,9 @@ export function NextGame({
             place={place}
             onResume={() => look.current?.togglePause()}
             onNewRun={() => look.current?.newRun()}
-            onTitle={title ? () => look.current?.toTitle() : undefined}
+            onTitle={titleBack ? () => look.current?.toTitle() : undefined}
+            onContinue={() => look.current?.finishQuest()}
+            onQuestAgain={() => look.current?.newQuest()}
           />
         </>
       )}
