@@ -1,0 +1,44 @@
+FINAL REFINEMENT: Image 5 has the right food order, counts, and clean outlined style. Keep those. Make all THIRTEEN white plate outlines use identical level 2:1 ovals: same plate size and same camera angle on every dish, exactly twice as wide as deep. A plate can lie perfectly flat on the attached banquet tabletop. Keep the same wide green gutters and clear outside margins; NOTHING touches any cell edge or adjacent sprite.
+The white plate beneath the bowl of shrimp and grits and beneath the banana pudding cup must remain visibly separate from the bowl/cup base.
+Completely solid bright green background: exact RGB(0,255,0), hex #00FF00, a digital flat swatch over all background regions. No gradient, mottling, noise, shaded corners, shadows or color variation. Keep solid flat cel shading on every sprite with just ONE shadow and ONE highlight tone per material.
+
+MOST IMPORTANT CHANGES TO IMAGE 5:
+Replace the fine textured shading with large solid flat color patches. Each material uses EXACTLY three colors: a base color, ONE darker shadow color and ONE lighter highlight color, plus black outlines and a few white specular glints. This is finished cartoon sprite art, not realistic food painting. No grain, stippling, mottling, tiny painted crumbs, subtle tonal ramps or soft lighting. Match the crisp black outlined cel finish of the finished bellhop and lobby walls.
+Every white plate is the SAME oval, about 2:1 width-to-depth, drawn from the SAME camera as both kept references. Make every plate smaller: only 60 percent of its equal cell's width, leaving wide uninterrupted green gutters. All plate outlines completely visible with a plain white rim; all foods contained over their plate and within their own cell.
+Background must be an exact uniform digital pure green swatch #00FF00, including the corners. Never tint, shade or dither the green.
+
+Use case: stylized-concept. Asset type: finished PNG game food sprite sheet.
+Generate food-sheet.png at the LARGEST available NATIVE SQUARE size. Do not upscale or resize afterward.
+
+Input roles:
+Image 1 lobby-far-1.png: hotel wall's clean black-ink cartoon style and cel-shaded finish reference.
+Image 2 bellhop-1.png: finished game character's thick outlined inked finish reference.
+Image 3 KEPT ballroom.png: mandatory camera-angle and warm even light reference.
+Image 4 KEPT banquet-table.png: mandatory camera-angle and light reference. All plates must look like they could lie flat on this table.
+Image 5 previous food sheet: regenerate its sixteen-item arrangement and preserve its successful simplified cartoon finish. Preserve the correct order, SIX egg halves, four sandwich quarters, and receipt protruding beyond the check folder. Make the icons MUCH SMALLER inside the cells, plate ellipses consistently 2:1, and shading much simpler. Keep the chicken fried steak plate free of any side dishes.
+
+SPACING IS THE MAIN CORRECTION: each equal cell is one quarter of the canvas on each axis. Every sprite should occupy only the central two thirds of its cell width. For a 1254 x 1254 native sheet: each cell is 313.5 pixels square, each white plate is only 210 pixels wide and 105 pixels deep. Leave AT LEAST 50 pixels of pure green between each plate and BOTH sides of its cell. This creates approximately 100-pixel-wide green vertical gutters. Keep all thirteen plates this exact same size. Plate width-to-depth ratio is 2:1, NEVER nearly round. Food and containers fit fully above these small plates, inside their own cells with green margin.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image (the food sheet is the one exception).
+- No text, letters, numbers, logos, signatures or watermarks anywhere (badges and labels are blank).
+- The whole subject inside the frame with margin all round.
+- PNG.
+
+THE CAMERA (all three items): the game looks down at a round banquet table from a raised camera, as if from a
+balcony, at about 30 degrees below level. So a round thing lying flat (the tabletop, a plate) looks like a wide oval
+about twice as wide as it is deep, and the patterned carpet is foreshortened the same way. Straight on: the room's
+back wall runs perfectly level across the picture, no tilt, no fisheye, no vanishing toward the sides.
+
+4. food-sheet.png (save to art/incoming/props/)
+One sheet: a 4 by 4 grid of sixteen dishes, each seen by THE CAMERA (from above at about 30 degrees, a round plate looking like an oval twice as wide as it is deep), each on its own plain round white plate except where noted, all the same size, evenly spaced in the grid with wide flat green (#00FF00) between them, nothing touching a neighbor or the edge, the same lighting, square image at the largest size available. Bold simple shapes and strong colors that still read when small. In this order, left to right then top to bottom:
+Row 1: shrimp cocktail (a glass coupe with shrimp hanging on the rim); a bread basket with rolls; deviled eggs (six halves); a kolache pastry.
+Row 2: a bowl of caramel corn puffs; a ribeye steak with grill marks; chicken fried steak with white gravy; a brisket plate with sliced brisket, pickles and onion.
+Row 3: shrimp and grits in a bowl; a club sandwich cut in quarters with toothpicks; a slice of cherry pie; a slice of cheesecake with strawberry on top.
+Row 4: a cup of banana pudding with vanilla wafers; a red hot sauce bottle standing up (no plate, no label text); a white folded paper to-go box (no plate); a black leather check folder with a white receipt sticking out (no plate, no writing).
+
+Exactly sixteen equal invisible grid cells, no drawn grid lines. Cell centers at 12.5%,37.5%,62.5%,87.5% on both axes. Exactly 13 white plates; the shrimp cocktail coupe, bread basket, both bowls, banana pudding cup and all other foods each stand on their OWN WHITE PLATE. Only final three items have no plate. Six separate countable deviled egg halves in two rows of three. Four separate club sandwich quarters with toothpicks. No extra side dishes on any plate. Receipt is blank white paper sticking out above the black folder, no printing or border. Sauce label completely blank.
+Rendering: thick clean black outlines, solid flat cel colors, ONE darker shadow and ONE lighter highlight per material. Simplify textures to big solid shapes; absolutely no rendered crumb texture, stippling, grain, painted streaks, soft gradients or photorealism. Uniform warm light from attached ballroom and table. All background pixels are one exact solid pure green #00FF00, RGB(0,255,0), with no noise, mottling, gradients, shadows or floor. Nothing touching any neighbor or image edge. No text, letters, numbers, logos, signatures or watermarks.

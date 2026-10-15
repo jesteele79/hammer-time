@@ -957,3 +957,15 @@ test("the food sheet is cut cell by cell into its sixteen dishes in reading orde
   });
   await assert.rejects(foodCells(await sheetOf(5)), /cell 6 is empty/);
 });
+
+test("a food sheet whose rows sit off the even grid is cut by the green between its dishes: a tall dish reaching over the grid's line comes out whole", async () => {
+  const rowsAt = [100, 300, 470, 660];
+  const dish = (i) => `<circle cx="${(i % 4) * 200 + 100}" cy="${rowsAt[Math.floor(i / 4)]}" r="${30 + i * 3}" fill="#c0392b" stroke="#101010" stroke-width="4"/>`;
+  const sheet = await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800"><rect width="800" height="800" fill="#00ff00"/>${Array.from({ length: 16 }, (_, i) => dish(i)).join("")}</svg>`)).png().toBuffer();
+  const cells = await foodCells(sheet);
+  assert.equal(cells.length, 16);
+  cells.forEach((c, i) => {
+    const want = 2 * (30 + i * 3) + 4 + 16;
+    assert.ok(Math.abs(c.width - want) <= 4 && Math.abs(c.height - want) <= 4, `cell ${i + 1}: ${c.width}x${c.height}, not about ${want}`);
+  });
+});

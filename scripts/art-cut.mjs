@@ -1274,26 +1274,82 @@ export async function wallCrop(png, cut) {
 }
 
 /**
- * The food sheet (R4 §10): the sheet split into its `cols` by `rows` cells (Codex lays them out evenly across the
- * picture), each keyed and cropped to its dish, in reading order. A cell with nothing painted in it is refused.
+ * The painted runs along one axis of a mask: [start, end) spans with no paint between them, specks (a fiftieth of the
+ * largest run's paint) dropped.
+ */
+function paintRuns(counts) {
+  const runs = [];
+  let start = -1,
+    paint = 0;
+  counts.forEach((n, i) => {
+    if (n > 0) {
+      if (start < 0) start = i;
+      paint += n;
+    } else if (start >= 0) {
+      runs.push({ start, end: i, paint });
+      start = -1;
+      paint = 0;
+    }
+  });
+  if (start >= 0) runs.push({ start, end: counts.length, paint });
+  const most = Math.max(0, ...runs.map((r) => r.paint));
+  return runs.filter((r) => r.paint >= most / 50);
+}
+
+/** Runs gathered into `n` even slots by their middles: the slot a run's middle falls in is its own; runs sharing one merge. */
+function slotted(runs, n, size) {
+  const slots = Array.from({ length: n }, () => null);
+  for (const r of runs) {
+    const k = Math.min(n - 1, Math.floor(((r.start + r.end) / 2 / size) * n));
+    slots[k] = slots[k] ? { start: Math.min(slots[k].start, r.start), end: Math.max(slots[k].end, r.end) } : { start: r.start, end: r.end };
+  }
+  return slots;
+}
+
+/**
+ * The food sheet (R4 §10): its `rows` rows found by the green between them, each row's `cols` dishes by the green
+ * between those (Codex lays them out roughly evenly, not on an exact grid: a tall dish may reach over the even line), in
+ * reading order, each keyed and cropped to its dish. A cell with nothing painted in it is refused.
  */
 export async function foodCells(png, cols = 4, rows = 4) {
-  const { width: W, height: H } = await sharp(png).metadata();
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width,
+    H = info.height;
+  const paint = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) paint[i] = alphaOf(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) > 0 ? 1 : 0;
+  const rowCounts = Array.from({ length: H }, (_, y) => {
+    let n = 0;
+    for (let x = 0; x < W; x++) n += paint[y * W + x];
+    return n;
+  });
+  const rowSlots = slotted(paintRuns(rowCounts), rows, H);
+  // A cell reaches halfway into the green on each side, so the keyer keeps its margin round the dish.
+  const reach = (slots, k, size, end) => {
+    const prev = slots.slice(0, k).reverse().find(Boolean);
+    const next = slots.slice(k + 1).find(Boolean);
+    return end ? Math.ceil(next ? (slots[k].end + next.start) / 2 : size) : Math.floor(prev ? (prev.end + slots[k].start) / 2 : 0);
+  };
   const out = [];
-  for (let r = 0; r < rows; r++)
+  for (let r = 0; r < rows; r++) {
+    const row = rowSlots[r];
+    if (!row) throw new Error(`food sheet cell ${r * cols + 1} is empty`);
+    const top = reach(rowSlots, r, H, false);
+    const bottom = reach(rowSlots, r, H, true);
+    const colCounts = Array.from({ length: W }, (_, x) => {
+      let n = 0;
+      for (let y = row.start; y < row.end; y++) n += paint[y * W + x];
+      return n;
+    });
+    const colSlots = slotted(paintRuns(colCounts), cols, W);
     for (let c = 0; c < cols; c++) {
-      const left = Math.floor((c * W) / cols);
-      const top = Math.floor((r * H) / rows);
-      const width = Math.floor(((c + 1) * W) / cols) - left;
-      const height = Math.floor(((r + 1) * H) / rows) - top;
-      const cell = await sharp(png).extract({ left, top, width, height }).png().toBuffer();
-      try {
-        const keyed = await keyOut(cell);
-        out.push({ png: keyed.png, width: keyed.width, height: keyed.height });
-      } catch {
-        throw new Error(`food sheet cell ${r * cols + c + 1} is empty`);
-      }
+      if (!colSlots[c]) throw new Error(`food sheet cell ${r * cols + c + 1} is empty`);
+      const left = reach(colSlots, c, W, false);
+      const right = reach(colSlots, c, W, true);
+      const cell = await sharp(png).extract({ left, top, width: right - left, height: bottom - top }).png().toBuffer();
+      const keyed = await keyOut(cell);
+      out.push({ png: keyed.png, width: keyed.width, height: keyed.height });
     }
+  }
   return out;
 }
 
