@@ -1,0 +1,5 @@
+{
+  "note": "Pixels of the keyed crop of art/incoming/props/banquet-table.png. top: the gold rim's oval, its middle and its two radii. Check with: node scripts/art-grid.mjs banquet/table.",
+  "space": "crop",
+  "top": { "center": [520, 182], "radii": [472, 174] }
+}

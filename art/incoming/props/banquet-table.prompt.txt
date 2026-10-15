@@ -1,0 +1,40 @@
+Use case: stylized-concept
+Asset type: one finished PNG game prop, banquet-table.png.
+Generate one round banquet table at the widest supported native landscape size, 3:1 landscape format, with generous flat bright green (#00FF00) margin. Do not upscale or resize.
+
+Input images:
+Image 1: lobby-far-1.png, the hotel's walls, outlined finish, line weight and palette reference only.
+Image 2: lobby-mid.png, the hotel's objects and cel-shaded materials reference only.
+Image 3: bellhop-1.png, finished game-character inked finish reference only.
+Image 4: the kept ballroom.png, REFERENCE FOR THE CAMERA'S ANGLE AND THE WARM EVEN LIGHT. The new table will stand on this ballroom's carpet. Match its level raised-camera angle and warm light, but follow the exact 2:1 round tabletop ellipse in THE CAMERA. Do not copy the ballroom or its furniture into the new image.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image (the food sheet is the one exception).
+- No text, letters, numbers, logos, signatures or watermarks anywhere (badges and labels are blank).
+- The whole subject inside the frame with margin all round.
+- PNG.
+
+THE CAMERA (all three items): the game looks down at a round banquet table from a raised camera, as if from a
+balcony, at about 30 degrees below level. So a round thing lying flat (the tabletop, a plate) looks like a wide oval
+about twice as wide as it is deep, and the patterned carpet is foreshortened the same way. Straight on: the room's
+back wall runs perfectly level across the picture, no tilt, no fisheye, no vanishing toward the sides.
+
+3. banquet-table.png (save to art/incoming/props/)
+One round banquet table seen by THE CAMERA, on flat bright green (#00FF00), the whole table in frame with green margin all round, at the widest landscape size available.
+- A crisp white tablecloth over a round top, falling straight to the floor all round in soft vertical folds; a thin gold trim running round the edge of the top.
+- In the exact middle of the top: a low round silver lazy Susan about a fifth of the table's width, with four small silver chafing dishes round its rim, lids off and empty.
+- The rest of the top plain empty white cloth: no plates, no food, no glasses, no cutlery, no centerpiece, no candles.
+- The tabletop a wide oval about twice as wide as it is deep, its edge sharp and clean all the way round.
+- No chairs, no people, no floor, no shadow on the green.
+
+Geometry and count lock: the tabletop is a true round horizontal surface projected at 30 degrees below level, exactly a 2:1 oval, with a continuous smooth, sharp black-ink perimeter and thin gold trim. Its entire outline is visible with no interruptions. Because this canvas is extremely wide, center the full table and size it by HEIGHT with green margins at top and bottom; generous green side margins are correct. Do not flatten the oval to fill canvas width. The hanging cloth has straight vertical folds and reaches the floor all around.
+The tiny low silver lazy Susan is centered exactly on the oval's geometric center, diameter about 20 percent of the table diameter. Place EXACTLY FOUR small open EMPTY silver chafing dishes around that tiny platform, in front, back, left and right positions, with all four dark open interiors separately visible. No lids anywhere, no tall stands. The dishes collectively stay in the small central fifth of the tabletop. All remaining tabletop is pristine empty white.
+Rendering lock: bold clean black outlines, discrete flat white, one warm pale-cream highlight and one gray-beige shadow on the cloth; silver with base, one shadow tone, one highlight tone and small white glints. No gradient, no texture, no diffuse rendered lighting. Entire background is a perfectly uniform solid RGB(0,255,0), hexadecimal #00FF00, including under the table. No ground line and NO contact shadow, drop shadow, glow or reflected green.
+
+Image 5 is the previous table to regenerate. Correct its geometry while preserving the white cloth, gold rim, four open empty dishes, black-ink finish and empty tabletop.
+The previous table's top is about THREE times as wide as it is deep. Make the top substantially DEEPER and the entire table NARROWER. The TABLETOP ellipse itself must be 2:1. For example, 800 pixels wide and 400 pixels deep. The tabletop should occupy the upper TWO THIRDS of the table silhouette's height; the hanging cloth extends only the lower THIRD. Overall complete table silhouette is about 1.4 times as wide as its complete height, rather than 2:1. Draw a generous deep oval of visible white tabletop. Keep it centered and fully inside this wide canvas with huge green margins at the sides.
+The previous silver platform was also too big. SHRINK the platform and all four dishes together by 45 percent while keeping them exactly centered on the top. The platform is about 160 pixels wide for an 800-pixel-wide tabletop. Four tiny silver open empty chafers cluster in this central fifth, leaving a vast expanse of plain white tabletop around them.
+Background is one digitally flat solid fill, #00FF00, absolutely no noise, gradient, texture or shadow. Object surfaces are crisp flat cel shapes with ONLY one shadow and one highlight, never soft creamy gradients.
