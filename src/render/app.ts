@@ -1,4 +1,5 @@
 import { Application, RendererType, UPDATE_PRIORITY, type Ticker } from "pixi.js";
+import type { FoodKind } from "../sim/quests/hungry/food";
 import { refreshFrom, shouldStepDown } from "./quality";
 
 export type Quality = "ultra" | "high" | "medium" | "low";
@@ -29,6 +30,8 @@ export type NextProbe = {
   starts?: number;
   /** The canvas draws: false while the start screen covers it. */
   drawing?: boolean;
+  /** Hungry Hungry Hammer while it is up (R4): its clock, score and chomps, his dives this round, his line, and the table on screen in CSS px. */
+  quest?: { time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; duck: boolean; stun: number; result: unknown; frame: { x: number; y: number; w: number; h: number } };
   /** Set by the look scene once it runs. */
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean };
   heroScreenHeight?: number;
@@ -107,6 +110,10 @@ export type NextProbe = {
     dismiss(spawn: string): void;
     /** Sets the pig's HP, counts or state, for the checks. */
     pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }): void;
+    /** The running round: its clock, dishes on a rival's plate, his line aimed at a rival's plate, dishes landed on his. */
+    quest(o: { time?: number; plate?: { who: "student" | "bellhop" | "nurse"; kinds: FoodKind[] }; aim?: "student" | "bellhop" | "nurse"; eat?: FoodKind[] }): void;
+    /** Runs the round's clock out: its tally is next. */
+    questSkip(): void;
   };
 };
 declare global {

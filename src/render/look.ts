@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, Texture, type Ticker } from "pixi.js";
+import { Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
 import { ASIDES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import type { TauntTarget } from "../game/taunts";
@@ -33,7 +33,7 @@ import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
 import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
-import { createBoards } from "./boards";
+import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, multiplyTint, type Light } from "./lighting";
@@ -53,14 +53,23 @@ import { createSound, heard } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
-import { installFonts } from "./text";
+import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
+import { BanquetView } from "./quests/hungry-scene";
+import { DINER_ID } from "./quests/diner";
+import { banquetFrame } from "./quests/frame";
+import { HUNGRY, createHungry, land, stepHungry, type Hungry } from "../sim/quests/hungry/hungry";
+import { sharpPlayer } from "../sim/quests/hungry/drive";
+import { FOODS, type FoodKind } from "../sim/quests/hungry/food";
+import { SEATS, TABLE, onScreen, screenDeg, sub, type RivalId } from "../sim/quests/hungry/table";
 
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 const LEVELS = new Map<LevelId, Level>([...SHIFT, STASH].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
+/** The ballroom's chandelier over the banquet table (R4 §2). */
+const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
 const NOTE_T = 2;
 /** The Buc-ee's shield's look: its glow around his middle, and its last seconds' flicker. */
@@ -111,6 +120,10 @@ export type Look = {
   toTitle(): void;
   /** The start screen's quality choice: a tier kept on this device, or null to let the game choose (and step down). */
   setQuality(q: Quality | null): void;
+  /** Hungry Hungry Hammer as practice: from the start screen's card, or Play again on its tally (R4 §8). */
+  newQuest(): void;
+  /** Continue on the BUFFET door's tally: back in the lobby with what he ate (R4 §7). */
+  finishQuest(): void;
 };
 
 /** Where things are this frame, in world px, for the effects. */
@@ -154,7 +167,7 @@ export async function startLook(
   if (!reduced) shieldGlow.blendMode = "add";
   scene.layers.play.addChild(shieldGlow);
   // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
-  const lighting = createLighting(scene, render.quality, [...SHIFT, STASH].flatMap((l) => lightsOf(l)));
+  const lighting = createLighting(scene, render.quality, [...[...SHIFT, STASH].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
   const props = new Props(scene.layers.play, particles, scene.ambient);
   const cast = new Cast(scene.layers.play, scene.ambient, registry);
   cast.setQuality(render.quality);
@@ -201,6 +214,16 @@ export async function startLook(
   // He and the level he starts in load side by side; the stash, behind a door, follows (its door holds until it is in).
   await Promise.all([character.ready, prepare(game.level)]);
   void prepare(STASH);
+  // The banquet behind the BUFFET door and the Side quests card: loaded once the lobby is in (R4). Whatever of it fails to
+  // load draws its stand-in; its card holds only while it loads.
+  const banquet = new BanquetView(render, scene, registry, !!opts.noart);
+  let banquetLoaded = false;
+  const banquetReady = banquet
+    .load()
+    .catch((err) => console.warn("banquet:", err))
+    .then(() => {
+      banquetLoaded = true;
+    });
   // The rest of the shift loads one venue after another while he plays.
   void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve());
   const headPlate = registry.hammer.heads.neutral!;
@@ -242,6 +265,15 @@ export async function startLook(
         e.preventDefault();
         forgetPresses();
         pause();
+        return;
+      }
+      // On the banquet's tally Enter or Space is its button: Continue on a door's, Play again on practice's. The key goes
+      // in as held, not pressed, so the step after it sees no new press (R4 Review Focus 1).
+      if (game.mode === "questTally" && !e.repeat && (e.code === "Enter" || e.code === "Space")) {
+        e.preventDefault();
+        down.add(e.code);
+        if (game.questDoor) look.finishQuest();
+        else look.newQuest();
         return;
       }
       down.add(e.code);
@@ -677,11 +709,214 @@ export async function startLook(
     scene.camera.zoom = zone?.zoom ?? 1;
   }
 
+  /** A world rect on the screen, CSS px. */
+  const screenRect = (r: Rect): Rect => {
+    const tl = scene.toScreen({ x: r.x, y: r.y });
+    const br = scene.toScreen({ x: r.x + r.w, y: r.y + r.h });
+    return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
+  };
+
+  /** The tail of every frame, the shift's and the banquet's: the mode's notice, the hurry, the notes' clocks and the HUD. */
+  const afterFrame = (simDt: number, hurry: boolean) => {
+    if (game.mode !== lastMode) {
+      lastMode = game.mode;
+      opts.onMode?.(game.mode);
+    }
+    sound.setHurry(hurry);
+    sound.tick();
+    savedT = Math.max(0, savedT - simDt);
+    noteT = Math.max(0, noteT - simDt);
+    const hud = hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null);
+    const key = hudKey(hud);
+    if (key !== hudLast) {
+      hudLast = key;
+      opts.onHud?.(hud);
+    }
+  };
+
+  /** The banquet is up: its card, its round, its tally, or a break in its round. */
+  const inBanquet = () => !!game.quest && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
+  let banqueting = false;
+  let shownQuest: Hungry | null = null;
+  let questDives = 0;
+
+  /** The banquet's view in place of the shift's, or back: the shift's venue, people and props hidden while it shows. */
+  const showBanquetView = (on: boolean) => {
+    for (const [id, v] of views) {
+      v.venue.setVisible(!on && id === shown);
+      v.backdrop.setVisible(!on && id === shown);
+    }
+    if (!on && shown) lighting.setGroup(shown);
+    character.container.visible = cast.container.visible = props.container.visible = flyers.container.visible = pigView.container.visible = !on;
+    objects.setVisible(!on);
+    banquet.setVisible(on);
+    if (on) {
+      shieldGlow.clear();
+      smear.clear();
+      lighting.setGroup("banquet");
+      scene.camera.bounds = null;
+      scene.camera.target = null;
+    }
+  };
+  const enterBanquet = () => {
+    speech.clear();
+    showBanquetView(true);
+    banqueting = true;
+  };
+  /** Out of the banquet: the shift's level shown again where he stands. */
+  const leaveBanquet = (x: number, y: number) => {
+    showBanquetView(false);
+    showLevel(game.level, x, y);
+    banqueting = false;
+  };
+
+  /** The CSS px the HUD's top bar and the touch pad or the hint take off the screen: the banquet is framed between them. */
+  const insets = () => {
+    const bar = document.querySelector(".next-hud__bar-top")?.getBoundingClientRect();
+    const pad = document.querySelector(".next-touch")?.getBoundingClientRect();
+    const hint = document.querySelector(".next-hud__hint")?.getBoundingClientRect();
+    return { top: bar ? bar.bottom + 8 : 64, bottom: pad ? scene.height - pad.top + 8 : hint ? scene.height - hint.top + 8 : 44 };
+  };
+
+  /** The banquet's events as words, bubbles, speech and particles, every word through the face-safe layout. */
+  const showBanquet = (e: GameEvent, q: Hungry) => {
+    const face = banquet.face();
+    const view = scene.view();
+    const crown = banquet.crown();
+    switch (e.type) {
+      case "hhThink":
+        bubbles.think(e.text, e.seconds);
+        break;
+      case "hhSay":
+        speech.say(DINER_ID[e.who], e.text, e.seconds);
+        break;
+      case "hhChomp": {
+        const p = onScreen(e);
+        particles.emit("crumbs", p.x, p.y, 6 + 2 * e.count);
+        if (e.who === "hammer") words.say(e.count > 2 ? "NOM NOM!" : "NOM", p.x, p.y - 80, e.count > 2, face, view);
+        break;
+      }
+      case "hhLand":
+        if (e.who === "hammer" && e.kind === "check") words.say("-400", crown.x + 160, crown.y, true, face, view);
+        else if (e.who === "hammer" && (q.score.chain === HUNGRY.combo.double || q.score.chain === HUNGRY.combo.triple))
+          words.say(q.score.chain === HUNGRY.combo.triple ? "COMBO x3!" : "COMBO x2!", crown.x + 220, crown.y - 40, true, face, view);
+        break;
+      case "hhRob": {
+        const p = onScreen(e);
+        words.say("YOINK!", p.x, p.y - 120, true, face, view);
+        banquet.smug();
+        break;
+      }
+      case "hhClash": {
+        const p = onScreen(e);
+        particles.emit("impact", p.x, p.y, 16);
+        particles.emit("glint", p.x, p.y, 8);
+        words.say("CLASH!", p.x, p.y - 120, true, face, view);
+        break;
+      }
+      case "hhBonk":
+        if (e.hit) {
+          const p = onScreen(e);
+          particles.emit("impact", p.x, p.y, 14);
+          words.say("BONK!", p.x + 60, p.y - 160, false, face, view);
+        }
+        break;
+      case "hhSlap": {
+        const p = onScreen(e);
+        words.say("SLAP!", p.x, p.y - 100, true, face, view);
+        banquet.hurt();
+        break;
+      }
+      case "hhSwat": {
+        const p = onScreen(e);
+        particles.emit("paper", p.x, p.y - 240, 14);
+        words.say("SWAT!", p.x, p.y - 320, false, face, view);
+        break;
+      }
+      case "hhPaper":
+        if (e.hit) {
+          const p = onScreen(e);
+          particles.emit("paper", p.x, p.y - 240, 10);
+          words.say("-150", p.x + 200, p.y - 300, false, face, view);
+          banquet.hurt();
+        }
+        break;
+      case "hhCart": {
+        const p = onScreen(e);
+        particles.emit("glass", p.x, p.y, 18);
+        words.say("CRASH!", p.x, p.y - 200, true, face, view);
+        break;
+      }
+      case "hhTray": {
+        const p = onScreen(e);
+        words.say("BONK!", p.x, p.y - 200, true, face, view);
+        break;
+      }
+      default:
+        break;
+    }
+  };
+
+  /** A frame of the banquet: the round drawn, framed between the bars, its words and the HUD. */
+  const banquetTick = (dt: number, simDt: number) => {
+    if (!banqueting) enterBanquet();
+    const q = game.quest!;
+    // His dives this round, for the checks: a new round counts from nothing.
+    if (q !== shownQuest) {
+      shownQuest = q;
+      questDives = 0;
+    }
+    questDives += pending.filter((e) => e.type === "hhDive" && e.who === "hammer").length;
+    stepped.length = 0;
+    banquet.sync(q, simDt, time);
+    for (const e of pending) showBanquet(e, q);
+    pending.length = 0;
+    const f = banquetFrame(scene.width, scene.height, insets());
+    Object.assign(scene.camera, { x: f.x, y: f.y, zoom: f.zoom });
+    scene.update(dt);
+    lighting.update(dt);
+    const face = banquet.face();
+    faceOnScreen = screenRect(face);
+    const view = scene.view();
+    words.update(simDt, face, view);
+    bubbles.update(simDt, { crown: banquet.crown(), face, facing: 1, view });
+    speech.update(simDt, (id) => banquet.crownOf(id), face, view);
+    particles.update(simDt, face);
+    // The lobby's music plays on through the round (R4 §1, decision 10).
+    sound.music(game.mode === "quest" ? game.level.music : null);
+    afterFrame(simDt, false);
+    vignette.width = scene.width;
+    vignette.height = scene.height;
+    if (window.__next) {
+      // The shift's numbers stay as he left them; the mode and the event counts move on.
+      if (window.__next.run) Object.assign(window.__next.run, { mode: game.mode, events: { ...counts } });
+      window.__next.starts = starts;
+      window.__next.drawing = app.stage.visible;
+      window.__next.faceScreen = faceOnScreen;
+      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.quest = {
+        time: q.time,
+        score: Math.max(0, Math.round(q.score.plate + q.score.bonus)),
+        eaten: q.score.eaten,
+        dives: questDives,
+        coiling: q.hammer.dive?.phase === "coil",
+        aim: q.hammer.aim,
+        duck: q.hammer.duck,
+        stun: q.hammer.stun,
+        result: q.result,
+        frame: screenRect({ x: -TABLE.r, y: -TABLE.r * TABLE.squash, w: 2 * TABLE.r, h: 2 * TABLE.r * TABLE.squash }),
+      };
+    }
+  };
+
+  /** Just the actions the keys and the pad hold this instant: what Continue must not see pressed on the step after it. */
+  const heldNow = () => inputFrom(down, touchDown, prevHeld).held;
+
   const tick = (t: Ticker) => {
     // Under the opaque start screen nothing needs drawing: the canvas rests until a start is chosen.
     app.stage.visible = game.mode !== "title";
-    // A venue still loading holds the game where it is, its card up.
-    const holding = !views.has(game.level.id);
+    // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
+    const holding = !views.has(game.level.id) || (inBanquet() && !banquetLoaded);
     if (holding) void prepare(game.level);
     // A break stops everything that runs on game time; the camera and the screen still draw.
     const dt = game.mode === "pause" || holding ? 0 : Math.min(t.deltaMS / 1000, 0.1);
@@ -705,6 +940,11 @@ export async function startLook(
       tapped.clear();
       touchTapped.clear();
     }
+    if (inBanquet()) {
+      banquetTick(dt, simDt);
+      return;
+    }
+    if (banqueting) leaveBanquet(world.hero.x, world.hero.y);
     const alpha = Math.min(1, frame.acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
@@ -754,9 +994,7 @@ export async function startLook(
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
-    const faceTl = scene.toScreen({ x: face.x, y: face.y });
-    const faceBr = scene.toScreen({ x: face.x + face.w, y: face.y + face.h });
-    faceOnScreen = { x: faceTl.x, y: faceTl.y, w: faceBr.x - faceTl.x, h: faceBr.y - faceTl.y };
+    faceOnScreen = screenRect(face);
     // A fore piece fades while his head is behind it.
     views.get(game.level.id)?.backdrop.update(faceOnScreen, simDt, groundAt(game.level.floor, x));
     const at: Frame = {
@@ -835,14 +1073,7 @@ export async function startLook(
     views.get(game.level.id)?.venue.setDoorGlow(door);
     // The level's theme while he plays (the stash has its own), silence otherwise; a repeat changes nothing.
     sound.music(game.mode === "play" ? game.level.music : null);
-    if (game.mode !== lastMode) {
-      lastMode = game.mode;
-      opts.onMode?.(game.mode);
-    }
-    sound.setHurry(game.level.time > 0 && game.run.time < RUN.hurry);
-    sound.tick();
-    savedT = Math.max(0, savedT - simDt);
-    noteT = Math.max(0, noteT - simDt);
+    afterFrame(simDt, game.level.time > 0 && game.run.time < RUN.hurry);
 
     const cam = scene.camera;
     const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
@@ -863,12 +1094,6 @@ export async function startLook(
     bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
     speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : cast.crownOf(id)), face, scene.view());
     particles.update(simDt, face);
-    const hud = hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null);
-    const key = hudKey(hud);
-    if (key !== hudLast) {
-      hudLast = key;
-      opts.onHud?.(hud);
-    }
     vignette.width = scene.width;
     vignette.height = scene.height;
 
@@ -924,8 +1149,8 @@ export async function startLook(
         feetGap: planted.gap,
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
-      // The cast's painted figures alive: the pig's own figure, kept while the gift shop is loaded, is not one of them.
-      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live - (pigView.kind === "painted" ? 1 : 0), tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
+      // The cast's painted figures alive: the pig's own figure, kept while the gift shop is loaded, and the banquet's diners are not.
+      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live - (pigView.kind === "painted" ? 1 : 0) - banquet.paintedCount(), tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
       window.__next.cast = {
         people: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.id, { person: n.person, recolor: n.recolor }])),
         targets: cur.targets.map((t) => ({ id: t.id, load: t.load })),
@@ -978,7 +1203,74 @@ export async function startLook(
         scene.layers.play.addChild(boardCrates);
       }
     };
-    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id), () => game.level);
+    /** The banquet at `q`, 1920 by 1080, as a PNG data URL: shown and framed for one picture, then put back as it was. */
+    const shootBanquet = async (q: Hungry): Promise<string> => {
+      await banquetReady;
+      const cam = scene.camera;
+      const saved = { w: scene.width, h: scene.height, x: cam.x, y: cam.y, zoom: cam.zoom, target: cam.target, bounds: cam.bounds, shake: { ...cam.shake }, stage: app.stage.visible };
+      showBanquetView(true);
+      app.stage.visible = true;
+      scene.width = 1920;
+      scene.height = 1080;
+      banquet.sync(q, 0, q.time);
+      const f = banquetFrame(1920, 1080, { top: 0, bottom: 0 });
+      Object.assign(cam, { x: f.x, y: f.y, zoom: f.zoom, shake: { x: 0, y: 0, rot: 0 } });
+      scene.fit();
+      const target = RenderTexture.create({ width: 1920, height: 1080, resolution: 1 });
+      app.renderer.render({ container: app.stage, target });
+      const out = await app.renderer.extract.base64({ target, format: "png" });
+      target.destroy(true);
+      scene.width = saved.w;
+      scene.height = saved.h;
+      Object.assign(cam, { x: saved.x, y: saved.y, zoom: saved.zoom, target: saved.target, bounds: saved.bounds, shake: saved.shake });
+      app.stage.visible = saved.stage;
+      if (!banqueting) showBanquetView(false);
+      scene.fit();
+      return out;
+    };
+    /** A practice round under the sharp player, run until `until` (or its end). */
+    const roundUntil = (until: (q: Hungry) => boolean) => {
+      const q = createHungry(11, { practice: true });
+      const player = sharpPlayer();
+      while (!until(q) && !q.result) stepHungry(q, player(q), STEP);
+      return q;
+    };
+    const banquetShots = {
+      /** The round at a moment, the scene at 1920 by 1080: the opening dump, a dive out on the cloth, the cart's crash, the frenzy. */
+      async moments(): Promise<string[]> {
+        const out: string[] = [];
+        for (const until of [
+          (q: Hungry) => q.time >= 1.2,
+          (q: Hungry) => q.time >= 12 && (q.hammer.dive?.ext ?? 0) > 300,
+          (q: Hungry) => !!q.cart?.crashed && q.time >= HUNGRY.cart.at + 1.4,
+          (q: Hungry) => q.time >= 55,
+        ])
+          out.push(await shootBanquet(roundUntil(until)));
+        return out;
+      },
+      /** The start screen's picture: the round at the entrees. */
+      thumb: () => shootBanquet(roundUntil((q) => q.time >= 26.5)),
+      /** The sixteen dishes and the three products as the table draws them, named: the food sheet's board. */
+      async food(): Promise<string> {
+        await banquetReady;
+        const board = new Container();
+        const kinds = Object.keys(FOODS) as FoodKind[];
+        const cell = 260;
+        const rows = Math.ceil(kinds.length / 5);
+        board.addChild(new Graphics().rect(0, 0, 5 * cell, rows * cell).fill("#20242b"));
+        kinds.forEach((kind, i) => {
+          const s = new Sprite(banquet.foodTexture(kind));
+          s.anchor.set(0.5);
+          s.scale.set(Math.min((cell * 0.8) / s.texture.width, (cell * 0.6) / s.texture.height));
+          s.position.set((i % 5) * cell + cell / 2, Math.floor(i / 5) * cell + cell / 2 - 10);
+          const name = label(FOODS[kind].name, "ui", 20);
+          name.position.set((i % 5) * cell + 12, Math.floor(i / 5) * cell + cell - 34);
+          board.addChild(s, name);
+        });
+        return snapshotOf(app, board, 5 * cell, rows * cell, 1);
+      },
+    };
+    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id), () => game.level, banquetShots);
   }
   if (opts.dev && window.__next)
     window.__next.dev = {
@@ -1018,8 +1310,21 @@ export async function startLook(
       pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }) {
         if (world.pig) Object.assign(world.pig, o, o.state === "recover" ? { timer: 30, vx: 0 } : {});
       },
+      /** The running round: its clock, dishes on a rival's plate, his line on a rival's plate, dishes landed on his. */
+      quest(o: { time?: number; plate?: { who: RivalId; kinds: FoodKind[] }; aim?: RivalId; eat?: FoodKind[] }) {
+        const q = game.quest;
+        if (!q) return;
+        if (o.time !== undefined) q.time = o.time;
+        if (o.plate) q.rivals[o.plate.who].plate.push(...o.plate.kinds);
+        if (o.aim) q.hammer.aim = screenDeg(1, sub(SEATS[o.aim].plate, SEATS.hammer.plate));
+        for (const k of o.eat ?? []) land(q, "hammer", k);
+      },
+      /** Runs the round's clock out: its tally is next. */
+      questSkip() {
+        if (game.quest && !game.quest.result) game.quest.time = HUNGRY.round - STEP / 2;
+      },
     };
-  return {
+  const look: Look = {
     stop() {
       stopped = true;
       app.ticker.remove(tick);
@@ -1031,6 +1336,7 @@ export async function startLook(
       objects.destroy();
       cast.destroy();
       pigView.destroy();
+      banquet.destroy();
       for (const v of views.values()) v.venue.destroy();
       if (window.__next) delete window.__next.dev;
       scene.destroy();
@@ -1080,7 +1386,21 @@ export async function startLook(
       if (q) render.setQuality(q);
       else render.auto();
     },
+    newQuest() {
+      forgetPresses();
+      game.newQuest(newSeed());
+      for (const e of game.events) feel(e);
+    },
+    finishQuest() {
+      forgetPresses();
+      // A key held through Continue is no new press on the step after it (R4 Review Focus 1).
+      prevHeld = { ...prevHeld, ...heldNow() };
+      game.finishQuest();
+      prev = cur = world.snapshot();
+      for (const e of game.events) feel(e);
+    },
   };
+  return look;
 }
 
 /** The dev-only loader that forgets every plate but the neutral head and the Affliction body, and the cast's paintings. */

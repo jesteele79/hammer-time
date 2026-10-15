@@ -321,6 +321,12 @@ export class AudioBus {
     this.blip(180, 0.1, "square", 0.08, 70, 0.03);
   }
 
+  /** Two hands meeting over the banquet table: a bright double clank. */
+  clash() {
+    [1320, 1760].forEach((f, i) => this.blip(f, 0.07, "square", 0.07, f * 0.8, i * 0.03));
+    this.noise(0.05, 0.12, 3000, "highpass");
+  }
+
   private noise(
     duration: number,
     gain: number,

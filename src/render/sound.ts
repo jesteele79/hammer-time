@@ -49,6 +49,13 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   pigHit: ["thud"],
   pigBounce: ["bump"],
   pigDown: ["clear"],
+  hhDive: ["whoosh"],
+  hhBus: ["slide"],
+  hhCart: ["boom"],
+  hhClash: ["clash"],
+  hhSlap: ["thud"],
+  hhSwat: ["thud"],
+  hhTray: ["ding"],
 };
 const PICKUP_CUES: Record<string, Cue[]> = { can: ["coin"], nuts: ["power"], bucees: ["power", "oneUp"], pepper: ["power"] };
 /** The tally ticks once every ten seconds of clock it counts. */
@@ -127,6 +134,17 @@ export function cuesFor(e: GameEvent): Cue[] {
       return ["shatter", "smash"];
     case "missileHit":
       return e.kind === "plane" ? [] : ["splash"];
+    case "hhDump":
+      // The bell for a wave, a tray or the cart; the frenzy's dishes and the specials drop without it.
+      return e.count > 1 ? ["ding"] : [];
+    case "hhChomp":
+      return e.who === "hammer" ? ["chomp"] : ["slide"];
+    case "hhBonk":
+      return e.hit ? ["bonk"] : ["thud"];
+    case "hhPaper":
+      return e.hit ? ["splat"] : [];
+    case "hhSuitcase":
+      return e.on ? ["thud"] : [];
     default:
       return CUES[e.type] ?? [];
   }

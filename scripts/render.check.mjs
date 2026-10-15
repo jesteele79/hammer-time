@@ -1015,3 +1015,42 @@ test("the pig stands its near sole on the floor at rest, and its head crowns it 
   assert.ok(Math.abs(sole + groundShift(s, "planted")) < 1, `the near sole ${(sole + groundShift(s, "planted")).toFixed(2)} px off the floor`);
   assert.ok(Math.abs(s.crown.y + HERO_HEIGHT) < 0.5, `crown at ${s.crown.y}`);
 });
+
+import { BANQUET_FRAME, banquetFrame } from "../src/render/quests/frame.ts";
+import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM } from "../src/render/scene.ts";
+import { feelOf } from "../src/sim/feel.ts";
+// `cuesFor` is imported higher up the file already: a second import of the name is a syntax error.
+
+test("the banquet's frame fills the screen between the bars on a laptop and on a phone either way, nothing of it under a bar", () => {
+  for (const [w, h, top, bottom] of [[1280, 800, 64, 44], [390, 844, 96, 300], [844, 390, 60, 150]]) {
+    const f = banquetFrame(w, h, { top, bottom });
+    const scale = (HERO_SCREEN_FRACTION * h * f.zoom * (w < h ? PORTRAIT_ZOOM : 1)) / 340;
+    const sx = (x) => w / 2 + (x - f.x) * scale;
+    const sy = (y) => h / 2 + (y - f.y) * scale;
+    const [l, r, t, b] = [sx(BANQUET_FRAME.x), sx(BANQUET_FRAME.x + BANQUET_FRAME.w), sy(BANQUET_FRAME.y), sy(BANQUET_FRAME.y + BANQUET_FRAME.h)];
+    assert.ok(l >= -0.5 && r <= w + 0.5, `${w}x${h}: across ${l}..${r}`);
+    assert.ok(t >= top - 0.5 && b <= h - bottom + 0.5, `${w}x${h}: down ${t}..${b}`);
+    assert.ok(Math.abs(r - l - w) < 1 || Math.abs(b - t - (h - top - bottom)) < 1, `${w}x${h}: filled one way`);
+  }
+});
+
+test("the banquet's sounds: the bell on a wave, a whoosh on a dive, the chomp, the slide when someone else takes food, the bonk or the thud, the cart's boom, the paper's splat, the clash", () => {
+  assert.deepEqual(cuesFor({ type: "hhDump", x: 0, y: 0, count: 24, kinds: [], cart: false }), ["ding"]);
+  assert.deepEqual(cuesFor({ type: "hhDump", x: 0, y: 0, count: 1, kinds: [], cart: false }), []);
+  assert.deepEqual(cuesFor({ type: "hhDive", who: "hammer", charged: false }), ["whoosh"]);
+  assert.deepEqual(cuesFor({ type: "hhChomp", who: "hammer", x: 0, y: 0, count: 2 }), ["chomp"]);
+  assert.deepEqual(cuesFor({ type: "hhChomp", who: "nurse", x: 0, y: 0, count: 1 }), ["slide"]);
+  assert.deepEqual(cuesFor({ type: "hhBus", x: 0, y: 0, count: 3 }), ["slide"]);
+  assert.deepEqual(cuesFor({ type: "hhBonk", x: 0, y: 0, hit: true }), ["bonk"]);
+  assert.deepEqual(cuesFor({ type: "hhBonk", x: 0, y: 0, hit: false }), ["thud"]);
+  assert.deepEqual(cuesFor({ type: "hhCart", x: 0, y: 0 }), ["boom"]);
+  assert.deepEqual(cuesFor({ type: "hhPaper", x: 0, y: 0, hit: true }), ["splat"]);
+  assert.deepEqual(cuesFor({ type: "hhClash", x: 0, y: 0 }), ["clash"]);
+});
+
+test("the banquet's feel: the bonk that catches something, the clash and the cart's crash shake the camera", () => {
+  assert.ok(feelOf({ type: "hhBonk", x: 0, y: 0, hit: true }).trauma > 0);
+  assert.equal(feelOf({ type: "hhBonk", x: 0, y: 0, hit: false }).hitstop, 0);
+  assert.ok(feelOf({ type: "hhClash", x: 0, y: 0 }).trauma >= 0.3);
+  assert.ok(feelOf({ type: "hhCart", x: 0, y: 0 }).trauma >= 0.5);
+});

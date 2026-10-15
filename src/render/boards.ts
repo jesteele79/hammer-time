@@ -1,4 +1,4 @@
-import { Container, Graphics, Matrix, RenderTexture, Sprite } from "pixi.js";
+import { Container, Graphics, Matrix, RenderTexture, Sprite, type Application } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
 import { HATTED, jobOf, roleOf, type CastAct } from "../sim/cast";
 import { HEAD_SCALE } from "../sim/constants";
@@ -28,9 +28,11 @@ import { crateLogo, drawCrate, pickupView } from "./objects";
 import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
+import { coilPose, divePose } from "../sim/rig/dive";
+import type { Pose } from "../sim/rig/pose";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -135,15 +137,20 @@ type Cell = {
   facing?: 1 | -1;
   /** Stood by foot IK on a floor at this angle (degrees, negative rising to the right), drawn under him. */
   slope?: number;
+  /** A pose drawn in place of the clip (the banquet's dive and coil), stood on `ground`. */
+  pose?: Pose;
+  ground?: Ground;
 };
 
 function cellPose(cell: Cell) {
+  if (cell.pose) return cell.pose;
   if (!cell.move) return CLIPS[cell.clip](cell.u, CTX);
   return overlay(CLIPS.idle(0, CTX), ACTIONS[cell.move](cell.u), ACTION_MASK[cell.move], 1);
 }
 
 /** Grounded as the game grounds it: a move stands on the floor, except the super's hop before the slam. */
 function cellGround(cell: Cell): Ground {
+  if (cell.ground) return cell.ground;
   if (!cell.move) return groundModeFor(cell.clip, true);
   if (cell.move === "super" && cell.u < SUPER_CUT[0]) return "none";
   if (cell.move === "tumble") return "body";
@@ -162,6 +169,32 @@ const moveCells = (move: MoveKind, row: number, frames: number): Cell[] =>
     move,
   }));
 
+/**
+ * A container drawn off screen at `resolution`, in tiles where it is bigger than the GPU allows, as a PNG data URL; the
+ * container is let go afterwards.
+ */
+export async function snapshotOf(app: Application, container: Container, width: number, height: number, resolution: number): Promise<string> {
+  const tile = Math.floor(MAX_TEXTURE / resolution);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(width * resolution);
+  canvas.height = Math.ceil(height * resolution);
+  const ctx = canvas.getContext("2d")!;
+  for (let y0 = 0; y0 < height; y0 += tile)
+    for (let x0 = 0; x0 < width; x0 += tile) {
+      const target = RenderTexture.create({
+        width: Math.min(tile, width - x0),
+        height: Math.min(tile, height - y0),
+        resolution,
+      });
+      app.renderer.render({ container, target, transform: new Matrix().translate(-x0, -y0) });
+      const part = app.renderer.extract.canvas(target) as HTMLCanvasElement;
+      ctx.drawImage(part, Math.round(x0 * resolution), Math.round(y0 * resolution));
+      target.destroy(true);
+    }
+  container.destroy({ children: true });
+  return canvas.toDataURL("image/png");
+}
+
 /** Contact sheets drawn off screen for the owner's sign-off, returned as PNG data URLs. */
 export function createBoards(
   render: RenderApp,
@@ -174,6 +207,8 @@ export function createBoards(
   showLevel: (id: LevelId | null) => void = () => {},
   /** The level the game is in: the venue board frames it. */
   currentLevel: () => Level = () => LOBBY,
+  /** The banquet's shots, drawn by the look's banquet view (R4). */
+  banquet?: { moments(): Promise<string[]>; thumb(): Promise<string>; food(): Promise<string> },
 ): Boards {
   const { app } = render;
 
@@ -248,27 +283,7 @@ export function createBoards(
     return snapshot(board, width, height);
   };
 
-  const snapshot = async (container: Container, width: number, height: number) => {
-    const tile = Math.floor(MAX_TEXTURE / resolution);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.ceil(width * resolution);
-    canvas.height = Math.ceil(height * resolution);
-    const ctx = canvas.getContext("2d")!;
-    for (let y0 = 0; y0 < height; y0 += tile)
-      for (let x0 = 0; x0 < width; x0 += tile) {
-        const target = RenderTexture.create({
-          width: Math.min(tile, width - x0),
-          height: Math.min(tile, height - y0),
-          resolution,
-        });
-        app.renderer.render({ container, target, transform: new Matrix().translate(-x0, -y0) });
-        const part = app.renderer.extract.canvas(target) as HTMLCanvasElement;
-        ctx.drawImage(part, Math.round(x0 * resolution), Math.round(y0 * resolution));
-        target.destroy(true);
-      }
-    container.destroy({ children: true });
-    return canvas.toDataURL("image/png");
-  };
+  const snapshot = (container: Container, width: number, height: number) => snapshotOf(app, container, width, height, resolution);
 
   /** Every pickup, every crate fresh, and every crate spent, twice their size on the dark board. */
   const objects = async () => {
@@ -747,6 +762,23 @@ export function createBoards(
           return pigBoard(false);
         case "pig-steps":
           return pigBoard(true);
+        case "banquet":
+          return (await banquet!.moments()).join("\n");
+        case "banquet-thumb":
+          return banquet!.thumb();
+        case "banquet-food":
+          return banquet!.food();
+        case "banquet-dive": {
+          // The coil and the dive frame by frame, in his bib with the faces the round gives him; the dive stands on its lowest point.
+          const FRAMES = 10;
+          const cells: Cell[] = [];
+          for (let col = 0; col < FRAMES; col++) {
+            const u = col / (FRAMES - 1);
+            cells.push({ col, row: 0, clip: "idle", u: 0, costume: "banquet", expression: "neutral", headScale: 0.26, pose: coilPose(u) });
+            cells.push({ col, row: 1, clip: "idle", u: 0, costume: "banquet", expression: u > 0.3 ? "chomp" : "neutral", headScale: 0.26, pose: divePose(u), ground: "body" });
+          }
+          return sheet(FRAMES, 2, cells, ["coil", "dive"], Array.from({ length: FRAMES }, (_, i) => (i / (FRAMES - 1)).toFixed(2)), MOVE_SCALE);
+        }
       }
     },
   };

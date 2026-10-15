@@ -45,6 +45,15 @@ export function feelOf(e: GameEvent): Feel | null {
       return { hitstop: 0.08, trauma: 0.6, slowmo: { scale: 0.6, seconds: 0.3 } };
     case "pigLand":
       return { hitstop: 0, trauma: 0.5 };
+    // The banquet (R4): the mallet on the rim, two hands meeting, the dessert cart, the nurse's slap.
+    case "hhBonk":
+      return e.hit ? { hitstop: 0.06, trauma: 0.35 } : { hitstop: 0, trauma: 0.12 };
+    case "hhClash":
+      return { hitstop: 0.05, trauma: 0.35 };
+    case "hhCart":
+      return { hitstop: 0.04, trauma: 0.55 };
+    case "hhSlap":
+      return { hitstop: 0.04, trauma: 0.2 };
     default:
       return null;
   }

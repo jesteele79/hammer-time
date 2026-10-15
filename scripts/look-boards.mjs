@@ -75,6 +75,17 @@ try {
     frames.forEach((f, i) => save(`${venue}-look-${i + 1}.png`, f));
     count += frames.length;
   }
+  if (want("banquet")) {
+    // The banquet: drawn from its own page, the practice round's scene and Hammer's dive.
+    await page.goto(`${base}?next=1&board=1&dev=1&quest=hungry`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const frames = (await render("banquet")).split("\n");
+    frames.forEach((f, i) => save(`banquet-look-${i + 1}.png`, f));
+    save("banquet-dive.png", await render("banquet-dive"));
+    save("banquet-food.png", await render("banquet-food"));
+    count += frames.length + 2;
+  }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log(`PASS: ${count} boards rendered.`);
 } catch (err) {

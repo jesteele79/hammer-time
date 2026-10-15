@@ -69,6 +69,9 @@ export async function loadProducts(): Promise<number> {
   return (["can", "nuts", "bucees"] as const).filter((k) => productTextures.has(k)).length;
 }
 
+/** A product's picture once `loadProducts` has it, or null: the banquet's Coke Zero, nuts and Buc-ee's are these. */
+export const productTexture = (k: "can" | "nuts" | "bucees"): Texture | null => productTextures.get(k) ?? null;
+
 function productSprite(k: Product, height: number = PRODUCTS[k].height): Sprite | null {
   const t = productTextures.get(k);
   if (!t) return null;
