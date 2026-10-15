@@ -4,8 +4,8 @@ import { MOVE_SECONDS, SWING_ACTIVE } from "../../moves";
 import { seededRandom } from "../../rewards";
 import type { Point } from "../../types";
 import type { HungryEvent } from "./events";
-import { COURSES, DISH, FOODS, SPECIALS, stepDishes, type Box, type Course, type Dish, type FoodKind } from "./food";
-import { RIVALS, SEATS, TABLE, dirOf, dist, sub, type EaterId, type RivalId } from "./table";
+import { COURSES, DISH, FOODS, SPECIALS, settled, stepDishes, type Box, type Course, type Dish, type FoodKind } from "./food";
+import { RIVALS, SEATS, TABLE, dirOf, dist, screenDeg, sub, type EaterId, type RivalId } from "./table";
 
 const DEG = Math.PI / 180;
 
@@ -291,6 +291,7 @@ function aimDive(q: Hungry, d: Dive) {
   const base = baseReach(q);
   const k = Math.min(1, Math.max(0, (d.held - HUNGRY.tap) / (HUNGRY.charge - HUNGRY.tap)));
   let reach = d.charged ? base + (HUNGRY.reach.charged - base) * k : base;
+  reach = Math.min(reach, caseStop(q, SEATS.hammer.plate, d.dir));
   d.rob = null;
   if (d.charged) {
     const p = SEATS.hammer.plate;
@@ -356,6 +357,7 @@ function advance(q: Hungry, e: Eater, dt: number) {
   if (d.phase === "out") {
     const from = d.ext;
     d.ext = Math.min(d.reach, d.ext + HUNGRY.out * dt);
+    if (e.id === "hammer" && slapped(q)) return;
     sweep(q, e, from, d.ext);
     if (d.ext >= d.reach - 1e-9) {
       d.phase = "hold";
@@ -414,10 +416,273 @@ function stretch(q: Hungry, e: Eater) {
   d.haul = [];
 }
 
-/** He robbed `r`: angrier for it (Task 4 adds the paybacks). */
+/** He robbed `r`: angrier, and paying him back (R4 §4). */
 function robbed(q: Hungry, r: Rival) {
   r.anger++;
   r.calm = 0;
+  payback(q, r.id);
+}
+
+/** A robbed rival's payback: the student's paper, the bellhop's suitcase, the nurse's "Excuse me?" (her anger is the slap). */
+export function payback(q: Hungry, id: RivalId): void {
+  if (id === "student") {
+    q.planes.push({ from: { ...SEATS.student.plate }, to: { ...SEATS.hammer.stand }, d: 0, wait: HUNGRY.plane.windup, done: false, hit: false });
+    say(q, "student", "Heads up!");
+  } else if (id === "bellhop") {
+    const p = SEATS.hammer.plate;
+    const dir = dirOf(1, q.hammer.aim);
+    const { out, w, h, t } = HUNGRY.suitcase;
+    const c = { x: p.x + dir.x * out, y: p.y + dir.y * out };
+    q.suitcases.push({ x: c.x - w / 2, y: c.y - h / 2, w, h, t });
+    q.events.push({ type: "hhSuitcase", x: c.x, y: c.y, on: true });
+    say(q, "bellhop", "Your bag, sir.");
+  } else say(q, "nurse", "Excuse me?");
+}
+
+/** A rival's reaction now: a fifth quicker each level of anger, never under 0.15 s (R4 §4). */
+export const reactionFor = (r: Rival) => Math.max(HUNGRY.rival.floor, r.base * HUNGRY.rival.quicker ** r.anger);
+
+/** A dish a rival goes for: at rest within 400 px of its plate, on a line within 50 degrees of level on screen, either way. */
+function reachable(r: Rival, d: Dish): boolean {
+  if (!settled(d)) return false;
+  const v = sub(d, SEATS[r.id].plate);
+  const n = Math.hypot(v.x, v.y);
+  if (n < 1 || n > HUNGRY.rival.range) return false;
+  const deg = Math.abs(screenDeg(1, v));
+  return deg <= HUNGRY.rival.cone || deg >= 180 - HUNGRY.rival.cone;
+}
+
+function stepRival(q: Hungry, r: Rival, dt: number) {
+  r.since += dt;
+  if (r.anger > 0) {
+    r.calm += dt;
+    if (r.calm >= HUNGRY.rival.calm - 1e-9) {
+      r.anger--;
+      r.calm = 0;
+    }
+  }
+  r.stun = Math.max(0, r.stun - dt);
+  if (r.dive) return advance(q, r, dt);
+  if (r.asleep || r.stun > 0) {
+    r.wait = -1;
+    r.target = null;
+    r.burst = 0;
+    return;
+  }
+  const p = SEATS[r.id].plate;
+  if (r.wait < 0) {
+    const t = q.dishes.filter((d) => reachable(r, d)).sort((a, b) => dist(a, p) - dist(b, p))[0];
+    if (t) {
+      // Within a burst the next dive comes as fast as it can; a fresh one waits out the reaction.
+      r.wait = r.burst > 0 ? 0 : reactionFor(r);
+      r.target = t.id;
+    } else r.burst = 0;
+    return;
+  }
+  r.wait -= dt;
+  if (r.wait > 1e-9 || r.since < HUNGRY.cadence - 1e-9) return;
+  r.wait = -1;
+  const d = q.dishes.find((x) => x.id === r.target);
+  r.target = null;
+  if (!d || !reachable(r, d)) {
+    r.burst = 0;
+    return;
+  }
+  const [lo, hi] = HUNGRY.rival.burst;
+  if (r.burst <= 0) r.burst = lo + Math.floor(q.rng() * (hi - lo + 1));
+  r.burst--;
+  const v = sub(d, p);
+  const n = Math.hypot(v.x, v.y);
+  r.dive = newDive({ x: v.x / n, y: v.y / n }, n + d.r, "out");
+  r.since = 0;
+  q.events.push({ type: "hhDive", who: r.id, charged: false });
+}
+
+/** How far a dive along `dir` from `p` gets before a suitcase stops it: short of the box by half the hand. */
+function caseStop(q: Hungry, p: Point, dir: Point): number {
+  let stop = Infinity;
+  for (const b of q.suitcases) {
+    let t0 = 0;
+    let t1 = Infinity;
+    let hit = true;
+    for (const [o, v, lo, hi] of [
+      [p.x, dir.x, b.x, b.x + b.w],
+      [p.y, dir.y, b.y, b.y + b.h],
+    ] as const) {
+      if (Math.abs(v) < 1e-12) {
+        if (o < lo || o > hi) hit = false;
+        continue;
+      }
+      const a = (lo - o) / v;
+      const c = (hi - o) / v;
+      t0 = Math.max(t0, Math.min(a, c));
+      t1 = Math.min(t1, Math.max(a, c));
+    }
+    if (hit && t0 <= t1) stop = Math.min(stop, Math.max(0, t0 - HUNGRY.sweep));
+  }
+  return stop;
+}
+
+/** A hand lets go of what it holds: the dishes land on the cloth round where it is. */
+function drop(q: Hungry, e: Eater, at: Point) {
+  const d = e.dive;
+  if (!d) return;
+  for (const h of d.haul) addDish(q, h.kind, at.x + (q.rng() - 0.5) * 40, at.y + (q.rng() - 0.5) * 40);
+  d.haul = [];
+}
+
+/** The angry nurse slaps a hand that comes into her zone: what it holds drops, he is stunned a second (R4 §4). */
+function slapped(q: Hungry): boolean {
+  const n = q.rivals.nurse;
+  const h = q.hammer;
+  if (n.anger <= 0 || n.stun > 0 || n.asleep || !h.dive) return false;
+  const hand = handOf(h);
+  if (dist(hand, SEATS.nurse.plate) > HUNGRY.slap.zone) return false;
+  drop(q, h, hand);
+  h.dive.phase = "back";
+  h.dive.t = 0;
+  h.stun = HUNGRY.slap.stun;
+  q.events.push({ type: "hhSlap", x: hand.x, y: hand.y });
+  say(q, "nurse", "Sanitize!");
+  think(q, "I've HAD my shots.");
+  return true;
+}
+
+/** Two hands out at once within 110 px of each other in the last 0.1 s (R4 §3): both back empty, the food near them scattered. */
+function clashes(q: Hungry) {
+  const h = q.hammer;
+  if (h.dive?.phase !== "out") return;
+  const a = handOf(h);
+  for (const id of RIVALS) {
+    const r = q.rivals[id];
+    if (r.dive?.phase !== "out") continue;
+    const b = handOf(r);
+    const reach = HUNGRY.clash.reach;
+    const met = dist(a, b) <= reach || r.dive.trail.some((p) => dist(p, a) <= reach) || h.dive.trail.some((p) => dist(p, b) <= reach);
+    if (!met) continue;
+    const at = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    drop(q, h, a);
+    drop(q, r, b);
+    for (const e of [h.dive, r.dive]) {
+      e.phase = "back";
+      e.t = 0;
+    }
+    for (const d of q.dishes) {
+      if (d.fall > 0) continue;
+      const v = sub(d, at);
+      const n = Math.hypot(v.x, v.y);
+      if (n > HUNGRY.clash.scatter) continue;
+      const k = n > 1e-6 ? 1 / n : 0;
+      const a2 = q.rng() * Math.PI * 2;
+      d.vx = (k ? v.x * k : Math.cos(a2)) * HUNGRY.clash.speed;
+      d.vy = (k ? v.y * k : Math.sin(a2)) * HUNGRY.clash.speed;
+    }
+    q.events.push({ type: "hhClash", x: at.x, y: at.y });
+    return;
+  }
+}
+
+/** Where the server is on her walk behind the far side: `s` 0 at the right end, 1 at his corner. */
+export function serverAt(q: Hungry): Point {
+  const { from, to, radius } = HUNGRY.server;
+  const a = (from + (to - from) * q.server.s) * DEG;
+  return { x: Math.cos(a) * radius, y: Math.sin(a) * radius };
+}
+
+function stepServer(q: Hungry, dt: number) {
+  const s = q.server;
+  const S = HUNGRY.server;
+  s.quiet = Math.max(0, s.quiet - dt);
+  if (s.away > 0) {
+    s.away -= dt;
+    // Back from the right end, where she lingers first.
+    if (s.away <= 0) Object.assign(s, { away: 0, s: 0, dir: 1, wait: S.linger });
+    return;
+  }
+  if (s.wait > 0) s.wait -= dt;
+  else {
+    s.s += (s.dir * dt) / (S.trip / 2);
+    if (s.s >= 1) Object.assign(s, { s: 1, dir: -1, wait: S.linger });
+    else if (s.s <= 0) Object.assign(s, { s: 0, dir: 1, wait: S.linger });
+  }
+  const at = serverAt(q);
+  const bused = q.dishes.filter((d) => settled(d) && Math.hypot(d.x, d.y) >= TABLE.r - S.bus && dist(d, at) <= S.reach);
+  if (!bused.length) return;
+  q.dishes = q.dishes.filter((d) => !bused.includes(d));
+  q.events.push({ type: "hhBus", x: at.x, y: at.y, count: bused.length });
+  if (s.quiet <= 0) {
+    say(q, "server", "Are we still working on that?", 1.6);
+    s.quiet = S.quiet;
+  }
+}
+
+/** Where a plane is on its way from the student's plate to his spot. */
+export function planeAt(p: Plane): Point {
+  const v = sub(p.to, p.from);
+  const k = p.d / Math.hypot(v.x, v.y);
+  return { x: p.from.x + v.x * k, y: p.from.y + v.y * k };
+}
+
+function stepPlanes(q: Hungry, dt: number) {
+  const h = q.hammer;
+  for (const p of q.planes) {
+    if (p.wait > 0) {
+      p.wait -= dt;
+      if (p.wait <= 0) q.events.push({ type: "hhPlane", ...planeAt(p) });
+      continue;
+    }
+    p.d += HUNGRY.plane.speed * dt;
+    if (p.done || p.d < dist(p.from, p.to)) continue;
+    p.done = true;
+    // It hits him only where he is: ducked under the edge, or out on the table, it sails on past.
+    p.hit = !h.duck && !(h.dive && h.dive.ext > 100);
+    if (p.hit) {
+      q.score.plate -= HUNGRY.plane.hit;
+      q.score.paper++;
+    }
+    q.events.push({ type: "hhPaper", x: p.to.x, y: p.to.y, hit: p.hit });
+  }
+  q.planes = q.planes.filter((p) => !p.done || (!p.hit && p.d < dist(p.from, p.to) + 400));
+}
+
+/** What else the bonk catches (R4 §3): a rival's hand, the server, a suitcase, paper. True when it caught anything. */
+function bonkOthers(q: Hungry): boolean {
+  const p = SEATS.hammer.plate;
+  const R = HUNGRY.bonk.reach;
+  let hit = false;
+  for (const id of RIVALS) {
+    const r = q.rivals[id];
+    if (!r.dive || r.dive.phase === "back" || dist(handOf(r), p) > R) continue;
+    const at = handOf(r);
+    drop(q, r, at);
+    r.dive.phase = "back";
+    r.dive.t = 0;
+    r.stun = HUNGRY.rival.stun;
+    q.events.push({ type: "hhStun", who: id, x: at.x, y: at.y });
+    hit = true;
+  }
+  const s = serverAt(q);
+  if (q.server.away <= 0 && dist(s, p) <= R) {
+    const n = Math.hypot(s.x, s.y);
+    const inside = { x: (s.x / n) * (TABLE.r - 80), y: (s.y / n) * (TABLE.r - 80) };
+    const course: Exclude<Course, "special"> = q.time < 25 ? "appetizer" : q.time < 42 ? "entree" : "dessert";
+    dump(q, COURSES[course], HUNGRY.server.tray, inside, { x: -inside.x, y: -inside.y });
+    q.server.away = HUNGRY.server.away;
+    q.events.push({ type: "hhTray", x: inside.x, y: inside.y });
+    think(q, "Is Pepsi okay? NO.");
+    hit = true;
+  }
+  const near = (b: Box) => dist({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, p) <= R;
+  for (const b of q.suitcases.filter(near)) {
+    q.events.push({ type: "hhSuitcase", x: b.x + b.w / 2, y: b.y + b.h / 2, on: false });
+    hit = true;
+  }
+  q.suitcases = q.suitcases.filter((b) => !near(b));
+  const swatted = q.planes.filter((pl) => pl.wait <= 0 && !pl.done && dist(planeAt(pl), p) <= R);
+  for (const pl of swatted) q.events.push({ type: "hhSwat", ...planeAt(pl) });
+  if (swatted.length) hit = true;
+  q.planes = q.planes.filter((pl) => !swatted.includes(pl));
+  return hit;
 }
 
 function stepFlights(q: Hungry, dt: number) {
@@ -476,7 +741,8 @@ export function bonk(q: Hungry): void {
     d.vx = u.x * HUNGRY.bonk.push;
     d.vy = u.y * HUNGRY.bonk.push;
   }
-  q.events.push({ type: "hhBonk", x: -TABLE.r + 30, y: 0, hit: false });
+  const hit = bonkOthers(q);
+  q.events.push({ type: "hhBonk", x: -TABLE.r + 30, y: 0, hit });
 }
 
 function finish(q: Hungry) {
@@ -513,9 +779,17 @@ export function stepHungry(q: Hungry, input: Input, dt: number): void {
   q.time += dt;
   schedule(q, dt);
   stepCart(q, dt);
+  stepServer(q, dt);
+  for (const s of q.suitcases) s.t -= dt;
+  for (const s of q.suitcases.filter((b) => b.t <= 0)) q.events.push({ type: "hhSuitcase", x: s.x + s.w / 2, y: s.y + s.h / 2, on: false });
+  q.suitcases = q.suitcases.filter((b) => b.t > 0);
   stepDishes(q.dishes, dt, q.suitcases);
   stepHammer(q, input, dt);
+  // His sweep goes first: a dish two hands cross in one step is his.
+  for (const id of RIVALS) stepRival(q, q.rivals[id], dt);
+  clashes(q);
   stepFlights(q, dt);
+  stepPlanes(q, dt);
   if (q.time >= HUNGRY.round - 1e-9) finish(q);
 }
 

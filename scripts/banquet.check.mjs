@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { STEP } from "../src/sim/constants.ts";
 import { TABLE, SEATS, RIVALS, onScreen, floorOf, dirOf, screenDeg, sub, dist } from "../src/sim/quests/hungry/table.ts";
 import { DISH, FOODS, COURSES, SPECIALS, settled, stepDishes } from "../src/sim/quests/hungry/food.ts";
-import { HUNGRY, WAVES, GRADES, gradeFor, createHungry, stepHungry, addDish, baseReach, handOf, land, hungryHint } from "../src/sim/quests/hungry/hungry.ts";
+import { HUNGRY, WAVES, GRADES, gradeFor, createHungry, stepHungry, addDish, baseReach, handOf, land, hungryHint, reactionFor, serverAt, planeAt, payback, bonk } from "../src/sim/quests/hungry/hungry.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -393,4 +393,213 @@ test("the hint names what matters most, as shipped", () => {
   assert.equal(hungryHint(q), "To-go box · next 3 grabs double");
   q.hammer.stun = 0.5;
   assert.equal(hungryHint(q), "Slapped · wait a second");
+});
+
+/** A round with the rivals awake but nothing scheduled and the server away: dishes placed by hand. */
+const table = (seed = 1) => createHungry(seed, { practice: true, schedule: false, server: false });
+/** Only `id` of the rivals awake: the others would take a test's dish first. */
+const only = (q, id) => {
+  for (const o of RIVALS) q.rivals[o].asleep = o !== id;
+  return q;
+};
+/** Every ribeye anywhere: on the cloth, on a plate, in the air, in a hand. */
+const ribeyes = (q) =>
+  q.dishes.filter((d) => d.kind === "ribeye").length +
+  [q.hammer, ...RIVALS.map((id) => q.rivals[id])].reduce((n, e) => n + e.plate.filter((k) => k === "ribeye").length + (e.dive?.haul ?? []).filter((h) => h.kind === "ribeye").length, 0) +
+  q.flights.filter((f) => f.kind === "ribeye").length;
+/** Every dive start for `seconds`: who, and when. */
+const diveTimes = (q, seconds, held = {}) => {
+  const out = [];
+  let t = 0;
+  for (let i = 0; i < Math.round(seconds / STEP); i++) {
+    stepHungry(q, input(held), STEP);
+    t += STEP;
+    for (const e of of(q.events, "hhDive")) out.push({ who: e.who, t });
+  }
+  return out;
+};
+
+test("a rival dives at food that comes to rest within 400 px of its plate after its reaction: the student 0.55 s, the bellhop 0.40, the nurse 0.28", () => {
+  for (const [id, reaction] of [["student", 0.55], ["bellhop", 0.4], ["nurse", 0.28]]) {
+    const q = only(table(), id);
+    const p = SEATS[id].plate;
+    const side = SEATS[id].facing;
+    addDish(q, "club", p.x + side * 250, p.y);
+    const first = diveTimes(q, 2).find((d) => d.who === id);
+    assert.ok(first, `${id} dived`);
+    near(first.t, reaction + STEP, `${id}'s reaction`, 3 * STEP);
+  }
+});
+
+test("a rival mashes 2 to 4 dives in a burst, one every 0.3 s, then waits out its reaction again; the food goes to its plate", () => {
+  const q = only(table(7), "nurse");
+  const p = SEATS.nurse.plate;
+  for (let i = 0; i < 8; i++) addDish(q, i % 2 ? "shrimp" : "club", p.x - 120 - i * 34, p.y + (i % 2 ? 50 : -50));
+  const ts = diveTimes(q, 4).filter((d) => d.who === "nurse").map((d) => d.t);
+  const gaps = ts.slice(1).map((t, i) => t - ts[i]);
+  // Within a burst a dive starts every 0.3 s; after it, the dive back (about 0.12 s) and her 0.28 s reaction come first.
+  const burst = gaps.findIndex((g) => g > 0.36);
+  assert.ok(burst >= 1 && burst <= 3, `a burst of ${burst + 1}: gaps ${gaps.map((g) => g.toFixed(2))}`);
+  for (const g of gaps.slice(0, burst)) near(g, HUNGRY.cadence, "within the burst", 3 * STEP);
+  assert.ok(q.rivals.nurse.plate.length >= 2);
+  assert.equal(q.hammer.plate.length, 0, "never his");
+});
+
+test("a rival dives only within 50 degrees of level on screen, either way, and turns to face it; straight down it lets food lie", () => {
+  const q = only(table(), "student");
+  const p = SEATS.student.plate;
+  addDish(q, "club", p.x, p.y - 300);
+  assert.equal(diveTimes(q, 2).filter((d) => d.who === "student").length, 0, "straight down the screen");
+  const back = only(table(), "student");
+  addDish(back, "club", p.x - 220, p.y - 250);
+  assert.equal(diveTimes(back, 2).filter((d) => d.who === "student").length, 1, "down and back toward his end");
+});
+
+test("anger: a robbery makes a rival a fifth quicker a level, never under 0.15 s; 8 s without one calms it a level", () => {
+  const q = table();
+  const r = q.rivals.student;
+  assert.equal(reactionFor(r), 0.55);
+  r.anger = 1;
+  assert.ok(Math.abs(reactionFor(r) - 0.44) < 1e-9);
+  r.anger = 20;
+  assert.equal(reactionFor(r), 0.15);
+  r.anger = 2;
+  run(q, 8 + STEP);
+  assert.equal(r.anger, 1);
+  run(q, 8);
+  assert.equal(r.anger, 0);
+});
+
+test("robbed, the student winds up 0.6 s and throws paper at him: a hit costs 150; ducked it sails over; out on the table it misses; swatted it is gone", () => {
+  const len = dist(SEATS.student.plate, SEATS.hammer.stand);
+  const hitQ = table();
+  payback(hitQ, "student");
+  const evs = run(hitQ, 0.6 + len / HUNGRY.plane.speed + 0.1);
+  assert.equal(of(evs, "hhPlane").length, 1);
+  assert.deepEqual(of(evs, "hhPaper").map((e) => e.hit), [true]);
+  assert.deepEqual([hitQ.score.plate, hitQ.score.paper], [-150, 1]);
+  const duck = table();
+  payback(duck, "student");
+  assert.deepEqual(of(run(duck, 2.2, { down: true }), "hhPaper").map((e) => e.hit), [false]);
+  const out = table();
+  payback(out, "student");
+  // A full charge pressed 0.65 s before the plane arrives is out on the table, well past 100 px, when it does.
+  run(out, 0.6 + len / HUNGRY.plane.speed - 0.65);
+  press(out, "jump");
+  const outEvs = run(out, 1.2, { jump: true });
+  assert.deepEqual(of(outEvs, "hhPaper").map((e) => e.hit), [false], "out on the table at a full charge");
+  const swat = table();
+  payback(swat, "student");
+  run(swat, 0.6 + (len * 0.6) / HUNGRY.plane.speed);
+  assert.ok(dist(planeAt(swat.planes[0]), P) <= HUNGRY.bonk.reach);
+  bonk(swat);
+  assert.equal(swat.planes.length, 0);
+  assert.equal(of(swat.events, "hhSwat").length, 1);
+  assert.equal(of(run(swat, 2), "hhPaper").length, 0);
+});
+
+test("robbed, the bellhop slides a suitcase 250 px out along his line for 4 s: his dives stop short of it, the bonk slams it off", () => {
+  const q = table();
+  payback(q, "bellhop");
+  assert.equal(q.suitcases.length, 1);
+  const s = q.suitcases[0];
+  assert.ok(Math.abs(s.x + s.w / 2 - (P.x + HUNGRY.suitcase.out)) < 1e-6);
+  tap(q);
+  assert.ok(q.hammer.dive.reach < HUNGRY.suitcase.out - HUNGRY.suitcase.w / 2, `stopped at ${q.hammer.dive.reach}`);
+  run(q, 1);
+  bonk(q);
+  assert.equal(q.suitcases.length, 0);
+  const lasts = table();
+  payback(lasts, "bellhop");
+  run(lasts, HUNGRY.suitcase.t + STEP);
+  assert.equal(lasts.suitcases.length, 0, "gone after 4 s");
+});
+
+test("the angry nurse slaps a hand that comes into her zone: nothing eaten, a 1 s stun, 'Sanitize!' and his thought", () => {
+  const q = table();
+  q.rivals.nurse.anger = 1;
+  q.rivals.nurse.wait = 99;
+  const food = addDish(q, "ribeye", 320, 0);
+  press(q, "jump");
+  // The coil's 0.5 s, then the hand reaches her zone 860 px out a quarter of a second later.
+  const evs = run(q, 0.9, { jump: true });
+  assert.equal(of(evs, "hhSlap").length, 1);
+  assert.ok(q.dishes.includes(food), "nothing eaten");
+  assert.ok(q.hammer.stun > 0.5);
+  assert.deepEqual(of(evs, "hhSay").map((e) => [e.who, e.text]), [["nurse", "Sanitize!"]]);
+  assert.deepEqual(of(evs, "hhThink").map((e) => e.text), ["I've HAD my shots."]);
+  assert.equal(of(run(q, 1), "hhLand").length, 0);
+});
+
+test("the server walks behind the far side and clears food resting near the rim beside her, one line every 6 s at most", () => {
+  const q = createHungry(2, { practice: true, schedule: false, rivals: false });
+  q.server.s = 0.5;
+  q.server.wait = 99;
+  const at = serverAt(q);
+  const u = { x: at.x / Math.hypot(at.x, at.y), y: at.y / Math.hypot(at.x, at.y) };
+  const rim = addDish(q, "pie", u.x * 680, u.y * 680);
+  const middle = addDish(q, "pie", 0, 0);
+  const evs = run(q, 0.1);
+  assert.ok(!q.dishes.includes(rim) && q.dishes.includes(middle));
+  assert.deepEqual(of(evs, "hhSay").map((e) => e.text), ["Are we still working on that?"]);
+  addDish(q, "pie", u.x * 680, u.y * 680);
+  assert.equal(of(run(q, 1), "hhSay").length, 0, "quiet for a while");
+});
+
+test("the bonk: food near him jumps toward the middle; a rival's hand in reach is stunned 2 s; the server at his corner drops four dishes and leaves for 15 s", () => {
+  const q = createHungry(2, { practice: true, schedule: false });
+  const d = addDish(q, "club", P.x + 150, P.y + 50);
+  const st = q.rivals.student;
+  const target = { x: -450, y: 150 };
+  const v = sub(target, SEATS.student.plate);
+  const n = Math.hypot(v.x, v.y);
+  st.dive = { phase: "hold", t: 0, held: 0, dir: { x: v.x / n, y: v.y / n }, reach: n, ext: n, charged: false, rob: null, haul: [{ kind: "pie", bonus: 0 }], trail: [] };
+  q.server.s = 1;
+  q.server.wait = 99;
+  const before = q.dishes.length;
+  bonk(q);
+  assert.ok((d.vx * 150 + d.vy * 50) / Math.hypot(150, 50) > HUNGRY.bonk.push * 0.99, "away from him");
+  assert.deepEqual([st.stun, st.dive.phase], [HUNGRY.rival.stun, "back"]);
+  assert.deepEqual(of(q.events, "hhStun").map((e) => e.who), ["student"]);
+  assert.equal(of(q.events, "hhTray").length, 1);
+  assert.equal(q.dishes.length, before + 1 + HUNGRY.server.tray, "the pie it held and the tray's four");
+  assert.equal(q.server.away, HUNGRY.server.away);
+  assert.deepEqual(of(q.events, "hhBonk").map((e) => e.hit), [true]);
+  run(q, HUNGRY.server.away + 0.1);
+  assert.deepEqual([q.server.away, q.server.s], [0, 0], "back from the right end");
+});
+
+test("the clash: his hand and a rival's within 110 px while both are out bounce back empty and scatter the food near them", () => {
+  const q = only(table(), "bellhop");
+  q.rivals.bellhop.wait = 99;
+  const meet = { x: 0, y: 100 };
+  const hv = sub(meet, P);
+  const hn = Math.hypot(hv.x, hv.y);
+  q.hammer.dive = { phase: "out", t: 0, held: 0, dir: { x: hv.x / hn, y: hv.y / hn }, reach: 1000, ext: hn - 40, charged: true, rob: null, haul: [{ kind: "ribeye", bonus: 0 }], trail: [] };
+  const bv = sub({ x: 40, y: 100 }, SEATS.bellhop.plate);
+  const bn = Math.hypot(bv.x, bv.y);
+  q.rivals.bellhop.dive = { phase: "out", t: 0, held: 0, dir: { x: bv.x / bn, y: bv.y / bn }, reach: 1000, ext: bn - 20, charged: false, rob: null, haul: [{ kind: "pie", bonus: 0 }], trail: [] };
+  const nearby = addDish(q, "shrimp", 20, 180);
+  const evs = run(q, STEP);
+  assert.equal(of(evs, "hhClash").length, 1);
+  assert.deepEqual([q.hammer.dive.phase, q.rivals.bellhop.dive.phase], ["back", "back"]);
+  assert.ok(Math.hypot(nearby.vx, nearby.vy) > 300, "the food near them flew");
+  assert.ok(q.dishes.some((x) => x.kind === "ribeye") && q.dishes.some((x) => x.kind === "pie"), "what they held dropped");
+  assert.equal(of(run(q, 1), "hhLand").length, 0, "nothing reached a plate");
+});
+
+test("two sweeps over one dish in one step: it goes to one of them or drops in their clash, never to both", () => {
+  const q = only(table(), "student");
+  const food = addDish(q, "ribeye", -200, 200);
+  const hv = sub(food, P);
+  const hn = Math.hypot(hv.x, hv.y);
+  q.hammer.dive = { phase: "out", t: 0, held: 0, dir: { x: hv.x / hn, y: hv.y / hn }, reach: hn + 40, ext: hn - 20, charged: false, rob: null, haul: [], trail: [] };
+  const sv = sub(food, SEATS.student.plate);
+  const sn = Math.hypot(sv.x, sv.y);
+  q.rivals.student.dive = { phase: "out", t: 0, held: 0, dir: { x: sv.x / sn, y: sv.y / sn }, reach: sn + 40, ext: sn - 20, charged: false, rob: null, haul: [], trail: [] };
+  stepHungry(q, input(), STEP);
+  assert.equal(ribeyes(q), 1, "one ribeye, wherever it is");
+  const evs = run(q, 1);
+  assert.ok(of(evs, "hhLand").filter((e) => e.kind === "ribeye").length <= 1);
+  assert.equal(ribeyes(q), 1);
 });
