@@ -1,0 +1,40 @@
+Use case: stylized-concept
+Asset type: finished ballroom game backdrop PNG.
+Generate the corrected ballroom image at the widest native landscape format (3:1). No upscale or resize.
+
+Input images 1 to 4: style references only, hammer-profile.png, lobby-far-1.png, lobby-mid.png, bellhop-1.png respectively. Match their clean black-ink cartoon finish and gold, burgundy and white cel-shaded materials. Do not copy their people, flowers, plants, lamps, ropes or furniture.
+Input image 5: the latest ballroom layout to regenerate. Preserve its plain side edges, empty carpet, and buffet against the perfectly level wall. Correct the wall height, medallion shape and flat colors.
+
+CRITICAL TARGET GEOMETRY for a 2172 x 724 widest landscape output:
+Back-wall band spans y=0 through y=145 ONLY, ending at 20 percent height. Floor begins exactly at y=145, runs level, and extends down to y=724. The bottom hem of the buffet cloth must end at y=145; the coffee urn and all serving equipment must fit above it. REDUCE the entire wall and buffet band's vertical size; do not retain the 210-pixel-tall wall from image 5.
+Left plain strip: x=0 through x=180. Right plain strip: x=1992 through x=2172. Both strips show only plain red curtain above y=145 and solid plain burgundy carpet below y=145. No pattern, border line, tassel, swag, furniture or medallion in either strip. Arrange the gold medallions ONLY between x=220 and x=1952, with each medallion COMPLETE inside that area. Pattern on carpet is flat gold on solid flat burgundy. Draw each round floor medallion as an oval with width about 2x its depth. Middle of carpet is completely empty of physical objects.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image (the food sheet is the one exception).
+- No text, letters, numbers, logos, signatures or watermarks anywhere (badges and labels are blank).
+- The whole subject inside the frame with margin all round.
+- PNG.
+
+THE CAMERA (all three items): the game looks down at a round banquet table from a raised camera, as if from a
+balcony, at about 30 degrees below level. So a round thing lying flat (the tabletop, a plate) looks like a wide oval
+about twice as wide as it is deep, and the patterned carpet is foreshortened the same way. Straight on: the room's
+back wall runs perfectly level across the picture, no tilt, no fisheye, no vanishing toward the sides.
+
+2. ballroom.png (save to art/incoming/backdrops/)
+A grand hotel ballroom set for a banquet, seen by THE CAMERA, at the widest landscape size available.
+- The back wall across the top fifth to quarter of the picture: deep red velvet drapes with gold swags and tassels, gold-framed wainscot below them, warm wall sconces, and a long buffet table against the wall with a white cloth, silver chafing dishes and a tall silver coffee urn.
+- Below the wall, filling the rest of the picture down to the bottom edge: an ornate burgundy-and-gold banquet carpet with a repeating medallion pattern, foreshortened by the camera.
+- The middle of the carpet EMPTY: a wide open area in the center where the game places a round table and four people. No tables, chairs, people or objects anywhere on the carpet.
+- Warm, even light from chandeliers above (a soft warm pool of light on the middle of the carpet is fine). The very bottom of a chandelier's crystals may hang into the top edge.
+- Both side edges plain drapes and plain carpet, nothing cut in half at the edges, so the game can widen the picture.
+- No people, no text.
+
+No visible chandeliers. All gold swags fully inside the upper frame, with blank curtain at both sides. No gradient anywhere, especially the carpet: solid base colors and one hard-edged shadow color and one hard-edged highlight color per material. No palms, plants or vases. No side walls or converging lines.
+
+FINAL CORRECTIONS, highest priority:
+1. The wall-and-buffet band in image 5 is still too tall. It must fit completely inside the TOP FIFTH. The wall/carpet line and buffet cloth hem must sit no lower than ONE QUARTER from the top, ideally ONE FIFTH. Compress their vertical scale by a further 25 percent. Carpet must dominate four fifths of the picture.
+2. Image 5's medallions are too flat. Replace every one with a smaller, wider-than-tall oval EXACTLY 2:1. A typical medallion is 180 pixels wide by 90 pixels deep on this canvas. Repeat these compact oval medallions in the central carpet field, leaving generous plain burgundy side margins. No cropped pattern elements.
+3. The carpet in image 5 has subtle soft lighting. Eliminate ALL soft lighting: one uniform solid burgundy fill across the entire carpet, one uniform solid gold for the pattern. Wall, drapes, cloth and silver have hard-edged cel shading only, one shadow and one highlight per material. Match the black outlined cartoon finish of bellhop-1.png.

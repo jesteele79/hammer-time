@@ -1,0 +1,6 @@
+{
+  "note": "Pixels of art/incoming/backdrops/ballroom.png as painted. table: where the round table's middle stands, in the middle of the empty carpet at the depth a table would stand; span: the painting px a 1500-wide table top spans there, judged by the carpet's pattern and the buffet against the wall. Check with: node scripts/art-grid.mjs banquet/room.",
+  "space": "source",
+  "table": [1085, 365],
+  "span": 750
+}
