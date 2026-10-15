@@ -33,9 +33,12 @@ export type LevelPlatform = Platform & { kind: PlatformKind };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
 export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number };
-export type DoorKind = "stash" | "return" | "exit" | "closed";
-/** `closed` doors say what opens them; `x` is the door's middle, `y` the floor in front of it; a `locked` exit is chained until the pig is down. */
-export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string; locked?: boolean };
+export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest";
+/**
+ * `closed` doors say what opens them; a `quest` door opens a side quest once a shift (the BUFFET's banquet, R4 §7); `x`
+ * is the door's middle, `y` the floor in front of it; a `locked` exit is chained until the pig is down.
+ */
+export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string; locked?: boolean; quest?: "hungry" };
 export type CheckpointSpec = { id: string; x: number; y: number };
 export type SignSpec = { x: number; y: number; label: string; note?: string };
 export type FurnitureKind =

@@ -44,7 +44,7 @@ export const LOBBY: Level = {
     { id: "case-corridor", kind: "case", x: 15500, y: -435 },
   ],
   doors: [
-    { id: "buffet", kind: "closed", x: 4600, y: 0, label: "BUFFET", opens: "Opens with Hungry Hungry Hammer" },
+    { id: "buffet", kind: "quest", x: 4600, y: 0, label: "BUFFET", quest: "hungry" },
     { id: "mclub", kind: "closed", x: 8800, y: -520, label: "M CLUB", opens: "Platinum members only" },
     { id: "shuttle", kind: "closed", x: 9100, y: 0, label: "AIRPORT SHUTTLE", opens: "Opens with Fare Darts" },
     { id: "staff", kind: "stash", x: 9700, y: 0, label: "STAFF ONLY" },

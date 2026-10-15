@@ -26,6 +26,8 @@ export const RUN = {
   dieT: 1.2,
   cardT: 1.6,
   respawnGrace: 1.3,
+  /** Back from the banquet: a moment's grace in front of its door (R4 §7). */
+  questGrace: 0.6,
   /** How far into the tumble he lies still before the life is lost. */
   lieAt: 0.5,
   walkoffT: 0.8,
@@ -45,9 +47,11 @@ export type Run = {
   checkpoint: string | null;
   /** Every punch clock passed this run: their cards stay gold. */
   punched: string[];
+  /** Doors used once a shift: the BUFFET's banquet (R4 §7). */
+  spent: string[];
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [] });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [] });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);

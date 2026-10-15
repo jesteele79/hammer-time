@@ -333,7 +333,7 @@ test("the hint says the most pressing thing, the shipped hint's order without th
   g.door = LOBBY.doors.find((d) => d.id === "staff");
   assert.equal(hintOf(g), "↓ STAFF ONLY · the stash");
   g.door = LOBBY.doors.find((d) => d.id === "buffet");
-  assert.equal(hintOf(g), "BUFFET · Opens with Hungry Hungry Hammer");
+  assert.equal(hintOf(g), "↓ BUFFET · Hungry Hungry Hammer");
   g.door = LOBBY.doors.find((d) => d.id === "out");
   assert.equal(hintOf(g), "CLOCK OUT · walk in to finish your shift");
 });

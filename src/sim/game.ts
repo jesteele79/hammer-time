@@ -18,8 +18,9 @@ import { createCart, knock } from "./targets";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
+import { createHungry, stepHungry, type Hungry, type HungryResult } from "./quests/hungry/hungry";
 
-export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title";
+export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title" | "questCard" | "quest" | "questTally";
 /** The lobby and its stash, and the venues after the lobby in the shift's order (R3 §2). */
 export type Levels = { lobby: Level; stash: Level; venues?: Level[] };
 
@@ -48,6 +49,14 @@ export type Game = {
   togglePause(): void;
   /** Back to the start screen: the game holds, nothing steps, until a new run is chosen. */
   toTitle(): void;
+  /** The banquet while its card shows, it runs, or its tally waits (R4). */
+  quest: Hungry | null;
+  /** The door it was opened from; null for practice from the start screen. */
+  questDoor: DoorSpec | null;
+  /** Practice from the start screen, or Play again on a practice tally: a round on its own (R4 §8). */
+  newQuest(seed: number): void;
+  /** Continue on a door's tally: what he ate comes home with him, and he stands at the door (R4 §7). */
+  finishQuest(): void;
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
@@ -78,6 +87,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let timedOut = false;
   /** Down must come up between doors, so arriving with it held never sends him straight back. */
   let armed = true;
+  /** The mode a break came from: the shift's play or the banquet's round. */
+  let paused: "play" | "quest" = "play";
   /** The stash's shelves this run: stocked on the first visit and never again (owner, 2026-10-12). */
   let stashStock: { pickups: Pickup[]; crates: Crate[] } | null = null;
   /** The lobby as he left it for the stash. */
@@ -106,6 +117,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     newRun,
     togglePause,
     toTitle,
+    quest: null,
+    questDoor: null,
+    newQuest,
+    finishQuest,
   };
 
   function setMode(mode: GameMode, ev: GameEvent[], seconds = 0) {
@@ -164,21 +179,78 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   function newRun(s: number, from = game.start) {
     game.start = game.venue = clampStart(from);
+    game.quest = null;
+    game.questDoor = null;
     game.run = createRun(s);
     stashStock = null;
     begin({ charge: 0, patience: RUN.patience }, (game.events = []));
   }
 
   function toTitle() {
+    game.quest = null;
+    game.questDoor = null;
     game.events = [];
     setMode("title", game.events);
   }
 
   /** A break, or back from one: the mode event goes into a fresh events list for the caller to drain. */
   function togglePause() {
-    if (game.mode !== "play" && game.mode !== "pause") return;
+    if (game.mode === "play" || game.mode === "quest") {
+      paused = game.mode;
+      game.events = [];
+      setMode("pause", game.events);
+    } else if (game.mode === "pause") {
+      game.events = [];
+      setMode(paused, game.events);
+    }
+  }
+
+  function openQuest(q: Hungry, door: DoorSpec | null, ev: GameEvent[]) {
+    game.quest = q;
+    game.questDoor = door;
+    setMode("questCard", ev, RUN.cardT);
+  }
+
+  function newQuest(seed: number) {
+    if (game.mode !== "title" && !(game.mode === "questTally" && !game.questDoor)) return;
     game.events = [];
-    setMode(game.mode === "play" ? "pause" : "play", game.events);
+    openQuest(createHungry(seed, { practice: true }), null, game.events);
+  }
+
+  /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper; no lives. */
+  function pay(r: HungryResult, ev: GameEvent[]) {
+    const h = world.hero;
+    const run = game.run;
+    addScore(run, r.score);
+    if (r.cans) h.heat = Math.max(0, h.heat - addCans(run, r.cans, ev));
+    if (r.nuts) h.charge = CHARGE_MAX;
+    if (r.bucees) run.star = RUN.star;
+    if (r.hot || r.full) {
+      h.hot = true;
+      h.patience = PATIENCE_MAX;
+    }
+    ev.push({ type: "questPaid", score: r.score, grade: r.grade });
+  }
+
+  function finishQuest() {
+    const q = game.quest;
+    const d = game.questDoor;
+    if (game.mode !== "questTally" || !q?.result || !d) return;
+    const ev: GameEvent[] = (game.events = []);
+    pay(q.result, ev);
+    const h = world.hero;
+    h.move = null;
+    h.crouch = false;
+    h.slideT = 0;
+    h.h = HERO_H;
+    standAt({ x: d.x, y: d.y });
+    h.invuln = Math.max(h.invuln, RUN.questGrace);
+    // Down held from the tally opens nothing on the way back.
+    armed = false;
+    game.door = d;
+    game.quest = null;
+    game.questDoor = null;
+    setMode("play", ev);
   }
 
   function die(ev: GameEvent[]) {
@@ -319,8 +391,15 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     const d = game.door;
     if (!d || !armed || !input.held.down || !h.onGround || h.move) return false;
+    // The banquet is once a shift: a spent door stays shut, and nothing is said about it.
+    if (d.kind === "quest" && game.run.spent.includes(d.id)) return false;
     armed = false;
     ev.push({ type: "door", kind: d.kind, id: d.id });
+    if (d.kind === "quest") {
+      game.run.spent.push(d.id);
+      openQuest(createHungry((game.run.seed ^ Math.imul(Math.round(d.x), 7919)) >>> 0), d, ev);
+      return true;
+    }
     if (d.kind === "stash") {
       lobbySave = { level: game.level, pickups: game.pickups, crates: game.crates, targets: world.targets, cast: world.cast, missiles: world.missiles, facing: h.facing, door: d };
       const stash = levels.stash;
@@ -495,6 +574,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     } else if (game.mode === "dying") {
       game.modeT -= STEP;
       if (game.modeT <= 1e-9) loseLife(ev);
+    } else if (game.mode === "questCard") {
+      game.modeT -= STEP;
+      if (game.modeT <= 1e-9) setMode("quest", ev);
+    } else if (game.mode === "quest") {
+      const q = game.quest!;
+      stepHungry(q, input, STEP);
+      ev.push(...q.events);
+      if (q.result) setMode("questTally", ev);
     } else if (game.mode === "play") playStep(input, ev);
     else if (game.mode === "walkoff") walkoff(ev);
     else if (game.mode === "tally") tally(ev);

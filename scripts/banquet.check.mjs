@@ -5,6 +5,13 @@ import { TABLE, SEATS, RIVALS, onScreen, floorOf, dirOf, screenDeg, sub, dist } 
 import { DISH, FOODS, COURSES, SPECIALS, settled, stepDishes } from "../src/sim/quests/hungry/food.ts";
 import { HUNGRY, WAVES, GRADES, gradeFor, createHungry, stepHungry, addDish, baseReach, handOf, land, hungryHint, reactionFor, serverAt, planeAt, payback, bonk, GRADE_SCALE } from "../src/sim/quests/hungry/hungry.ts";
 import { idlePlayer, steadyPlayer, sharpPlayer, playRound, suggestScale } from "../src/sim/quests/hungry/drive.ts";
+import { createGame } from "../src/sim/game.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+import { RUN } from "../src/sim/run.ts";
+import { CHARGE_MAX } from "../src/sim/moves.ts";
+import { PATIENCE_MAX } from "../src/sim/damage.ts";
+import { hintOf } from "../src/render/hud.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -639,4 +646,189 @@ test("the sharp player does what it says: dives, robs with a charge, and bonks t
   assert.ok((counts.hhDive ?? 0) > 40, `dives ${counts.hhDive}`);
   assert.ok((counts.hhRob ?? 0) >= 1, "a rob");
   assert.ok((counts.hhTray ?? 0) >= 1, "the server's tray");
+});
+
+const BUFFET = LOBBY.doors.find((d) => d.id === "buffet");
+const lobbyGame = (opts = {}) => createGame({ lobby: LOBBY, stash: STASH }, 3, { cast: false, ...opts });
+const until = (g, mode, seconds = 5, held = {}) => {
+  for (let i = 0; i < Math.round(seconds / STEP) && g.mode !== mode; i++) g.step(input(held));
+  return g.mode;
+};
+const stepsG = (g, seconds, held = {}) => {
+  const out = [];
+  for (let i = 0; i < Math.round(seconds / STEP); i++) {
+    g.step(input(held));
+    out.push(...g.events);
+  }
+  return out;
+};
+/** Him in play, standing on the floor in front of the BUFFET door. */
+const atBuffet = (g) => {
+  until(g, "play");
+  Object.assign(g.world.hero, { x: BUFFET.x, y: 0, vx: 0, vy: 0, onGround: true, move: null });
+  g.step(input());
+  return g;
+};
+const downAt = (g) => {
+  g.step(input({ down: true }, { down: true }));
+  return [...g.events];
+};
+/** The round's clock runs out on the next step. */
+const endRound = (g) => {
+  g.quest.time = HUNGRY.round - STEP / 2;
+  g.step(input());
+};
+
+test("↓ on the floor in front of the BUFFET door opens the banquet: its card, then the round; never from the air or mid-swing", () => {
+  const g = atBuffet(lobbyGame());
+  assert.equal(hintOf(g), "↓ BUFFET · Hungry Hungry Hammer");
+  const evs = downAt(g);
+  assert.deepEqual(of(evs, "door").map((e) => [e.kind, e.id]), [["quest", "buffet"]]);
+  assert.deepEqual([g.mode, g.quest.practice, g.questDoor.id], ["questCard", false, "buffet"]);
+  assert.equal(until(g, "quest", RUN.cardT + 0.1), "quest");
+  const air = atBuffet(lobbyGame());
+  Object.assign(air.world.hero, { y: -200, onGround: false });
+  downAt(air);
+  assert.equal(air.mode, "play", "not in the air");
+  const swing = atBuffet(lobbyGame());
+  swing.step(input({ hammer: true }, { hammer: true }));
+  downAt(swing);
+  assert.equal(swing.mode, "play", "not mid-swing");
+});
+
+test("while he eats, the lobby waits: its clock, his heat, the shield and the pepper hold, and nobody moves", () => {
+  const g = atBuffet(lobbyGame({ cast: true }));
+  downAt(g);
+  Object.assign(g.world.hero, { heat: 50, hot: true });
+  g.run.star = 5;
+  const time = g.run.time;
+  const cast = g.world.cast.map((n) => [n.x, n.y]);
+  stepsG(g, 6, { right: true, jump: true });
+  assert.equal(g.mode, "quest");
+  assert.deepEqual([g.run.time, g.run.star, g.world.hero.heat, g.world.hero.hot, g.world.hero.x], [time, 5, 50, true, BUFFET.x]);
+  assert.deepEqual(g.world.cast.map((n) => [n.x, n.y]), cast);
+});
+
+test("the round's end waits on its tally; Continue stands him at the door with 0.6 s of grace and brings home the score, a can, a full smash, the shield and the pepper", () => {
+  const g = atBuffet(lobbyGame());
+  downAt(g);
+  until(g, "quest");
+  for (const k of ["coke", "nuts", "bucees", "hotsauce"]) land(g.quest, "hammer", k);
+  g.quest.score.plate = 99999;
+  Object.assign(g.world.hero, { charge: 0, hot: false, patience: 1 });
+  const before = { score: g.run.score, cans: g.run.cans };
+  endRound(g);
+  assert.equal(g.mode, "questTally");
+  const r = g.quest.result;
+  stepsG(g, 3, { jump: true, down: true });
+  assert.equal(g.mode, "questTally", "it waits");
+  g.finishQuest();
+  const h = g.world.hero;
+  assert.equal(g.mode, "play");
+  assert.deepEqual([h.x, h.y, h.onGround, h.move], [BUFFET.x, 0, true, null]);
+  assert.ok(h.invuln >= RUN.questGrace - 1e-9);
+  assert.equal(g.run.score, before.score + r.score + RUN.canPoints);
+  assert.deepEqual([g.run.cans, h.charge, g.run.star, h.hot, h.patience], [before.cans + 1, CHARGE_MAX, RUN.star, true, PATIENCE_MAX]);
+  assert.deepEqual(of(g.events, "questPaid").map((e) => e.score), [r.score]);
+  assert.equal(g.quest, null);
+});
+
+test("a full belly alone brings the pepper; a poor round brings its score and nothing else", () => {
+  const full = atBuffet(lobbyGame());
+  downAt(full);
+  until(full, "quest");
+  full.quest.score.plate = GRADES[1][0];
+  Object.assign(full.world.hero, { hot: false, patience: 2 });
+  endRound(full);
+  full.finishQuest();
+  assert.deepEqual([full.world.hero.hot, full.world.hero.patience], [true, PATIENCE_MAX]);
+  const poor = atBuffet(lobbyGame());
+  downAt(poor);
+  until(poor, "quest");
+  poor.quest.score.plate = 100;
+  Object.assign(poor.world.hero, { hot: false, patience: 2, charge: 0 });
+  const before = { score: poor.run.score, cans: poor.run.cans };
+  endRound(poor);
+  poor.finishQuest();
+  assert.deepEqual([poor.run.score - before.score, poor.run.cans, poor.world.hero.hot, poor.world.hero.charge, poor.run.star], [100, before.cans, false, 0, 0]);
+});
+
+test("the door opens once a shift: shut through the stash and a lost life, open on a new shift; a key held from the tally opens nothing", () => {
+  const g = atBuffet(lobbyGame());
+  downAt(g);
+  until(g, "quest");
+  endRound(g);
+  g.finishQuest();
+  stepsG(g, 0.5, { down: true });
+  assert.equal(g.mode, "play", "the held key opens nothing");
+  g.step(input());
+  downAt(g);
+  assert.equal(g.mode, "play", "spent");
+  assert.equal(hintOf(g), "BUFFET · thank you, come again");
+  // To the stash and back.
+  const staff = LOBBY.doors.find((d) => d.kind === "stash");
+  Object.assign(g.world.hero, { x: staff.x, y: 0, vx: 0, onGround: true });
+  g.step(input());
+  downAt(g);
+  assert.equal(g.level.id, "stash");
+  g.step(input());
+  const cart = STASH.doors.find((d) => d.kind === "return");
+  Object.assign(g.world.hero, { x: cart.x, y: cart.y, vx: 0, onGround: true });
+  g.step(input());
+  downAt(g);
+  assert.equal(g.level.id, "lobby");
+  g.step(input());
+  atBuffet(g);
+  downAt(g);
+  assert.equal(g.mode, "play", "still spent after the stash");
+  // A lost life down the shaft.
+  Object.assign(g.world.hero, { x: 6060, y: 0, vx: 0 });
+  assert.equal(until(g, "card", 6), "card");
+  atBuffet(g);
+  downAt(g);
+  assert.equal(g.mode, "play", "still spent after a lost life");
+  g.newRun(9);
+  atBuffet(g);
+  downAt(g);
+  assert.equal(g.mode, "questCard", "a new shift opens it again");
+});
+
+test("a break in the round stops its clock and its charge, and comes back to the round", () => {
+  const g = atBuffet(lobbyGame());
+  downAt(g);
+  until(g, "quest");
+  g.step(input({ jump: true }, { jump: true }));
+  const t = g.quest.time;
+  const held = g.quest.hammer.dive.held;
+  g.togglePause();
+  assert.equal(g.mode, "pause");
+  stepsG(g, 1, { jump: true });
+  assert.deepEqual([g.quest.time, g.quest.hammer.dive.held], [t, held]);
+  g.togglePause();
+  assert.equal(g.mode, "quest");
+});
+
+test("practice from the start screen: a round on its own that never touches a shift; its tally waits for Play again or the start screen", () => {
+  const g = lobbyGame({ title: true });
+  assert.equal(g.mode, "title");
+  g.newQuest(5);
+  assert.deepEqual([g.mode, g.quest.practice, g.questDoor], ["questCard", true, null]);
+  until(g, "quest");
+  endRound(g);
+  assert.equal(g.mode, "questTally");
+  g.finishQuest();
+  assert.equal(g.mode, "questTally", "Continue is the door's: practice waits for Play again or the start screen");
+  const first = g.quest;
+  g.newQuest(6);
+  assert.ok(g.mode === "questCard" && g.quest !== first, "Play again: a fresh round");
+  until(g, "quest");
+  endRound(g);
+  g.toTitle();
+  assert.deepEqual([g.mode, g.quest, g.run.score], ["title", null, 0]);
+  const shift = atBuffet(lobbyGame());
+  downAt(shift);
+  until(shift, "quest");
+  endRound(shift);
+  shift.newQuest(7);
+  assert.equal(shift.mode, "questTally", "no practice over a door's tally");
 });

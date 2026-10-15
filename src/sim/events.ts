@@ -1,5 +1,6 @@
 import type { CastHitBy, CastJob, CastRole } from "./cast";
 import type { GameMode } from "./game";
+import type { HungryEvent } from "./quests/hungry/events";
 import type { MissileKind } from "./missiles";
 import type { CrateKind, DoorKind, LevelId } from "./level";
 import type { PickupKind } from "./rewards";
@@ -122,4 +123,8 @@ export type GameEvent =
   | { type: "pigShrug"; x: number; y: number }
   /** A refill pepper appeared at the arena's left edge. */
   | { type: "pigRefill"; x: number; y: number }
+  /** The banquet's own events (R4): see src/sim/quests/hungry/events.ts. */
+  | HungryEvent
+  /** Back from the banquet's tally: what it paid. */
+  | { type: "questPaid"; score: number; grade: string }
   | { type: "mode"; mode: GameMode };

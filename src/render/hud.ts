@@ -51,6 +51,7 @@ export function hintOf(game: Game): string {
     if (d.kind === "stash") return `↓ ${d.label} · the stash`;
     if (d.kind === "return") return "↓ at the cart · back to the lobby";
     if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
+    if (d.kind === "quest") return game.run.spent.includes(d.id) ? `${d.label} · thank you, come again` : `↓ ${d.label} · Hungry Hungry Hammer`;
     return `${d.label} · ${d.opens ?? "closed"}`;
   }
   if (h.crouch) return "Stay low · release ↓ when clear to stand";
