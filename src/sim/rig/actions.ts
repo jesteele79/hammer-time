@@ -52,6 +52,7 @@ export function overlay(base: Pose, action: Pose, mask: "upper" | "whole", w: nu
   for (const j of UPPER_JOINTS) result.rot[j] = mixed.rot[j];
   result.lean = mixed.lean;
   result.headTilt = mixed.headTilt;
+  result.lift = mixed.lift;
   return result;
 }
 

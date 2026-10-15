@@ -15,6 +15,7 @@ export function pose(
     headTilt?: number;
     spin?: number;
     torso?: number;
+    lift?: number;
   } = {},
 ): Pose {
   const rot = {} as Record<JointName, number>;
@@ -27,6 +28,7 @@ export function pose(
     headTilt: clean(p.headTilt ?? 0),
     spin: clean(p.spin ?? 0),
     torso: clean(p.torso ?? 1),
+    lift: clean(p.lift ?? 0),
   };
 }
 
@@ -52,6 +54,7 @@ export function blend(a: Pose, b: Pose, t: number): Pose {
     headTilt: lerp(a.headTilt, b.headTilt, k),
     spin: lerp(a.spin, b.spin, k),
     torso: lerp(a.torso, b.torso, k),
+    lift: lerp(a.lift ?? 0, b.lift ?? 0, k),
   };
 }
 

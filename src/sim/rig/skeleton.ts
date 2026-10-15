@@ -136,6 +136,11 @@ export type Pose = {
   spin: number;
   /** The torso's front-to-back scale: breathing and the belly's follow-through. 1 as painted. */
   torso: number;
+  /**
+   * Degrees the head is lifted back from the body's line after the 8-degree hold: the banquet's dive keeps his face level
+   * while his body lies along the cloth (R4 §10). 0 when missing.
+   */
+  lift?: number;
 };
 
 export const REST_POSE: Pose = {
@@ -146,6 +151,7 @@ export const REST_POSE: Pose = {
   headTilt: 0,
   spin: 0,
   torso: 1,
+  lift: 0,
 };
 
 /** A body the solver bends: its joints at rest, and how it stands and wears its head. */

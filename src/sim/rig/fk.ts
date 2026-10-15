@@ -104,8 +104,8 @@ export function solve(pose: Pose, facing: 1 | -1, headScale: number, plate: Head
     const py = pose.root.y + J.pelvis.rest.y - pos.pelvis.y;
     for (const name of JOINT_NAMES) pos[name] = { x: pos[name].x + px, y: pos[name].y + py };
   }
-  // The head counter-rotates so it never tilts more than 8 degrees from his body's own level.
-  frame.head = spin + clamp(frame.neck - spin - pose.headTilt * DEG, -HEAD_LEVEL_DEG * DEG, HEAD_LEVEL_DEG * DEG);
+  // The head counter-rotates so it never tilts more than 8 degrees from his body's own level; a lift then raises it back.
+  frame.head = spin + clamp(frame.neck - spin - pose.headTilt * DEG, -HEAD_LEVEL_DEG * DEG, HEAD_LEVEL_DEG * DEG) + (pose.lift ?? 0) * DEG;
 
   const sx = pose.squash.x;
   const sy = pose.squash.y;

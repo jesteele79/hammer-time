@@ -727,3 +727,59 @@ test("a painting's pelvis stays where it is painted, and its far floor is the fa
   const gap = (Math.max(j.toeNear[1], j.heelNear[1]) - Math.max(j.toeFar[1], j.heelFar[1])) * (296 / (raised.sole - j.neck[1]));
   assert.ok(close(skeletonFrom(raised).farFloor, gap, 0.06), `far floor ${skeletonFrom(raised).farFloor} against ${gap}`);
 });
+
+import { DIVE, divePose, coilPose, diveK } from "../src/sim/rig/dive.ts";
+
+const headLevel = (s) => -s.parts.head.rotation * s.facing;
+const DEG8 = (8 * Math.PI) / 180 + 1e-9;
+
+test("a lift turns the head back from his body's line by its degrees, past the 8-degree hold: tipped 40, lifted 40, level", () => {
+  for (const facing of [1, -1]) {
+    assert.ok(Math.abs(headLevel(solve(pose({ spin: -40, lift: 40 }), facing, 0.26))) < 1e-9);
+    assert.ok(Math.abs(headLevel(solve(pose({ spin: -40 }), facing, 0.26)) + (40 * Math.PI) / 180) <= DEG8, "without it the head goes with the body");
+  }
+  assert.equal(pose({}).lift, 0);
+});
+
+test("the dive keeps his head within 8 degrees of level and nothing crosses his face, at every stretch, both facings, with and without the mallet", () => {
+  for (const facing of [1, -1])
+    for (const mallet of [true, false])
+      for (let i = 0; i <= 40; i++) {
+        const s = solve(divePose(i / 40, mallet), facing, 0.26);
+        assert.ok(Math.abs(headLevel(s)) <= DEG8, `k ${i / 40}, facing ${facing}: head at ${(headLevel(s) * 180) / Math.PI}`);
+        const c = faceClear(s);
+        assert.ok(c.ok, `k ${i / 40}, facing ${facing}, mallet ${mallet}: ${c.offender}`);
+      }
+});
+
+test("at full stretch his body is tipped forward by the dive's tip, his far hand down at the cloth under his chin and out ahead of his chest", () => {
+  const axisOf = (j) => (Math.atan2(-(j.neck.y - j.pelvis.y), j.neck.x - j.pelvis.x) * 180) / Math.PI;
+  const rest = axisOf(solve(pose({}), 1, 0.26).joints);
+  const s = solve(divePose(1), 1, 0.26);
+  const j = s.joints;
+  assert.ok(Math.abs(axisOf(j) - rest + DIVE.tip) < 1, `tipped ${(rest - axisOf(j)).toFixed(1)} degrees`);
+  assert.ok(j.handFar.y > s.faceBox.y + s.faceBox.h, "the far hand below his chin");
+  assert.ok(j.handFar.x > j.chest.x + 40 * s.scale, "and out ahead of his chest");
+});
+
+test("the dive starts from his hold and the coil from standing: k 0 and c 0 are the idle hold, nothing jumps", () => {
+  const hold = solve(pose({ rot: { ...HOLD, shoulderFar: FREE } }), 1, 0.26).joints;
+  for (const p of [divePose(0), coilPose(0)]) {
+    const j = solve(p, 1, 0.26).joints;
+    for (const name of ["handFar", "handNear", "malletHead", "neck", "toeNear"]) assert.ok(Math.hypot(j[name].x - hold[name].x, j[name].y - hold[name].y) < 2, name);
+  }
+  for (let i = 1; i <= 40; i++) {
+    const a = solve(divePose((i - 1) / 40), 1, 0.26).joints.handFar;
+    const b = solve(divePose(i / 40), 1, 0.26).joints.handFar;
+    assert.ok(Math.hypot(a.x - b.x, a.y - b.y) < 20, `a jump of the hand at k ${i / 40}`);
+  }
+});
+
+test("the coil leans him back and bends his knees, never crossing his face; the body tips as the hand goes out, fully by 160 px", () => {
+  for (let i = 0; i <= 20; i++) {
+    const s = solve(coilPose(i / 20), 1, 0.26);
+    assert.ok(faceClear(s).ok, `coil ${i / 20}`);
+  }
+  assert.ok(coilPose(1).lean < 0);
+  assert.deepEqual([diveK(0), diveK(80), diveK(DIVE.tipBy), diveK(900)], [0, 0.5, 1, 1]);
+});
