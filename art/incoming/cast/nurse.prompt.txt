@@ -1,0 +1,51 @@
+Use case: style-transfer
+Asset type: one full-body pose-locked game character PNG, nurse.png, ITEM 1 only.
+
+EDIT IMAGE 1 as the input canvas. Replace the man completely with the woman described below. Preserve only Image 1's body pose, camera, framing, canvas and placement; no part of his face, hair, body identity, build or clothing survives. Generate directly at the input image's exact native 1086 x 1448 pixels, portrait. Do not change the canvas size or aspect ratio. Do not upscale or resize afterward.
+
+Input images and roles:
+Image 1: art/incoming/hammer/body-affliction.png — EDIT TARGET and exact pose/camera/framing/canvas/placement reference. Completely replace the man.
+Image 2: art/outgoing/references/hammer-profile.png — drawing style reference only, never copy the man's identity.
+Image 3: art/incoming/cast/bellhop-1.png — finished cast style, ink weight, cel-shaded finish, pose and placement reference. The nurse belongs to this exact game cast and looks drawn by this same artist.
+Image 4: art/outgoing/references/nurse-scrubs.png — scrubs' cut and fit ONLY. Do not copy its green color, young man, hair, face, pose, simplified drawing style or camera.
+
+Follow these brief blocks word for word:
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- One subject per image (the food sheet is the one exception).
+- No text, letters, numbers, logos, signatures or watermarks anywhere (badges and labels are blank).
+- The whole subject inside the frame with margin all round.
+- PNG.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait) and the same placement in the frame: the soles at the same height near the bottom, the figure centered with green margin all round. She is a little shorter than Image 1: the soles stay where Image 1's are; only the top of her head sits lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat, no cap. No props, nothing in the hands.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no scenery, no texture, no gradient.
+
+ITEM 1 SUBJECT:
+A hospital nurse: a brisk, wiry woman in her early forties, a little shorter than Image 1, dark brown hair pulled back tight into a high bun, sharp eyebrows, a narrow-eyed don't-touch-anything look (lips closed). Teal scrub top with short sleeves and a V-neck, matching teal scrub trousers, a white long-sleeved undershirt showing at the neck only (her forearms bare), a retractable badge reel clipped at her chest with a blank white badge, a small pocket of pens (no letters), white nursing clogs. Nothing in her hands.
+
+Critical checklist:
+Strict left side silhouette of head AND torso AND pelvis AND both legs AND white clogs. Show the side of the scrub top; do not rotate her chest toward the viewer to display the badge. The small blank badge reel and pen pocket can be seen obliquely on the forward chest edge while maintaining strict side view. Both bare forearms reach forward and down, parallel; two separate relaxed OPEN empty hands, the far hand visible slightly to the left behind the near one. Maintain a clearly visible triangular #00FF00 opening bounded by the belly and near forearm.
+Copy the source foot placement rather than recentering or vertically shrinking the whole figure: the far sole remains at Image 1's far-sole height, approximately y=1328, and near sole at Image 1's near-sole height, approximately y=1418; both soles flat and both toe silhouettes pointing image-left. Leave the original green bottom margin. Her high bun's top sits visibly below the top of Image 1's head, approximately y=80–100, with the figure still centered in the same portrait.
+She must have her own mature, lean, angular female face and wiry build. Do not reuse Hammer's face or the bellhop's face. She must be clearly distinct from the already-finished cast, including the smiling brown-haired low-bun female bellhop, the ponytailed smiling server, the bob-haired office woman, the curly-haired student and the older round-faced lunch worker. Narrow eyes, sharp eyebrows, closed unsmiling lips, tight HIGH dark-brown bun.
+Match bellhop-1's clean black ink contours, anatomical hands, crisp facial caricature and polished flat cel-shaded cloth finish. One shadow tone and one highlight tone per local color, with small white specular glints. Do not flatten into the simplified anime style of Image 4.
+Teal means blue-teal, distinctly different from the green garment in Image 4 and from the #00FF00 background. White nursing clogs; no sneakers.
+Only extras are the small chest badge reel with a completely blank white badge and the pens in a small pocket. No cap, hat, mask, eyewear, stethoscope, lanyard, jewelry, watch, tattoos, clipboard, medical instrument or anything held.
+The entire exterior background and the gap between arm and belly must be perfectly uniform opaque RGB (0,255,0), #00FF00, with no floor, cast shadow, texture or gradient. No writing or glyphs anywhere.
+Return one finished image only, directly on the exact 1086 x 1448 input canvas.
+
+HIGHEST-PRIORITY FINAL PASS:
+Generate directly on the native 1086 x 1448 pixel input Image 1 canvas, with no scaling, resizing, cropping or reframing.
+Paint the entire backdrop as an absolutely uniform solid digital color fill of RGB(0,255,0), hexadecimal #00FF00. No green tonal variations or grain, including all four corners and the open triangular arm/belly gap. This background color is a production requirement, independent of the approximate greens in the reference pictures.
+For the figure use true flat cel fills with only one shadow color and one highlight color per local base color, plus tiny white specular glints; crisp thick clean black ink contour lines, identical polished inked caricature finish to bellhop-1. No intermediate tone layers, no smooth gradient shading, no painterly texture.
+Make her visibly a LITTLE shorter by positioning the very top of her high dark-brown bun around y=80; the feet and soles do not move. The near clog sole reaches y=1418, the far clog sole reaches y=1328, matching Image 1's original anchors and bottom margin. Keep the small far-foot forward stagger.
+Tightly narrowed unimpressed left-looking eye under a sharp severe brow, lips closed and chin level, lean angular middle-aged female face, tight HIGH bun. Distinct from all existing cast.
+A strict 90-degree LEFT side view of head, shoulders, chest, waist, hips, knees, legs and both shoes. Only the side of her torso is shown. Badge and pens visible at the forward edge of her chest. No rotation to show the chest front.
+Both arms extend image-left and down approximately 30 degrees from vertical, elbows almost straight, matching the input Image 1 pose. Both open empty relaxed hands remain separated and visible; far arm and hand just behind the near arm. Clearly separated green triangular gap between near forearm and belly.
+Teal short-sleeved V-neck scrubs with loose teal trousers, white neckline undershirt only, bare forearms, white nursing clogs. Small chest retractable badge reel with blank white badge, pen pocket only. No headgear, no jewelry, no objects in hands, no text or letters of any kind.
