@@ -114,8 +114,10 @@ try {
   await page.keyboard.up("Space");
   await page.evaluate(() => window.__next.dev.questSkip());
   await waitMode(page, "questTally");
-  await page.getByRole("button", { name: "Start screen" }).click();
-  await waitMode(page, "title");
+  // A button the keyboard has moved to is the one Enter presses: Start screen, not Play again.
+  await page.getByRole("button", { name: "Start screen" }).focus();
+  await page.keyboard.press("Enter");
+  await waitMode(page, "title", 5000);
   // A round with the art missing: the stand-ins draw and it plays to its tally.
   await page.goto(`${base}?next=1&title=1&dev=1&noart=1`);
   await page.getByRole("button", { name: "Play Hungry Hungry Hammer" }).click();

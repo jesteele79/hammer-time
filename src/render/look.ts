@@ -255,8 +255,12 @@ export async function startLook(
     for (const e of game.events) feel(e);
   };
   const onKey = (e: KeyboardEvent) => {
-    // On the start screen the keys are the page's: Space and Enter press its buttons, the arrows move through its list.
-    if (game.mode === "title") return;
+    // On the start screen the keys are the page's: Space and Enter press its buttons, the arrows move through its list. A
+    // key held from the shift and let go here is let go, so the next shift does not start with it down.
+    if (game.mode === "title") {
+      if (e.type === "keyup") down.delete(e.code);
+      return;
+    }
     if (e.code in KEY_BINDINGS) e.preventDefault();
     if (e.type === "keydown") {
       // Browsers only let sound start from a key or a tap.
@@ -272,9 +276,11 @@ export async function startLook(
         pause();
         return;
       }
-      // On the banquet's tally Enter or Space is its button: Continue on a door's, Play again on practice's. The key goes
-      // in as held, not pressed, so the step after it sees no new press (R4 Review Focus 1).
-      if (game.mode === "questTally" && !e.repeat && (e.code === "Enter" || e.code === "Space")) {
+      // On the banquet's tally Enter or Space is its button: Continue on a door's, Play again on practice's (a button the
+      // keyboard has moved to presses itself instead). The key goes in as held, not pressed, so the step after it sees no
+      // new press (R4 Review Focus 1).
+      const focused = document.activeElement instanceof HTMLButtonElement;
+      if (game.mode === "questTally" && !e.repeat && !focused && (e.code === "Enter" || e.code === "Space")) {
         e.preventDefault();
         down.add(e.code);
         if (game.questDoor) look.finishQuest();

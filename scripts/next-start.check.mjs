@@ -75,14 +75,15 @@ try {
   await page.evaluate(() => localStorage.setItem("hammer-time-best-next", "0"));
   await page.evaluate(() => window.__next.dev.pig({ state: "defeated" }));
   await page.evaluate(() => window.__next.dev.teleport(3950, 0));
+  // The arrow stays held through the card and back to the start screen, and is let go there.
   await page.keyboard.down("ArrowRight");
   await page.waitForFunction(() => window.__next.run.mode === "clear", null, { timeout: 20000 });
-  await page.keyboard.up("ArrowRight");
   await page.getByRole("heading", { name: "Practice over" }).waitFor();
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-next")), "0", "no best from practice");
   await page.screenshot({ path: resolve(out, "start-practice-over.png") });
   await page.getByRole("button", { name: "Start screen" }).click();
   await page.waitForFunction(() => window.__next.run.mode === "title");
+  await page.keyboard.up("ArrowRight");
   // The quality choice is kept on the device.
   await page.locator(".next-start__quality select").selectOption("low");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), "low");
@@ -90,6 +91,12 @@ try {
   await page.locator(".next-start__quality select").selectOption("auto");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), null);
   await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 3000 });
+  // A key let go on the start screen is let go: the next shift does not set off walking on its own.
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await page.waitForFunction(() => window.__next.run.mode === "play");
+  const x0 = await page.evaluate(() => window.__next.hero.x);
+  await page.waitForTimeout(1000);
+  assert.ok(Math.abs((await page.evaluate(() => window.__next.hero.x)) - x0) < 1, "he stands where the shift starts");
   // The side quest, clicked while the game still loads: the banquet opens on this page once it is ready, and nothing errs.
   await page.goto(url);
   await page.getByRole("button", { name: "Play Hungry Hungry Hammer" }).click();
