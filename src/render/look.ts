@@ -214,18 +214,23 @@ export async function startLook(
   // He and the level he starts in load side by side; the stash, behind a door, follows (its door holds until it is in).
   await Promise.all([character.ready, prepare(game.level)]);
   void prepare(STASH);
-  // The banquet behind the BUFFET door and the Side quests card: loaded once the lobby is in (R4). Whatever of it fails to
-  // load draws its stand-in; its card holds only while it loads.
+  // The banquet behind the BUFFET door and the Side quests card (R4). Whatever of it fails to load draws its stand-in; its
+  // card holds only while it loads.
   const banquet = new BanquetView(render, scene, registry, !!opts.noart);
   let banquetLoaded = false;
-  const banquetReady = banquet
-    .load()
-    .catch((err) => console.warn("banquet:", err))
-    .then(() => {
-      banquetLoaded = true;
-    });
+  let banquetLoad: Promise<void> | null = null;
+  const loadBanquet = () =>
+    (banquetLoad ??= banquet
+      .load()
+      .catch((err) => console.warn("banquet:", err))
+      .then(() => {
+        banquetLoaded = true;
+      }));
+  // On the start screen the side quest is a tap away: it loads right behind the lobby. Straight into play it waits for
+  // the shift's venues (or the BUFFET door), so a phone's start fetches no more than it did before the banquet.
+  if (opts.title) void loadBanquet();
   // The rest of the shift loads one venue after another while he plays.
-  void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve());
+  void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve()).then(() => (stopped ? undefined : loadBanquet()));
   const headPlate = registry.hammer.heads.neutral!;
 
   const vignette = new Sprite(vignetteTexture());
@@ -944,7 +949,10 @@ export async function startLook(
     app.stage.visible = game.mode !== "title";
     // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
     const holding = !views.has(game.level.id) || (inBanquet() && !banquetLoaded);
-    if (holding) void prepare(game.level);
+    if (holding) {
+      void prepare(game.level);
+      if (inBanquet()) void loadBanquet();
+    }
     // A break stops everything that runs on game time; the camera and the screen still draw.
     const dt = game.mode === "pause" || holding ? 0 : Math.min(t.deltaMS / 1000, 0.1);
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
@@ -1218,7 +1226,7 @@ export async function startLook(
     };
     /** The banquet at `q`, 1920 by 1080, as a PNG data URL: shown and framed for one picture, then put back as it was. */
     const shootBanquet = async (q: Hungry): Promise<string> => {
-      await banquetReady;
+      await loadBanquet();
       const cam = scene.camera;
       const saved = { w: scene.width, h: scene.height, x: cam.x, y: cam.y, zoom: cam.zoom, target: cam.target, bounds: cam.bounds, shake: { ...cam.shake }, stage: app.stage.visible };
       showBanquetView(true);
@@ -1265,7 +1273,7 @@ export async function startLook(
       thumb: () => shootBanquet(roundUntil((q) => q.time >= 26.5)),
       /** The sixteen dishes and the three products as the table draws them, named: the food sheet's board. */
       async food(): Promise<string> {
-        await banquetReady;
+        await loadBanquet();
         const board = new Container();
         const kinds = Object.keys(FOODS) as FoodKind[];
         const cell = 260;
