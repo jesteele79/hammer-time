@@ -20,6 +20,11 @@ Decisions the owner made in the brainstorm:
    round.
 4. **The order of work** (§12): one plan; the owner's play-test; then the old game's deletion and the merge into
    `main`, each only on the owner's yes at the time.
+5. **Bigger people at the banquet** (after the paintings came in, the same day). Codex drew the room, the table and the
+   food from a lower camera than asked (the table's top is 0.37 as deep as it is wide, not 0.47), and the painted
+   cloth hangs about 370 px at the table's 1500 width: taller than Hammer at his shift size. Everyone at the banquet is
+   drawn at twice their shift size, so the tabletop reaches their belly as painted, rather than the cloth being
+   squashed (§2).
 
 Decisions I took for the owner (report these):
 
@@ -32,8 +37,8 @@ Decisions I took for the owner (report these):
 3. **← and → aim** (§11.3 said ↑ and ↓, but ↑ is a jump key and ↓ is duck): ← swings his line toward the far side, →
    toward the near side, the way he would steer from where he stands. The line stays where it is left. The touch
    pad's ← and → do the same, so the pad keeps its ten buttons.
-4. The ±30 degrees of the aim are measured on screen (about ±51 degrees on the table top), so every rival's plate is
-   inside the swing.
+4. The ±30 degrees of the aim are measured on screen (about ±57 degrees on the table top as painted), so every rival's
+   plate is inside the swing.
 5. The nut bag eaten at the banquet fills the smash (a banquet-size bag; once a shift).
 6. The grade lines start at the shipped 1200, 2000 and 3000 and move, in proportion, until scripted rounds land where
    §6 says. The best starts fresh (`hammer-time-best-banquet`); a round from the BUFFET door and a practice round
@@ -54,17 +59,21 @@ Decisions I took for the owner (report these):
   angle (the back wall across the top with red drapes, gold swags and a buffet against it; the patterned carpet
   filling the rest; the middle empty for the table). Warm ambient, the chandelier's glow on the light layer. The camera
   holds still.
-- **The table.** Round, seen from above at an angle: on screen an oval 1500 by 700 world px, a white cloth with a gold
-  rim, a lazy Susan of silver chafing dishes in the middle. The sim works on the table top as a circle of radius 750
-  (x to the right, y toward the far side, the center at 0, 0) and the renderer squashes y by 700/1500.
+- **The table.** Round, seen from above at an angle: on screen an oval 1500 by about 555 world px (the owner's painted
+  table's own proportion, 0.37; §11.1 had 1500 by 700), a white cloth with a gold rim, a lazy Susan of silver chafing
+  dishes in the middle. Its top stands about 370 px above the floor, as its painted cloth hangs. The sim works on the
+  table top as a circle of radius 750 (x to the right, y toward the far side, the center at 0, 0) and the renderer
+  squashes y by 0.37.
+- **Everyone is drawn at twice their shift size** (Hammer 680 px tall), so the tabletop reaches their belly (§1, owner
+  decision 5). The rules' distances (the reach, the zones) are on the table top and do not change with it.
 - **Where everyone is** (table coordinates):
 
 | Who | Stands | Plate | Faces |
 |---|---|---|---|
-| Hammer (banquet bib) | past the left rim | (-590, 0) | right |
+| Hammer (banquet bib) | past the left rim, at (-860, 0) | (-590, 0) | right |
 | Student | behind the far rim, left | (-230, 400) | right |
 | Bellhop | behind the far rim, right | (230, 400) | left |
-| Nurse | past the right rim | (570, 0) | left |
+| Nurse | past the right rim, at (860, 0) | (570, 0) | left |
 
   Nobody stands on the near side, so everyone is seen from the side. The nurse's plate is 1160 from Hammer's, just
   inside a full charge (1180); the student's is 538 away (out of a first tap's reach, inside a grown tap's); the
@@ -197,12 +206,16 @@ Decisions I took for the owner (report these):
 
 Painted by the owner with Codex (prompts in `art/outgoing/batch-r4-codex.txt`):
 
+As painted (2026-10-14): all four are in. The table and the food sheet share one camera (a plate or the tabletop about
+0.37 as deep as it is wide); the ballroom's carpet is a little flatter, which a backdrop can carry. The game takes the
+table's proportion and its cloth's drop from its painting (§2).
+
 1. `art/incoming/backdrops/ballroom.png`: the ballroom from the camera's raised angle, the back wall across the top
    (red drapes, gold swags, a buffet with chafing dishes against it), the patterned carpet filling the rest, the middle
    empty, no people, no text. Its cut (`art/cuts/ballroom.json`) records where the table's center stands on it.
 2. `art/incoming/props/banquet-table.png`: the round table from the same angle, on green: white cloth to the floor,
    gold trim at the rim, a lazy Susan of silver chafing dishes in the middle, the top otherwise empty. Its cut records
-   the top's oval (center and radii), which the scene scales to the sim's 1500 by 700.
+   the top's oval (center and radii), which the scene scales to the sim's 1500 by 555.
 3. `art/incoming/props/food-sheet.png`: the sixteen dishes of `art/ART-REQUEST.md` §7, from the same angle, on green,
    cut at sync into sixteen sprites.
 4. `art/incoming/cast/nurse.png`: pose-locked like the cast (teal scrubs, a badge reel, clogs, hair in a bun), accepted

@@ -12,6 +12,7 @@
 
 ## Global Constraints
 
+- The table as painted: "on screen an oval 1500 by about 555 world px (the owner's painted table's own proportion, 0.37 ...). Its top stands about 370 px above the floor, as its painted cloth hangs." "Everyone is drawn at twice their shift size (Hammer 680 px tall), so the tabletop reaches their belly ... The rules' distances (the reach, the zones) are on the table top and do not change with it." (R4 §2, the owner's choice after the paintings came in)
 - "The dive. Tap Space, F or ↑ (or the pad's Jump): he belly-flops out along his line, the hand travelling 520 px in 0.14 s, holding 0.04 s, sliding back in 0.10 s. Everything his hand's 110 px wide sweep crosses on the way out is chomped: it flies back low over the cloth to his plate (0.25 s) and scores when it lands; nothing past the hand's farthest point is touched. A dive can start every 0.3 s; holding the key never repeats one." (R4 §3)
 - "Reach grows 10 px for every dish he eats, from 520 to 760." "A press held past 0.12 s charges, the reach growing linearly from his tap reach to 1180 at 0.5 s, with a marker on the cloth where he will stop. A charged dive slides at the tap's speed ... if it ends on a rival's plate it robs the top dish: its value plus 100 and "YOINK!" (a robbed special pays out as if eaten; a robbed check still costs 400)." (R4 §3)
 - "← and → swing his line up to 30 degrees either way on screen ... drawn faintly while a direction is held or the dive charges; it stays where it is left." "His hand and a rival's within 110 px of each other while both are out (within 0.1 s): both bounce back empty and the food within 150 px of the meeting point scatters ("CLASH!", sparks)." (R4 §3)
@@ -56,7 +57,8 @@ The design's twelve were reported with it. These are the plan's:
 10. The tally names a new best; its eyebrow says "Side quest".
 11. During the round, its cards sit on the right half on a laptop and a phone on its side, and above or below him on an upright phone.
 12. The Auto quality choice goes back to the top tier and lets the game step down again from there.
-13. No gamepad: the new game reads none yet (R4 §9's gamepad line has nothing to stand on). The banquet takes the same actions as the shift, so it follows whenever the shift gets one.
+13. The table's numbers come from its painting: its oval 0.37 as deep as it is wide (measured 0.368 off the gold rim) and its top 370 above the floor (the cloth's drop, about 378 at the hem's lowest points). Hammer and the nurse stand at 860 from the middle, their bodies at twice the size clear of the table's ends; the chute's mouth hangs 440 above the table's middle, above his head as he dives under it.
+14. No gamepad: the new game reads none yet (R4 §9's gamepad line has nothing to stand on). The banquet takes the same actions as the shift, so it follows whenever the shift gets one.
 
 ---
 
@@ -247,7 +249,7 @@ Message: "R3's leftovers: the keyboard on the start screen, Auto back to the top
 - Modify: `package.json` (`test:next` adds `scripts/banquet.check.mjs` after `scripts/pig.check.mjs`)
 
 **Interfaces:**
-- Produces: `TABLE = { r: 750, squash: 700 / 1500, height: 140 }`; `type EaterId = "hammer" | "student" | "bellhop" | "nurse"`; `RIVALS = ["student", "bellhop", "nurse"] as const`, `type RivalId`; `type Seat = { stand: Point; plate: Point; facing: 1 | -1; far: boolean }`; `SEATS: Record<EaterId, Seat>`; `onScreen(p: Point): Point`; `floorOf(p: Point): Point`; `dirOf(facing: 1 | -1, deg: number): Point`; `screenDeg(facing: 1 | -1, d: Point): number`; `sub(a, b): Point`; `dist(a, b): number`. `type FoodKind` (the shipped nineteen); `type Course = "appetizer" | "entree" | "dessert" | "special"`; `type FoodSpec = { name; value; r; course; sheet: number | null; tag; color: number }`; `FOODS`; `COURSES: Record<Exclude<Course, "special">, FoodKind[]>`; `SPECIALS: FoodKind[]`; `type Dish = { id; kind; x; y; vx; vy; r; fall }`; `type Box = { x; y; w; h }`; `DISH = { friction: 2.4, restitution: 0.6, rim: 0.7, rest: 40, stop: 5, fall: 0.2 }`; `settled(d: Dish): boolean`; `stepDishes(dishes: Dish[], dt: number, boxes?: readonly Box[]): void`.
+- Produces: `TABLE = { r: 750, squash: 0.37, height: 370 }` (the owner's painted table's proportion and cloth, R4 §2); `BANQUET_SCALE = 2` (everyone at the banquet drawn twice their shift size); `type EaterId = "hammer" | "student" | "bellhop" | "nurse"`; `RIVALS = ["student", "bellhop", "nurse"] as const`, `type RivalId`; `type Seat = { stand: Point; plate: Point; facing: 1 | -1; far: boolean }`; `SEATS: Record<EaterId, Seat>`; `onScreen(p: Point): Point`; `floorOf(p: Point): Point`; `dirOf(facing: 1 | -1, deg: number): Point`; `screenDeg(facing: 1 | -1, d: Point): number`; `sub(a, b): Point`; `dist(a, b): number`. `type FoodKind` (the shipped nineteen); `type Course = "appetizer" | "entree" | "dessert" | "special"`; `type FoodSpec = { name; value; r; course; sheet: number | null; tag; color: number }`; `FOODS`; `COURSES: Record<Exclude<Course, "special">, FoodKind[]>`; `SPECIALS: FoodKind[]`; `type Dish = { id; kind; x; y; vx; vy; r; fall }`; `type Box = { x; y; w; h }`; `DISH = { friction: 2.4, restitution: 0.6, rim: 0.7, rest: 40, stop: 5, fall: 0.2 }`; `settled(d: Dish): boolean`; `stepDishes(dishes: Dish[], dt: number, boxes?: readonly Box[]): void`.
 
 The table top is in table coordinates: x to the right, y toward the far side, its middle at 0, 0, world px. The screen (world px, y down) shows it squashed: `onScreen({ x, y }) = { x, y: -y * squash }`; someone standing at a table point has their feet `TABLE.height` lower on screen (`floorOf`).
 
@@ -275,12 +277,13 @@ const overlapOf = (ds) => {
   return worst;
 };
 
-test("the table is a circle of 750 squashed to a 1500 by 700 oval on screen; the floor is drawn 140 under any point of it", () => {
-  assert.equal(onScreen({ x: 0, y: 750 }).y, -350);
-  assert.equal(onScreen({ x: 0, y: -750 }).y, 350);
+test("the table is a circle of 750 squashed to a 1500 by 555 oval on screen, as painted; the floor is drawn 370 under any point of it", () => {
+  assert.ok(Math.abs(onScreen({ x: 0, y: 750 }).y + 277.5) < 1e-9);
+  assert.ok(Math.abs(onScreen({ x: 0, y: -750 }).y - 277.5) < 1e-9);
   assert.equal(onScreen({ x: 750, y: 0 }).x, 750);
-  assert.equal(floorOf({ x: -830, y: 0 }).y, TABLE.height);
-  assert.equal(floorOf({ x: 0, y: 750 }).y, -350 + TABLE.height);
+  assert.equal(floorOf({ x: -860, y: 0 }).y, TABLE.height);
+  assert.ok(Math.abs(floorOf({ x: 0, y: 750 }).y - (-277.5 + TABLE.height)) < 1e-9);
+  assert.equal(TABLE.height, 370);
 });
 
 test("each plate sits where the design puts it: the nurse's 1160 from his, the student's 538, the bellhop's 912, all inside his 30 degrees", () => {
@@ -296,7 +299,7 @@ test("each plate sits where the design puts it: the nurse's 1160 from his, the s
   assert.deepEqual([SEATS.hammer.facing, SEATS.student.facing, SEATS.bellhop.facing, SEATS.nurse.facing], [1, 1, -1, -1]);
 });
 
-test("a line aimed n degrees up on screen looks n degrees up, and is a unit on the table top: 30 on screen is about 51 on the table", () => {
+test("a line aimed n degrees up on screen looks n degrees up, and is a unit on the table top: 30 on screen is about 57 on the table", () => {
   for (const facing of [1, -1])
     for (let deg = -30; deg <= 30; deg += 5) {
       const d = dirOf(facing, deg);
@@ -304,7 +307,7 @@ test("a line aimed n degrees up on screen looks n degrees up, and is a unit on t
       assert.ok(Math.abs(screenDeg(facing, d) - deg) < 1e-9, `facing ${facing}, ${deg}`);
     }
   const d = dirOf(1, 30);
-  assert.ok(Math.abs((Math.atan2(d.y, d.x) * 180) / Math.PI - 51) < 0.5);
+  assert.ok(Math.abs((Math.atan2(d.y, d.x) * 180) / Math.PI - 57.3) < 0.5);
 });
 
 test("the dishes: the shipped values, radii 26 to 34, three courses and six specials, sixteen in the food sheet's order", () => {
@@ -387,15 +390,19 @@ import type { Point } from "../../types";
 
 /**
  * The round banquet table (R4 design §2): its top a circle seen from above at an angle, squashed on screen to an oval
- * 1500 by 700. Table coordinates: x to the right, y toward the far side, the middle at 0, 0, world px.
+ * 1500 by 555, the owner's painted table's own proportion. Table coordinates: x to the right, y toward the far side,
+ * the middle at 0, 0, world px.
  */
 export const TABLE = {
   r: 750,
-  /** Screen px down per table px toward the camera: 700 / 1500. */
-  squash: 700 / 1500,
-  /** How far below the top the floor is drawn under any point of it. */
-  height: 140,
+  /** Screen px down per table px toward the camera: the painted top's depth for its width (0.368, measured). */
+  squash: 0.37,
+  /** How far below the top the floor is drawn under any point of it: the painted cloth's drop at a 1500-wide top. */
+  height: 370,
 } as const;
+
+/** Everyone at the banquet is drawn this many times their shift size, so the tabletop reaches their belly (owner, R4 §1). */
+export const BANQUET_SCALE = 2;
 
 export type EaterId = "hammer" | "student" | "bellhop" | "nurse";
 export const RIVALS = ["student", "bellhop", "nurse"] as const;
@@ -405,10 +412,10 @@ export type Seat = { stand: Point; plate: Point; facing: 1 | -1; far: boolean };
 
 /** R4 §2's table: Hammer at the left end, the student and the bellhop behind the far rim, the nurse at the right end. */
 export const SEATS: Record<EaterId, Seat> = {
-  hammer: { stand: { x: -830, y: 0 }, plate: { x: -590, y: 0 }, facing: 1, far: false },
+  hammer: { stand: { x: -860, y: 0 }, plate: { x: -590, y: 0 }, facing: 1, far: false },
   student: { stand: { x: -330, y: 790 }, plate: { x: -230, y: 400 }, facing: 1, far: true },
   bellhop: { stand: { x: 330, y: 790 }, plate: { x: 230, y: 400 }, facing: -1, far: true },
-  nurse: { stand: { x: 830, y: 0 }, plate: { x: 570, y: 0 }, facing: -1, far: false },
+  nurse: { stand: { x: 860, y: 0 }, plate: { x: 570, y: 0 }, facing: -1, far: false },
 };
 
 export const sub = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
@@ -2938,8 +2945,8 @@ async function banquet(registry) {
         const keyed = await keyOut(readFileSync(BANQUET.table));
         const [cx, cy] = cut.top.center;
         const [rx, ry] = cut.top.radii;
-        // The game's top is 700 / 1500 as deep as wide; a painting far off that would stretch out of shape.
-        if (ry / rx < 0.38 || ry / rx > 0.56) throw new Error(`its top is ${(ry / rx).toFixed(2)} as deep as wide; the game's is 0.47`);
+        // The game's top is 0.37 as deep as wide (TABLE.squash, measured off this painting); a cut far off that would stretch it.
+        if (Math.abs(ry / rx - 0.37) > 0.05) throw new Error(`its top is ${(ry / rx).toFixed(2)} as deep as wide; the game's is 0.37`);
         writeFileSync(join(OUT, "banquet/table.png"), keyed.png);
         registry.banquet.table = { file: "banquet/table.png", width: keyed.width, height: keyed.height, top: { cx, cy, rx, ry } };
         console.log(`banquet table: ${keyed.width}x${keyed.height}, its top ${2 * rx}x${2 * ry}`);
@@ -3102,10 +3109,11 @@ import { HERO_HEIGHT } from "../../sim/rig/skeleton";
 import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM } from "../scene";
 
 /**
- * The banquet's world on screen (R4 §2): the whole table and its drape, Hammer and the nurse at its ends, the far side's
- * heads (the tallest 360 above feet drawn 229 above the table's middle), and the chute, with a margin. World px.
+ * The banquet's world on screen (R4 §2), everyone at twice their shift size: the whole table and its cloth (the hem in
+ * front at 277 + 370), Hammer and the nurse at its ends (feet at 370, heads 680 up), the far side's heads (feet at 78,
+ * the tallest 720 up), and the chute, with a margin. World px.
  */
-export const BANQUET_FRAME = { x: -1060, y: -640, w: 2120, h: 1200 } as const;
+export const BANQUET_FRAME = { x: -1060, y: -700, w: 2120, h: 1380 } as const;
 
 /**
  * Where the camera looks and the zoom for the frame to fill the screen between the bars: `top` and `bottom` are the CSS
@@ -3170,6 +3178,7 @@ export function banquetFrame(width: number, height: number, insets: { top: numbe
 import { Container, Graphics } from "pixi.js";
 import { type Registry } from "../../art/registry";
 import type { CastPerson } from "../../sim/level";
+import { BANQUET_SCALE } from "../../sim/quests/hungry/table";
 import { solve, type Solved } from "../../sim/rig/fk";
 import type { Pose } from "../../sim/rig/pose";
 import { HERO_HEIGHT } from "../../sim/rig/skeleton";
@@ -3220,8 +3229,9 @@ export class Diner {
     return a ? solve(p, facing, castHeadScale(this.look.head ?? a.head.share, a.head), a.head, a.skeleton) : solve(p, facing, 0.26);
   }
 
+  /** Their size: their own height, at twice the shift's size at the banquet (R4 §2). */
   private get k() {
-    return this.look.height / HERO_HEIGHT;
+    return (this.look.height / HERO_HEIGHT) * BANQUET_SCALE;
   }
 
   /** Where their far hand is from their feet, world px, in this pose: the dive anchors the hand on the cloth. */
@@ -3270,7 +3280,7 @@ import { Assets, Container, Graphics, Sprite, Texture } from "pixi.js";
 import { ART_BASE, type Registry } from "../../art/registry";
 import { DISH, FOODS, type FoodKind } from "../../sim/quests/hungry/food";
 import { HUNGRY, handOf, planeAt, serverAt, type Eater, type Hungry, type Rival } from "../../sim/quests/hungry/hungry";
-import { RIVALS, SEATS, TABLE, dirOf, floorOf, onScreen, type EaterId, type RivalId } from "../../sim/quests/hungry/table";
+import { BANQUET_SCALE, RIVALS, SEATS, TABLE, dirOf, floorOf, onScreen, type EaterId, type RivalId } from "../../sim/quests/hungry/table";
 import { CLIPS } from "../../sim/rig/clips";
 import { castPose } from "../../sim/rig/cast";
 import { coilPose, diveK, divePose } from "../../sim/rig/dive";
@@ -3295,8 +3305,10 @@ const PERSON: Record<RivalId | "server", { person: "student-1" | "bellhop-1" | "
   nurse: { person: "nurse", recolor: null },
   server: { person: "server-2", recolor: "#1b1b1b" },
 };
-/** Where the chute's mouth hangs over the table's middle, world px. */
-const CHUTE_MOUTH = -200;
+/** Where the chute's mouth hangs over the table's middle, world px: above his head as he dives under it at twice his size. */
+const CHUTE_MOUTH = -440;
+/** Paper flies head-high over the table top. */
+const PAPER_UP = 300;
 /** A dish's plate drawn this much wider than its disc: the painted plate's rim. */
 const PLATE_DRAW = 1.15;
 const Z = { room: 0, server: 10, far: 20, table: 30, marks: 35, dishes: 40, plates: 45, cases: 50, chute: 55, divers: 60, ends: 62, cart: 64, air: 70, hammer: 80 } as const;
@@ -3569,6 +3581,8 @@ export class BanquetView {
     g.rotation = 0;
     this.cart.pivot.set(at.x, at.y);
     this.cart.position.set(at.x, at.y);
+    // A trolley at the people's size: twice the shift's (R4 §2).
+    this.cart.scale.set(BANQUET_SCALE);
     this.cart.rotation = tilt;
   }
 
@@ -3590,7 +3604,7 @@ export class BanquetView {
       if (p.wait > 0) continue;
       const at = onScreen(planeAt(p));
       // Head-high, flying toward him.
-      const y = at.y - 240;
+      const y = at.y - PAPER_UP;
       g.poly([at.x - 30, y, at.x + 26, y - 10, at.x + 26, y + 10]).fill(0xf4f3ee).stroke({ width: 3, color: PALETTE.outline });
     }
   }
@@ -3647,19 +3661,22 @@ export class BanquetView {
     }
     const plate = this.registry.hammer.heads.neutral!;
     const solved = solve(pose, 1, HEAD_SCALE, plate);
-    let feet = { x: stand.x, y: stand.y + groundShift(solved, k > 0 ? "none" : "planted") };
+    // He is drawn at twice his shift size here (R4 §2): every offset from his feet doubles with him.
+    const S = BANQUET_SCALE;
+    let feet = { x: stand.x, y: stand.y + S * groundShift(solved, k > 0 ? "none" : "planted") };
     if (k > 0) {
       const hand = onScreen(handOf(h));
       const j = solved.joints.handFar;
-      const lying = { x: hand.x - j.x, y: hand.y - j.y };
+      const lying = { x: hand.x - S * j.x, y: hand.y - S * j.y };
       feet = { x: stand.x + (lying.x - stand.x) * k, y: stand.y + (lying.y - stand.y) * k };
     }
     const expression = h.stun > 0 || this.hurtT > 0 ? "hurt" : h.dive && (h.dive.phase === "out" || h.dive.phase === "hold") ? "chomp" : this.smugT > 0 ? "smug" : "neutral";
     ch.container.position.set(feet.x, feet.y);
-    ch.apply(solved, expression, stand.y - feet.y, 0xffffff);
+    ch.container.scale.set(S);
+    ch.apply(solved, expression, (stand.y - feet.y) / S, 0xffffff);
     const fb = solved.faceBox;
-    this.faceRect = { x: feet.x + fb.x, y: feet.y + fb.y, w: fb.w, h: fb.h };
-    this.crownAt = { x: feet.x + solved.crown.x, y: feet.y + solved.crown.y };
+    this.faceRect = { x: feet.x + S * fb.x, y: feet.y + S * fb.y, w: S * fb.w, h: S * fb.h };
+    this.crownAt = { x: feet.x + S * solved.crown.x, y: feet.y + S * solved.crown.y };
   }
 
   destroy(): void {
