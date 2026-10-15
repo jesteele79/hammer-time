@@ -183,7 +183,8 @@ side and spills at the rim between the near side and the nurse's end.
 As built in R4 (2026-10-14): the scripted rounds set the scale at 8.25 (over ten seeds: standing still 0, steady tapping a
 median of 16590, sharp play 26150): COMPED from 24750, GOOD TIPPER from 16500, SPLIT THE CHECK from 9900. A sweep often
 takes several dishes and the chain passes ten inside a dive, so most grabs triple: a round scores about eight times the
-shipped one, and that score comes home onto the shift's.
+shipped one, and that score comes home onto the shift's. The owner kept it whole (2026-10-15): a steady round adds about a
+sixth of a fast shift's 110,000, a sharp one a quarter.
 
 ## 7. The BUFFET door
 
