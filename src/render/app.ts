@@ -9,6 +9,8 @@ export type RenderApp = {
   frameMs: number;
   fps: number;
   setQuality(q: Quality): void;
+  /** Auto again after a fixed tier: back to the top, the governor settling and stepping down from there (R4 Task 1). */
+  auto(): void;
   onQuality: (q: Quality) => void;
   destroy(): void;
 };
@@ -23,6 +25,10 @@ export type NextProbe = {
   fps: number;
   /** Distinct coarse colors in a 1/20-scale read of the stage: the "is anything drawn" probe. */
   sample: () => number;
+  /** Runs begun from the start screen on this page: a start chosen while it loaded begins once. */
+  starts?: number;
+  /** The canvas draws: false while the start screen covers it. */
+  drawing?: boolean;
   /** Set by the look scene once it runs. */
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean };
   heroScreenHeight?: number;
@@ -153,6 +159,12 @@ export async function createRenderApp(
       app.renderer.resolution = Math.min(window.devicePixelRatio || 1, DPR[q]);
       app.renderer.resize(host.clientWidth, host.clientHeight);
       out.onQuality(q);
+    },
+    auto() {
+      settle = 2;
+      acc = work = n = 0;
+      intervals.length = 0;
+      out.setQuality("ultra");
     },
     destroy() {
       app.ticker.remove(begin);

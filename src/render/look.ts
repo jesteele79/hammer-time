@@ -227,6 +227,8 @@ export async function startLook(
     for (const e of game.events) feel(e);
   };
   const onKey = (e: KeyboardEvent) => {
+    // On the start screen the keys are the page's: Space and Enter press its buttons, the arrows move through its list.
+    if (game.mode === "title") return;
     if (e.code in KEY_BINDINGS) e.preventDefault();
     if (e.type === "keydown") {
       // Browsers only let sound start from a key or a tap.
@@ -289,6 +291,7 @@ export async function startLook(
   let sparkT = 0;
   let shieldShown = false;
   let gifts = 0;
+  let starts = 0;
   let pantT = 0;
   /** A spoken line waiting for its thought to finish: when it is due, on the scene's clock. */
   let lineDue: number | null = null;
@@ -675,6 +678,8 @@ export async function startLook(
   }
 
   const tick = (t: Ticker) => {
+    // Under the opaque start screen nothing needs drawing: the canvas rests until a start is chosen.
+    app.stage.visible = game.mode !== "title";
     // A venue still loading holds the game where it is, its card up.
     const holding = !views.has(game.level.id);
     if (holding) void prepare(game.level);
@@ -886,6 +891,8 @@ export async function startLook(
         shownX,
         events: { ...counts },
       };
+      window.__next.starts = starts;
+      window.__next.drawing = app.stage.visible;
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
@@ -1052,6 +1059,7 @@ export async function startLook(
       sound.setMuted(on);
     },
     start(at) {
+      starts++;
       forgetPresses();
       game.newRun(newSeed(), at);
       prev = cur = world.snapshot();
@@ -1070,6 +1078,7 @@ export async function startLook(
         // Private windows refuse storage: the choice lasts the session.
       }
       if (q) render.setQuality(q);
+      else render.auto();
     },
   };
 }

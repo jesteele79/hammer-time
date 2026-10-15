@@ -35,6 +35,7 @@ try {
   await page.waitForFunction(() => window.__next?.run?.mode === "play");
   assert.equal(await page.evaluate(() => window.__next.run.level), "restaurant");
   assert.equal(await page.evaluate(() => window.__next.run.events.venue ?? 0), 0, "started there, not walked there");
+  assert.equal(await page.evaluate(() => window.__next.starts), 1, "the start chosen while it loaded began once");
   for (const [w, h] of [[1280, 800], [390, 844], [844, 390]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.goto(url);
@@ -45,6 +46,18 @@ try {
     await page.screenshot({ path: resolve(out, `start-${w}x${h}.png`) });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(url);
+  await page.waitForFunction(() => window.__next?.run?.mode === "title");
+  assert.equal(await page.evaluate(() => window.__next.drawing), false, "the canvas rests under the start screen");
+  // The keyboard drives the start screen: the arrows move through the quality list, Space presses Clock in.
+  await page.locator(".next-start__quality select").focus();
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await page.locator(".next-start__quality select").inputValue(), "high");
+  await page.locator(".next-start__quality select").selectOption("auto");
+  await page.getByRole("button", { name: "Clock in" }).focus();
+  await page.keyboard.press("Space");
+  await page.waitForFunction(() => window.__next.run.mode === "card" || window.__next.run.mode === "play");
+  assert.equal(await page.evaluate(() => window.__next.drawing), true);
   for (const [name, level] of [["Hotel lobby", "lobby"], ["Campus", "campus"], ["The Pink Menace", "arena"]]) {
     await page.goto(url);
     await page.waitForFunction(() => window.__next?.run?.mode === "title");
@@ -69,8 +82,10 @@ try {
   // The quality choice is kept on the device.
   await page.locator(".next-start__quality select").selectOption("low");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), "low");
+  await page.waitForFunction(() => window.__next.quality === "low", null, { timeout: 3000 });
   await page.locator(".next-start__quality select").selectOption("auto");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), null);
+  await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 3000 });
   // The side quest, clicked while the game still loads: the old game opens on the banquet table, and nothing errs.
   await page.goto(url);
   await page.getByRole("link", { name: "Play Hungry Hungry Hammer" }).click();

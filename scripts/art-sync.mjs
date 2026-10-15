@@ -270,21 +270,24 @@ async function pig(registry) {
     for (const [name, png] of images) writeFileSync(join(OUT, name), png);
     const rigFile = "cast/pig-rig.json";
     writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
-    const stuffing = [];
-    const tufts = join(PIG_IN, "pig-stuffing.png");
-    if (existsSync(tufts))
-      for (const [i, p] of (await sheetPieces(await keyOut(readFileSync(tufts)))).entries()) {
-        const name = `cast/pig-stuffing-${i + 1}.png`;
-        writeFileSync(join(OUT, name), await scaled(p.png, p.width, TUFT_SCALE));
-        stuffing.push({ file: name, width: Math.round(p.width * TUFT_SCALE), height: Math.round(p.height * TUFT_SCALE), base: { x: Math.round(p.base.x * TUFT_SCALE), y: Math.round(p.base.y * TUFT_SCALE) } });
-      }
-    registry.pig = { rig: rigFile, span: rig.span, stuffing };
-    console.log(`pig: ${bodyLayers(cuts).length} layers and the head, ${Object.keys(rig.head.faces ?? {}).length} faces, ${stuffing.length} tufts`);
+    registry.pig = { rig: rigFile, span: rig.span, stuffing: [] };
+    console.log(`pig: ${bodyLayers(cuts).length} layers and the head, ${Object.keys(rig.head.faces ?? {}).length} faces`);
     if (overlay) {
       const sheet = await Promise.all(layerZ(cuts).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer()));
       await drawLayers("pig", sheet);
     }
   });
+  // A bad tuft sheet loses the tufts only: the painted pig stays.
+  const tufts = join(PIG_IN, "pig-stuffing.png");
+  if (registry.pig && existsSync(tufts))
+    await tolerant("pig stuffing", strict, async () => {
+      for (const [i, p] of (await sheetPieces(await keyOut(readFileSync(tufts)))).entries()) {
+        const name = `cast/pig-stuffing-${i + 1}.png`;
+        writeFileSync(join(OUT, name), await scaled(p.png, p.width, TUFT_SCALE));
+        registry.pig.stuffing.push({ file: name, width: Math.round(p.width * TUFT_SCALE), height: Math.round(p.height * TUFT_SCALE), base: { x: Math.round(p.base.x * TUFT_SCALE), y: Math.round(p.base.y * TUFT_SCALE) } });
+      }
+      console.log(`pig stuffing: ${registry.pig.stuffing.length} tufts`);
+    });
 }
 
 /** The layers side by side on a dark ground, painted-in parts and all, for checking the cuts by eye. */
