@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { STEP } from "../src/sim/constants.ts";
 import { TABLE, SEATS, RIVALS, onScreen, floorOf, dirOf, screenDeg, sub, dist } from "../src/sim/quests/hungry/table.ts";
 import { DISH, FOODS, COURSES, SPECIALS, settled, stepDishes } from "../src/sim/quests/hungry/food.ts";
-import { HUNGRY, WAVES, GRADES, gradeFor, createHungry, stepHungry, addDish, baseReach, handOf, land, hungryHint, reactionFor, serverAt, planeAt, payback, bonk } from "../src/sim/quests/hungry/hungry.ts";
+import { HUNGRY, WAVES, GRADES, gradeFor, createHungry, stepHungry, addDish, baseReach, handOf, land, hungryHint, reactionFor, serverAt, planeAt, payback, bonk, GRADE_SCALE } from "../src/sim/quests/hungry/hungry.ts";
+import { idlePlayer, steadyPlayer, sharpPlayer, playRound, suggestScale } from "../src/sim/quests/hungry/drive.ts";
 
 const NONE = { left: false, right: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -602,4 +603,40 @@ test("two sweeps over one dish in one step: it goes to one of them or drops in t
   const evs = run(q, 1);
   assert.ok(of(evs, "hhLand").filter((e) => e.kind === "ribeye").length <= 1);
   assert.equal(ribeyes(q), 1);
+});
+
+const SEEDS = Array.from({ length: 10 }, (_, i) => i + 1);
+/** The upper median: the middle of ten is the sixth. */
+const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+
+test("the scale the rounds ask for puts sharp at COMPED and steady at SPLIT THE CHECK or GOOD TIPPER, or says none can", () => {
+  assert.equal(suggestScale(2400, 6000), 1.9);
+  const k = suggestScale(2400, 6000);
+  assert.ok(2400 >= 1200 * k && 2400 < 3000 * k && 6000 >= 3000 * k);
+  assert.equal(suggestScale(5000, 5000), null, "sharp no better than steady: no one scale does both");
+});
+
+test("the grade lines keep the shipped proportions, scaled together", () => {
+  assert.deepEqual(GRADES.map(([n]) => n), [3000, 2000, 1200, 0].map((n) => Math.round(n * GRADE_SCALE)));
+});
+
+test("over ten rounds each: standing still is WATER ONLY, a steady tapper's median SPLIT THE CHECK or GOOD TIPPER, a sharp player's COMPED", () => {
+  for (const s of SEEDS) assert.equal(playRound(s, idlePlayer).grade, "WATER ONLY", `seed ${s}`);
+  const steady = median(SEEDS.map((s) => playRound(s, steadyPlayer()).score));
+  assert.ok(["SPLIT THE CHECK", "GOOD TIPPER"].includes(gradeFor(steady)), `steady median ${steady}: ${gradeFor(steady)}`);
+  const sharp = median(SEEDS.map((s) => playRound(s, sharpPlayer()).score));
+  assert.equal(gradeFor(sharp), "COMPED", `sharp median ${sharp}`);
+});
+
+test("the sharp player does what it says: dives, robs with a charge, and bonks the server", () => {
+  const q = createHungry(3, { practice: true });
+  const player = sharpPlayer();
+  const counts = {};
+  while (!q.result) {
+    stepHungry(q, player(q), STEP);
+    for (const e of q.events) counts[e.type] = (counts[e.type] ?? 0) + 1;
+  }
+  assert.ok((counts.hhDive ?? 0) > 40, `dives ${counts.hhDive}`);
+  assert.ok((counts.hhRob ?? 0) >= 1, "a rob");
+  assert.ok((counts.hhTray ?? 0) >= 1, "the server's tray");
 });

@@ -65,7 +65,7 @@ const CART_FROM: Point = { x: 1500, y: -760 };
 const CART_TO: Point = { x: Math.cos(-35 * DEG) * TABLE.r, y: Math.sin(-35 * DEG) * TABLE.r };
 
 /** The shipped grade lines, scaled together by the scripted rounds (R4 §6; Task 5 sets it). */
-export const GRADE_SCALE = 1;
+export const GRADE_SCALE = 8.25;
 export type Grade = "COMPED" | "GOOD TIPPER" | "SPLIT THE CHECK" | "WATER ONLY";
 export const GRADES: readonly (readonly [number, Grade])[] = (
   [
