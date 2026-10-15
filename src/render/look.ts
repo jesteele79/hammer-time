@@ -709,6 +709,29 @@ export async function startLook(
     scene.camera.zoom = zone?.zoom ?? 1;
   }
 
+  /** The run for the checks: its mode, where he is, the shift's numbers and every event type counted since the page loaded. */
+  const runProbe = () => {
+    const h = cur.hero;
+    return {
+      mode: game.mode,
+      level: game.level.id,
+      x: h.x,
+      y: h.y,
+      score: game.run.score,
+      cans: game.run.cans,
+      lives: game.run.lives,
+      time: game.run.time,
+      patience: h.patience,
+      hot: h.hot,
+      star: game.run.star,
+      checkpoint: game.run.checkpoint,
+      saved: savedT > 0,
+      shield: shieldShown,
+      shownX,
+      events: { ...counts },
+    };
+  };
+
   /** A world rect on the screen, CSS px. */
   const screenRect = (r: Rect): Rect => {
     const tl = scene.toScreen({ x: r.x, y: r.y });
@@ -891,8 +914,9 @@ export async function startLook(
     vignette.width = scene.width;
     vignette.height = scene.height;
     if (window.__next) {
-      // The shift's numbers stay as he left them; the mode and the event counts move on.
-      if (window.__next.run) Object.assign(window.__next.run, { mode: game.mode, events: { ...counts } });
+      // The shift's numbers stay as he left them (nothing of it steps); the mode and the event counts move on. Written in
+      // full: a round begun before the shift's first frame (a practice asked for while the page loaded) has no other.
+      window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.faceScreen = faceOnScreen;
@@ -1104,24 +1128,7 @@ export async function startLook(
     vignette.height = scene.height;
 
     if (window.__next) {
-      window.__next.run = {
-        mode: game.mode,
-        level: game.level.id,
-        x: h.x,
-        y: h.y,
-        score: game.run.score,
-        cans: game.run.cans,
-        lives: game.run.lives,
-        time: game.run.time,
-        patience: h.patience,
-        hot: h.hot,
-        star: game.run.star,
-        checkpoint: game.run.checkpoint,
-        saved: savedT > 0,
-        shield: shieldShown,
-        shownX,
-        events: { ...counts },
-      };
+      window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
