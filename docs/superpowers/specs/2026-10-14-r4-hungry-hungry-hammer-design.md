@@ -89,6 +89,14 @@ Decisions I took for the owner (report these):
   by 390, the far side's heads clear of the top bar (the table sits a little low and the view is pulled back as
   needed).
 
+As built in R4 (2026-10-14): as above. The ballroom is drawn at twice its painted size (a 1500-wide table across
+750 of its px, the table's floor on the carpet's middle row of medallions), its edges stretched outward so a phone's
+taller or wider view still sees the room; the chandelier glows over the table. The dishes are drawn half again as wide
+as their discs on the cloth (the products a little narrower), so beside eaters at twice their size they read as plates,
+crowded ones overlapping a little. The chute is a banded steel duct flaring at its mouth, the dessert cart a brass
+trolley with linen shelves and cakes; a tray's or the cart's dishes fall onto their own spot, the chute's from its
+mouth. The server wears server-2's own painted black vest. Standing diners stand on their soles like the shift's cast.
+
 ## 3. Hammer's moves
 
 - **The dive.** Tap Space, F or ↑ (or the pad's Jump): he belly-flops out along his line, the hand travelling 520 px in
@@ -112,6 +120,10 @@ Decisions I took for the owner (report these):
 - **Pause.** P or Escape: the "On break" card, listing the banquet's keys.
 - **His faces:** chomp at the grab, smug on a rob, hurt when slapped or hit by paper.
 
+As built in R4 (2026-10-14): as above, with the plan's head lift: his body tips 40 degrees over the cloth and his head
+lifts back as much, level at every stretch; the coil rears him back on bent knees. His shadow shows only while he stands
+(over the cloth it fell on the cloth's drop).
+
 ## 4. The rivals and the server
 
 - **Reactions:** the student 0.55 s, the bellhop 0.40 s, the nurse 0.28 s. When food comes to rest within 400 px of a
@@ -133,6 +145,9 @@ Decisions I took for the owner (report these):
   that?", at most every 6 s); bonked at his corner she drops her tray and leaves for 15 s, then comes back from the
   right end.
 
+As built in R4 (2026-10-14): as above, with the plan's decision: a rival dives along lines within 50 degrees of level
+on screen either way and turns to face it, so the student can raid the food near Hammer's end.
+
 ## 5. The food
 
 - **Discs** of radius 26 to 34 by kind on the table top: velocity, friction 2.4/s, elastic collisions between discs
@@ -149,6 +164,9 @@ Decisions I took for the owner (report these):
   picked up the bill?"). Coke Zero, the nuts and Buc-ee's are the products' pictures the shift uses; the rest come from
   the food sheet.
 
+As built in R4 (2026-10-14): as above; a wave pours from the chute a dish every 0.03 s; the cart rolls in along the near
+side and spills at the rim between the near side and the nurse's end.
+
 ## 6. Scoring and grades
 
 - A dish scores its value when it lands on his plate, doubled while the to-go box lasts, plus 100 for a rob. Grabs less
@@ -161,6 +179,11 @@ Decisions I took for the owner (report these):
   server at his corner) has a median of COMPED. A full belly is GOOD TIPPER or better.
 - **The tally:** the grade, the score and the best, and the lines: plate total and grabs, the combo bonus and the best
   combo, plates robbed, paper to the face, the specials, the check, and "Full belly" when it applies.
+
+As built in R4 (2026-10-14): the scripted rounds set the scale at 8.25 (over ten seeds: standing still 0, steady tapping a
+median of 16590, sharp play 26150): COMPED from 24750, GOOD TIPPER from 16500, SPLIT THE CHECK from 9900. A sweep often
+takes several dishes and the chain passes ten inside a dive, so most grabs triple: a round scores about eight times the
+shipped one, and that score comes home onto the shift's.
 
 ## 7. The BUFFET door
 
@@ -175,6 +198,10 @@ Decisions I took for the owner (report these):
 - Once a shift: the door then shows a THANK YOU card and stays shut, through lost lives; a new shift opens it again.
 - The restaurant's PRIVATE DINING door stays closed ("Opens later") for R8's tables.
 
+As built in R4 (2026-10-14): as above. Thoughts and speech are cleared going through the door either way, so nothing
+said at the table hangs over him in the lobby. The lobby's server patrols in front of the BUFFET door, so coming back
+he may meet her straight away, after his 0.6 s of grace.
+
 ## 8. Practice from the start screen
 
 - The Side quests card plays the banquet as practice on the new start screen (no page change), from the same card.
@@ -182,6 +209,9 @@ Decisions I took for the owner (report these):
   Hungry Hammer / Banquet table · best 000000".
 - A practice round never touches a shift. Its tally offers Play again and Start screen, like pig practice.
 - `/?quest=hungry` opens the practice round directly (§1, decision 12).
+
+As built in R4 (2026-10-14): as above; the card's picture sits beside its words, smaller on an upright phone so the
+start screen still fits.
 
 ## 9. The screen during the round
 
@@ -201,6 +231,10 @@ Decisions I took for the owner (report these):
 - The touch pad keeps its ten buttons: ← → aim, Jump dives (hold to charge), H bonks, ↓ ducks. A gamepad's stick
   aims, A dives, X bonks.
 - Every card and bar fits 1280 by 800, 390 by 844 and 844 by 390 with no horizontal overflow.
+
+As built in R4 (2026-10-14): as above. The combo row reads in the HUD's light text, gold once it doubles; on the touch
+pad the snot, lecture and smash lights stay off at the banquet; the round's best is kept when its tally's result reaches
+the HUD.
 
 ## 10. The art
 
@@ -232,6 +266,11 @@ strike on the rim) and the duck (the crouch) for Hammer; `dive` and a stunned be
 **Fallbacks** (and `&noart=1`): without the ballroom, a plain warm wall and a drawn carpet; without the table, a drawn
 oval table; without the food sheet, drawn plates with three-letter tags (the shipped look); without the nurse, the
 cast's drawn stand-in in scrubs colors. The sync warns and goes on; a bad painting never stops it.
+
+As built in R4 (2026-10-14): the food sheet's rows sit off an even grid (its banana pudding and the check reach above
+the even line), so the sync finds its dishes by the green between them. The nurse is cut like the cast (five layers and
+her head, her joints on her painting); the table's top oval lies on the gold rim (944 by 348 painted px, 0.37 as deep as
+wide).
 
 ## 11. The old game's deletion (only on the owner's yes at the time)
 

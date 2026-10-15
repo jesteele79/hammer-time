@@ -226,7 +226,7 @@ in `public/scenery-assets.json` and `public/boss-prop-assets.json`.
 The game is rebuilt as a modern renderer over a fixed-step sim (the design is
 `docs/superpowers/specs/2026-10-10-hammer-time-rebuild-design.md`). `/` opens
 it on its start screen; `/?next=1` goes straight into play (the checks use
-it), and `/?classic=1` is the shipped game. It is a PixiJS 8
+it), `/?quest=hungry` opens Hungry Hungry Hammer's practice, and `/?classic=1` is the shipped game. It is a PixiJS 8
 scene on WebGPU (WebGL 2 when WebGPU is missing, or with `&gl=1`) playing
 the shift (the lobby, the restaurant, the campus and the gift shop) under the keyboard (arrows or WASD, Space
 or Z to jump, Shift to run, Down to crouch and, at speed, slide, P or Escape
@@ -434,6 +434,68 @@ edits by state, flashes white on a hit and throws one of the owner's stuffing
 tufts. Without its painting, or with `&noart=1`, the code-drawn pig stands in.
 `node scripts/art-grid.mjs pig` draws its cut over the painting.
 
+### Hungry Hungry Hammer (the BUFFET door)
+
+The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
+ONLY door (not in the air, mid-move or knocked down), shows its card ("Side quest / Hungry Hungry Hammer / The
+Banquet") and then a sixty-second round at a banquet table. The lobby waits behind it: nothing there moves, its clock,
+his heat, the shield and the pepper hold. The tally's Continue (Enter, Space or "Back to the lobby") stands him at the
+door with 0.6 s of grace (the key that closed it neither jumps nor swings), and he brings home the round's score, a can
+for the Coke Zero, a full smash for the nuts, the Buc-ee's shield as he walks out, and the pepper with full patience for
+the hot sauce or a full belly (GOOD TIPPER or better); no lives. The door then hangs a THANK YOU card and stays shut
+through the stash and lost lives; a new shift opens it again. The restaurant's PRIVATE DINING stays closed for R8.
+
+- **The table** (`src/sim/quests/hungry/table.ts`): round, seen from above at an angle as the owner painted it, its top
+  a 1500-wide oval 0.37 as deep as wide with its cloth 370 px to the floor; everyone at the banquet is drawn at twice
+  their shift size, so the tabletop reaches their belly. Hammer stands at the left end in his banquet bib, the student
+  and the bellhop behind the far rim (the table hides them below the waist), the nurse at the right end; the server
+  walks behind the far side to his corner and back. The rules work on the top as a circle of 750.
+- **The dive**: tap Space, F or ↑ and he belly-flops out along his line, his hand 520 px out in 0.14 s, a 0.04 s hold,
+  back in 0.10 s; whatever its 110 px sweep crosses on the way out rides in his hand and flies home to his plate in
+  0.25 s, scoring as it lands. One dive every 0.3 s; holding the key never repeats one. His reach grows 10 px a dish
+  eaten, to 760. Held past 0.12 s the press charges, to 1180 at 0.5 s (a marker shows where it stops); a charged dive
+  that ends on a rival's plate robs its top dish ("YOINK!", its value plus 100). ← and → swing his line up to 30
+  degrees either way on screen, and it stays where it is left. His body tips 40 degrees over the cloth while a head
+  lift keeps his face level (`src/sim/rig/dive.ts`).
+- **The rivals** react to food coming to rest within 400 px of their plates (the student 0.55 s, the bellhop 0.40, the
+  nurse 0.28), mash bursts of 2 to 4 dives, and grow a fifth quicker for each plate he robs (calming after 8 s). Robbed,
+  the student throws a paper plane ("Heads up!": 150 points off, unless he ducks, swats it or is out on the table), the
+  bellhop slides a suitcase onto his line for 4 s ("Your bag, sir."), and the nurse stays angry: a hand in her red
+  ring is slapped ("Sanitize!", a second's stun, his thought "I've HAD my shots."). Two hands out within 110 px clash:
+  both come back empty and the food near them scatters. The server clears food resting at the rim beside her.
+- **H bonks** the rim in front of him: food within 300 px jumps toward the middle, a rival's hand there is stunned 2
+  s, the server at his corner drops her tray (four dishes) and leaves for 15 s, a suitcase is slammed off, paper is
+  swatted. ↓ ducks under the edge. P or Escape is the break.
+- **The courses**: 24, 12 and 12 appetizers poured from the chute at 0, 10 and 20 s; 16 and 10 entrees at 25 and 35 s;
+  the dessert cart's crash at 42 s spilling 14 desserts; 10 more at 50 s; the last 8 s a frenzy, three dishes a
+  second; the six specials once each between 5 and 50 s (Coke Zero, the nuts and Buc-ee's are the products' own
+  pictures; the hot sauce, the to-go box and the check come from the food sheet).
+- **The score**: the shipped values; grabs less than 1.2 s apart double from the fifth and triple from the tenth (the
+  bonus counted apart); the to-go box doubles the next five; the check costs 400 and a paper hit 150. The grade lines
+  keep the shipped 3000, 2000 and 1200 in proportion, scaled by the scripted rounds
+  (`node --loader ./scripts/game-test-loader.mjs scripts/banquet-tune.mjs`: over ten seeds standing still scores 0,
+  steady tapping a median of 16590, sharp play 26150) by 8.25: COMPED from 24750, GOOD TIPPER from 16500, SPLIT THE
+  CHECK from 9900, else WATER ONLY. The tally names the grade, the score and the best, and what the round came to.
+- **Practice**: the start screen's Side quests card plays a round on the same page, and `/?quest=hungry` opens one
+  straight away; its tally offers Play again and Start screen, and never touches a shift. Door rounds and practice
+  share one best (`hammer-time-best-banquet`).
+- **The screen**: the top bar shows the round's score and its clock; the panel reads "Hungry Hungry Hammer / The
+  Banquet" with his reach (the charge growing past a tick at his tap's) and his combo; the hint names what matters
+  most; the break card lists the banquet's keys; the touch pad's arrows aim, Jump dives (hold to charge), Hammer bonks
+  and ↓ ducks. The camera frames the whole table, all four eaters and the chute between the bars on a laptop and on a
+  phone either way; the cards sit on the right half, away from his face, on a wide screen.
+
+The banquet is a mode of the Game (`questCard`, `quest`, `questTally`) over its own sim (`src/sim/quests/hungry/`:
+`food.ts` the dishes' disc physics, `hungry.ts` the round, `drive.ts` the scripted players) and drawn by
+`src/render/quests/` (`hungry-scene.ts` the scene, `diner.ts` the rivals and the server on their paintings,
+`frame.ts` the camera's frame). **The paintings**: the ballroom (`art/cuts/ballroom.json` places the table's middle on
+it and sets its scale), the table (`art/cuts/banquet-table.json`, its top's oval on the gold rim), the food sheet (cut
+at sync into its sixteen dishes by the green between them) and the nurse (`art/cuts/cast-nurse.json`, five layers and
+her head like the cast); `node scripts/art-grid.mjs banquet/room`, `banquet/table` and `cast/nurse` draw their cuts.
+The chute, the dessert cart, the suitcase, the paper, the plates, the tray and the THANK YOU card are drawn in code.
+Without a painting (or with `&noart=1`) a warm wall and drawn carpet, a drawn table, plates with three-letter tags and
+the drawn stand-ins take their places.
+
 ### The walls
 
 Every venue of the shift stands in front of the owner's painted walls (the
@@ -601,8 +663,8 @@ screen (`src/components/next-start.tsx`) shows the title over the key art,
 where to start (the whole shift from the lobby, the restaurant, the campus, or
 pig practice at the gift shop), Clock in, the personal best, sound, the keys,
 the quality (Auto steps down by itself; High, Medium and Low are kept on the
-device) and a Side quests row whose Hungry Hungry Hammer card opens the shipped
-game on the banquet table (`/?classic=1&quest=hungry`). The game loads
+device) and a Side quests row whose Hungry Hungry Hammer card (its picture drawn
+by the game) plays the banquet as practice on the same page. The game loads
 behind it, so clocking in is quick; a start chosen before it is ready begins as
 soon as it is. A later start begins like a fresh shift there. Pig practice ends
 on "Practice over" and keeps no best. "Start screen" beside Play again and Try
@@ -622,6 +684,7 @@ node scripts/cast-browser.check.mjs http://127.0.0.1:8090/
 node scripts/shift-browser.check.mjs http://127.0.0.1:8090/
 node scripts/pig-browser.check.mjs http://127.0.0.1:8090/
 node scripts/next-start.check.mjs http://127.0.0.1:8090/
+node scripts/hungry-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
@@ -666,7 +729,11 @@ ends, the half-HP speed-up, the hit gap and the bonk-and-snot rule, the mallet,
 the snot and the smash on it, the stomp bounce and contact, the shrug, the
 arena holding him, a pig beaten in the air, the gift shop's shape, the wake's
 gifts, the refill, the chained exit, a life lost mid-fight, the bar, and a
-scripted win). The rig checks also sweep
+scripted win) and the banquet checks in `banquet.check.mjs` (the table and its
+dishes' physics, the dive, its sweep, charge, aim and rob, the waves, the cart
+and the frenzy, the rivals, their anger and paybacks, the server, the bonk, the
+clash, the scoring, the grade lines and the three scripted players, and the
+BUFFET door, its payout, its once a shift and practice). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks
@@ -685,7 +752,11 @@ doors into the gift shop, downs the pig and walks through CLOCK OUT into
 "Shift over"; the pig browser check wakes the pig, fits its bar on three
 shapes, loses a life mid-fight and beats it; the start screen check fits it on
 three shapes, starts each place fresh, keeps practice out of the best and
-leaves for the side quest while it loads; the moves browser check
+opens the side quest while it loads; the banquet's browser check plays a
+practice round from the card (dives, a charged rob, a bonk, a duck, a break, a
+blur, three screen shapes, the tally and its best, Play again with Space held),
+a round with the art missing, the BUFFET door in a shift and what it pays, and
+`/?quest=hungry`; the moves browser check
 swings, bonks a cart, fires and splats snot, towels off and smashes, and
 checks the sounds; the acts browser check waits for the watch check, the tap
 and the harrumph, lectures, takes the two pips' hits and the lost life, and
@@ -706,7 +777,9 @@ the puddles and the confetti), `cast-lobby-1..6.png` (the cast in its six
 scenes), and `restaurant-look-1..6.png` and `campus-look-1..6.png` (each
 venue in six frames: `restaurant` and `campus` in the board list),
 `arena-look-1..3.png` (the gift shop), `pig.png` (the pig in every state and
-face) and `pig-steps.png` (its charge and hop frame by frame); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
+face) and `pig-steps.png` (its charge and hop frame by frame), `banquet-look-1..4.png` (the
+opening dump, a dive, the cart's crash, the frenzy: `banquet` in the board list), `banquet-dive.png` (his coil and dive
+frame by frame) and `banquet-food.png` (every dish as the table draws it); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
 `cast-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
 argument to `look-boards.mjs` names the boards to render, comma separated.
 

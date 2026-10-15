@@ -207,6 +207,11 @@ pieces, two fore), and the lobby's three walls (`lobby-far-1..3`) and its sheets
 fore) are cut and in the game; the lobby's inked photo and drawn columns are now only its
 fallback. Every venue of the shift stands on painted walls.
 
+Status (2026-10-14, R4): the banquet's ballroom (`backdrops/ballroom.png`, briefed in
+`art/outgoing/batch-8-r4-banquet.txt`, Codex prompt in `batch-r4-codex.txt`) and its round table
+(`props/banquet-table.png`) are in, placed by `art/cuts/ballroom.json` and cut by
+`art/cuts/banquet-table.json`, and in the game behind the BUFFET door.
+
 ## 5. The cast
 
 **The lobby's four roles (R2b, 2026-10-12): the brief is `art/outgoing/batch-3-cast.txt`.**
@@ -250,6 +255,10 @@ Status (2026-10-13, R3a): the restaurant's and the campus's new people are brief
 cut and in the game: `cook-1`, `busser-1`, `lunch-1`, `prof-1` and `cook-hat`. The pig's
 velour body redo is in (`art/incoming/pig/pig-body.png`, accepted, cut in R3b); its four
 faces (section 3) are next.
+
+Status (2026-10-14, R4): the nurse (`cast/nurse.png`, teal scrubs, badge reel, clogs, hair in a
+bun; briefed in `art/outgoing/batch-8-r4-banquet.txt`) is in, cut by `art/cuts/cast-nurse.json`
+and in the game at the banquet table; the hospital (R7) reuses her.
 
 ## 6. Pickups and props
 
@@ -300,6 +309,10 @@ cup, 14. a hot sauce bottle (no plate), 15. a white to-go box (no plate),
 16. a leather check folder with a receipt (no plate).
 
 Checks: sixteen cells, equal size, nothing touching a neighbor.
+
+Status (2026-10-14, R4): in (`props/food-sheet.png`, painted with Codex from
+`art/outgoing/batch-r4-codex.txt`, from the same camera as the table) and in the game: the sync
+cuts its sixteen dishes by the green between them (its rows sit a little off an even grid).
 
 ## 8. Title art
 
