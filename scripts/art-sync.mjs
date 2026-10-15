@@ -28,6 +28,7 @@ import {
   webpPaths,
   wallCrop,
   sheetPieces,
+  foodCells,
   paddedLayer,
   scaled,
   MESH_CELL,
@@ -210,7 +211,7 @@ async function bodies(registry) {
 }
 
 const CAST_IN = "art/incoming/cast";
-const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1"];
+const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {
@@ -382,6 +383,54 @@ async function products() {
  * Every picture the sync wrote, published as WebP (a tenth of the bytes, the same to the eye at the size the game draws
  * it): each PNG under public/art converted and removed, and the names in the rigs and the registry renamed.
  */
+const BANQUET = { room: "art/incoming/backdrops/ballroom.png", table: "art/incoming/props/banquet-table.png", food: "art/incoming/props/food-sheet.png" };
+
+/** The banquet (R4 §10): the ballroom and the table placed by their cuts, the food sheet cut into its sixteen dishes. */
+async function banquet(registry) {
+  registry.banquet = {};
+  mkdirSync(join(OUT, "banquet"), { recursive: true });
+  const cutOf = (name, what, fallback) => {
+    const file = `art/cuts/${name}.json`;
+    if (existsSync(file)) return JSON.parse(readFileSync(file, "utf8"));
+    console.warn(`${what}: painted but not cut yet (no ${file}); ${fallback}`);
+    return null;
+  };
+  if (existsSync(BANQUET.room)) {
+    const cut = cutOf("ballroom", "ballroom", "the drawn room stands in");
+    if (cut)
+      await tolerant("ballroom", strict, async () => {
+        const meta = await sharp(BANQUET.room).metadata();
+        writeFileSync(join(OUT, "banquet/room.png"), await sharp(BANQUET.room).png().toBuffer());
+        registry.banquet.room = { file: "banquet/room.png", width: meta.width, height: meta.height, table: { x: cut.table[0], y: cut.table[1] }, span: cut.span };
+        console.log(`ballroom: ${meta.width}x${meta.height}, the table's middle at ${cut.table}, ${cut.span} px across`);
+      });
+  }
+  if (existsSync(BANQUET.table)) {
+    const cut = cutOf("banquet-table", "banquet table", "the drawn table stands in");
+    if (cut)
+      await tolerant("banquet table", strict, async () => {
+        const keyed = await keyOut(readFileSync(BANQUET.table));
+        const [cx, cy] = cut.top.center;
+        const [rx, ry] = cut.top.radii;
+        // The game's top is 0.37 as deep as wide (TABLE.squash, measured off this painting); a cut far off that would stretch it.
+        if (Math.abs(ry / rx - 0.37) > 0.05) throw new Error(`its top is ${(ry / rx).toFixed(2)} as deep as wide; the game's is 0.37`);
+        writeFileSync(join(OUT, "banquet/table.png"), keyed.png);
+        registry.banquet.table = { file: "banquet/table.png", width: keyed.width, height: keyed.height, top: { cx, cy, rx, ry } };
+        console.log(`banquet table: ${keyed.width}x${keyed.height}, its top ${2 * rx}x${2 * ry}`);
+      });
+  }
+  if (existsSync(BANQUET.food))
+    await tolerant("food sheet", strict, async () => {
+      const cells = await foodCells(readFileSync(BANQUET.food));
+      registry.banquet.food = cells.map((c, i) => {
+        const file = `banquet/food-${i + 1}.png`;
+        writeFileSync(join(OUT, file), c.png);
+        return { file, width: c.width, height: c.height };
+      });
+      console.log(`food sheet: ${cells.length} dishes`);
+    });
+}
+
 async function publish(registry) {
   const pngs = [];
   const rigs = [];
@@ -417,6 +466,7 @@ await cast(registry);
 await pig(registry);
 await backdrops(registry);
 await walls(registry);
+await banquet(registry);
 await products();
 writeFileSync(join(OUT, "registry.json"), JSON.stringify(await publish(registry), null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);

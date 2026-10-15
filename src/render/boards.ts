@@ -109,7 +109,7 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
   { x: 12500, y: -160, cx: 13200 },
   { x: 13800, y: 0, cx: 14300 },
 ];
-const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1"];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse"];
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
 /** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
 const HEAD_SHARES = [0.22, 0.26];

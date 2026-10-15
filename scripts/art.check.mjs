@@ -24,6 +24,7 @@ import {
   recolorLayer,
   wallCrop,
   sheetPieces,
+  foodCells,
 } from "./art-cut.mjs";
 
 /** A green canvas with a filled circle and a 'neck' stub at the bottom. */
@@ -940,4 +941,19 @@ test("every venue's walls and standing pieces are synced: each one its level nam
     for (const w of level.backdrop.walls) assert.ok(reg.walls?.[w], `${level.id}: wall ${w}`);
     for (const p of [...level.backdrop.mid, ...level.backdrop.fore]) assert.ok(reg.pieces?.[p.name], `${level.id}: piece ${p.name}`);
   }
+});
+
+test("the food sheet is cut cell by cell into its sixteen dishes in reading order, each keyed and cropped to its paint; an empty cell is refused", async () => {
+  const cell = 200;
+  const dish = (i) => `<circle cx="${(i % 4) * cell + 100}" cy="${Math.floor(i / 4) * cell + 100}" r="${30 + i * 3}" fill="#c0392b" stroke="#101010" stroke-width="4"/>`;
+  const sheetOf = (skip = -1) =>
+    sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800"><rect width="800" height="800" fill="#00ff00"/>${Array.from({ length: 16 }, (_, i) => (i === skip ? "" : dish(i))).join("")}</svg>`)).png().toBuffer();
+  const cells = await foodCells(await sheetOf());
+  assert.equal(cells.length, 16);
+  cells.forEach((c, i) => {
+    // The disc and its outline, plus the keyer's 8 px margin each side.
+    const want = 2 * (30 + i * 3) + 4 + 16;
+    assert.ok(Math.abs(c.width - want) <= 4 && Math.abs(c.height - want) <= 4, `cell ${i + 1}: ${c.width}x${c.height}, not about ${want}`);
+  });
+  await assert.rejects(foodCells(await sheetOf(5)), /cell 6 is empty/);
 });

@@ -54,6 +54,16 @@ export type Registry = {
   pieces?: Record<string, Piece>;
   /** The pig (R3 §6.3): its rig, cut like a cast body's, and its stuffing tufts. */
   pig?: { rig: string; span: number; stuffing: Piece[] };
+  /**
+   * The banquet (R4 §10): the ballroom placed by its cut (`table`, the painting px where the table's middle goes; `span`,
+   * the painting px a 1500-wide table spans there); the table with its top's oval in its own px; the sixteen dishes in
+   * the food sheet's order. Missing from an older sync, or while a painting is not in.
+   */
+  banquet?: {
+    room?: { file: string; width: number; height: number; table: Point; span: number };
+    table?: { file: string; width: number; height: number; top: { cx: number; cy: number; rx: number; ry: number } };
+    food?: { file: string; width: number; height: number }[];
+  };
 };
 
 export const ART_BASE = "/art/";

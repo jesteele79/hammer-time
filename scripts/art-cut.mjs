@@ -1274,6 +1274,30 @@ export async function wallCrop(png, cut) {
 }
 
 /**
+ * The food sheet (R4 §10): the sheet split into its `cols` by `rows` cells (Codex lays them out evenly across the
+ * picture), each keyed and cropped to its dish, in reading order. A cell with nothing painted in it is refused.
+ */
+export async function foodCells(png, cols = 4, rows = 4) {
+  const { width: W, height: H } = await sharp(png).metadata();
+  const out = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const left = Math.floor((c * W) / cols);
+      const top = Math.floor((r * H) / rows);
+      const width = Math.floor(((c + 1) * W) / cols) - left;
+      const height = Math.floor(((r + 1) * H) / rows) - top;
+      const cell = await sharp(png).extract({ left, top, width, height }).png().toBuffer();
+      try {
+        const keyed = await keyOut(cell);
+        out.push({ png: keyed.png, width: keyed.width, height: keyed.height });
+      } catch {
+        throw new Error(`food sheet cell ${r * cols + c + 1} is empty`);
+      }
+    }
+  return out;
+}
+
+/**
  * A keyed sheet of objects cut into one image each: its paint's 8-connected shapes, shapes whose paint comes within `join`
  * px merged (a mop and its bucket; boxes alone would join a tree's crown to the stool beside its trunk), shapes under
  * `minShare` of the largest dropped (specks); left to right, each cropped with the margin to its own shapes only, its

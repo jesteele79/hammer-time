@@ -62,6 +62,8 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   "busser-1": { height: 340, head: 0.22, build: 0.75, skin: "#f0cfae", hair: "#e3b341", hairStyle: "short", top: "#1a1a1a", sleeves: "skin", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
   "lunch-1": { height: 300, head: 0.22, build: 1.15, skin: "#e8bf9c", hair: "#b5b5b5", hairStyle: "curly", top: "#2d3f7a", sleeves: "skin", apron: true, bottom: "#1d1d1f", shoes: "#141414", glasses: true },
   "prof-1": { height: 330, head: 0.22, build: 0.95, skin: "#e9c4a4", hair: "#f2f2f2", hairStyle: "curly", top: "#7b5a3a", sleeves: "top", tie: "#b8282e", bottom: "#6b4a2a", shoes: "#5a3a1e", glasses: true },
+  // R4's nurse: the banquet's quickest rival, and the hospital's later (her stand-in is the fallback only).
+  nurse: { height: 320, head: 0.22, build: 0.8, skin: "#e2b48f", hair: "#3b2a22", hairStyle: "bun", top: "#2a9d8f", sleeves: "skin", bottom: "#2a9d8f", shoes: "#f4f3ee", lanyard: true },
 };
 
 /** A look with the uniform's top (the vest where there is one) in the recolor's hue. */
