@@ -293,10 +293,11 @@ running move is never restarted.
   wipes his face, flicks the sweat off and shines; heat drains fast. That hand
   and the towel, and the same hand at his nose for the snot rocket, are the
   only things ever drawn over his face.
-- **Heat is his stamina:** running (Shift) heats him, walking or standing
-  cools him, and jumps, swings and snot add to it. From half full he slows
-  steadily, running or walking, to two-thirds of his speed when it is full,
-  and the heat bar pulses red. From 45 he sweats, from 60 he pants, from 80 he
+- **Heat is his stamina:** running (Shift) heats him fast (9 a second, so
+  five seconds' running tires him), walking barely cools him (1 a second) and
+  standing still cools him (4), and jumps, swings and snot add to it. From 40
+  he slows steadily, running or walking, to 0.6 of his speed when it is full,
+  and the heat bar pulses red. From 25 he sweats, from 50 he pants, from 70 he
   steams and sweats twice as fast, and near 100 he boils over: then he cannot
   run at all until he cools below 70. The towel (T) or a Coke Zero cools him.
 
@@ -520,8 +521,8 @@ the job:
   a luggage cart. He squares up with a ! burst, the wheels squeal and he shoves
   the cart at Hammer: jump it (the cases are what hurts), or bonk it back,
   which knocks it out of his hands and bowls him over with it. He follows the
-  cart where it stops and wheels it home. Two hits put a bellhop out; a second
-  bonk while he is down sends him sliding into whoever is next.
+  cart where it stops and wheels it home. Three hits put a bellhop out; the
+  last, landing while he is down, sends him sliding into whoever is next.
 - **Three servers** (the BUFFET door, the STAFF ONLY door, between the banquet
   tables) carrying trays of water. A warning crouch, then a two-second rush;
   the mallet meets her and the glasses shatter into a puddle of water.
@@ -532,13 +533,17 @@ the job:
   is near, flinging his coffee: a puddle that staff slip on.
 - **Four students** (three at the mezzanine rail, one sitting on the far
   table). They keep out of mallet reach, hopping back, and throw paper planes
-  at his chest every four to six seconds, three in the air at most; they duck
-  the mallet, hop over a stomp and run from the snot.
+  at his chest every two and a half to four seconds, four in the air at most;
+  they duck the mallet, hop over a stomp, hop back from a first snot and run
+  from the second.
 
-At most two of them attack at once; the rest hold their ground until a slot
-opens. Whatever hurts him (a cart's cases, a rush, a shoulder, a plane, the
-coffee) costs a pip, and nothing touches him in grace or down. The mallet and
-the stomp knock staff down (the bellhop twice), the lecture freezes staff for a
+Since 2026-10-15 they are tougher and pushier (the owner's call): a server, an
+office worker or a student takes two hits to put out and a bellhop three; short
+of the last they get back up and come at him again, and they can be hit again
+where they lie. Up to three of them attack at once; the rest hold their ground
+until a slot opens. Whatever hurts him (a cart's cases, a rush, a shoulder, a
+plane, the coffee) costs a pip, and nothing touches him in grace or down. The
+mallet and the stomp knock staff down, the lecture freezes staff for a
 breath and schools students for nine seconds, a puddle trips staff, a big hit
 (the smash, the shield, a thrown body) sends them flying, and a flying body
 bowls whoever it lands on: the chain pays 100, 200, 400, 800, 1000, 2000, 4000

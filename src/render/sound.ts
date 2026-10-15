@@ -113,11 +113,12 @@ export function cuesFor(e: GameEvent): Cue[] {
     case "castAttack":
       return e.role === "bellhop" ? ["squeal"] : e.role === "server" || e.role === "office" ? ["whoosh"] : ["paper"];
     case "castHit": {
-      // The mallet and the snot ring through their own hit event; a knocked-out server's glasses shatter, an office worker's coffee splashes.
+      // The mallet and the snot ring through their own hit event; the hit that knocks a server's tray away shatters its
+      // glasses, an office worker's coffee splashes, a professor's pages fly.
       const names: Cue[] = e.by === "stomp" ? ["stomp"] : e.by === "puddle" ? ["slip"] : e.by === "mallet" || e.by === "snot" ? [] : ["kick"];
-      if (e.down && e.job === "server") names.push("shatter");
-      if (e.down && (e.job === "office" || e.job === "lunch" || e.job === "cook")) names.push("splash");
-      if (e.down && e.job === "prof") names.push("page");
+      if (e.drops && e.job === "server") names.push("shatter");
+      if (e.drops && (e.job === "office" || e.job === "lunch" || e.job === "cook")) names.push("splash");
+      if (e.drops && e.job === "prof") names.push("page");
       return names;
     }
     case "chime":

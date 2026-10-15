@@ -35,8 +35,11 @@ export const SNOT_FIRE_U = 0.45;
 export const WIPE_SCRUB = [0.12, 0.62] as const;
 export const WIPE_FLICK = [0.62, 0.78] as const;
 export const WIPE_SHINE = 0.84;
-/** Heat per second running and resting, per action, the wipe's drain, and the thresholds. */
-export const HEAT = { run: 6, rest: 3, jump: 12, swing: 3, snot: 5, wipe: 240, tired: 80, boil: 99.5, cool: 70 } as const;
+/**
+ * Heat per second running, walking (it cools him, slowly) and standing still, per action, the wipe's drain, and the
+ * thresholds: he sweats, then pants, then steams and is overheated (owner, 2026-10-15: he heats up and tires sooner).
+ */
+export const HEAT = { run: 9, walk: 1, rest: 4, jump: 15, swing: 4, snot: 6, wipe: 240, sweat: 25, pant: 50, steam: 70, tired: 70, boil: 99.5, cool: 70 } as const;
 export const SINUS_MAX = 3;
 export const SINUS_REFILL = 1.5;
 export const FIRE_COOLDOWN = 0.5;
@@ -47,10 +50,10 @@ export const SUPER_HOP = 1020;
 export const SUPER_PLUNGE = 1215;
 /** Caps while tired, as fractions of the run and walk speeds. */
 /**
- * Heat is his stamina (owner, 2026-10-12): from half full his top speed, running or walking,
- * falls steadily to two-thirds when it is full. Boiled over, he cannot run at all.
+ * Heat is his stamina (owner, 2026-10-12): from 40 his top speed, running or walking, falls steadily to 0.6 of it when
+ * it is full (owner, 2026-10-15: sooner and harder than the first half-full and two-thirds). Boiled over, he cannot run.
  */
-export const STAMINA = { from: 50, floor: 0.66 } as const;
+export const STAMINA = { from: 40, floor: 0.6 } as const;
 export const tiredFactor = (heat: number) =>
   1 - (1 - STAMINA.floor) * Math.min(1, Math.max(0, (heat - STAMINA.from) / (100 - STAMINA.from)));
 
@@ -195,7 +198,8 @@ export function stepHeat(h: HeroState, input: Input, dt: number, events: GameEve
   if (h.move?.kind === "wipe") h.heat = Math.max(0, h.heat - HEAT.wipe * dt);
   else {
     const running = input.held.run && Math.abs(h.vx) > WALK;
-    h.heat = Math.min(100, Math.max(0, h.heat + (running ? HEAT.run : -HEAT.rest) * dt));
+    const walking = Math.abs(h.vx) > 1;
+    h.heat = Math.min(100, Math.max(0, h.heat + (running ? HEAT.run : walking ? -HEAT.walk : -HEAT.rest) * dt));
   }
   if (h.heat >= HEAT.boil && !h.boiled) {
     h.boiled = true;

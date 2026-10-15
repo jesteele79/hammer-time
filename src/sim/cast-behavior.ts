@@ -370,8 +370,9 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
           n.vx = n.facing * T.leave;
           setAct(n, "leave");
         } else {
+          // Up again and back at him after his rest.
           setAct(n, "idle");
-          n.rest = CAST.bellhop.rest;
+          n.rest = n.role === "student" ? CAST.student.restMin : CAST[n.role].rest;
         }
       }
       return;
@@ -427,15 +428,17 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
 function land(n: Npc, w: CastWorld): void {
   n.vx = 0;
   n.spin = 0;
-  if (n.role === "student") {
+  if (n.role === "student" && n.out) {
     n.facing = toward(n, w.hero) === 1 ? -1 : 1;
     n.vx = n.facing * CAST.student.flee;
     setAct(n, "flee");
     return;
   }
   setAct(n, "down");
+  // The tray, the cup or the pan comes down with him, the time the hit knocked it out of his hands.
   const s = SPILL_OF[n.job];
-  if (s) spill(w, n, s);
+  if (s && n.spills) spill(w, n, s);
+  n.spills = false;
 }
 
 function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {

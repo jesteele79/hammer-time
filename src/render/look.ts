@@ -10,7 +10,7 @@ import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
 import { KEY_BINDINGS, emptyInput, inputFrom, type Action } from "../sim/input";
 import { createGame, type GameMode } from "../sim/game";
-import { CHARGE_MAX, moveU, type Move } from "../sim/moves";
+import { CHARGE_MAX, HEAT, moveU, type Move } from "../sim/moves";
 import { floorAt } from "../sim/physics";
 import { ACTIONS, displayU, overlay } from "../sim/rig/actions";
 import { CLIPS, type ClipCtx, type ClipName } from "../sim/rig/clips";
@@ -87,10 +87,10 @@ const SMUG_T = 0.6;
 const SPRAY_AHEAD = 24;
 const STEAM_EVERY = 0.08;
 const SWEAT_EVERY = 0.25;
-const STEAM_HEAT = 80;
-const SWEAT_HEAT = 45;
+const STEAM_HEAT = HEAT.steam;
+const SWEAT_HEAT = HEAT.sweat;
 /** Past this heat he pants, and past STEAM_HEAT he sweats twice as fast: he is tiring (owner, 2026-10-12). */
-const PANT_HEAT = 60;
+const PANT_HEAT = HEAT.pant;
 const PANT_EVERY = 0.5;
 /** Walking into a cleaned-out stash: a thought, then the owner's recording a beat later. */
 const STASH_THOUGHT = "Can't keep one shelf stocked.";
@@ -547,14 +547,15 @@ export async function startLook(
         const n = world.cast.find((c) => c.id === e.id);
         if (n && !n.hat && n.hits === 1 && HATTED.has(n.job)) flyers.hat(e.x, e.y - 150, e.dir, cast.hat(n.person), n.job);
         if (e.job === "busser" && n?.hits === 1) flyers.towel(e.x, e.y - 60, e.dir);
-        if (e.job === "server" && e.down) {
+        // What he carried flies on the hit that knocks it from his hands.
+        if (e.job === "server" && e.drops) {
           flyers.glasses(e.x + e.dir * 20, e.y - 60, e.dir);
           particles.emit("water", e.x, e.y - 60, 12);
         }
-        if (e.job === "lunch" && e.down) flyers.food(e.x + e.dir * 20, e.y - 60, e.dir);
-        if (e.job === "office" && e.down) flyers.cup(e.x, e.y - 40, e.dir);
-        if (e.job === "cook" && e.down) flyers.pan(e.x, e.y - 40, e.dir);
-        if (e.job === "prof" && e.down) {
+        if (e.job === "lunch" && e.drops) flyers.food(e.x + e.dir * 20, e.y - 60, e.dir);
+        if (e.job === "office" && e.drops) flyers.cup(e.x, e.y - 40, e.dir);
+        if (e.job === "cook" && e.drops) flyers.pan(e.x, e.y - 40, e.dir);
+        if (e.job === "prof" && e.drops) {
           flyers.book(e.x, e.y - 60, e.dir);
           flyers.papers(e.x, e.y - 80, e.dir);
         }

@@ -159,7 +159,7 @@ test("heat rises running and jumping, falls at rest, and boils once", () => {
   const run = w.hero.heat;
   assert.ok(run > 3 && run < HEAT.run * 1.01, `running ${run}`);
   w.step(input({ jump: true }, { jump: true }));
-  assert.ok(Math.abs(w.hero.heat - run - HEAT.jump) < 0.2, "a jump adds 12");
+  assert.ok(Math.abs(w.hero.heat - run - HEAT.jump) < 0.2, "a jump adds its heat");
   const hot = createWorld(flat(), { x: 100, y: 0 }, { heat: 99 });
   settle(hot);
   const evs = steps(hot, 1, { right: true, run: true });
@@ -170,11 +170,11 @@ test("heat rises running and jumping, falls at rest, and boils once", () => {
   assert.ok(Math.abs(rest.hero.heat - (50 - HEAT.rest * (1 + 6 * STEP))) < 0.05, `resting ${rest.hero.heat}`);
 });
 
-test("heat is his stamina: from half full his top speed falls steadily, to two-thirds when it is full", () => {
+test("heat is his stamina: from 40 his top speed falls steadily, to 0.6 of it when it is full", () => {
   assert.equal(tiredFactor(0), 1);
-  assert.equal(tiredFactor(50), 1);
-  assert.ok(Math.abs(tiredFactor(75) - 0.83) < 1e-9);
-  assert.ok(Math.abs(tiredFactor(100) - 0.66) < 1e-9);
+  assert.equal(tiredFactor(40), 1);
+  assert.ok(Math.abs(tiredFactor(70) - 0.8) < 1e-9);
+  assert.ok(Math.abs(tiredFactor(100) - 0.6) < 1e-9);
   for (let h = 0; h < 100; h += 5) assert.ok(tiredFactor(h + 5) <= tiredFactor(h), "never faster for being hotter");
   const top = (heat, held) => {
     const w = createWorld(flat(), { x: 100, y: 0 }, { heat });
@@ -445,4 +445,30 @@ test("bonking a luggage cart rolls it but adds no smash charge", () => {
   steps(w, MOVE_SECONDS.swing);
   assert.ok(cart.x > 330 + 40, "it rolls");
   assert.equal(w.hero.charge, 0, "no charge from a cart");
+});
+
+import { STAMINA } from "../src/sim/moves.ts";
+
+test("he heats up fast (owner, 2026-10-15): five seconds' running slows him, walking barely cools him, only standing still or the towel does", () => {
+  const run = createWorld(flat(), { x: 100, y: 0 });
+  settle(run);
+  steps(run, 5, { right: true, run: true });
+  assert.ok(run.hero.heat > STAMINA.from, `five seconds' running: ${run.hero.heat}`);
+  assert.ok(tiredFactor(run.hero.heat) < 1, "and it slows him");
+  const walk = createWorld(flat(), { x: 100, y: 0 }, { heat: 50 });
+  settle(walk);
+  steps(walk, 2, { right: true });
+  const still = createWorld(flat(), { x: 100, y: 0 }, { heat: 50 });
+  settle(still);
+  steps(still, 2);
+  assert.ok(walk.hero.heat > 50 - 2 * HEAT.walk - 0.5 && walk.hero.heat < 50, `walking cools slowly: ${walk.hero.heat}`);
+  assert.ok(still.hero.heat < walk.hero.heat - 4, `standing still cools faster: ${still.hero.heat}`);
+});
+
+test("he slows from 40 heat, down to 0.6 of his speed when full, and sweats before he slows: pants as it bites, steams when overheated", () => {
+  assert.equal(tiredFactor(STAMINA.from), 1);
+  assert.equal(STAMINA.from, 40);
+  assert.ok(Math.abs(tiredFactor(70) - 0.8) < 1e-9);
+  assert.ok(Math.abs(tiredFactor(100) - 0.6) < 1e-9);
+  assert.ok(HEAT.sweat < STAMINA.from && STAMINA.from < HEAT.pant && HEAT.pant < HEAT.steam && HEAT.steam <= HEAT.tired);
 });

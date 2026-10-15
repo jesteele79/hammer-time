@@ -92,9 +92,10 @@ test("stepping the cast is deterministic", () => {
   assert.deepEqual(a.snapshot().cast, b.snapshot().cast);
 });
 
-test("the mallet knocks a server down in one: she flies, lands, lies dazed, gets up and walks off, and the tray leaves a wet floor", () => {
+test("the mallet's last hit knocks a server out: she flies, lands, lies dazed, gets up and walks off, and the tray leaves a wet floor", () => {
   for (const facing of [1, -1]) {
     const w = worldWith([{ id: "s", person: "server-1", x: 300 + facing * 230, y: 0 }], { x: 300, y: 0 });
+    npc(w, "s").hits = CAST.server.hits - 1;
     w.hero.facing = facing;
     press(w, "hammer");
     const evs = steps(w, 0.4);
@@ -116,6 +117,7 @@ test("the mallet knocks a server down in one: she flies, lands, lies dazed, gets
 
 test("a swing hits each cast member once, never one behind him, and a knocked-out one cannot be hit again", () => {
   const w = worldWith([{ id: "a", person: "office-1", x: 520, y: 0 }, { id: "b", person: "office-2", x: 80, y: 0 }], { x: 300, y: 0 });
+  npc(w, "a").hits = CAST.office.hits - 1;
   w.hero.facing = 1;
   press(w, "hammer");
   const evs = steps(w, 0.5);
@@ -126,7 +128,7 @@ test("a swing hits each cast member once, never one behind him, and a knocked-ou
   assert.equal(of(steps(w, 0.5), "castHit").length, 0, "down and out: unhittable");
 });
 
-test("snot knocks staff down and slimes them; hot snot goes through one; students run off gagging", () => {
+test("snot knocks staff down and slimes them; hot snot goes through one; a student's last runs him off gagging", () => {
   const w = worldWith([{ id: "a", person: "server-1", x: 700, y: 0 }, { id: "b", person: "office-1", x: 1000, y: 0 }, { id: "k", person: "student-1", x: 1300, y: 0 }], { x: 300, y: 0 }, { hot: true });
   w.hero.facing = 1;
   press(w, "fire");
@@ -136,6 +138,7 @@ test("snot knocks staff down and slimes them; hot snot goes through one; student
   assert.deepEqual(hits.map((e) => [e.id, e.by]), [[npc(w, "a").id, "snot"], [npc(w, "b").id, "snot"]], "through the first, into the second");
   assert.ok(npc(w, "a").slimed && npc(w, "b").slimed);
   const cold = worldWith([{ id: "k", person: "student-1", x: 700, y: 0 }], { x: 300, y: 0 });
+  npc(cold, "k").hits = CAST.student.hits - 1;
   cold.hero.facing = 1;
   press(cold, "fire");
   const fled = steps(cold, 1);
@@ -232,18 +235,7 @@ test("a rushing server who reaches him costs one pip; walking into one who is no
   assert.ok(["bumped", "idle", "walk"].includes(calm.cast[0].act));
 });
 
-test("at most two attack at once: a third waits for a ticket", () => {
-  const w = worldWith(
-    [{ id: "a", person: "server-1", x: 600, y: 0 }, { id: "b", person: "server-2", x: 650, y: 0 }, { id: "c", person: "server-1", x: 700, y: 0 }],
-    { x: 300, y: 0 },
-  );
-  let most = 0;
-  for (let i = 0; i < Math.round(4 / STEP); i++) { w.step(input()); most = Math.max(most, attackers(w.cast)); }
-  assert.equal(most, 2);
-  assert.ok(w.cast.some((n) => n.act === "windup" || n.act === "attack" || n.rest > 0), "the third got its turn once a ticket came back");
-});
-
-test("an office worker marches head-down at 160, chimes at 400 px, hits once on contact and spills coffee, then rests 2 s", () => {
+test("an office worker marches head-down at 160, chimes at 400 px, hits once on contact and spills coffee, then rests", () => {
   const w = worldWith([{ id: "o", person: "office-1", x: 1200, y: 0, x0: 600, x1: 1400 }], { x: 300, y: 0 });
   const o = npc(w, "o");
   assert.ok(Math.abs(o.vx) === CAST.office.march);
@@ -251,8 +243,8 @@ test("an office worker marches head-down at 160, chimes at 400 px, hits once on 
   assert.ok(of(evs, "chime").length === 1, "one chime on the approach");
   assert.equal(w.hero.patience, 2);
   assert.ok(of(evs, "castSplash").length === 1 && of(evs, "castLine").some((e) => e.text === "Oh. Were you standing there?"));
-  assert.ok(o.rest > 1.5 && o.act === "bumped", "he staggers and rests");
-  const more = steps(w, 1.6);
+  assert.ok(o.rest > CAST.office.rest * 0.75 && o.act === "bumped", "he staggers and rests");
+  const more = steps(w, CAST.office.rest);
   assert.equal(of(more, "hurt").length, 0, "not twice inside his rest and Hammer's grace");
 });
 
@@ -321,7 +313,7 @@ test("a bonked cart reverses and bowls over the bellhop behind it, for the chain
   assert.ok(b.hat === false && b.hits === 1 && !b.out, "hat off, down but not out");
 });
 
-test("a bellhop takes two: dazed four seconds and up again after the first; sliding along the floor when hit while down, bowling what he meets", () => {
+test("a bellhop takes three: dazed four seconds and up again after the first; sliding along the floor when his last hit finds him down, bowling what he meets", () => {
   const w = worldWith([{ id: "b", person: "bellhop-1", x: 530, y: 0 }], { x: 300, y: 0 });
   const b = npc(w, "b");
   w.hero.facing = 1;
@@ -337,13 +329,14 @@ test("a bellhop takes two: dazed four seconds and up again after the first; slid
   // Hit while he is down: the slide, through whoever stands in its way.
   const s = worldWith([{ id: "b", person: "bellhop-1", x: 530, y: 0 }, { id: "o", person: "office-1", x: 1300, y: 0 }], { x: 300, y: 0 });
   const sb = npc(s, "b");
+  sb.hits = CAST.bellhop.hits - 2;
   s.hero.facing = 1;
   press(s, "hammer");
   until(s, () => npc(s, "b").act === "down", 3);
   sb.x = 530;
   press(s, "hammer");
   const evs = steps(s, 2.5);
-  assert.ok(of(evs, "castHit").some((e) => e.id === sb.id) && sb.out, "out after the second");
+  assert.ok(of(evs, "castHit").some((e) => e.id === sb.id) && sb.out, "out after the last");
   const bowled = of(evs, "castHit").find((e) => e.id === npc(s, "o").id);
   assert.ok(bowled && bowled.by === "slide", "the office worker in his path went down");
   assert.ok(of(evs, "chain").some((e) => e.count === 1 && e.points === 100));
@@ -617,6 +610,7 @@ test("the Game scores the shield's bowl: 200", () => {
   const one = { ...LOBBY, cast: [{ id: "o", person: "office-1", x: 2930, y: 0 }], carts: [], crates: [], checkpoints: [], rewards: none };
   const g = createGame({ lobby: one, stash: STASH }, 3);
   play(g);
+  g.world.cast[0].hits = CAST.office.hits - 1;
   Object.assign(g.world.hero, { x: 2700, y: 0, facing: 1 });
   g.run.star = 10;
   const evs = stepsG(g, 2, { right: true, run: true });
@@ -796,17 +790,17 @@ test("coffee that hits him in the air leaves its puddle on the floor under him",
   assert.equal(w.puddles.at(-1).y, 0, "on the marble, not in the air");
 });
 
-test("planes in the air and planes being folded count together against the cap of three", () => {
+test("planes in the air and planes being folded count together against the cap", () => {
   const w = worldWith([{ id: "a", person: "student-1", x: 1400, y: 0 }, { id: "b", person: "student-2", x: 1600, y: 0 }], { x: 700, y: 0 });
   for (const n of w.cast) Object.assign(n, { noticed: true, rest: 0 });
-  for (const id of [90, 91]) w.missiles.push({ id, kind: "plane", x: 5000 + id, y: -2600, vx: 0, vy: 0, spin: 0, life: 3, phase: 0, from: 0 });
+  for (const id of Array.from({ length: CAST.student.planes - 1 }, (_, i) => 90 + i)) w.missiles.push({ id, kind: "plane", x: 5000 + id, y: -2600, vx: 0, vy: 0, spin: 0, life: 3, phase: 0, from: 0 });
   let worst = 0;
   for (let i = 0; i < Math.round(1 / STEP); i++) {
     w.step(input());
     const up = w.missiles.filter((m) => m.kind === "plane").length + w.cast.filter((n) => n.act === "windup").length;
     worst = Math.max(worst, up);
   }
-  assert.ok(worst <= 3, `at most three, counted ${worst}`);
+  assert.ok(worst <= CAST.student.planes, `at most ${CAST.student.planes}, counted ${worst}`);
 });
 
 test("a lecture landing while the screen's office worker rears back brings him out to march, not idle and hidden", () => {
@@ -913,6 +907,7 @@ test("the lunch worker warns and rushes with her own lines; knocked down she lea
   const w = worldWith([{ id: "l", person: "lunch-1", x: 1400, y: 0 }], { x: 900, y: 0 });
   const evs = until(w, (x) => npc(x, "l").act === "attack", 3);
   assert.ok(of(evs, "castLine").some((e) => JOB_LINES.lunch.warn.includes(e.text)), "her warning");
+  npc(w, "l").hits = CAST.server.hits - 1;
   strikeNpc(npc(w, "l"), "mallet", 1, w, []);
   const down = until(w, (x) => npc(x, "l").act === "leave", 6);
   assert.equal(w.puddles.at(-1)?.kind, "gravy");
@@ -967,4 +962,95 @@ test("the lobby's people say exactly what they said before the jobs", () => {
   assert.deepEqual(JOB_LINES.office.frozen, CAST_LINES.office.frozen);
   assert.deepEqual(JOB_LINES.server.notice, STAFF_LINES.server);
   assert.deepEqual(JOB_LINES.bellhop.shove, CAST_LINES.bellhop.shove);
+});
+
+import { TICKETS } from "../src/sim/cast.ts";
+
+/** Swings at `spawn` from where he stands until it has taken `n` hits, walking him back up to it each time; the hits' events. */
+const bonk = (w, spawn, n) => {
+  const hits = [];
+  for (let i = 0; i < n; i++) {
+    const t = npc(w, spawn);
+    until(w, () => hittable(npc(w, spawn)), 8);
+    w.hero.x = t.x - 230;
+    w.hero.facing = 1;
+    w.hero.vx = 0;
+    press(w, "hammer");
+    hits.push(...of(until(w, (x) => x.events.some((e) => e.type === "castHit" && e.id === t.id), 1), "castHit").filter((e) => e.id === t.id));
+  }
+  return hits;
+};
+
+test("tougher staff (owner, 2026-10-15): a server and an office worker take two hits, a bellhop three; short of the last they get back up and fight on", () => {
+  for (const [person, need] of [["server-1", 2], ["office-1", 2], ["bellhop-1", 3], ["cook-1", 2], ["lunch-1", 2]]) {
+    const w = worldWith([{ id: "s", person, x: 900, y: 0 }], { x: 300, y: 0 });
+    const s = npc(w, "s");
+    const first = bonk(w, "s", need - 1);
+    assert.deepEqual(first.map((e) => e.down), Array(need - 1).fill(false), `${person}: not out before the last hit`);
+    assert.ok(!s.out, `${person}: still in it`);
+    until(w, () => npc(w, "s").act === "getup", 8);
+    until(w, () => npc(w, "s").act !== "getup", 2);
+    assert.ok(s.alive && !s.out && s.act !== "leave", `${person}: back on his feet in the fight (${s.act})`);
+    const last = bonk(w, "s", 1);
+    assert.deepEqual(last.map((e) => e.down), [true], `${person}: the last hit knocks him out`);
+    assert.ok(s.out);
+    until(w, () => npc(w, "s").act === "leave", 10);
+    assert.equal(s.act, "leave", `${person}: then he walks off`);
+  }
+});
+
+test("a staffer down but not out can be hit again where he lies", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 900, y: 0 }], { x: 300, y: 0 });
+  const s = npc(w, "s");
+  bonk(w, "s", 1);
+  until(w, () => npc(w, "s").act === "down", 3);
+  assert.ok(hittable(s), "down, and still hittable");
+  w.hero.x = s.x - 230;
+  w.hero.facing = 1;
+  press(w, "hammer");
+  const evs = steps(w, 0.4);
+  assert.deepEqual(of(evs, "castHit").filter((e) => e.id === s.id).map((e) => e.down), [true]);
+});
+
+test("a student takes two: the first snot slimes him and he hops back and keeps throwing; the second sends him off gagging", () => {
+  const w = worldWith([{ id: "k", person: "student-1", x: 700, y: 0 }], { x: 300, y: 0 });
+  const k = npc(w, "k");
+  w.hero.facing = 1;
+  press(w, "fire");
+  const first = steps(w, 1);
+  assert.deepEqual(of(first, "castHit").map((e) => [e.by, e.down]), [["snot", false]]);
+  assert.equal(of(first, "castFlee").length, 0);
+  assert.ok(k.slimed && !k.out && k.alive, "slimed, still in it");
+  until(w, () => hittable(npc(w, "k")) && npc(w, "k").act !== "hop", 3);
+  w.hero.x = k.x - 400;
+  w.hero.facing = 1;
+  w.hero.sinus = 3;
+  w.hero.fireCd = 0;
+  press(w, "fire");
+  const second = steps(w, 1.2);
+  assert.equal(of(second, "castFlee").length, 1, "off he runs");
+  assert.ok(k.out);
+});
+
+test("three may be on the attack at once: a fourth waits for a ticket", () => {
+  assert.equal(TICKETS, 3);
+  const w = worldWith(
+    [600, 650, 700, 750].map((x, i) => ({ id: `s${i}`, person: i % 2 ? "server-2" : "server-1", x, y: 0 })),
+    { x: 300, y: 0 },
+  );
+  let most = 0;
+  for (let i = 0; i < Math.round(4 / STEP); i++) { w.step(input()); most = Math.max(most, attackers(w.cast)); }
+  assert.equal(most, 3);
+});
+
+test("the hit that knocks the tray from a server's hands says so, and she spills where she lands; the next hit has nothing left to drop", () => {
+  const w = worldWith([{ id: "s", person: "server-1", x: 900, y: 0 }], { x: 300, y: 0 });
+  const [first] = bonk(w, "s", 1);
+  assert.deepEqual([first.down, first.drops], [false, true]);
+  until(w, () => npc(w, "s").act === "down", 3);
+  assert.equal(w.puddles.filter((p) => p.kind === "water").length, 1);
+  const [last] = bonk(w, "s", 1);
+  assert.deepEqual([last.down, last.drops], [true, false]);
+  until(w, () => npc(w, "s").act === "down", 3);
+  assert.equal(w.puddles.filter((p) => p.kind === "water").length, 1, "no second puddle");
 });

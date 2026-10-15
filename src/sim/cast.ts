@@ -40,15 +40,19 @@ export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
 /** Who wears a hat that flies off at the first hit. */
 export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook"]);
 
-/** Each role's numbers (the R2b design §2): colliders, how far they notice him, wind-ups, attacks, rests, dazes. World px and seconds. */
+/**
+ * Each role's numbers (the R2b design §2): colliders, how far they notice him, wind-ups, attacks, rests, dazes, and the
+ * hits it takes to put them out. World px and seconds. The owner made them tougher and pushier on 2026-10-15: two hits
+ * for a server, an office worker or a student, three for a bellhop; shorter rests, a longer look, a fourth plane.
+ */
 export const CAST = {
-  bellhop: { w: 100, h: 330, notice: 900, windup: 0.7, windup2: 0.55, shove: 650, walk: 200, rest: 3, daze: 4, hits: 2, hold: 150 },
-  server: { w: 90, h: 310, notice: 680, windup: 0.45, rush: 420, rushT: 2, rushPx: 1000, walk: 200, skid: 0.4, rest: 1.5, daze: 2.5, hits: 1 },
-  office: { w: 95, h: 320, notice: 500, windup: 0.5, march: 160, chime: 400, leap: 500, leapUp: 600, rest: 2, daze: 2.5, hits: 1 },
-  student: { w: 90, h: 310, notice: 1100, windup: 0.65, restMin: 4, restStep: 0.6, melee: 300, hop: 200, hopT: 0.35, duck: 0.5, schooled: 9, flee: 400, planes: 3 },
+  bellhop: { w: 100, h: 330, notice: 1100, windup: 0.7, windup2: 0.55, shove: 650, walk: 200, rest: 2, daze: 4, hits: 3, hold: 150 },
+  server: { w: 90, h: 310, notice: 850, windup: 0.45, rush: 420, rushT: 2, rushPx: 1000, walk: 200, skid: 0.4, rest: 1, daze: 2.5, hits: 2 },
+  office: { w: 95, h: 320, notice: 650, windup: 0.5, march: 160, chime: 400, leap: 500, leapUp: 600, rest: 1.2, daze: 2.5, hits: 2 },
+  student: { w: 90, h: 310, notice: 1100, windup: 0.65, restMin: 2.5, restStep: 0.5, melee: 300, hop: 200, hopT: 0.35, duck: 0.5, schooled: 9, flee: 400, planes: 4, hits: 2 },
 } as const;
-/** How many may be on the attack at once (the design §4). */
-export const TICKETS = 2;
+/** How many may be on the attack at once (the design §4; three since 2026-10-15). */
+export const TICKETS = 3;
 /** The shipped chain: one moving thing bowling staffer after staffer, the eighth a life. */
 export const CHAIN = [100, 200, 400, 800, 1000, 2000, 4000, 8000] as const;
 export const POINTS = { down: 100, slip: 150, schooled: 150, frozen: 50, swat: 50, shield: 200, fled: 100, shaft: 500 } as const;
@@ -108,6 +112,8 @@ export type Npc = {
   cart: number | null;
   hat: boolean;
   prop: boolean;
+  /** The hit that sent him flying knocked the tray, the cup or the pan out of his hands: it spills where he lands. */
+  spills: boolean;
   slimed: boolean;
   /** Degrees turned while flying or sliding; the way a knock threw him; a slide's chain count. */
   spin: number;
@@ -168,6 +174,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       cart,
       hat: HATTED.has(job),
       prop: role !== "bellhop",
+      spills: false,
       slimed: false,
       spin: 0,
       dir: -1,
@@ -213,8 +220,8 @@ export function spill(w: StrikeWorld, n: Npc, kind: SpillKind): void {
   if (w.puddles.length > SNOT.puddles) w.puddles.shift();
 }
 
-function hitEvent(n: Npc, by: CastHitBy, dir: 1 | -1, down: boolean, points: number, events: GameEvent[]) {
-  events.push({ type: "castHit", id: n.id, role: n.role, job: n.job, by, x: n.x, y: n.y - n.h / 2, dir, down, points });
+function hitEvent(n: Npc, by: CastHitBy, dir: 1 | -1, down: boolean, points: number, events: GameEvent[], drops = false) {
+  events.push({ type: "castHit", id: n.id, role: n.role, job: n.job, by, x: n.x, y: n.y - n.h / 2, dir, down, points, drops });
 }
 
 /** Thrown: off his feet, flying `dir`, turning over. */
@@ -250,8 +257,19 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
       n.mark = -1;
       return false;
     }
-    n.out = true;
+    n.hits++;
     n.prop = false;
+    // Short of his last hit he is only slimed or knocked down: he gets back up and keeps throwing.
+    n.out = n.hits >= CAST.student.hits;
+    if (by === "snot" && !n.out) {
+      n.slimed = true;
+      n.dir = dir;
+      n.mark = -1;
+      setAct(n, "hop");
+      say(n, CAST_LINES.student.snot, events);
+      hitEvent(n, by, dir, false, POINTS.down, events);
+      return true;
+    }
     if (by === "snot") {
       n.slimed = true;
       n.facing = dir;
@@ -263,15 +281,15 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
     }
     throwNpc(n, dir, big);
     n.chain = chain;
-    hitEvent(n, by, dir, true, by === "shield" ? POINTS.shield : chain ? 0 : POINTS.down, events);
+    hitEvent(n, by, dir, n.out, by === "shield" ? POINTS.shield : chain ? 0 : POINTS.down, events);
     return true;
   }
   if (by === "snot") n.slimed = true;
   n.hits++;
+  n.spills = n.prop;
   n.prop = false;
   n.hat = false;
-  const again = n.role === "bellhop" && n.hits < CAST.bellhop.hits;
-  n.out = !again;
+  n.out = n.hits >= CAST[n.role].hits;
   const points = by === "shield" ? POINTS.shield : by === "puddle" ? POINTS.slip : chain ? 0 : POINTS.down;
   if (n.role === "bellhop" && n.act === "down") {
     // The second hit while he is down: along the marble on his back.
@@ -289,7 +307,7 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
     throwNpc(n, dir, big);
     n.chain = chain;
   }
-  hitEvent(n, by, dir, n.out, points, events);
+  hitEvent(n, by, dir, n.out, points, events, n.spills);
   return true;
 }
 

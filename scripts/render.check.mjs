@@ -786,7 +786,7 @@ test("the new people sound like themselves: the cook's sizzle and the professor'
   assert.deepEqual(cuesFor({ type: "chime", x: 0, y: 0, job: "prof" }), ["page"]);
   assert.deepEqual(cuesFor({ type: "castSplash", x: 0, y: 0, kind: "papers" }), ["paper"]);
   assert.deepEqual(cuesFor({ type: "castSplash", x: 0, y: 0, kind: "grease" }), ["splash"]);
-  const down = (job, role) => cuesFor({ type: "castHit", id: 1, role, job, by: "mallet", x: 0, y: 0, dir: 1, down: true, points: 100 });
+  const down = (job, role) => cuesFor({ type: "castHit", id: 1, role, job, by: "mallet", x: 0, y: 0, dir: 1, down: true, points: 100, drops: true });
   assert.deepEqual(down("server", "server"), ["shatter"]);
   assert.deepEqual(down("lunch", "server"), ["splash"]);
   assert.deepEqual(down("cook", "office"), ["splash"]);
@@ -1069,4 +1069,12 @@ test("the HUD in the round: its score and clock, his reach from his tap's to 118
   const hud = hudOf(g, null).quest;
   assert.deepEqual(hud, { score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, result: null });
   assert.equal(hudOf(g, null).hint, "Tap Space to dive · hold to reach farther and rob a plate · ← → aim · H bonks the server");
+});
+
+test("what a staffer carries breaks on the hit that knocks it from his hands, not again on his knockout", () => {
+  const hit = (job, role, down, drops) => cuesFor({ type: "castHit", id: 1, role, job, by: "mallet", x: 0, y: 0, dir: 1, down, points: 100, drops });
+  assert.deepEqual(hit("server", "server", false, true), ["shatter"], "the first hit: the tray goes");
+  assert.deepEqual(hit("server", "server", true, false), [], "knocked out with no tray left");
+  assert.deepEqual(hit("lunch", "server", false, true), ["splash"]);
+  assert.deepEqual(hit("prof", "office", false, true), ["page"]);
 });

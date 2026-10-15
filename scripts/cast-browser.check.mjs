@@ -186,13 +186,15 @@ try {
   await shot("cast-coffee.png");
 
   // 7. The shield, last, since it lasts ten seconds and bowls whoever leaps at him: whatever he runs into goes
-  // flying. (The gift drops where he stands, so teleport first.)
-  await tp(7700);
+  // flying. (The gift drops where he stands, so teleport first: a little behind the floor bellhop, wherever his cart
+  // has taken him by now.)
+  const bellhopX = (await page.evaluate(() => window.__next.cast.positions["bellhop-floor"]?.x)) ?? 8200;
+  await tp(Math.round(bellhopX) - 500);
   await page.evaluate(() => window.__next.dev.give("bucees"));
   const [before] = await waitFor((x) => x.star > 9, 1500);
   assert.ok(before.star > 9, "the shield is up");
   await settle();
-  await hold(["ArrowRight", "ShiftLeft"], 1000);
+  await hold(["ArrowRight", "ShiftLeft"], 1400);
   r = await run();
   assert.ok(count(r, "castHit") > count(before, "castHit") || count(r, "hit") > count(before, "hit"), `the shield bowls what he runs into: ${JSON.stringify(r.events)}`);
   await shot("cast-shield.png");

@@ -74,7 +74,8 @@ export type GameEvent =
   /** A cast member says a line (a speech bubble). */
   | { type: "castLine"; id: number; text: string; seconds: number }
   /** A hit landed on a cast member. `down`: knocked out by it. `points` go to the score. */
-  | { type: "castHit"; id: number; role: CastRole; job: CastJob; by: CastHitBy; x: number; y: number; dir: 1 | -1; down: boolean; points: number }
+  /** `down`: knocked out by it; `drops`: it knocked what he carried (the tray, the cup, the pan, the book) out of his hands. */
+  | { type: "castHit"; id: number; role: CastRole; job: CastJob; by: CastHitBy; x: number; y: number; dir: 1 | -1; down: boolean; points: number; drops: boolean }
   /** He landed on someone from above; `landed` is false when a student sidestepped. */
   | { type: "stomp"; x: number; y: number; landed: boolean }
   /** A student runs off (snot, or after a knock). */
