@@ -40,6 +40,7 @@ export const LOBBY: Level = {
     { id: "can-sofa-1", kind: "can", x: 3250, y: -545 },
     { id: "can-sofa-2", kind: "can", x: 4050, y: -545 },
     { id: "case-elevators", kind: "case", x: 5300, y: -435 },
+    { id: "bucees-balcony", kind: "bucees", x: 8200, y: -955 },
     { id: "pepper-wing", kind: "pepper", x: 11400, y: -435 },
     { id: "case-corridor", kind: "case", x: 15500, y: -435 },
   ],
@@ -85,7 +86,7 @@ export const LOBBY: Level = {
     { x: 14300, y: -640, radius: 900, intensity: 0.5 },
   ],
   camera: { zones: [{ x0: 6300, x1: 10900, zoom: 0.88 }] },
-  rewards: { count: Math.ceil(16400 / 544), bucees: 3, nuts: 7 },
+  rewards: { count: Math.ceil(16400 / 1000), bucees: 0, nuts: 3 },
   routes: [
     { id: "floor", x0: 6560, x1: 11100, y0: -100, y1: 0 },
     { id: "balcony", x0: 7493, x1: 10200, y0: -600, y1: -560 },
@@ -113,11 +114,11 @@ export const LOBBY: Level = {
   // The cast (the R2b design §5): the bellhops behind their carts, servers on patrols, the office workers
   // by the elevators and behind the screen, the students at the rail and on a table.
   cast: [
-    { id: "bellhop-desk", person: "bellhop-1", x: 1400, y: 0, cart: 1250 },
+    { id: "bellhop-desk", person: "bellhop-1", x: 1400, y: 0, cart: 1250, carry: "nuts" },
     { id: "server-buffet", person: "server-1", x: 4900, y: 0, x0: 4400, x1: 5200 },
     { id: "office-elevators", person: "office-1", x: 5550, y: 0, x0: 5000, x1: 5850 },
-    { id: "bellhop-floor", person: "bellhop-2", x: 8050, y: 0, cart: 7900 },
-    { id: "server-staff", person: "server-2", x: 9300, y: 0, x0: 8600, x1: 9600 },
+    { id: "bellhop-floor", person: "bellhop-2", x: 8050, y: 0, cart: 7900, carry: "bucees" },
+    { id: "server-staff", person: "server-2", x: 9300, y: 0, x0: 8600, x1: 9600, carry: "nuts" },
     { id: "student-rail-1", person: "student-1", x: 7950, y: -520 },
     { id: "student-rail-2", person: "student-2", x: 8500, y: -520 },
     { id: "student-rail-3", person: "student-1", x: 9650, y: -520, recolor: "#c9a227", size: 1.03 },

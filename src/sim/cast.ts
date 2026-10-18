@@ -1,7 +1,7 @@
 import { CAST_LINES, JOB_LINES, pick, type CastJobName, type CastLineSet } from "../game/lines";
 import type { GameEvent } from "./events";
 import { bodyRect } from "./geometry";
-import type { CastPerson, Level } from "./level";
+import type { CarriedKind, CastPerson, Level } from "./level";
 import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
 import type { Rect, Stage, Target } from "./types";
@@ -133,6 +133,8 @@ export type Npc = {
   cue: boolean;
   /** His index in the cast: stable picks of lines and rests. */
   k: number;
+  /** What he carries until he is knocked out for good (the game drops it). */
+  carry: CarriedKind | null;
 };
 
 export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target[]): Npc[] {
@@ -188,6 +190,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       hopAt: -9,
       cue: false,
       k,
+      carry: s.carry ?? null,
     };
   });
 }

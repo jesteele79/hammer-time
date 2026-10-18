@@ -31,7 +31,7 @@ export const STASH: Level = {
     { x: 2300, y: -700, radius: 800, intensity: 0.4 },
   ],
   camera: { zones: [] },
-  rewards: { count: 8, bucees: 1, nuts: 2 },
+  rewards: { count: 6, bucees: 0, nuts: 1 },
   routes: [],
   music: "cellar",
   hints: { early: 0 },

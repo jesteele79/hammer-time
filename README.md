@@ -158,24 +158,28 @@ The lobby (`src/sim/levels/lobby.ts`) runs 16,400 px in three acts:
 
 - **The entrance and the front desk:** a ! crate over the start with the
   first pepper, the long marble desk to jump (its bell rings under the
-  mallet), the time clock behind it, two sofas with Coke Zero crates over
-  them, a luggage cart, and the BUFFET door.
+  mallet), the time clock behind it and the first bellhop with a bag of nuts
+  to win off him, two sofas with Coke Zero crates over them, a luggage cart,
+  and the BUFFET door.
 - **The elevator bank:** an open shaft, "OUT OF ORDER", the only pit. Then two
   routes. Hop onto the landing and climb the 30-degree grand staircase to the
-  mezzanine (the M CLUB door is up there), or run on under it past the AIRPORT
-  SHUTTLE doors and the STAFF ONLY door to the stash. His jump never reaches
-  the mezzanine from the floor. The escalator carries the balcony route back
-  down where the two meet.
+  mezzanine (the M CLUB door is up there, and a Buc-ee's crate hangs over it
+  with nuts lying up there), or run on under it past the AIRPORT SHUTTLE
+  doors and the STAFF ONLY door to the stash, where the bellhop carries a
+  Buc-ee's and the server a bag of nuts. His jump never reaches the mezzanine
+  from the floor. The escalator carries the balcony route back down where
+  the two meet.
 - **The conference wing:** the second time clock, a second ! crate, banquet
   tables with their chairs, the projector screen, the service corridor to
   slide under, a delivery case and the CLOCK OUT door.
 
 The camera eases out to 0.88 over the mezzanine and never shows past the
 level's edges. The staff stash (`src/sim/levels/stash.ts`) has a shelf whose
-jump bumps the Buc-ee's case, a ! crate and the cart back to the lobby; it
-is stocked once a run: what he takes stays gone, across visits and lost
-lives, and its clock never runs. Walking into it cleaned out, he thinks
-"Can't keep one shelf stocked." and then says "They need to get fired."
+jump bumps the Buc-ee's case, a bag of nuts up on that shelf, a ! crate and
+the cart back to the lobby; it is stocked once a run: what he takes stays
+gone, across visits and lost lives, and its clock never runs. Walking into it
+cleaned out, he thinks "Can't keep one shelf stocked." and then says "They
+need to get fired."
 
 ## The restaurant (1-2)
 
@@ -184,7 +188,8 @@ acts, and its enemy is heat as much as the staff:
 
 - **The dining room:** the host's podium, the closed PRIVATE DINING door
   ("Opens later"), two booths and a table to hop, the first punch clock, and
-  the bar to jump. A busser pushes his bus cart of dirty dishes at Hammer.
+  the bar to jump. A busser pushes his bus cart of dirty dishes at Hammer (he
+  carries a bag of nuts, as does the dock's busser).
 - **The kitchen:** the swinging door. When the kitchen server comes through
   it while he is near, she winds up (the ! burst) and the door bangs open
   toward the dining room: standing in its swing costs a pip; a mallet hit on
@@ -192,10 +197,11 @@ acts, and its enemy is heat as much as the staff:
   line cook crouches behind the counter with only his toque showing and
   rears up to fling a hot pan; the heat-lamp gantry to slide under; and the
   line, two routes. Up on the steel counters the flat-tops add 20 heat a
-  second (a sizzle, steam off his shoes) and the pot rack overhead holds the
-  route's best pickups; down on the floor a second cook marches, and the
-  walk-in freezer's open door takes 30 heat a second off (frost, his
-  breath). The second punch clock is past the line.
+  second (a sizzle, steam off his shoes) and the pot rack overhead holds
+  nuts and a Buc-ee's crate; down on the floor a second cook marches with
+  the line's Buc-ee's on him, and the walk-in freezer's open door takes 30
+  heat a second off (frost, his breath). The second punch clock is past
+  the line.
 - **The loading dock:** a ramp up, produce crates, a delivery case, a busser
   with a trash bin on wheels, the truck well (the one pit: a lost life for
   Hammer, 500 and "DELIVERY REFUSED" for staff knocked in), the truck's bed,
@@ -208,14 +214,16 @@ before the pig, with paper the main threat:
 
 - **The quad:** stone steps up to a brick plaza, students on the benches
   throwing paper, the fountain (its rim, and its top tier from the rim), a
-  professor marching with his nose in his book, steps down to the closed
-  SKILLS LAB door ("Opens with the Skills Lab") and the first punch clock.
+  professor marching with his nose in his book (and a bag of nuts on him),
+  steps down to the closed SKILLS LAB door ("Opens with the Skills Lab") and
+  the first punch clock.
 - **The dining commons:** the serving line with a lunch worker in front of
   it. Then two routes. Hop onto the tray return and ride the conveyor up
   past the trays to the seating deck, out of reach from the floor, with two
-  students; or stay on the floor under it, past an office worker and a
-  second lunch worker at the salad bar. An open stair brings the deck down
-  where the two meet; the second punch clock is past it.
+  students, nuts and a Buc-ee's crate; or stay on the floor under it, past an
+  office worker carrying a Buc-ee's and a second lunch worker at the salad
+  bar carrying nuts. An open stair brings the deck down where the two meet;
+  the second punch clock is past it.
 - **The library steps:** three flights and their landings, ledges beside
   them, students firing down the steps and a second professor on the
   stairs, up to the terrace, a delivery case and the LIBRARY doors into
@@ -226,8 +234,9 @@ before the pig, with paper the main threat:
 The gift shop (`src/sim/levels/giftshop.ts`, "The Pink Menace") runs 4,400 px
 on grey carpet with 300 seconds on the clock: a ! crate by the door, then the
 arena from 600 to 3900, its punch clock at the way in, two plush shelves (180
-and 360 high) and the cash counter (180) to get above the pig, a spotlight in
-the middle, and CLOCK OUT at 4100, chained shut until the pig is down.
+and 360 high) and the cash counter (180) to get above the pig, with its
+Buc-ee's and two bags of nuts up on them, a spotlight in the middle, and CLOCK
+OUT at 4100, chained shut until the pig is down.
 
 - **The pig** (`src/sim/pig.ts`) sleeps until he crosses into the arena; then
   "PIG FIGHT", he gets the pepper (hot, full patience) and 1.2 s of grace, and
@@ -489,9 +498,26 @@ without touching the arm.
   and the best. `/?next=1&venue=restaurant`, `&venue=campus` and
   `&venue=arena` start a fresh shift there straight into play, for the
   checks.
-- **Pickups** are laid out fresh each run by the shipped seeded rule (anchors
-  on floors and platforms, Buc-ee's and nuts first, the rest cans), and each
-  route always gets a can, nuts and a Buc-ee's. They are the real products
+- **Pickups take work** (owner, 2026-10-18: "he should have to work for them
+  a little"). Each run lays them out fresh by the shipped seeded rule, but
+  fewer: one per 1,000 px of a venue (it was one per 544). Buc-ee's and nuts
+  never lie on the plain floor: they sit up on furniture he has to jump onto
+  (sofas, tables, booths, counters, shelves, the mezzanine, the pot rack, the
+  deck), and any the furniture has no room for are cans. Each venue's high
+  road (the mezzanine, the pot rack, the seating deck) has nuts and a can
+  lying up there and a Buc-ee's crate hung a jump above it; its floor road
+  has a can, and its Buc-ee's is carried by a staffer there. Three staffers in
+  each of the lobby, the restaurant and the campus carry something (a
+  Buc-ee's and two bags of nuts), drawn small over their heads, and the hint
+  names it near them ("Carrying Buc-ee's · knock them out and it drops"):
+  knocked out for good, by any hit, the shield or a flop, they drop it where
+  the hit found them, and it pops up and stays where it lands; one knocked
+  into a pit takes it with him, and a lost life puts it back on them. No
+  stretch of 1,600 px from his start to the exit lies bare: each gets a can
+  if nothing else lies in it. The stash keeps its Buc-ee's case with a bag of
+  nuts on its shelf and cans on the floor; the gift shop's Buc-ee's and nuts
+  are up on its shelves and counter. Peppers still come from the ! crates
+  (and the pig fight's refills). They are the real products
   (the shipped pictures in `public/`: Coca-Cola Zero Sugar, Mixed Nuts and
   Buc-ee's Beaver Nuggets), about a quarter of his height, and each has one
   job, which the hint line names for two seconds after he takes it:
@@ -503,10 +529,11 @@ without touching the arm.
     into goes flying; 1000 points. The HUD counts it down beside the beaver.
   - **The pepper is a hot head:** an extra hit point and hot snot; 1000 points.
 - **Crates** open to a head bump from below or the mallet: the ! crate lets
-  out a pepper (nuts if he is already hot) that rises, slides off and turns at
-  walls; the Coke Zero crate pops a can; a delivery case pays a can a hit and
-  breaks after five, under the mallet or the smash, or at once when he has two
-  pips. Carts still roll when bonked but add no smash charge.
+  out a pepper (nuts if he is already hot) and the Buc-ee's crate a Buc-ee's,
+  each rising, sliding off and turning at walls; the Coke Zero crate pops a
+  can; a delivery case pays a can a hit and breaks after five, under the
+  mallet or the smash, or at once when he has two pips. Carts still roll when
+  bonked but add no smash charge.
 - **Punch clocks** save where he comes back: walking past one punches its
   BREAK card gold and the HUD says "Checkpoint saved".
 - **Losing a life:** the last pip's knockdown once he lies still, a fall down
@@ -596,11 +623,14 @@ the towel, snot charges and puddles, the swept mallet and once-per-swing hits,
 the smash's burst, an in-air smash, facing left) and the act checks in
 `acts.check.mjs` (the lecture, the idle beats and what ends them, patience,
 the hurt, the tumble off a ledge, a hit mid-move) and the lobby checks in
-`lobby.check.mjs` (reward anchors and the seeded layout on every route,
-crates and what comes out of them, the run's pickups, deaths counted once
-whether in grace, in the stash or with the clock out mid-knockdown, respawn,
-pause, doors and the stash, the exit's tally, the lobby's shape, and a
-scripted player through both routes) and the cast checks in `cast.check.mjs`
+`lobby.check.mjs` (reward anchors and the seeded layout on every route:
+Buc-ee's and nuts only up on furniture, every high road's crate and every
+floor road's carrier, no bare stretch; staff dropping what they carry, once,
+and getting it back with a lost life; crates and what comes out of them, the
+run's pickups, deaths counted once whether in grace, in the stash or with the
+clock out mid-knockdown, respawn, pause, doors and the stash, the exit's
+tally, the lobby's shape, and a scripted player through both routes) and the
+cast checks in `cast.check.mjs`
 (the spawns and patrols, the double-take, every hit and what it does to each
 role, the shove and the jump over it, the reversed cart, the rush, the march
 and the bump, the planes and the swat, the hop and the duck, the ambush, the
@@ -610,7 +640,7 @@ scripted player fighting through both routes) and the venue checks in
 `venues.check.mjs` (the shift's order and what carries, each venue's clock
 and punch clocks, the heat zones, the swinging door, carts on their floor
 and down pits, footing on stairs, the new people's fights, each venue's
-shape and reach, the seeded rewards on every route, and a scripted player
+shape and reach, a crate over the pot rack a jump above it, and a scripted player
 clearing the restaurant by its floor route, its counters and pot rack checked
 for reach, and the campus by both routes) and the pig checks in
 `pig.check.mjs` (its pattern and timings, the direction lock and the arena's

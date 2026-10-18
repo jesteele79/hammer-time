@@ -528,6 +528,10 @@ export async function startLook(
       case "crate":
         particles.emit("debris", e.x, e.y, 6);
         break;
+      // Knocked out for good, a staffer lets go of what they carried.
+      case "castDrop":
+        particles.emit("glint", e.x, e.y, 6);
+        break;
       case "caseBreak":
         objects.splinter(e.x, e.y);
         words.say("CRUNCH!", e.x, e.y - 90, false, face, view);
@@ -1151,6 +1155,12 @@ export async function startLook(
       snapCamera(x, y);
     }
     objects.sync(game.pickups, game.crates, simDt);
+    objects.carry(
+      world.cast.flatMap((n) => {
+        const crown = n.alive && !n.out && n.carry ? cast.crownOf(n.id) : null;
+        return crown && n.carry ? [{ id: n.id, kind: n.carry, x: crown.x, y: crown.y, facing: crown.facing }] : [];
+      }),
+    );
     // A door he can use glows: the stash's, the cart back, and the BUFFET until it is spent.
     const d = game.door;
     const usable = !!d && (d.kind === "stash" || d.kind === "return" || (d.kind === "quest" && !game.run.spent.includes(d.id)));
@@ -1189,6 +1199,7 @@ export async function startLook(
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, clip };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
+      window.__next.carrying = objects.carrying;
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.headTintChain = character.headTintChain();
       window.__next.faceScreen = faceOnScreen;

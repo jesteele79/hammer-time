@@ -209,7 +209,6 @@ test("the hint names the hazard he is at: the flat-top, the freezer, the swingin
 });
 
 import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
-import { seedRewards } from "../src/sim/rewards.ts";
 import { drive } from "../src/sim/drive.ts";
 import { floorAt } from "../src/sim/physics.ts";
 
@@ -263,23 +262,14 @@ test("the restaurant keeps the spec's shape: its length, two clocks, the three b
   footed(R);
 });
 
-test("the pot rack is reached from the counters, never from the floor; no crate hangs under it", () => {
+test("the pot rack is reached from the counters, never from the floor; no crate hangs under it, one over it hangs a jump above it", () => {
   const rack = RESTAURANT.platforms.find((p) => p.kind === "rack");
   const counters = RESTAURANT.platforms.filter((p) => (p.kind === "steel" || p.kind === "flattop") && p.x1 > rack.x0 && p.x0 < rack.x1);
   assert.ok(counters.length > 0 && counters.every((c) => c.y - rack.y < REACH), "a jump from a counter reaches it");
   assert.ok(0 - rack.y > REACH, "a jump from the floor does not");
-  for (const c of RESTAURANT.crates) assert.ok(c.x < rack.x0 - 100 || c.x > rack.x1 + 100, `crate ${c.id} under the rack`);
-});
-
-test("every run of the restaurant has a can, nuts and a Buc-ee's on the line's floor and up on the rack", () => {
+  for (const c of RESTAURANT.crates)
+    if (c.x > rack.x0 - 100 && c.x < rack.x1 + 100) assert.equal(c.y, rack.y - 435, `crate ${c.id} under the rack`);
   assert.deepEqual(RESTAURANT.routes.map((r) => r.id), ["line", "rack"]);
-  for (let seed = 1; seed <= 24; seed++) {
-    const p = seedRewards(RESTAURANT, seed);
-    assert.equal(p.length, RESTAURANT.rewards.count);
-    for (const r of RESTAURANT.routes)
-      for (const kind of ["can", "nuts", "bucees"])
-        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id}`);
-  }
 });
 
 test("a scripted player clears the restaurant by its floor route: alive, inside the clock, scoring on the cast", () => {
@@ -337,16 +327,6 @@ test("the library's ledges are each reached from the flight or landing beside th
   for (const l of CAMPUS.platforms.filter((p) => p.kind === "ledge")) {
     const near = Math.max(...[l.x0, l.x1, l.x1 + 100].map((x) => -(floorAt(stage, x, -2000) ?? 0)));
     assert.ok(-l.y - near < REACH, `ledge at ${l.x0}: ${-l.y - near} px above its footing`);
-  }
-});
-
-test("every run of the campus has a can, nuts and a Buc-ee's under the deck and on it", () => {
-  assert.deepEqual(CAMPUS.routes.map((r) => r.id), ["floor", "deck"]);
-  for (let seed = 1; seed <= 24; seed++) {
-    const p = seedRewards(CAMPUS, seed);
-    for (const r of CAMPUS.routes)
-      for (const kind of ["can", "nuts", "bucees"])
-        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id}`);
   }
 });
 

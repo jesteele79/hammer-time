@@ -47,6 +47,7 @@ export const RESTAURANT: Level = {
     { id: "pepper-host", kind: "pepper", x: 760, y: -435 },
     { id: "can-booth", kind: "can", x: 1850, y: -545 },
     { id: "can-bar", kind: "can", x: 4650, y: -615 },
+    { id: "bucees-rack", kind: "bucees", x: 8500, y: -955 },
     { id: "pepper-dock", kind: "pepper", x: 11800, y: -635 },
     { id: "case-dock", kind: "case", x: 12850, y: -635 },
   ],
@@ -83,7 +84,7 @@ export const RESTAURANT: Level = {
     { x: 14800, y: -900, radius: 900, intensity: 0.4 },
   ],
   camera: { zones: [{ x0: 7600, x1: 10600, zoom: 0.88 }] },
-  rewards: { count: Math.ceil(15800 / 544), bucees: 3, nuts: 7 },
+  rewards: { count: Math.ceil(15800 / 1000), bucees: 0, nuts: 3 },
   routes: [
     { id: "line", x0: 7600, x1: 10400, y0: -100, y1: 0 },
     { id: "rack", x0: 8000, x1: 10200, y0: -600, y1: -560 },
@@ -102,11 +103,11 @@ export const RESTAURANT: Level = {
   cast: [
     { id: "server-host", person: "server-2", x: 1150, y: 0, x0: 900, x1: 1500, recolor: "#4b2a5c" },
     { id: "server-booths", person: "server-1", x: 2800, y: 0, x0: 2200, x1: 3500 },
-    { id: "busser-dining", person: "busser-1", x: 4030, y: 0, cart: 3880, load: "dishes" },
+    { id: "busser-dining", person: "busser-1", x: 4030, y: 0, cart: 3880, load: "dishes", carry: "nuts" },
     { id: "server-kitchen", person: "server-1", x: 5550, y: 0, x0: 4900, x1: 6000, recolor: "#7a1f2b", size: 0.97 },
     { id: "cook-pass", person: "cook-1", x: 6300, y: 0, hide: true },
-    { id: "cook-line", person: "cook-1", x: 8600, y: 0, x0: 7700, x1: 10400, recolor: "#26262a" },
-    { id: "busser-dock", person: "busser-1", x: 13230, y: -200, cart: 13080, load: "trash", recolor: "#6b1f2a" },
+    { id: "cook-line", person: "cook-1", x: 8600, y: 0, x0: 7700, x1: 10400, recolor: "#26262a", carry: "bucees" },
+    { id: "busser-dock", person: "busser-1", x: 13230, y: -200, cart: 13080, load: "trash", recolor: "#6b1f2a", carry: "nuts" },
     { id: "server-break", person: "server-2", x: 14650, y: -200, x0: 14100, x1: 14950 },
   ],
   backdrop: {

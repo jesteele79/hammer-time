@@ -51,6 +51,7 @@ export const CAMPUS: Level = {
   crates: [
     { id: "pepper-quad", kind: "pepper", x: 760, y: -435 },
     { id: "can-serving", kind: "can", x: 6300, y: -615 },
+    { id: "bucees-deck", kind: "bucees", x: 8900, y: -955 },
     { id: "pepper-library", kind: "pepper", x: 11800, y: -435 },
     { id: "case-terrace", kind: "case", x: 15300, y: -1335 },
   ],
@@ -91,7 +92,7 @@ export const CAMPUS: Level = {
       { x0: 11800, x1: 16800, zoom: 0.88 },
     ],
   },
-  rewards: { count: Math.ceil(16400 / 544), bucees: 3, nuts: 7 },
+  rewards: { count: Math.ceil(16400 / 1000), bucees: 0, nuts: 3 },
   routes: [
     { id: "floor", x0: 8300, x1: 10400, y0: -100, y1: 0 },
     { id: "deck", x0: 8300, x1: 10400, y0: -600, y1: -560 },
@@ -102,12 +103,12 @@ export const CAMPUS: Level = {
   cast: [
     { id: "student-bench-1", person: "student-1", x: 1950, y: -300, sit: true, recolor: "#c9a227", size: 1.03 },
     { id: "student-bench-2", person: "student-2", x: 3550, y: -300, sit: true },
-    { id: "prof-quad", person: "prof-1", x: 3950, y: -200, x0: 3300, x1: 4150 },
+    { id: "prof-quad", person: "prof-1", x: 3950, y: -200, x0: 3300, x1: 4150, carry: "nuts" },
     { id: "lunch-line", person: "lunch-1", x: 5400, y: 0, x0: 5200, x1: 6900 },
     { id: "student-deck-1", person: "student-1", x: 8700, y: -520 },
     { id: "student-deck-2", person: "student-2", x: 9500, y: -520, recolor: "#2a8c8a", size: 1.02 },
-    { id: "office-commons", person: "office-1", x: 9400, y: 0, x0: 8500, x1: 10300, recolor: "#c8d8b0" },
-    { id: "lunch-salad", person: "lunch-1", x: 10050, y: 0, x0: 9600, x1: 10400, recolor: "#9b2335" },
+    { id: "office-commons", person: "office-1", x: 9400, y: 0, x0: 8500, x1: 10300, recolor: "#c8d8b0", carry: "bucees" },
+    { id: "lunch-salad", person: "lunch-1", x: 10050, y: 0, x0: 9600, x1: 10400, recolor: "#9b2335", carry: "nuts" },
     { id: "student-steps-1", person: "student-2", x: 12850, y: -300, recolor: "#b5532a" },
     { id: "prof-steps", person: "prof-1", x: 13300, y: -473, x0: 12520, x1: 13520, recolor: "#5d6066" },
     { id: "student-steps-2", person: "student-1", x: 13850, y: -600, recolor: "#8a3b8f", size: 0.98 },

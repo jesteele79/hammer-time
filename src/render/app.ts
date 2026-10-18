@@ -37,6 +37,8 @@ export type NextProbe = {
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; clip?: string };
   heroScreenHeight?: number;
   heroScreenX?: number;
+  /** How many staffers on screen show the prize they carry over their heads. */
+  carrying?: number;
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
   /** His face box on screen, CSS px: nothing in the shell may cover it. */

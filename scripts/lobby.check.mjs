@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { rewardAnchors, stageOf, ANCHOR_STEP } from "../src/sim/level.ts";
-import { seedRewards, seededRandom } from "../src/sim/rewards.ts";
+import { seedRewards, seededRandom, SPREAD } from "../src/sim/rewards.ts";
 import { floorAt } from "../src/sim/physics.ts";
 
 /** A small level for the rules: a floor with a gap, a desk, a pass, a shelf, a door. */
@@ -36,13 +36,17 @@ test("reward anchors stand on floors and shelves, never in a gap, a solid, a doo
   for (let i = 1; i < xs.length; i++) assert.ok(xs[i] - xs[i - 1] >= ANCHOR_STEP - 1e-9, "anchors are spread");
 });
 
-test("the seeding places the level's count: its Buc-ee's and nuts first, the rest cans, the same every time for a seed", () => {
-  const level = mini();
+/** Up on a platform: where a pickup that takes a jump lies. */
+const onFurniture = (level, p) => level.platforms.some((s) => p.x >= s.x0 && p.x <= s.x1 && Math.abs(p.y - (s.y - 70)) < 1e-9);
+
+test("the seeding places the level's count: Buc-ee's and nuts only up on furniture, the rest cans, the same every time for a seed", () => {
+  const level = { ...mini(), rewards: { count: 12, bucees: 1, nuts: 2 } };
   for (let seed = 1; seed <= 24; seed++) {
     const a = seedRewards(level, seed);
     assert.equal(a.length, 12);
     const kinds = (k) => a.filter((p) => p.kind === k).length;
-    assert.deepEqual([kinds("bucees"), kinds("nuts"), kinds("can")], [3, 7, 2], `seed ${seed}`);
+    assert.deepEqual([kinds("bucees"), kinds("nuts"), kinds("can")], [1, 2, 9], `seed ${seed}`);
+    for (const p of a) if (p.kind !== "can") assert.ok(onFurniture(level, p), `seed ${seed}: ${p.kind} lying on the floor at ${p.x}`);
     assert.deepEqual(seedRewards(level, seed), a, "deterministic");
   }
   const one = JSON.stringify(seedRewards(level, 1).map((p) => [p.x, p.kind]));
@@ -52,17 +56,117 @@ test("the seeding places the level's count: its Buc-ee's and nuts first, the res
   assert.ok(Math.abs(r() - seededRandom(0xc0ffee)()) < 1e-12);
 });
 
-test("every route gets a can, nuts and a Buc-ee's, whatever the seed", () => {
-  const level = { ...mini(), routes: [{ id: "shelf", x0: 4000, x1: 4600, y0: -400, y1: -300 }, { id: "floor", x0: 500, x1: 2500, y0: -100, y1: 0 }] };
+test("more Buc-ee's and nuts than the furniture has room for are cans instead: the count holds", () => {
+  const level = mini();
+  assert.equal(rewardAnchors(level).filter((a) => a.raised).length, 3, "the shelf has room for three");
+  for (let seed = 1; seed <= 12; seed++) {
+    const p = seedRewards(level, seed);
+    const kinds = (k) => p.filter((q) => q.kind === k).length;
+    assert.deepEqual([p.length, kinds("bucees"), kinds("nuts"), kinds("can")], [12, 3, 0, 9], `seed ${seed}`);
+  }
+});
+
+test("nuts a route's can left no room for are cans too: the count holds", () => {
+  // The shelf has room for three; the shelf route takes nuts and then a can up there, so only two bags fit.
+  const level = { ...mini(), rewards: { count: 12, bucees: 0, nuts: 3 }, routes: [{ id: "shelf", x0: 4000, x1: 4600, y0: -400, y1: -300 }] };
+  for (let seed = 1; seed <= 12; seed++) {
+    const p = seedRewards(level, seed);
+    const kinds = (k) => p.filter((q) => q.kind === k).length;
+    assert.deepEqual([p.length, kinds("nuts"), kinds("can")], [12, 2, 10], `seed ${seed}`);
+  }
+});
+
+test("each route first takes what fits it: a can on its floor; up on its furniture a Buc-ee's, nuts and a can", () => {
+  const level = { ...mini(), rewards: { count: 12, bucees: 1, nuts: 1 }, routes: [{ id: "shelf", x0: 4000, x1: 4600, y0: -400, y1: -300 }, { id: "floor", x0: 500, x1: 2500, y0: -100, y1: 0 }] };
+  const [shelf, floor] = level.routes;
+  const inRoute = (q, r) => q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1;
   for (let seed = 1; seed <= 24; seed++) {
     const p = seedRewards(level, seed);
     assert.equal(p.length, 12);
-    for (const r of level.routes)
-      for (const kind of ["can", "nuts", "bucees"])
-        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id}`);
-    const kinds = (k) => p.filter((q) => q.kind === k).length;
-    assert.deepEqual([kinds("bucees"), kinds("nuts"), kinds("can")], [3, 7, 2], "the totals still hold");
+    for (const kind of ["can", "nuts", "bucees"]) assert.ok(p.some((q) => q.kind === kind && inRoute(q, shelf)), `seed ${seed}: ${kind} on the shelf`);
+    assert.ok(p.some((q) => q.kind === "can" && inRoute(q, floor)), `seed ${seed}: a can on the floor route`);
+    assert.ok(!p.some((q) => q.kind !== "can" && inRoute(q, floor)), `seed ${seed}: only cans lie on the floor`);
   }
+});
+
+test("no stretch of a level lies bare: every 1,600 px from his start to the exit with room for a pickup has one, whatever the seed", () => {
+  assert.equal(SPREAD, 1600);
+  for (const level of [mini(), LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, STASH]) {
+    const exit = level.doors.find((d) => d.kind === "exit");
+    const end = exit ? exit.x : level.length;
+    const anchors = rewardAnchors(level);
+    const main = [LOBBY, RESTAURANT, CAMPUS].includes(level);
+    for (let x0 = level.spawn.x; x0 < end; x0 += SPREAD) {
+      const x1 = Math.min(x0 + SPREAD, end);
+      const room = anchors.some((a) => a.x >= x0 && a.x < x1);
+      if (main) assert.ok(room, `${level.id}: room for a pickup between ${x0} and ${x1}`);
+      if (!room) continue;
+      for (let seed = 1; seed <= 24; seed++)
+        assert.ok(
+          seedRewards(level, seed).some((p) => p.x >= x0 && p.x < x1),
+          `${level.id} seed ${seed}: nothing lies between ${x0} and ${x1}`,
+        );
+    }
+  }
+});
+
+test("the lobby, the restaurant and the campus lay out one pickup per 1,000 px (it was one per 544): three bags of nuts up on furniture, no Buc-ee's, the rest cans", () => {
+  for (const level of [LOBBY, RESTAURANT, CAMPUS]) {
+    assert.deepEqual(level.rewards, { count: Math.ceil(level.length / 1000), bucees: 0, nuts: 3 }, level.id);
+    for (let seed = 1; seed <= 24; seed++) {
+      const p = seedRewards(level, seed);
+      assert.equal(p.length, level.rewards.count);
+      assert.ok(!p.some((q) => q.kind === "bucees"), `${level.id} seed ${seed}: a Buc-ee's lying in the open`);
+      assert.equal(p.filter((q) => q.kind === "nuts").length, 3);
+      for (const q of p) if (q.kind === "nuts") assert.ok(onFurniture(level, q), `${level.id} seed ${seed}: nuts on the floor at ${q.x}`);
+    }
+  }
+});
+
+test("each venue's high road has nuts and a can lying up there and a Buc-ee's crate hung a jump over it; on its floor road a staffer carries a Buc-ee's", () => {
+  for (const [level, low, high, kind] of [
+    [LOBBY, "floor", "balcony", "balcony"],
+    [RESTAURANT, "line", "rack", "rack"],
+    [CAMPUS, "floor", "deck", "deck"],
+  ]) {
+    const floor = level.routes.find((r) => r.id === low);
+    const route = level.routes.find((r) => r.id === high);
+    const top = level.platforms.find((p) => p.kind === kind);
+    const inRoute = (q, r) => q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1;
+    for (let seed = 1; seed <= 24; seed++) {
+      const p = seedRewards(level, seed);
+      for (const k of ["nuts", "can"]) assert.ok(p.some((q) => q.kind === k && inRoute(q, route)), `${level.id} seed ${seed}: ${k} up on the ${high}`);
+      assert.ok(p.some((q) => q.kind === "can" && inRoute(q, floor)), `${level.id} seed ${seed}: a can on the ${low}`);
+    }
+    const box = level.crates.filter((c) => c.kind === "bucees" && c.x > top.x0 + 100 && c.x < top.x1 - 100);
+    assert.equal(box.length, 1, `${level.id}: one Buc-ee's crate over the ${high}`);
+    assert.equal(box[0].y, top.y - 435, `${level.id}: a jump's bump above the ${high}`);
+    assert.ok(
+      level.cast.some((s) => s.carry === "bucees" && s.y === 0 && s.x >= floor.x0 && s.x <= floor.x1),
+      `${level.id}: a staffer on the ${low} carries a Buc-ee's`,
+    );
+  }
+});
+
+test("in each venue three staffers carry something: a Buc-ee's and two bags of nuts, never a student or someone hiding", () => {
+  for (const level of [LOBBY, RESTAURANT, CAMPUS]) {
+    const carriers = level.cast.filter((s) => s.carry);
+    assert.deepEqual(carriers.map((s) => s.carry).sort(), ["bucees", "nuts", "nuts"], level.id);
+    for (const s of carriers) assert.ok(!s.person.startsWith("student") && !s.hide, `${level.id}: ${s.id} carries`);
+  }
+  for (const level of [GIFTSHOP, STASH]) assert.ok(!(level.cast ?? []).some((s) => s.carry), level.id);
+});
+
+test("the gift shop's Buc-ee's and nuts are up on the plush shelves and the counter; the stash's nuts on its shelf, under the Buc-ee's case", () => {
+  assert.deepEqual(GIFTSHOP.rewards, { count: 6, bucees: 1, nuts: 2 });
+  assert.deepEqual(STASH.rewards, { count: 6, bucees: 0, nuts: 1 });
+  for (const level of [GIFTSHOP, STASH])
+    for (let seed = 1; seed <= 24; seed++) {
+      const p = seedRewards(level, seed);
+      const kinds = (k) => p.filter((q) => q.kind === k).length;
+      assert.deepEqual([p.length, kinds("bucees"), kinds("nuts")], [level.rewards.count, level.rewards.bucees, level.rewards.nuts], `${level.id} seed ${seed}`);
+      for (const q of p) if (q.kind !== "can") assert.ok(onFurniture(level, q), `${level.id} seed ${seed}: ${q.kind} on the floor at ${q.x}`);
+    }
 });
 
 import { CRATE, cratesOf, crateSolids, hitCrate } from "../src/sim/crates.ts";
@@ -373,20 +477,24 @@ test("the lobby keeps the spec's shape: 14,000 to 18,000 px, two clocks, the thr
   for (const d of ["BUFFET", "AIRPORT SHUTTLE", "M CLUB", "STAFF ONLY", "CLOCK OUT"]) assert.ok(LOBBY.doors.some((x) => x.label === d), d);
 });
 
-test("every run of the lobby has a can, nuts and a Buc-ee's on both routes", () => {
+test("the lobby's floor road has a can lying and staff carrying a Buc-ee's and nuts; the balcony has nuts and a can up there", () => {
   assert.deepEqual(LOBBY.routes.map((r) => r.id), ["floor", "balcony"]);
+  const [floor, balcony] = LOBBY.routes;
+  const inRoute = (q, r) => q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1;
   for (let seed = 1; seed <= 24; seed++) {
     const p = seedRewards(LOBBY, seed);
     assert.equal(p.length, LOBBY.rewards.count);
-    for (const r of LOBBY.routes)
-      for (const kind of ["can", "nuts", "bucees"])
-        assert.ok(p.some((q) => q.kind === kind && q.x >= r.x0 && q.x <= r.x1 && q.y >= r.y0 && q.y <= r.y1), `seed ${seed}: ${kind} on the ${r.id} route`);
+    assert.ok(p.some((q) => q.kind === "can" && inRoute(q, floor)), `seed ${seed}: a can on the floor route`);
+    for (const kind of ["can", "nuts"]) assert.ok(p.some((q) => q.kind === kind && inRoute(q, balcony)), `seed ${seed}: ${kind} on the balcony`);
   }
+  const carried = LOBBY.cast.filter((s) => s.carry && s.y === 0 && s.x >= floor.x0 && s.x <= floor.x1).map((s) => s.carry);
+  assert.deepEqual(carried.sort(), ["bucees", "nuts"]);
 });
 
-test("nothing hangs where his head would meet the balcony from below", () => {
+test("nothing hangs where his head would meet the balcony from below; a crate over it hangs a jump above it", () => {
   const balcony = LOBBY.platforms.find((p) => p.kind === "balcony");
-  for (const c of LOBBY.crates) assert.ok(c.x < balcony.x0 - 100 || c.x > balcony.x1 + 100, `crate ${c.id} under the balcony`);
+  for (const c of LOBBY.crates)
+    if (c.x > balcony.x0 - 100 && c.x < balcony.x1 + 100) assert.equal(c.y, balcony.y - 435, `crate ${c.id} under the balcony`);
   for (const p of LOBBY.platforms) if (p !== balcony && p.x1 > balcony.x0 && p.x0 < balcony.x1) assert.ok(p.y - balcony.y > 300 + 100, `platform at ${p.y} under the balcony`);
 });
 
@@ -741,5 +849,118 @@ test("every crate in every level opens to a head bump from what stands under it,
       const evs = [...g.events, ...stepsG(g, 0.9, { jump: true })];
       assert.ok(evs.some((e) => (e.type === "crate" && e.id === c.id) || (e.type === "canPop" && Math.abs(e.x - c.x) < 1)), `${at}: the bump opens it`);
     }
+  }
+});
+
+import { CAST, hittable } from "../src/sim/cast.ts";
+import { hintOf } from "../src/render/hud.ts";
+
+/** A floor with one staffer on it carrying `carry`, nothing else to pick up. */
+const carrierLevel = (carry = "nuts", person = "server-1") => ({
+  ...mini(), solids: [], crates: [], carts: [], checkpoints: [], rewards: { count: 0, bucees: 0, nuts: 0 },
+  cast: [{ id: "s", person, x: 1430, y: 0, carry }],
+});
+const carrier = (g) => g.world.cast.find((n) => n.spawn === "s");
+/** Stands him 230 px short of the carrier, facing them, and swings once; the events of the swing. */
+const swingAt = (g) => {
+  until(g, () => hittable(carrier(g)), 8);
+  Object.assign(g.world.hero, { x: carrier(g).x - 230, y: 0, vx: 0, facing: 1 });
+  g.step(input({ hammer: true }, { hammer: true }));
+  return [...g.events, ...stepsG(g, 0.4)];
+};
+
+test("a staffer drops what they carry when knocked out for good, once; a hit short of that leaves it on them", () => {
+  const g = createGame({ lobby: carrierLevel(), stash: stashOf() }, 7);
+  play(g);
+  assert.equal(carrier(g).carry, "nuts");
+  const first = swingAt(g);
+  assert.deepEqual(first.filter((e) => e.type === "castHit").map((e) => e.down), [false], "one hit, not out");
+  assert.ok(!first.some((e) => e.type === "castDrop") && g.pickups.length === 0 && carrier(g).carry === "nuts", "still carrying");
+  const last = swingAt(g);
+  assert.ok(last.some((e) => e.type === "castHit" && e.down), "knocked out");
+  const drops = last.filter((e) => e.type === "castDrop");
+  assert.deepEqual(drops.map((e) => e.kind), ["nuts"]);
+  assert.equal(carrier(g).carry, null, "nothing left on her");
+  assert.deepEqual(g.pickups.map((p) => p.kind), ["nuts"]);
+  assert.ok(Math.abs(g.pickups[0].x - drops[0].x) < 1, "it comes out where she was hit");
+  const later = stepsG(g, 6);
+  assert.ok(!later.some((e) => e.type === "castDrop") && g.pickups.length === 1, "only once");
+});
+
+test("what a staffer drops pops up, lands where they were hit and stays, and is his to take", () => {
+  for (const person of ["server-1", "bellhop-1", "office-1"]) {
+    const g = createGame({ lobby: carrierLevel("nuts", person), stash: stashOf() }, 7);
+    play(g);
+    carrier(g).hits = CAST[carrier(g).role].hits - 1;
+    until(g, () => hittable(carrier(g)), 8);
+    Object.assign(g.world.hero, { x: carrier(g).x - 230, y: 0, vx: 0, facing: 1 });
+    g.step(input({ hammer: true }, { hammer: true }));
+    let drop = null;
+    let top = Infinity;
+    for (let i = 0; i < Math.round(0.8 / STEP); i++) {
+      drop ??= g.events.find((e) => e.type === "castDrop") ?? null;
+      if (g.pickups[0]) top = Math.min(top, g.pickups[0].y);
+      g.step(input());
+    }
+    assert.ok(drop, `${person}: a drop`);
+    const p = g.pickups[0];
+    assert.ok(top < drop.y - 60, `${person}: it pops up out of them: ${top} from ${drop.y}`);
+    stepsG(g, 2);
+    assert.ok(p.body.onGround && Math.abs(p.y - (0 - 35)) < 2, `${person}: landed on the floor: ${p.y}`);
+    assert.ok(Math.abs(p.x - drop.x) < 1, `${person}: where they were hit, not sliding off: ${p.x} vs ${drop.x}`);
+    const charge = g.world.hero.charge;
+    Object.assign(g.world.hero, { x: p.x, vx: 0 });
+    stepsG(g, 0.1);
+    assert.ok(p.taken && g.world.hero.charge === charge + RUN.nutCharge, `${person}: he takes it`);
+  }
+});
+
+test("the Buc-ee's shield's bowl knocks a carrier out and drops what they carry too", () => {
+  const g = createGame({ lobby: carrierLevel("bucees"), stash: stashOf() }, 7);
+  play(g);
+  carrier(g).hits = CAST.server.hits - 1;
+  Object.assign(g.world.hero, { x: 1000, y: 0, facing: 1 });
+  g.run.star = 5;
+  const evs = until(g, (x) => x.events.some((e) => e.type === "castDrop"), 2, { right: true, run: true });
+  assert.ok(evs.some((e) => e.type === "castHit" && e.by === "shield" && e.down), "bowled out");
+  assert.deepEqual(evs.filter((e) => e.type === "castDrop").map((e) => e.kind), ["bucees"]);
+});
+
+test("a lost life puts what they carried back on them, and what they dropped is gone; a trip to the stash changes nothing", () => {
+  const g = createGame({ lobby: carrierLevel("bucees"), stash: stashOf() }, 7);
+  play(g);
+  carrier(g).hits = CAST.server.hits - 1;
+  swingAt(g);
+  assert.equal(carrier(g).carry, null);
+  assert.equal(g.pickups.filter((p) => p.kind === "bucees").length, 1);
+  // The stash and back: she stays beaten and her Buc-ee's stays where it fell.
+  g.world.hero.x = 5200;
+  stepsG(g, 0.3);
+  stepsG(g, 0.1, { down: true });
+  assert.equal(g.level.id, "stash");
+  g.world.hero.x = 300;
+  stepsG(g, 0.3);
+  stepsG(g, 0.1, { down: true });
+  assert.equal(g.level.id, "lobby");
+  assert.ok(carrier(g).carry === null && g.pickups.some((p) => p.kind === "bucees" && !p.taken), "as he left it");
+  g.world.hero.invuln = 0;
+  knockOut(g);
+  until(g, (x) => x.mode === "card");
+  play(g);
+  assert.equal(carrier(g).carry, "bucees", "back on her");
+  assert.ok(!g.pickups.some((p) => p.kind === "bucees"), "the dropped one is gone");
+});
+
+test("near a staffer who carries something, the hint names it and how to get it", () => {
+  for (const [carry, name] of [["bucees", "Buc-ee's"], ["nuts", "mixed nuts"]]) {
+    const g = createGame({ lobby: carrierLevel(carry), stash: stashOf() }, 7);
+    play(g);
+    Object.assign(g.world.hero, { x: 900, y: 0 });
+    assert.equal(hintOf(g), `Carrying ${name} · knock them out and it drops`);
+    carrier(g).carry = null;
+    assert.notEqual(hintOf(g), `Carrying ${name} · knock them out and it drops`);
+    carrier(g).carry = carry;
+    Object.assign(g.world.hero, { x: 200 });
+    assert.notEqual(hintOf(g), `Carrying ${name} · knock them out and it drops`, "not from across the room");
   }
 });

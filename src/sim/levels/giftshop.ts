@@ -34,7 +34,7 @@ export const GIFTSHOP: Level = {
     { x: 4000, y: -700, radius: 800, intensity: 0.45 },
   ],
   camera: { zones: [{ x0: 600, x1: 3900, zoom: 0.92 }] },
-  rewards: { count: 8, bucees: 1, nuts: 2 },
+  rewards: { count: 6, bucees: 1, nuts: 2 },
   routes: [],
   music: "day",
   hints: { early: 560 },

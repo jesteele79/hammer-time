@@ -2,7 +2,7 @@ import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js
 import { ART_BASE } from "../art/registry";
 import PRODUCT_TABLE from "./products.json" with { type: "json" };
 import { CRATE, type Crate } from "../sim/crates";
-import type { CrateKind } from "../sim/level";
+import type { CarriedKind, CrateKind } from "../sim/level";
 import type { Pickup, PickupKind } from "../sim/rewards";
 import { SCENERY_Z } from "./backdrop";
 import { PALETTE, shadowOf, tones } from "./palette";
@@ -31,6 +31,11 @@ const PICKUP_Z = SCENERY_Z + 1;
 const CRATE_Z = SCENERY_Z + 2;
 /** A crate hit from below jumps this far and settles over this long. */
 const CRATE_BUMP = { px: 12, t: 0.12 } as const;
+/**
+ * What a staffer carries shows beside the back of their head, clear of the ! and their speech over it: at this scale of a
+ * pickup, its middle this far behind and below the crown, in a gold glow this wide, easing round in this long when they turn.
+ */
+const CARRIED = { scale: 0.78, behind: 100, below: 40, glow: 48, turn: 0.15 } as const;
 const BURSTS: Record<PickupKind, RecipeName> = { can: "frost", nuts: "crumbs", bucees: "gold", pepper: "fizz" };
 
 /**
@@ -212,7 +217,9 @@ export class Objects {
   private readonly root = new Container();
   private readonly pickups = new Map<number, { c: Container; taken: boolean }>();
   private readonly crates = new Map<string, CrateView>();
+  private readonly carried = new Map<number, { c: Container; side: number }>();
   private t = 0;
+  private dt = 0;
   private steam = 0;
 
   constructor(
@@ -226,12 +233,54 @@ export class Objects {
   clear() {
     for (const p of this.pickups.values()) p.c.destroy({ children: true });
     for (const c of this.crates.values()) c.root.destroy({ children: true });
+    for (const c of this.carried.values()) c.c.destroy({ children: true });
     this.pickups.clear();
     this.crates.clear();
+    this.carried.clear();
+  }
+
+  /** How many staffers show what they carry. */
+  get carrying(): number {
+    return this.carried.size;
+  }
+
+  /**
+   * What each staffer still carries, small beside the back of their head (`x, y` their crown, `facing` theirs) and bobbing
+   * with a glint now and then: knock them out and it drops (owner, 2026-10-18). Call after `sync`, which keeps the time.
+   */
+  carry(list: readonly { id: number; kind: CarriedKind; x: number; y: number; facing: 1 | -1 }[]) {
+    const seen = new Set<number>();
+    for (const c of list) {
+      seen.add(c.id);
+      let held = this.carried.get(c.id);
+      if (!held) {
+        const view = new Container();
+        // A gold glow behind it, so a prize on the move reads as one at a glance on a phone.
+        view.addChild(new Graphics().circle(0, 0, CARRIED.glow).fill({ color: COLORS.bucees, alpha: 0.38 }).circle(0, 0, CARRIED.glow).stroke({ width: 3, color: "#fff4c2", alpha: 0.7 }));
+        const item = pickupView(c.kind);
+        item.scale.set(CARRIED.scale);
+        view.addChild(item);
+        view.zIndex = PICKUP_Z;
+        this.root.addChild(view);
+        held = { c: view, side: -c.facing };
+        this.carried.set(c.id, held);
+      }
+      held.side += (-c.facing - held.side) * Math.min(1, this.dt / CARRIED.turn);
+      const x = c.x + held.side * CARRIED.behind;
+      const y = c.y + CARRIED.below + bob(this.t, c.id) * CARRIED.scale;
+      held.c.position.set(x, y);
+      if (Math.floor((this.t + c.id * 0.37) / 2.4) !== Math.floor((this.t - this.dt + c.id * 0.37) / 2.4)) this.particles.emit("glint", x + 10, y - 14, 1);
+    }
+    for (const [id, held] of this.carried)
+      if (!seen.has(id)) {
+        held.c.destroy({ children: true });
+        this.carried.delete(id);
+      }
   }
 
   sync(pickups: readonly Pickup[], crates: readonly Crate[], dt: number) {
     this.t += dt;
+    this.dt = dt;
     const seen = new Set<number>();
     for (const p of pickups) {
       seen.add(p.id);

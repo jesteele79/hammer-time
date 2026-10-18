@@ -107,7 +107,10 @@ export type CastSpawn = {
   size?: number;
   /** A busser's cart's load. */
   load?: CartLoad;
+  /** What they carry and drop when knocked out for good: the floor road's prize is a fight (owner, 2026-10-18). */
+  carry?: CarriedKind;
 };
+export type CarriedKind = "can" | "nuts" | "bucees";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
@@ -142,7 +145,7 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   carts: number[];
   lights: LevelLight[];
   camera: { zones: CameraZone[] };
-  /** How many pickups the seeding places, and how many of them are Buc-ee's and nuts. */
+  /** How many pickups the seeding places, and how many of them are Buc-ee's and nuts (those only up on platforms). */
   rewards: { count: number; bucees: number; nuts: number };
   routes: RewardRoute[];
   music: "day" | "cellar";
@@ -192,10 +195,11 @@ const CLEAR = { door: 150, cart: 200, crate: 120, checkpoint: 120, belt: 150 } a
  * Where pickups may go (the shipped rule, scaled): on level floor and on platforms, one anchor per
  * ANCHOR_STEP, never over a gap or a slope or a belt, inside a solid, in a doorway, on a cart, under
  * a crate, on a punch clock or on the steps at either end of a belt. A pickup's middle sits PICKUP_SIZE
- * above the surface.
+ * above the surface. `raised` marks one up on a platform: a jump to reach.
  */
-export function rewardAnchors(level: Level): Point[] {
-  const out: Point[] = [];
+export type Anchor = Point & { raised: boolean };
+export function rewardAnchors(level: Level): Anchor[] {
+  const out: Anchor[] = [];
   const blocked = (x: number, y: number) =>
     level.solids.some((s) => x > s.x - 40 && x < s.x + s.w + 40 && y > s.y - PICKUP_SIZE) ||
     level.doors.some((d) => Math.abs(x - d.x) < CLEAR.door) ||
@@ -208,13 +212,13 @@ export function rewardAnchors(level: Level): Point[] {
     for (let x = f.x0 + ANCHOR_STEP; x < f.x1 - ANCHOR_STEP / 2; x += ANCHOR_STEP) {
       const y = f.y0 - PICKUP_SIZE;
       if (x < level.spawn.x + 300 || x > level.length - 300 || blocked(x, y)) continue;
-      out.push({ x, y });
+      out.push({ x, y, raised: false });
     }
   }
   for (const p of level.platforms)
     for (let x = p.x0 + ANCHOR_STEP / 2; x < p.x1 - 40; x += ANCHOR_STEP) {
       const y = p.y - PICKUP_SIZE;
-      if (!blocked(x, y)) out.push({ x, y });
+      if (!blocked(x, y)) out.push({ x, y, raised: true });
     }
   return out;
 }

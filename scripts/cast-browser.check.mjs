@@ -190,6 +190,11 @@ try {
   // has taken him by now.)
   const bellhopX = (await page.evaluate(() => window.__next.cast.positions["bellhop-floor"]?.x)) ?? 8200;
   await tp(Math.round(bellhopX) - 500);
+  // He carries the floor road's Buc-ee's (owner, 2026-10-18): it shows over his head until he is knocked out for good.
+  const carrying = () => page.evaluate(() => window.__next.carrying ?? 0);
+  for (const end = Date.now() + 1500; Date.now() < end && (await carrying()) < 1; ) await page.waitForTimeout(30);
+  assert.ok((await carrying()) >= 1, "the floor bellhop shows the Buc-ee's he carries");
+  await shot("cast-carry.png");
   await page.evaluate(() => window.__next.dev.give("bucees"));
   const [before] = await waitFor((x) => x.star > 9, 1500);
   assert.ok(before.star > 9, "the shield is up");

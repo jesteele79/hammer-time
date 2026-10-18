@@ -12,7 +12,7 @@ import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { PIG, createPig } from "./pig";
-import { collectPickups, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
+import { collectPickups, dropPickup, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { createCart, knock } from "./targets";
 import { createSwingDoors } from "./hazards";
@@ -483,6 +483,18 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     ev.push({ type: "venue", id: game.level.id });
   }
 
+  /** Staff knocked out for good drop what they carried where the hit found them (owner, 2026-10-18: a fight to earn it). */
+  function dropCarried(list: GameEvent[], ev: GameEvent[]) {
+    for (const e of list) {
+      if (e.type !== "castHit" || !e.down) continue;
+      const n = world.cast.find((c) => c.id === e.id);
+      if (!n?.carry) continue;
+      game.pickups.push(dropPickup(++nextPickup, n.carry, e.x, e.y));
+      ev.push({ type: "castDrop", id: n.id, kind: n.carry, x: e.x, y: e.y });
+      n.carry = null;
+    }
+  }
+
   /** The Buc-ee's shield: whatever he runs into goes flying away from him, cast included, and he keeps going. */
   function shieldBowl(ev: GameEvent[]) {
     const h = world.hero;
@@ -535,6 +547,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       }
     };
     score(world.events);
+    dropCarried(world.events, ev);
     // Waking the pig hands him the pepper and a moment's grace (its punch clock stands at the way in).
     if (world.events.some((e) => e.type === "pigWake")) {
       h.hot = true;
@@ -555,6 +568,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       shieldBowl(bowled);
       score(bowled);
       ev.push(...bowled);
+      dropCarried(bowled, ev);
     }
     if (!lethal)
       for (const k of game.level.checkpoints)

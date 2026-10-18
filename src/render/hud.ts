@@ -3,6 +3,7 @@ import { PATIENCE_MAX } from "../sim/damage";
 import { overlapsRect } from "../sim/geometry";
 import type { Game } from "../sim/game";
 import { heatZoneAt } from "../sim/hazards";
+import type { CarriedKind } from "../sim/level";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
 import { GRADES, HUNGRY, baseReach, hungryHint, type HungryResult } from "../sim/quests/hungry/hungry";
@@ -56,6 +57,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 /** What the banquet's belly-flop is and how to do it, until he has done one (owner, 2026-10-18). */
 export const FLOP_HINT = "Belly-flop · run, then ↓ · it knocks staff over";
+/** A staffer this near on his level who still carries a prize names it in the hint (owner, 2026-10-18). */
+const CARRY_HINT = { x: 700, y: 300 } as const;
+const CARRIED_NAME: Record<CarriedKind, string> = { can: "Coke Zero", nuts: "mixed nuts", bucees: "Buc-ee's" };
 
 /** The shipped game's hint (its engine's hint(), gone since R4), first match wins, without the cast's lines. */
 export function hintOf(game: Game): string {
@@ -96,6 +100,9 @@ export function hintOf(game: Game): string {
   if (h.flop && !game.run.flopped) return FLOP_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
   if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";
+  // A prize to fight for, once the threats, his own state and the first lesson have had their say.
+  const carrier = w.cast.find((n) => n.alive && n.carry && !n.out && near(n.x, CARRY_HINT.x) && Math.abs(n.y - h.y) < CARRY_HINT.y);
+  if (carrier?.carry) return `Carrying ${CARRIED_NAME[carrier.carry]} · knock them out and it drops`;
   // The drop works only on the balcony itself; on the landing and the stairs he is still on his way up.
   const onBalcony = game.level.platforms.some((p) => p.kind === "balcony" && h.x >= p.x0 && h.x <= p.x1 && Math.abs(h.y - p.y) < 2);
   if (onBalcony) return "Up on the mezzanine · ↓ + jump drops you back down";
