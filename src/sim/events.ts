@@ -12,6 +12,8 @@ export type GameEvent =
   /** `speed` is how fast he was falling when he touched down, px/s. */
   | { type: "land"; x: number; y: number; speed: number }
   | { type: "slide" }
+  /** His slide, as the banquet's belly-flop: on his belly, knocking staff over (owner, 2026-10-18). */
+  | { type: "flop"; x: number; y: number }
   | { type: "swing" }
   /** `shield` is the Buc-ee's shield bowling over whatever he runs into. */
   | { type: "hit"; by: "mallet" | "snot" | "burst" | "shield"; x: number; y: number; target: number }
@@ -127,7 +129,7 @@ export type GameEvent =
   /** The banquet's own events (R4): see src/sim/quests/hungry/events.ts. */
   | HungryEvent
   /** Back from the banquet's tally: what it paid. */
-  | { type: "questPaid"; score: number; grade: string; doggy: boolean }
+  | { type: "questPaid"; score: number; grade: string; doggy: boolean; flop: boolean }
   /** A doggy bag caught the hit that would have knocked him flat: he eats his leftovers, at his head. */
   | { type: "doggyBag"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

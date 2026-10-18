@@ -940,7 +940,9 @@ test("COMPED from the BUFFET door sends him home with a doggy bag, kept through 
   assert.deepEqual(of(g.events, "questPaid").map((e) => e.doggy), [true]);
   // A pit or the clock (no hit for the bag to catch) costs a life: the bag comes back with him.
   g.world.hero.y = 99999;
+  until(g, "dying", 1);
   until(g, "play", 8);
+  assert.equal(g.run.lives, RUN.lives - 1, "a life was lost");
   assert.equal(g.world.hero.doggy, 1, "through a lost life");
   const pr = lobbyGame({ title: true });
   pr.newQuest(5);
@@ -1091,4 +1093,188 @@ test("the hand takes what it passes over on screen: the cloth's depth is drawn s
     run(a, 1);
     assert.ok(!a.dishes.some((d) => d.id === beside.id), `aimed up, the dish 50 px ${side > 0 ? "above" : "below"} his line on screen`);
   }
+});
+
+// The belly-flop (owner, 2026-10-18): COMPED from the BUFFET door turns his slide into a belly-flop for the shift.
+import { createWorld } from "../src/sim/world.ts";
+import { createCast } from "../src/sim/cast.ts";
+import { HERO_CROUCH_H, HERO_H, RUN as RUN_PX } from "../src/sim/constants.ts";
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+import { hudOf, FLOP_HINT } from "../src/render/hud.ts";
+
+const bare = (extra = {}) => ({ floor: [{ x0: -2000, x1: 20000, y0: 0, y1: 0 }], platforms: [], solids: [], passes: [], bounds: { x: -2000, y: -3000, w: 22000, h: 4000 }, ...extra });
+/** Him on a bare floor at `x`, with the belly-flop or not, and staff standing where `spawns` put them. */
+const flopWorld = (flop, spawns = [], x = 0, stage = bare()) => {
+  const w = createWorld(stage, { x, y: 0 }, { flop });
+  w.cast = createCast({ cast: spawns, carts: [] }, []);
+  w.step(input());
+  return w;
+};
+const stepsW = (w, seconds, held = {}, pressed = {}) => {
+  const out = [];
+  for (let i = 0; i < Math.round(seconds / STEP); i++) {
+    w.step(input(held, i === 0 ? pressed : {}));
+    out.push(...w.events);
+  }
+  return out;
+};
+/** At a full run to the right, ↓ goes down: a slide, or with the belly-flop a flop. */
+const goDown = (w, seconds = 0.6) => {
+  Object.assign(w.hero, { vx: RUN_PX, facing: 1, onGround: true });
+  return stepsW(w, seconds, { right: true, run: true, down: true }, { down: true });
+};
+const npcOf = (w, spawn) => w.cast.find((n) => n.spawn === spawn);
+/** COMPED from the BUFFET door, back in the lobby. */
+const compedAtDoor = (g) => {
+  atBuffet(g);
+  downAt(g);
+  until(g, "quest");
+  g.quest.score.plate = GRADES[0][0];
+  endRound(g);
+  g.finishQuest();
+  return g;
+};
+
+test("COMPED's result teaches the belly-flop along with the doggy bag; any lower grade neither", () => {
+  const q = alone();
+  q.score.plate = GRADES[0][0];
+  q.time = HUNGRY.round - STEP / 2;
+  stepHungry(q, input(), STEP);
+  assert.deepEqual([q.result.grade, q.result.doggy, q.result.flop], ["COMPED", true, true]);
+  const low = alone();
+  low.score.plate = GRADES[0][0] - 1;
+  low.time = HUNGRY.round - STEP / 2;
+  stepHungry(low, input(), STEP);
+  assert.deepEqual([low.result.grade, low.result.flop], ["GOOD TIPPER", false]);
+});
+
+test("COMPED from the BUFFET door gives him the belly-flop for the shift: kept through a lost life and the next venue, gone with a new shift; practice never gives it", () => {
+  const g = compedAtDoor(createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT] }, 3, { cast: false }));
+  assert.equal(g.world.hero.flop, true);
+  assert.deepEqual(of(g.events, "questPaid").map((e) => e.flop), [true]);
+  assert.equal(hudOf(g, null).flop, true, "the HUD shows he has it");
+  g.world.hero.y = 99999;
+  until(g, "dying", 1);
+  until(g, "play", 8);
+  assert.equal(g.world.hero.flop, true, "through a lost life");
+  g.world.hero.x = 15800;
+  for (let i = 0; i < Math.round(20 / STEP) && g.mode !== "card"; i++) g.step(input({ right: true }));
+  assert.deepEqual([g.mode, g.level.id, g.world.hero.flop], ["card", "restaurant", true], "into the next venue");
+  g.newRun(4);
+  assert.equal(g.world.hero.flop, false, "a new shift starts without it");
+  const low = atBuffet(lobbyGame());
+  downAt(low);
+  until(low, "quest");
+  low.quest.score.plate = GRADES[0][0] - 1;
+  endRound(low);
+  low.finishQuest();
+  assert.equal(low.world.hero.flop, false, "short of COMPED, no flop");
+  const pr = lobbyGame({ title: true });
+  pr.newQuest(5);
+  until(pr, "quest");
+  pr.quest.score.plate = GRADES[0][0];
+  endRound(pr);
+  assert.equal(pr.quest.result.flop, true, "the tally says what it would have won");
+  assert.equal(pr.world.hero.flop, false, "but practice teaches nothing");
+});
+
+test("with the belly-flop, run + ↓ flops: the same slide, its own event, as low as a slide", () => {
+  const w = flopWorld(true);
+  const evs = goDown(w, 0.05);
+  assert.equal(w.hero.state, "slide");
+  assert.equal(w.hero.h, HERO_CROUCH_H);
+  assert.deepEqual([of(evs, "flop").length, of(evs, "slide").length], [1, 0]);
+  const plain = flopWorld(false);
+  const pevs = goDown(plain, 0.05);
+  assert.deepEqual([of(pevs, "flop").length, of(pevs, "slide").length], [0, 1]);
+  assert.equal(plain.hero.x, w.hero.x, "a flop slides exactly as far and as fast as a slide");
+});
+
+test("a belly-flop knocks over the staff it runs into, scored like a runaway cart's chain; a plain slide only bumps them", () => {
+  const spawns = [
+    { id: "a", person: "server-1", x: 520, y: 0 },
+    { id: "b", person: "bellhop-1", x: 700, y: 0 },
+  ];
+  const w = flopWorld(true, spawns, 300);
+  const before = w.hero.patience;
+  const evs = goDown(w);
+  const hits = of(evs, "castHit");
+  assert.deepEqual([hits[0]?.id, hits[0]?.by], [npcOf(w, "a").id, "flop"], "the first one flopped into");
+  assert.deepEqual(hits.map((e) => e.id).sort(), [npcOf(w, "a").id, npcOf(w, "b").id].sort(), "both go over");
+  assert.deepEqual(of(evs, "chain").map((e) => [e.count, e.points]), [[1, 100], [2, 200]]);
+  for (const s of ["a", "b"]) assert.ok(["fly", "down"].includes(npcOf(w, s).act), `${s} is off their feet: ${npcOf(w, s).act}`);
+  assert.equal(w.hero.patience, before, "untouched");
+  const plain = flopWorld(false, [{ id: "a", person: "server-1", x: 520, y: 0 }], 300);
+  const pevs = goDown(plain);
+  assert.equal(of(pevs, "castHit").length, 0, "a slide knocks nobody over");
+  assert.notEqual(npcOf(plain, "a").act, "fly");
+});
+
+test("a staffer coming at him is flopped over too: the flop wins, and he keeps his patience", () => {
+  const w = flopWorld(true, [{ id: "a", person: "server-1", x: 640, y: 0 }], 300);
+  const s = npcOf(w, "a");
+  Object.assign(s, { act: "attack", actT: 0, facing: -1, noticed: true, mark: s.x });
+  const before = w.hero.patience;
+  const evs = goDown(w);
+  assert.deepEqual(of(evs, "castHit").map((e) => [e.by, e.id]), [["flop", s.id]]);
+  assert.equal(of(evs, "hurt").length + of(evs, "tumble").length, 0, "no hit on him");
+  assert.equal(w.hero.patience, before);
+  // Without the flop the same rush costs him a pip.
+  const p = flopWorld(false, [{ id: "a", person: "server-1", x: 640, y: 0 }], 300);
+  Object.assign(npcOf(p, "a"), { act: "attack", actT: 0, facing: -1, noticed: true, mark: 640 });
+  const pevs = goDown(p);
+  assert.equal(of(pevs, "hurt").length, 1, "a slide into her rush is a hit");
+});
+
+test("the belly-flop still slides under a low ceiling, and he stands only when clear", () => {
+  const w = flopWorld(true, [], 550, bare({ passes: [{ x: 900, y: -1000, w: 500, h: 780 }] }));
+  stepsW(w, 0.4, { right: true, run: true });
+  const evs = stepsW(w, 0.05, { right: true, run: true, down: true }, { down: true });
+  assert.equal(of(evs, "flop").length, 1);
+  assert.equal(w.hero.h, HERO_CROUCH_H);
+  stepsW(w, 0.5, { right: true, down: true });
+  assert.ok(w.hero.x > 900 && w.hero.x < 1400, `under the pass: ${w.hero.x}`);
+  stepsW(w, 0.3);
+  assert.ok(w.hero.crouch, "stays low under the ceiling");
+  stepsW(w, 1.5, { right: true });
+  assert.deepEqual([w.hero.h, w.hero.crouch], [HERO_H, false]);
+});
+
+test("the first time he has it the hint teaches the belly-flop, until his first flop", () => {
+  const g = compedAtDoor(lobbyGame());
+  Object.assign(g.world.hero, { x: BUFFET.x + 900, vx: 0, onGround: true });
+  g.step(input());
+  assert.equal(hintOf(g), FLOP_HINT);
+  assert.equal(g.run.flopped, false);
+  Object.assign(g.world.hero, { vx: RUN_PX, facing: 1 });
+  g.step(input({ right: true, run: true, down: true }, { down: true }));
+  assert.equal(g.run.flopped, true);
+  stepsG(g, 1.5);
+  assert.notEqual(hintOf(g), FLOP_HINT, "once he has flopped it is not taught again");
+  const without = atBuffet(lobbyGame());
+  Object.assign(without.world.hero, { x: BUFFET.x + 900 });
+  without.step(input());
+  assert.notEqual(hintOf(without), FLOP_HINT, "not without the move");
+});
+
+test("a flop past a door with ↓ held never opens it on the way: the STAFF ONLY door stays shut until he is up and asks", () => {
+  const g = lobbyGame();
+  until(g, "play");
+  const staff = LOBBY.doors.find((d) => d.kind === "stash");
+  g.world.hero.flop = true;
+  Object.assign(g.world.hero, { x: staff.x - 250, y: 0, vx: RUN_PX, vy: 0, facing: 1, onGround: true, move: null });
+  const evs = [];
+  for (let i = 0; i < Math.round(0.45 / STEP); i++) {
+    g.step(input({ right: true, run: true, down: true }, i === 0 ? { down: true } : {}));
+    evs.push(...g.events);
+  }
+  assert.equal(of(evs, "flop").length, 1);
+  assert.equal(of(evs, "door").length, 0, "not mid-flop");
+  assert.equal(g.level.id, "lobby");
+  // Up again in front of it, ↓ opens it as ever.
+  for (let i = 0; i < Math.round(1 / STEP); i++) g.step(input());
+  Object.assign(g.world.hero, { x: staff.x, vx: 0 });
+  g.step(input());
+  downAt(g);
+  assert.equal(g.level.id, "stash");
 });

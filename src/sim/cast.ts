@@ -29,7 +29,7 @@ export type CastAct =
   | "duck"
   | "hop"
   | "flee";
-export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart" | "slide" | "body" | "puddle";
+export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart" | "slide" | "body" | "puddle" | "flop";
 
 export type CastJob = CastJobName;
 /** Who a person is: the painting's name less its number ("cook-1" is a cook). */
@@ -210,7 +210,7 @@ export const hittable = (n: Npc): boolean => n.alive && !UNHITTABLE.has(n.act) &
 
 export type StrikeWorld = { puddles: Puddle[]; stage: Stage };
 /** The hits that throw hard: the spec's staff knockback. */
-const BIG: ReadonlySet<CastHitBy> = new Set<CastHitBy>(["burst", "shield", "cart", "slide", "body"]);
+const BIG: ReadonlySet<CastHitBy> = new Set<CastHitBy>(["burst", "shield", "cart", "slide", "body", "flop"]);
 
 /** A spill on the floor under him: the server's water, the office worker's coffee. */
 export function spill(w: StrikeWorld, n: Npc, kind: SpillKind): void {

@@ -36,6 +36,8 @@ export type HudPayload = {
   lecture: boolean;
   /** Doggy bags he carries from the banquet: each catches a hit that would knock him flat. */
   doggy: number;
+  /** He has the banquet's belly-flop: his slide knocks staff over. */
+  flop: boolean;
   /** "Checkpoint saved" shows for two seconds after a punch clock. */
   saved: boolean;
   /** The most pressing thing to know, one line. */
@@ -51,6 +53,9 @@ export type HudPayload = {
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** What the banquet's belly-flop is and how to do it, until he has done one (owner, 2026-10-18). */
+export const FLOP_HINT = "Belly-flop · run, then ↓ · it knocks staff over";
 
 /** The shipped game's hint (its engine's hint(), gone since R4), first match wins, without the cast's lines. */
 export function hintOf(game: Game): string {
@@ -88,6 +93,7 @@ export function hintOf(game: Game): string {
   if (game.run.star > 0) return "Buc-ee's boost · nothing can touch you";
   if (h.boiled) return "Too hot to run · T to towel off";
   if (h.heat >= HEAT.tired) return "Overheated · T to towel off";
+  if (h.flop && !game.run.flopped) return FLOP_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
   if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";
   // The drop works only on the balcony itself; on the landing and the stairs he is still on his way up.
@@ -153,6 +159,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     slowed: h.heat > STAMINA.from,
     lecture: q ? q.hammer.lectureCd <= 0 && q.hammer.lecture <= 0 : h.lectureCd <= 0,
     doggy: h.doggy,
+    flop: h.flop,
     saved,
     hint: q ? hungryHint(q) : (note ?? hintOf(game)),
     boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
@@ -177,6 +184,7 @@ export const hudKey = (p: HudPayload) =>
     p.slowed,
     p.lecture,
     p.doggy,
+    p.flop,
     p.saved,
     p.hint,
     p.venue,

@@ -2,7 +2,8 @@
 // break, the three screen shapes, the tally with Play again and Start screen and the best kept; Space on a tally carrying
 // nothing over; a round with the art missing; the BUFFET door in a shift and what it pays; /?quest=hungry. Since
 // 2026-10-18: a tap of an arrow locks a plate, a slap and the recording he says to it, the lecture freezing the table, the
-// doggy bag on the card and the tally, and COMPED from the door packing one.
+// doggy bag on the card and the tally, and COMPED from the door packing one; the belly-flop it teaches too, named on the
+// card and the tally, its badge beside his patience and its hint (owner, 2026-10-18).
 // Usage: BROWSER_SMOKE_CHANNEL=chrome node scripts/hungry-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -38,6 +39,7 @@ try {
   await waitMode(page, "questCard");
   assert.match(await page.locator(".next-veil").innerText(), /Hungry Hungry Hammer/i);
   assert.match(await page.locator(".next-veil").innerText(), /doggy bag/i, "the card names the prize");
+  assert.match(await page.locator(".next-veil").innerText(), /belly-flop/i, "and the belly-flop");
   await shot(page, "hungry-card.png");
   await waitMode(page, "quest");
   assert.match(await page.locator(".next-hud").innerText(), /The Banquet/i);
@@ -172,6 +174,8 @@ try {
   await waitMode(page, "questTally");
   assert.match(await page.locator(".next-veil").innerText(), /Back to the lobby/i);
   assert.match(await page.locator(".next-veil").innerText(), /Doggy bag packed/i, "COMPED packs the doggy bag");
+  assert.match(await page.locator(".next-veil").innerText(), /Belly-flop learned/i, "and teaches the belly-flop");
+  await shot(page, "hungry-door-tally.png");
   await page.keyboard.down("Space");
   await waitMode(page, "play");
   await page.waitForTimeout(500);
@@ -181,7 +185,9 @@ try {
   assert.equal(after.jumps, before.jumps, "Space on the tally did not jump");
   assert.ok(after.score > before.score, "the round's score came home");
   assert.equal(await page.locator(".next-hud__doggy").count(), 1, "the doggy bag shows beside his patience");
-  assert.match(await page.locator(".next-hud__hint").innerText(), /Banquet \+[\d,]+ · doggy bag packed/, "what it paid, on the way back");
+  assert.equal(await page.locator(".next-hud__flop").count(), 1, "and the belly-flop beside it");
+  assert.match(await page.locator(".next-hud__hint").innerText(), /Banquet \+[\d,]+ · doggy bag packed · belly-flop/, "what it paid, on the way back");
+  await shot(page, "hungry-door-paid.png");
   await page.keyboard.down("ArrowDown");
   await page.waitForTimeout(400);
   await page.keyboard.up("ArrowDown");
@@ -193,7 +199,7 @@ try {
   await page.goto(`${base}?quest=hungry`);
   await page.waitForFunction(() => ["questCard", "quest"].includes(window.__next?.run?.mode), null, { timeout: 30000 });
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
-  console.log("PASS: practice from the start screen, the dive, the rob, the bonk, the duck, the break, three shapes, the tally and its best, no key carried over, the art missing, the BUFFET door and its payout, /?quest=hungry; a locked plate, a slap and what he says to it, the lecture, the doggy bag.");
+  console.log("PASS: practice from the start screen, the dive, the rob, the bonk, the duck, the break, three shapes, the tally and its best, no key carried over, the art missing, the BUFFET door and its payout, /?quest=hungry; a locked plate, a slap and what he says to it, the lecture, the doggy bag and the belly-flop.");
 } finally {
   await browser.close();
 }

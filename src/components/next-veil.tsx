@@ -132,7 +132,7 @@ export function NextVeil({
           <h2 className="next-veil__title">Hungry Hungry Hammer</h2>
           <p className="next-veil__line">The Banquet</p>
           <p className="next-veil__line next-veil__line--prize">
-            {info.quest?.door ? `Get COMPED (${GOAL}) to take home a doggy bag` : `In a shift, COMPED (${GOAL}) takes home a doggy bag`}
+            {info.quest?.door ? `Get COMPED (${GOAL}) to take home a doggy bag and the belly-flop` : `In a shift, COMPED (${GOAL}) takes home a doggy bag and the belly-flop`}
           </p>
         </section>
       </div>
@@ -153,8 +153,8 @@ export function NextVeil({
     const prize = r.doggy
       ? info.quest.door
         ? "Doggy bag packed: it saves you from the next knockdown"
-        : "COMPED: from the BUFFET door that wins a doggy bag"
-      : `COMPED (${GOAL}) wins a doggy bag`;
+        : "COMPED: from the BUFFET door that wins a doggy bag and the belly-flop"
+      : `COMPED (${GOAL}) wins a doggy bag and the belly-flop`;
     return (
       <div className="next-veil" data-place={place}>
         <section className="next-veil__card next-veil__card--tally" role="dialog" aria-label={r.grade}>
@@ -173,6 +173,11 @@ export function NextVeil({
           <p className="next-veil__line next-veil__line--prize" data-won={r.doggy}>
             {prize}
           </p>
+          {r.flop && info.quest.door && (
+            <p className="next-veil__line next-veil__line--prize" data-won="true">
+              Belly-flop learned: run, then ↓ to flop through the staff
+            </p>
+          )}
           <ul className="next-veil__lines">
             {lines.map((l) => (
               <li key={l}>{l}</li>

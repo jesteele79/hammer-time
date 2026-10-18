@@ -1,7 +1,8 @@
 import type { JointName } from "./skeleton";
 import { pose, out, type Pose } from "./pose";
+import { flopPose } from "./dive";
 
-export type ClipName = "idle" | "walk" | "run" | "jump" | "fall" | "land" | "crouch" | "slide";
+export type ClipName = "idle" | "walk" | "run" | "jump" | "fall" | "land" | "crouch" | "slide" | "flop";
 export type ClipCtx = { t: number; speed: number; vy: number; facing: 1 | -1 };
 export type Clip = (u: number, ctx: ClipCtx) => Pose;
 
@@ -147,5 +148,8 @@ const slide: Clip = () =>
     root: { x: 0, y: -115 },
   });
 
-export const CLIPS: Record<ClipName, Clip> = { idle, walk, run, jump, fall, land, crouch, slide };
+// The slide with the banquet's belly-flop: flat on his belly (`flopPose`, built from the dive).
+const flop: Clip = (u) => flopPose(u);
+
+export const CLIPS: Record<ClipName, Clip> = { idle, walk, run, jump, fall, land, crouch, slide, flop };
 export { blend } from "./pose";

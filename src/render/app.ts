@@ -34,7 +34,7 @@ export type NextProbe = {
   /** Hungry Hungry Hammer while it is up (R4): its clock, score and chomps, his dives this round, his line, and the table on screen in CSS px. */
   quest?: { time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; lock: string | null; duck: boolean; stun: number; result: unknown; frame: { x: number; y: number; w: number; h: number } };
   /** Set by the look scene once it runs. */
-  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean };
+  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; clip?: string };
   heroScreenHeight?: number;
   heroScreenX?: number;
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
@@ -113,6 +113,10 @@ export type NextProbe = {
     patience(n: number): void;
     /** Gives him doggy bags from the banquet (one by default). */
     doggy(n?: number): void;
+    /** Gives him the banquet's belly-flop, or takes it away. */
+    flop(on?: boolean): void;
+    /** Slow motion at `scale` for `seconds` of wall time (0 ends it): frame-by-frame screenshots of a quick move. */
+    slowmo(scale: number, seconds: number): void;
     /** Sends one of the cast off the level by spawn id, so a check can watch a hazard without them in the way. */
     dismiss(spawn: string): void;
     /** Sets the pig's HP, counts or state, for the checks. */

@@ -79,6 +79,10 @@ export type HeroState = {
   dropT: number;
   /** Doggy bags from the banquet: each one catches a hit that would knock him flat (owner, 2026-10-18). */
   doggy: number;
+  /** The banquet's belly-flop: his slide is a flop that knocks staff over, for the rest of the shift (owner, 2026-10-18). */
+  flop: boolean;
+  /** How many staff this flop has bowled over (the chain). */
+  flopChain: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

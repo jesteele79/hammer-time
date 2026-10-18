@@ -130,7 +130,7 @@ test("grounding stands the lowest sole on its floor line: the near one at 0, the
   assert.ok(groundShift(flight, "push") <= 0, "a run's flight is never pulled down to the floor");
 });
 
-test("the fist holds the mallet out in front, head up, in every clip but the slide", () => {
+test("the fist holds the mallet out in front, head up, in every clip but the slide and the flop", () => {
   const DEG = 180 / Math.PI;
   for (const [name, clip] of Object.entries(CLIPS))
     for (const u of [0, 0.25, 0.5, 0.75])
@@ -142,7 +142,7 @@ test("the fist holds the mallet out in front, head up, in every clip but the sli
         const ang = (a, b) => Math.atan2(-(b.y - a.y) / s.squash.y, ((b.x - a.x) * facing) / s.squash.x) * DEG;
         const turn = (((ang(j.grip, j.malletHead) - ang(j.wristNear, j.knuckleNear) + 540) % 360) - 180);
         assert.ok(Math.abs(turn - 68) < 1e-6, `${name} u=${u}: the handle sits ${turn.toFixed(2)} degrees from the hand`);
-        if (name === "slide") continue;
+        if (name === "slide" || name === "flop") continue;
         assert.ok((j.malletHead.x - j.neck.x) * facing > 60 * s.scale, `${name} u=${u}: the head is out in front`);
         assert.ok(j.malletHead.y < j.grip.y - 80 * s.scale, `${name} u=${u}: the head stands above the fist`);
       }
@@ -801,4 +801,68 @@ test("on the ground the slam's squat keeps both soles on their floor lines and n
       }
     }
   }
+});
+
+// The banquet's belly-flop on the floor (owner, 2026-10-18): his slide drawn flat on his belly.
+import { FLOP, flopPose } from "../src/sim/rig/dive.ts";
+import { BELLY } from "../src/sim/rig/ground.ts";
+import { FLOP_REACH } from "../src/sim/hits.ts";
+
+test("the flop goes over and lies flat on his belly with his head up and level, nothing over his face: every frame, both facings, every head scale", () => {
+  for (const headScale of [0.22, 0.26, 0.3])
+    for (const facing of [1, -1])
+      for (let i = 0; i <= 80; i++) {
+        const s = solve(flopPose(i / 80), facing, headScale);
+        assert.ok(Math.abs(headLevel(s)) <= DEG8, `u ${i / 80}, facing ${facing}, head ${headScale}: head at ${((headLevel(s) * 180) / Math.PI).toFixed(1)}`);
+        const c = faceClear(s);
+        assert.ok(c.ok, `u ${i / 80}, facing ${facing}, head ${headScale}: ${c.offender} crosses the face`);
+      }
+  assert.deepEqual(CLIPS.flop(0.6, ctx), flopPose(0.6), "the slide's flop clip is the floor flop");
+});
+
+test("flat out he lies on his belly: his legs level, his belly on the floor and nothing of him under it, his head ahead and the whole of him under the corridor's 220 px", () => {
+  const axis = (j, a, b) => (Math.atan2(-(j[b].y - j[a].y), (j[b].x - j[a].x)) * 180) / Math.PI;
+  for (const facing of [1, -1])
+    for (const u of [FLOP.inAt, 0.7, 1]) {
+      const s = solve(flopPose(u), facing, 0.26);
+      const dy = groundShift(s, "belly");
+      const j = s.joints;
+      const ahead = (n) => j[n].x * facing;
+      // Mirrored so forward is +x: his hips to his knees run straight back, flat to within 15 degrees.
+      const thigh = facing === 1 ? axis(j, "hipNear", "kneeNear") : 180 - axis(j, "hipNear", "kneeNear");
+      assert.ok(Math.abs(Math.abs(thigh) - 180) < 15, `u ${u}, facing ${facing}: thigh at ${thigh.toFixed(1)}`);
+      // His spine lies a belly's depth over the floor: on it, not floating and not sunk.
+      const spine = Math.max(j.pelvis.y, j.chest.y) + dy;
+      assert.ok(spine <= -BELLY * s.scale * 0.95 && spine >= -BELLY * s.scale - 2, `u ${u}, facing ${facing}: spine ${spine.toFixed(1)} px up`);
+      // Nothing under the floor but the fingers curled round the handle, a hair.
+      for (const [n, p] of Object.entries(j)) assert.ok(p.y + dy <= (n === "handNear" ? 16 : 1), `u ${u}, facing ${facing}: ${n} ${(p.y + dy).toFixed(1)} px under the floor`);
+      const top = Math.min(s.headBox.y, ...Object.values(j).map((p) => p.y)) + dy;
+      assert.ok(top > -200, `u ${u}, facing ${facing}: his top ${top.toFixed(0)} px up, under a pass at 220`);
+      assert.ok(ahead("neck") > ahead("pelvis") + 100 * s.scale && ahead("malletHead") > ahead("neck"), "his head, then the mallet, out in front");
+      // The flop's reach runs out to the mallet's head, as drawn.
+      assert.ok(Math.abs(ahead("malletHead") - FLOP_REACH.ahead) < 20, `the mallet's head ${ahead("malletHead").toFixed(0)} px ahead`);
+      assert.ok(-top < FLOP_REACH.tall, "and as tall as drawn");
+    }
+});
+
+test("standing, 'belly' grounding stands him on his soles, as 'planted' does", () => {
+  for (const name of ["idle", "run", "crouch", "land"]) {
+    const s = solve(CLIPS[name](0.25, { ...ctx, speed: 640 }), 1, 0.26);
+    assert.ok(Math.abs(groundShift(s, "belly") - groundShift(s, "planted")) < 1e-9, name);
+  }
+});
+
+test("into the flop from any clip and out of it to any clip, the blend never crosses his face", () => {
+  for (const name of Object.keys(CLIPS))
+    for (const [from, to] of [
+      [CLIPS[name](0.25, { ...ctx, speed: 640 }), flopPose(0)],
+      [CLIPS[name](0.25, { ...ctx, speed: 640 }), flopPose(0.3)],
+      [flopPose(1), CLIPS[name](0.25, { ...ctx, speed: 640 })],
+      [flopPose(0.6), CLIPS[name](0, ctx)],
+    ])
+      for (const headScale of [0.22, 0.26, 0.3])
+        for (let i = 0; i <= 20; i++) {
+          const r = faceClear(solve(blend(from, to, i / 20), 1, headScale));
+          assert.ok(r.ok, `${name}, t ${i / 20}, head ${headScale}: ${r.offender} crosses the face`);
+        }
 });

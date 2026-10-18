@@ -7,6 +7,7 @@ type Cue = keyof AudioBus & string;
 const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   jump: ["jump"],
   slide: ["slide"],
+  flop: ["slide", "thud"],
   swing: ["whoosh"],
   superStart: ["power"],
   burst: ["boom"],

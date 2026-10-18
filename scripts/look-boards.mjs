@@ -35,7 +35,7 @@ try {
   // Board figures are let go of once drawn: as many alive after the boards as before.
   const live = () => page.evaluate(() => window.__next?.castArt?.live ?? 0);
   const live0 = await live();
-  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "objects", "cast", "cast-fx", "cast-heads"])
+  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "flop", "objects", "cast", "cast-fx", "cast-heads"])
     if (want(kind)) {
       save(kind === "objects" || kind.startsWith("cast") ? `${kind}.png` : `hammer-${kind}.png`, await render(kind));
       count++;

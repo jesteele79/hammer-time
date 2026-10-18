@@ -157,6 +157,8 @@ export type HungryResult = {
   bill: boolean;
   /** COMPED: a doggy bag goes home with him from the BUFFET door (owner, 2026-10-18). */
   doggy: boolean;
+  /** COMPED: and his slide becomes the belly-flop for the shift (owner, 2026-10-18). */
+  flop: boolean;
   cans: number;
   nuts: boolean;
   bucees: boolean;
@@ -942,6 +944,7 @@ function finish(q: Hungry) {
     specials: [...sc.specials],
     bill: sc.bill,
     doggy: grade === "COMPED",
+    flop: grade === "COMPED",
     cans: sc.specials.filter((k) => k === "coke").length,
     nuts: sc.specials.includes("nuts"),
     bucees: sc.specials.includes("bucees"),

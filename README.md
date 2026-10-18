@@ -266,9 +266,9 @@ Banquet") and then a sixty-second round at a banquet table. The lobby waits behi
 his heat, the shield and the pepper hold. The tally's Continue (Enter, Space or "Back to the lobby") stands him at the
 door with 0.6 s of grace (the key that closed it neither jumps nor swings), and he brings home the round's score, a can
 for the Coke Zero, a full smash for the nuts, the Buc-ee's shield as he walks out, and the pepper with full patience for
-the hot sauce or a full belly (GOOD TIPPER or better); no lives. **COMPED wins a doggy bag** (see below): the round's
-card names the prize, the score turns gold once it is his, and the hint on the way back says what the banquet paid
-("Banquet +31,900 · doggy bag packed"). The door then hangs a THANK YOU card and stays shut
+the hot sauce or a full belly (GOOD TIPPER or better); no lives. **COMPED wins a doggy bag and the belly-flop** (see
+below): the round's card names the prizes, the score turns gold once they are his, and the hint on the way back says
+what the banquet paid ("Banquet +31,900 · doggy bag packed · belly-flop"). The door then hangs a THANK YOU card and stays shut
 through the stash and lost lives; a new shift opens it again. The restaurant's PRIVATE DINING stays closed for R8.
 
 - **The table** (`src/sim/quests/hungry/table.ts`): round, seen from above at an angle as the owner painted it, its top
@@ -319,7 +319,8 @@ through the stash and lost lives; a new shift opens it again. The restaurant's P
   (`node --loader ./scripts/game-test-loader.mjs scripts/banquet-tune.mjs`: over ten seeds standing still scores 0,
   steady tapping a median of 16610, sharp play 31900, the sharp player robbing only what is safe and lecturing first)
   by 10.1: COMPED from 30300, GOOD TIPPER from 20200, SPLIT THE CHECK from 12120, else WATER ONLY. The tally names the
-  grade, the score and the best, the doggy bag won or what wins it, and what the round came to (slaps among it).
+  grade, the score and the best, the doggy bag and the belly-flop won or what wins them, and what the round came to
+  (slaps among it).
 - **Practice**: the start screen's Side quests card plays a round on the same page, and `/?quest=hungry` opens one
   straight away; its tally offers Play again and Start screen, and never touches a shift. Door rounds and practice
   share one best (`hammer-time-best-banquet`).
@@ -335,6 +336,20 @@ to the lobby with a doggy bag, shown as a takeout box beside his patience. It ri
 and a lost life, until the hit that would knock him flat: he eats his leftovers instead ("LEFTOVERS!", his thought
 "Saved it for later."), is only hurt, and is back at full patience with the pepper. One bag; practice wins none (its
 tally says what the door would have given).
+
+**The belly-flop** (owner, 2026-10-18, the other reward). The same win teaches him the banquet's belly-flop for the rest
+of the shift, through its venues and lost lives (a new shift starts without it; practice teaches nothing). His slide
+(run, then ↓) goes in on his belly: the same speed, length and 200 px of height, so it still passes under the service
+corridor and the heat-lamp gantry, but anyone on their feet it runs into, from his collider to the mallet's head 300 px
+ahead, is knocked over ("FLOP!", `strikeNpc` by `flop`), a rush coming at him included, and scored as a runaway cart's
+chain (100, 200, 400 and on). The panel shows it as a gold flopping figure beside the doggy bag, the tally says it was
+learned, and until his first flop the hint teaches it ("Belly-flop · run, then ↓ · it knocks staff over"). Drawn, it is
+the banquet's dive taken all the way to the floor (`flopPose` in `src/sim/rig/dive.ts`, the `flop` clip): he goes over in
+0.14 s and lies flat on his belly, his legs trailing with the feet kicked up, both arms down to the floor ahead with the
+mallet lying out in front, his neck up and his head level, a 15-degree arch keeping his face clear of his shoulders; the
+`belly` grounding rests his belly on the floor. The rig checks hold his face, head and floor in every frame and every
+blend in and out, and the `flop` look board draws it frame by frame under the corridor's ceiling. No door opens on the
+way past it in a slide or a flop.
 
 The banquet is a mode of the Game (`questCard`, `quest`, `questTally`) over its own sim (`src/sim/quests/hungry/`:
 `food.ts` the dishes' disc physics, `hungry.ts` the round, `drive.ts` the scripted players) and drawn by
@@ -556,6 +571,7 @@ node scripts/shift-browser.check.mjs http://127.0.0.1:8090/
 node scripts/pig-browser.check.mjs http://127.0.0.1:8090/
 node scripts/next-start.check.mjs http://127.0.0.1:8090/
 node scripts/hungry-browser.check.mjs http://127.0.0.1:8090/
+node scripts/flop-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 

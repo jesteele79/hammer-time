@@ -60,6 +60,24 @@ side quest means something. The owner left the choices to me; these are the deci
   tally says it was packed or what wins it, and the hint on the way back says what the banquet paid (R4's deferred
   minor: nothing announced it).
 
+## 5a. The belly-flop (the follow-up, same day)
+
+- The owner's session took the other reward too: COMPED from the BUFFET door also teaches the belly-flop for the rest of
+  the shift (`HeroState.flop`, carried like the doggy bag through the venues and a lost life; a new shift starts without
+  it; practice teaches nothing, its tally says what the door would have taught).
+- It is his slide, unchanged in speed, length and height (200 px, under every pass), drawn on his belly. Whoever on their
+  feet it runs into, from his collider to the mallet's head 300 px ahead and 150 up, is knocked over (`strikeNpc` by
+  `flop`, a big hit), a staffer's attack included, and the flop's bowling scores the cart chain (100, 200, 400...).
+  Nobody behind him is thrown, and nobody already down is hit again.
+- No new key, so it works on the touch pad (Run, then ↓). Doors do not open on the way past them mid-slide or mid-flop.
+- The pose: the dive's tip taken to 90 degrees. Flat with his neck in line, his near shoulder sits inside the face box's
+  margin (as at the table past 44 degrees), so on the floor his neck comes up to upright and his back arches 15 degrees;
+  the lift then holds the head level. Arms down to the floor ahead, the mallet lying out in front, legs trailing with the
+  feet kicked up. A `belly` grounding rests what is lowest of his front (his belly, a belly's depth of 48 rest units
+  in front of the spine, his knees, his toes) on the floor.
+- Shown: a gold flopping figure beside the takeout box; the card and the tally name it; the way back says it
+  ("· belly-flop"); until his first flop of the shift the hint teaches it.
+
 ## 6. Checks
 
 - `scripts/banquet.check.mjs`: the hop and lock, a locked charge arriving and robbing, a locked tap robbing; every diner's
@@ -69,3 +87,8 @@ side quest means something. The owner left the choices to me; these are the deci
 - `scripts/render.check.mjs`: the round's HUD with the lecture's wait and COMPED's line.
 - `scripts/hungry-browser.check.mjs`: a tap locking a plate, the nurse's slap and the recording played, the lecture
   freezing the table, the prize on the card and the tally, the doggy bag from the door on the HUD and in the hint.
+- The belly-flop: `banquet.check` (granted by COMPED from the door only, carried through a lost life and the next venue,
+  gone with a new shift; a flop knocking two staff over on the chain, a rush flopped over, a slide only bumping; under a
+  low ceiling; the hint taught once; no door mid-flop), `rig.check` (every frame and blend clear of his face, his head
+  level, flat on his belly on the floor, under 200 px), `flop-browser.check` (the badge, the hint, a flop knocking the
+  BUFFET server over and passing under the corridor at 1280x800, 390x844 and 844x390, frame by frame in slow motion).

@@ -23,6 +23,18 @@ function DoggyIcon() {
   );
 }
 
+/** The belly-flop from the banquet: him flat on his belly, head up, sliding, drawn. */
+function FlopIcon() {
+  return (
+    <svg className="next-hud__flop" viewBox="0 0 28 24" aria-hidden="true">
+      <path d="M1 13h4M2 17h4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M7 15c0-2.6 3-3.6 7-3.6h6.5l1.5 3.6v3H8.6C7.7 18 7 16.8 7 15z" />
+      <circle cx="22.5" cy="8" r="3.4" />
+      <path d="M17 18.5h10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Pause and sound, drawn: two bars, and a speaker with its waves or a cross. */
 function PauseIcon() {
   return (
@@ -163,11 +175,12 @@ export function NextHud({
           <dl className="next-hud__rows">
             <div className="next-hud__row">
               <dt>Patience</dt>
-              <dd aria-label={`${hud.patience} of ${hud.patienceMax}${hud.doggy > 0 ? ", doggy bag" : ""}`} data-hot={hud.hot}>
+              <dd aria-label={`${hud.patience} of ${hud.patienceMax}${hud.doggy > 0 ? ", doggy bag" : ""}${hud.flop ? ", belly-flop" : ""}`} data-hot={hud.hot}>
                 {Array.from({ length: hud.patienceMax }, (_, i) => (
                   <i key={i} className="next-hud__pip next-hud__pip--patience" style={fill(i < hud.patience ? 1 : 0)} />
                 ))}
                 {hud.doggy > 0 && <DoggyIcon />}
+                {hud.flop && <FlopIcon />}
               </dd>
             </div>
             <div className="next-hud__row">

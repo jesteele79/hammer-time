@@ -14,6 +14,22 @@ import type { HeroState, Point, Rect, Stage, Target } from "./types";
 export const MALLET_R = 36;
 /** The super burst's radius (54 px at 50 tall, scaled by HERO_HEIGHT). */
 export const BURST_R = 367;
+/**
+ * The belly-flop's reach, world px: flat on his belly he is drawn out to the middle of the mallet's head `ahead` of the
+ * feet point and `tall` off the floor (the `flop` board), so whoever that touches is flopped into; behind him only his
+ * own collider's half, so nobody at his trailing feet is thrown the way he slides (owner, 2026-10-18).
+ */
+export const FLOP_REACH = { ahead: 300, behind: 55, tall: 150 } as const;
+
+/** Belly-flopping: the banquet's move, in the slide it turns into. */
+export const flopping = (h: Pick<HeroState, "flop" | "slideT">): boolean => h.flop && h.slideT > 0;
+/** What the flop knocks over: the length of him on the floor, the way he slides. */
+export const flopRect = (h: Pick<HeroState, "x" | "y" | "facing">): Rect => ({
+  x: h.facing === 1 ? h.x - FLOP_REACH.behind : h.x - FLOP_REACH.ahead,
+  y: h.y - FLOP_REACH.tall,
+  w: FLOP_REACH.ahead + FLOP_REACH.behind,
+  h: FLOP_REACH.tall,
+});
 
 export { sweptHeadHits } from "./geometry";
 

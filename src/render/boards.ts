@@ -1,7 +1,7 @@
 import { Container, Graphics, Matrix, RenderTexture, Sprite, type Application } from "pixi.js";
 import { HEAD_PLATE_DEFAULT, type Costume, type Expression, type Registry } from "../art/registry";
 import { HATTED, jobOf, roleOf, type CastAct } from "../sim/cast";
-import { HEAD_SCALE } from "../sim/constants";
+import { HEAD_SCALE, HERO_CROUCH_H } from "../sim/constants";
 import type { CastPerson, Level, LevelId } from "../sim/level";
 import { ACT_SECONDS, castGround, castPose } from "../sim/rig/cast";
 import { SUPER_CUT, type MoveKind } from "../sim/moves";
@@ -29,10 +29,10 @@ import type { Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 import { coilPose, divePose } from "../sim/rig/dive";
-import type { Pose } from "../sim/rig/pose";
+import { blend, type Pose } from "../sim/rig/pose";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -45,7 +45,7 @@ declare global {
 const CELL_H = 420;
 // Wide enough for the mallet held out in front; the figure stands left of center.
 const CELL_W = 420;
-const CLIP_NAMES: ClipName[] = ["idle", "walk", "run", "jump", "fall", "land", "crouch", "slide"];
+const CLIP_NAMES: ClipName[] = ["idle", "walk", "run", "jump", "fall", "land", "crouch", "slide", "flop"];
 const EXPRESSIONS: Expression[] = ["neutral", "angry", "hurt", "smug", "bored", "chomp"];
 const HEAD_SCALES = [0.22, 0.26, 0.3];
 const COSTUMES: Costume[] = ["affliction", "scrubs", "suit", "banquet"];
@@ -140,6 +140,8 @@ type Cell = {
   /** A pose drawn in place of the clip (the banquet's dive and coil), stood on `ground`. */
   pose?: Pose;
   ground?: Ground;
+  /** A ceiling drawn this high over the floor (world px): the lowest a pass hangs. */
+  ceiling?: number;
 };
 
 function cellPose(cell: Cell) {
@@ -271,6 +273,11 @@ export function createBoards(
         const at = (x: number) => fy + (x - fx) * tan;
         floors.moveTo(x0, at(x0) - lift).lineTo(x1, at(x1) - lift).stroke({ width: 3, color: "#5b6472" });
         floors.moveTo(x0, at(x0)).lineTo(x1, at(x1)).stroke({ width: 4, color: "#101010" });
+      }
+      if (cell.ceiling !== undefined) {
+        const x0 = 150 + cell.col * cellW + 6;
+        floors.rect(x0, fy - cell.ceiling * scale - 3, cellW - 12, 3).fill("#c0563a");
+        floors.rect(x0, fy, cellW - 12, 3).fill("#5b6270");
       }
       const solved = solve(pose, facing, cell.headScale, plate);
       const towel = cell.move === "wipe" && cell.u > TOWEL_OUT[0] && cell.u < TOWEL_OUT[1];
@@ -768,6 +775,28 @@ export function createBoards(
           return banquet!.thumb();
         case "banquet-food":
           return banquet!.food();
+        case "flop": {
+          // The banquet's belly-flop in the shift, frame by frame: going in and flat out, both ways; then as the game blends
+          // it in from a run (0.1 s, the clip at a third of a second) and out to a crouch and to a run. The red line is the
+          // lowest a pass hangs (the corridor's 220 px), the grey one the floor.
+          const FRAMES = 10;
+          const cells: Cell[] = [];
+          const run = CLIPS.run(0.25, CTX);
+          const flat = CLIPS.flop(1, CTX);
+          const ceiling = 220;
+          for (let col = 0; col < FRAMES; col++) {
+            const u = col / (FRAMES - 1);
+            const t = (col / (FRAMES - 1)) * 0.3;
+            const cell = { col, clip: "idle" as ClipName, u: 0, costume: "affliction" as Costume, expression: "neutral" as Expression, headScale: HEAD_SCALE, ground: "belly" as Ground, ceiling };
+            cells.push({ ...cell, row: 0, pose: CLIPS.flop(u, CTX) });
+            cells.push({ ...cell, row: 1, pose: CLIPS.flop(u, CTX), facing: -1 });
+            cells.push({ ...cell, row: 2, pose: blend(run, CLIPS.flop(Math.min(1, t / 0.3), CTX), Math.min(1, t / 0.1)) });
+            cells.push({ ...cell, row: 3, pose: blend(flat, CLIPS.crouch(1, CTX), Math.min(1, t / 0.1)), ceiling: HERO_CROUCH_H });
+            cells.push({ ...cell, row: 4, pose: blend(flat, CLIPS.run(0.25, CTX), Math.min(1, t / 0.1)) });
+          }
+          const heads = Array.from({ length: FRAMES }, (_, i) => `u ${(i / (FRAMES - 1)).toFixed(2)} · ${((i / (FRAMES - 1)) * 0.3).toFixed(2)} s`);
+          return sheet(FRAMES, 5, cells, ["flop R", "flop L", "run in", "to crouch", "to run"], heads, MOVE_SCALE);
+        }
         case "banquet-dive": {
           // The coil and the dive frame by frame, in his bib with the faces the round gives him; the dive stands on its lowest point.
           const FRAMES = 10;

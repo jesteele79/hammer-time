@@ -320,6 +320,8 @@ export async function startLook(
   let prev = world.snapshot();
   let cur = prev;
   let clip: ClipName = "idle";
+  /** The clip the blend is coming from: out of the belly-flop he stays on his belly until he is up. */
+  let fromClip: ClipName = "idle";
   let phase = 0;
   let lastPose: Pose | null = null;
   let fromPose: Pose | null = null;
@@ -354,9 +356,11 @@ export async function startLook(
   const pending: GameEvent[] = [];
 
   const animate = (h: HeroState, dt: number): Pose => {
-    const want = h.state as ClipName;
+    // With the banquet's belly-flop his slide is drawn flat on his belly.
+    const want = (h.state === "slide" && h.flop ? "flop" : h.state) as ClipName;
     if (want !== clip) {
       fromPose = lastPose;
+      fromClip = clip;
       blendT = 0;
       clip = want;
       phase = 0;
@@ -383,7 +387,9 @@ export async function startLook(
   };
 
   const groundMode = (h: HeroState): Ground =>
-    groundForAction(playback.kind, clip, h.onGround, h.move?.kind === playback.kind && h.move ? moveU(h.move) : 1);
+    fromClip === "flop" && blendT < 1 && h.onGround && !playback.kind
+      ? "belly"
+      : groundForAction(playback.kind, clip, h.onGround, h.move?.kind === playback.kind && h.move ? moveU(h.move) : 1);
 
   /** The top of whatever he could stand on under x, no higher than `reach`: floors, platforms and solids. */
   const topUnder = (x: number, reach: number): number | null => {
@@ -501,7 +507,7 @@ export async function startLook(
         break;
       // Back from the banquet: what it paid, in the hint line for a moment (the R4 review's deferred minor).
       case "questPaid":
-        note = `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}`;
+        note = `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}${e.flop ? " · belly-flop" : ""}`;
         noteT = NOTE_T * 2;
         break;
       case "pickup":
@@ -558,12 +564,17 @@ export async function startLook(
       case "castBump":
         particles.emit("dust", e.x, e.y + 300, 4);
         break;
+      case "flop":
+        // He lands on his belly a beat into the slide, a body ahead of where it started.
+        particles.emit("dust", e.x + facing * 140, e.y, 14);
+        break;
       case "stomp":
         particles.emit("dust", e.x, e.y, 8);
         if (e.landed) words.say("STOMP!", e.x, e.y - 60, false, face, view);
         break;
       case "castHit": {
         if (e.by === "stomp" || e.by === "puddle") words.say(e.by === "puddle" ? "WHOA!" : "OOF!", e.x, e.y - 90, false, face, view);
+        else if (e.by === "flop") words.say("FLOP!", e.x, e.y - 90, false, face, view);
         else if (e.by !== "mallet" && e.by !== "snot") words.say("WHAM!", e.x, e.y - 90, false, face, view);
         const n = world.cast.find((c) => c.id === e.id);
         if (n && !n.hat && n.hits === 1 && HATTED.has(n.job)) flyers.hat(e.x, e.y - 150, e.dir, cast.hat(n.person), n.job);
@@ -1175,7 +1186,7 @@ export async function startLook(
       window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
-      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround };
+      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, clip };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
@@ -1363,6 +1374,13 @@ export async function startLook(
       },
       doggy(n = 1) {
         world.hero.doggy = n;
+      },
+      flop(on = true) {
+        world.hero.flop = on;
+      },
+      slowmo(scale: number, seconds: number) {
+        clock.scale = scale;
+        clock.slowmo = seconds;
       },
       clearShelves() {
         for (const p of game.pickups) p.taken = true;

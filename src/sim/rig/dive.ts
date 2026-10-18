@@ -38,6 +38,54 @@ export function divePose(k: number, mallet = true): Pose {
   });
 }
 
+/**
+ * The belly-flop on the floor (owner, 2026-10-18): the dive taken all the way down. `tip`, the degrees he goes over from
+ * standing to flat on his belly; `arch`, the degrees his back arches up off the floor. His neck comes up to upright on it,
+ * so his head stands clear of his shoulders (with it in line, his near shoulder comes inside the face box's margin past
+ * about 44 degrees, as at the table). `inAt`, the share of the clip he takes to go over and land; the rest he slides.
+ */
+export const FLOP = { tip: 90, arch: 15, inAt: 0.45 } as const;
+
+/** The lift that holds his head level for a body turned `spin` with its neck `neck` degrees off the body's line. */
+const levelLift = (spin: number, neck: number) => -spin - Math.max(-8, Math.min(8, neck));
+
+/**
+ * The flop at `u` (0 going in from the run, 1 flat out): he throws himself forward, arms out, and lands flat on his
+ * belly; on the floor his legs trail with the feet kicked up, both arms reach down to the floor ahead with the mallet
+ * lying out in front of his fist, and his head is up and level. Every rotation is tuned on the `flop` board; the rig
+ * checks hold the face, the head and the floor.
+ */
+export function flopPose(u: number): Pose {
+  const k = smooth(Math.min(1, Math.max(0, u / FLOP.inAt)));
+  const spin = -FLOP.tip * k;
+  const lean = -FLOP.arch * k;
+  // The neck comes up as far as he goes over, less the arch: upright on his flat back.
+  const neck = (FLOP.tip - FLOP.arch) * k;
+  // Landing on his belly: a squash that springs back over the slide.
+  const land = u < FLOP.inAt ? 0 : Math.max(0, 1 - (u - FLOP.inAt) / (1 - FLOP.inAt));
+  return pose({
+    spin,
+    lean,
+    lift: levelLift(spin, neck - lean),
+    squash: { x: 1 + 0.04 * land * k, y: 1 - 0.06 * land * k },
+    rot: {
+      neck,
+      shoulderNear: HOLD.shoulderNear + (88 - HOLD.shoulderNear) * k,
+      elbowNear: HOLD.elbowNear + (27 - HOLD.elbowNear) * k,
+      wristNear: HOLD.wristNear + (-36 - HOLD.wristNear) * k,
+      shoulderFar: FREE + (84 - FREE) * k,
+      elbowFar: 38 * k,
+      wristFar: -4 * k,
+      hipNear: 12 * k,
+      kneeNear: -48 * k,
+      ankleNear: -30 * k,
+      hipFar: 8 * k,
+      kneeFar: -62 * k,
+      ankleFar: -30 * k,
+    },
+  });
+}
+
 /** The charge (c 0 to 1): he rears back on bent knees, the far arm drawn back, ready to spring. */
 export function coilPose(c: number): Pose {
   const k = smooth(Math.min(1, Math.max(0, c)));

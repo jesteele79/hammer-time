@@ -217,12 +217,13 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     openQuest(createHungry(seed, { practice: true }), null, game.events);
   }
 
-  /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper, and COMPED's doggy bag; no lives. */
+  /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper, and COMPED's doggy bag and belly-flop; no lives. */
   function pay(r: HungryResult, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
     addScore(run, r.score);
     if (r.doggy) h.doggy = Math.max(h.doggy, 1);
+    if (r.flop) h.flop = true;
     if (r.cans) h.heat = Math.max(0, h.heat - addCans(run, r.cans, ev));
     if (r.nuts) h.charge = CHARGE_MAX;
     if (r.bucees) run.star = RUN.star;
@@ -230,7 +231,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       h.hot = true;
       h.patience = PATIENCE_MAX;
     }
-    ev.push({ type: "questPaid", score: r.score, grade: r.grade, doggy: r.doggy });
+    ev.push({ type: "questPaid", score: r.score, grade: r.grade, doggy: r.doggy, flop: r.flop });
   }
 
   function finishQuest() {
@@ -268,7 +269,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "over" });
       return;
     }
-    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy }, ev);
+    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy, flop: world.hero.flop }, ev);
     world.hero.invuln = RUN.respawnGrace;
     ev.push({ type: "respawn" });
   }
@@ -391,7 +392,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       return true;
     }
     const d = game.door;
-    if (!d || !armed || !input.held.down || !h.onGround || h.move) return false;
+    // Not on the way past one in a slide or a flop: ↓ held through it is for the slide.
+    if (!d || !armed || !input.held.down || !h.onGround || h.move || h.slideT > 0) return false;
     // The banquet is once a shift: a spent door stays shut, and nothing is said about it.
     if (d.kind === "quest" && game.run.spent.includes(d.id)) return false;
     armed = false;
@@ -473,7 +475,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** On to the shift's next venue: what he carries comes along; he arrives cool with full snot, his shield spent, its clocks unpunched. */
   function nextVenue(ev: GameEvent[]) {
     const h = world.hero;
-    const carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy };
+    const carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy, flop: h.flop };
     game.venue++;
     game.run.checkpoint = null;
     game.run.punched = [];
@@ -521,6 +523,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     world.step(input);
     ev.push(...world.events);
+    if (world.events.some((e) => e.type === "flop")) run.flopped = true;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {

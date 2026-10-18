@@ -369,6 +369,15 @@ button:focus-visible {
   color: var(--hud-gold);
   vertical-align: middle;
 }
+/* The belly-flop from the banquet, beside the doggy bag: what COMPED won him for the shift. */
+.next-hud__flop {
+  width: 26px;
+  height: 22px;
+  margin-left: 6px;
+  fill: var(--hud-gold);
+  color: #f4f1ea;
+  vertical-align: middle;
+}
 .next-hud__cans {
   display: inline-flex;
   align-items: center;

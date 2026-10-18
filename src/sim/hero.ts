@@ -31,7 +31,7 @@ import { HEAT, LOCKING, SINUS_MAX, tiredFactor } from "./moves";
 import { canStand, floorAt, floorUnder, moveBody } from "./physics";
 import type { HeroMotion, HeroState, Point, Stage } from "./types";
 
-export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patience?: number; doggy?: number };
+export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patience?: number; doggy?: number; flop?: boolean };
 
 export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
   return {
@@ -65,6 +65,8 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     invuln: 0,
     dropT: 0,
     doggy: opts.doggy ?? 0,
+    flop: opts.flop ?? false,
+    flopChain: 0,
   };
 }
 
@@ -99,7 +101,9 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
       if (Math.abs(h.vx) > WALK) {
         h.vx = SLIDE_START * h.facing;
         h.slideT = (SLIDE_START - SLIDE_END) / SLIDE_DECEL;
-        events.push({ type: "slide" });
+        h.flopChain = 0;
+        // With the banquet's belly-flop the same slide goes in on his belly.
+        events.push(h.flop ? { type: "flop", x: h.x, y: h.y } : { type: "slide" });
       }
     } else if (!held.down && h.crouch && canStand(h, stage, HERO_H)) {
       h.crouch = false;

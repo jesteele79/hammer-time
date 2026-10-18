@@ -24,7 +24,7 @@ import {
 import { GRAVITY_DOWN, STEP } from "./constants";
 import type { GameEvent } from "./events";
 import { bodyRect, overlapsRect } from "./geometry";
-import { BURST_R } from "./hits";
+import { BURST_R, flopRect, flopping } from "./hits";
 import { launchCoffee, launchPlane, type Missile } from "./missiles";
 import { floorAt, moveBody } from "./physics";
 import type { Puddle } from "./snot";
@@ -472,10 +472,23 @@ function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   }
 }
 
-/** Overlapping him: a stomp from above knocks them down and bounces him (students sidestep). */
+/**
+ * Overlapping him: a stomp from above knocks them down and bounces him (students sidestep). His belly-flop knocks over
+ * anyone on their feet it runs into, attack or no attack, and its bowling scores the chain like a runaway cart's.
+ */
 function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, events: GameEvent[]): void {
   const h = w.hero;
-  if (!hittable(n) || !overlapsRect(bodyRect(h), npcRect(n))) return;
+  if (!hittable(n)) return;
+  if (flopping(h)) {
+    if (n.act === "down" || !overlapsRect(flopRect(h), npcRect(n))) return;
+    if (strikeNpc(n, "flop", h.facing, w, events, h.flopChain + 1)) {
+      h.flopChain++;
+      chainEvent(events, n, h.flopChain);
+      if (h.flopChain >= CHAIN.length) h.flopChain = 0;
+    }
+    return;
+  }
+  if (!overlapsRect(bodyRect(h), npcRect(n))) return;
   const dir: 1 | -1 = toward(n, h) === 1 ? -1 : 1;
   if (h.vy > 0 && prevHeroY <= n.y - n.h + STOMP.tolerance) {
     const landed = strikeNpc(n, "stomp", dir, w, events);
