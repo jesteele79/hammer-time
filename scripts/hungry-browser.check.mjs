@@ -44,11 +44,15 @@ try {
   await waitMode(page, "quest");
   assert.match(await page.locator(".next-hud").innerText(), /The Banquet/i);
   await page.waitForTimeout(1500);
+  // Taps 0.35 s apart on the round's own clock: a page still warming up runs it slower than the wall's, and a tap inside
+  // the 0.3 s between dives is dropped.
   for (let i = 0; i < 4; i++) {
+    const t = await page.evaluate(() => window.__next.quest.time);
     await page.keyboard.press("Space");
-    await page.waitForTimeout(350);
+    await page.waitForFunction((t0) => window.__next.quest.time >= t0 + 0.35, t, { timeout: 5000 });
   }
-  assert.ok((await page.evaluate(() => window.__next.quest.dives)) >= 4, "he dives");
+  const opening = await page.evaluate(() => ({ dives: window.__next.quest.dives, time: window.__next.quest.time, stun: window.__next.quest.stun, mode: window.__next.run.mode, dived: window.__next.run.events.hhDive ?? 0 }));
+  assert.ok(opening.dives >= 4, `he dives: ${JSON.stringify(opening)}`);
   await page.keyboard.down("ArrowLeft");
   await page.waitForTimeout(300);
   await page.keyboard.up("ArrowLeft");
@@ -58,17 +62,35 @@ try {
   await page.waitForTimeout(150);
   assert.ok(["bellhop", "nurse"].includes(await page.evaluate(() => window.__next.quest.lock)), "a tap locks a plate");
   assert.match(await page.locator(".next-hud__hint").innerText(), /Hold Space to grab from the (bellhop|nurse)'s plate/);
-  // The nurse guards her plate: a charge at it is slapped, and he says so.
+  // The nurse guards her plate: a charge at it is slapped. He takes two quietly and says it on the third.
   await page.waitForTimeout(400);
   const cursed = await page.evaluate(() => window.__next.sound.played.curse ?? 0);
-  await page.evaluate(() => window.__next.dev.quest({ plate: { who: "nurse", kinds: ["brisket"] }, aim: "nurse" }));
-  await page.keyboard.down("Space");
-  await page.waitForFunction(() => (window.__next.run.events.hhSlap ?? 0) >= 1, null, { timeout: 4000 });
-  await page.keyboard.up("Space");
-  await page.waitForTimeout(100);
-  await shot(page, "hungry-slap.png");
-  assert.ok((await page.evaluate(() => window.__next.sound.played.curse ?? 0)) > cursed, "slapped, he says it: the damage recording");
-  assert.ok((await page.evaluate(() => window.__next.quest.stun)) > 0, "his hand stung");
+  const slapped = await page.evaluate(() => window.__next.run.events.hhSlap ?? 0);
+  for (let n = 1; n <= 3; n++) {
+    // A charge another hand clashes with on the way comes back empty and unslapped: charge again.
+    let got = false;
+    for (let tries = 0; tries < 4 && !got; tries++) {
+      await page.waitForFunction(() => window.__next.quest.stun === 0, null, { timeout: 3000 });
+      await page.evaluate(() => window.__next.dev.quest({ plate: { who: "nurse", kinds: ["brisket"] }, aim: "nurse" }));
+      await page.keyboard.down("Space");
+      got = await page.waitForFunction((want) => (window.__next.run.events.hhSlap ?? 0) >= want, slapped + n, { timeout: 2500 }).then(
+        () => true,
+        () => false,
+      );
+      await page.keyboard.up("Space");
+      if (!got) await page.waitForTimeout(500);
+    }
+    assert.ok(got, `slap ${n} came`);
+    await page.waitForTimeout(100);
+    assert.ok((await page.evaluate(() => window.__next.quest.stun)) > 0, "his hand stung");
+    const said = (await page.evaluate(() => window.__next.sound.played.curse ?? 0)) > cursed;
+    if (n < 3) assert.ok(!said, `slap ${n}: he keeps it in`);
+    else {
+      assert.ok(said, "the third slap: he says it, the damage recording");
+      await shot(page, "hungry-slap.png");
+    }
+    await page.waitForTimeout(300);
+  }
   // E lectures the table: everyone freezes.
   await page.waitForTimeout(1300);
   await page.keyboard.press("e");

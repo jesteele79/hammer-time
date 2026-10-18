@@ -296,7 +296,8 @@ through the stash and lost lives; a new shift opens it again. The restaurant's P
   The server clears food resting at the rim beside her.
 - **They guard their plates**: his hand within 300 px of a diner's plate starts their slap, which comes after their
   reaction times 0.6 (calm: the student 0.27 s, the bellhop 0.20, the nurse 0.14; never under 0.1); a hand still there
-  is slapped ("SLAP!", their line, and Hammer says it: the "absolute bullshit" recording with its caption, every time).
+  is slapped ("SLAP!" and their line; on every third slap of the round Hammer says it: the "absolute bullshit"
+  recording with its caption).
   What his hand held drops on the cloth, what it had sent home is knocked out of the air, 100 points off and a 1.2 s
   stun; their hand lunges at his. A clean rob of a calm student is safe; the bellhop's line runs through the student's
   guard and the nurse is too quick, so the far plates want a lecture first. A guard shows red where his line runs into

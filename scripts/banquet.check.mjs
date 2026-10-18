@@ -612,6 +612,24 @@ test("slapped on the way back, what he took is knocked out of the air onto the c
   assert.deepEqual(of(ok, "hhLand").filter((e) => e.who === "hammer").map((e) => e.kind), ["ribeye"]);
 });
 
+test("he says it on every third slap of the round, not on each", () => {
+  const q = only(table(), "nurse");
+  q.rivals.nurse.wait = 99;
+  const curses = [];
+  for (let i = 0; i < 6; i++) {
+    handAt(q, { x: 450, y: 60 });
+    q.hammer.stun = 0;
+    let evs = [];
+    for (let t = 0; t < 1 && !evs.length; t += STEP) {
+      stepHungry(q, input(), STEP);
+      evs = of(q.events, "hhSlap");
+    }
+    curses.push(evs[0].curse);
+    q.rivals.nurse.dive = null;
+  }
+  assert.deepEqual(curses, [false, false, true, false, false, true]);
+});
+
 test("a lectured, bonked or sleeping diner slaps nothing", () => {
   for (const set of [{ frozen: 3 }, { stun: 3 }, { asleep: true }]) {
     const q = only(table(), "nurse");

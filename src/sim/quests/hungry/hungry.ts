@@ -50,7 +50,7 @@ export const HUNGRY = {
    * their reaction times `react` (never under `floor`); if his hand is still there it is slapped: what it holds drops, a
    * `stun`, `cost` off his plate. Their hand lunges at his `lunge` times a dive's speed.
    */
-  guard: { zone: 300, react: 0.6, floor: 0.1, lunge: 2, stun: 1.2, cost: 100 },
+  guard: { zone: 300, react: 0.6, floor: 0.1, lunge: 2, stun: 1.2, cost: 100, curse: 3 },
   /** E (owner, 2026-10-18): the lecture lands a fifth of the way into its 0.8 s and freezes the table; they come out angrier. */
   lecture: { move: 0.8, deliver: 0.2, cooldown: 7, freeze: 2.2 },
   plane: { windup: 0.6, speed: 650, hit: 150 },
@@ -695,7 +695,8 @@ function slap(q: Hungry, r: Rival, hand: Point) {
   r.wait = -1;
   r.target = null;
   r.burst = 0;
-  q.events.push({ type: "hhSlap", who: r.id, x: hand.x, y: hand.y });
+  // Every third slap of the round he has had enough and says it (owner, 2026-10-18: not every time).
+  q.events.push({ type: "hhSlap", who: r.id, x: hand.x, y: hand.y, curse: q.score.slapped % HUNGRY.guard.curse === 0 });
   say(q, r.id, SLAPS[r.id][q.lines++ % SLAPS[r.id].length]);
 }
 

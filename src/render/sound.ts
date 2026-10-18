@@ -54,8 +54,6 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   hhBus: ["slide"],
   hhCart: ["boom"],
   hhClash: ["clash"],
-  // Slapped, he says it: the damage recording.
-  hhSlap: ["curse", "thud"],
   hhLock: ["tickSfx"],
   hhLecture: ["harrumph"],
   doggyBag: ["chomp", "power"],
@@ -175,6 +173,9 @@ export function cuesFor(e: GameEvent): Cue[] {
       return e.hit ? ["splat"] : [];
     case "hhSuitcase":
       return e.on ? ["thud"] : [];
+    // Every third slap he says it: the damage recording.
+    case "hhSlap":
+      return e.curse ? ["curse", "thud"] : ["thud"];
     default:
       return CUES[e.type] ?? [];
   }

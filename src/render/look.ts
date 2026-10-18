@@ -887,8 +887,8 @@ export async function startLook(
         const p = onScreen(e);
         particles.emit("impact", p.x, p.y, 12);
         words.say("SLAP!", p.x, p.y - 100, true, face, view);
-        // He says it, every slap: the recording with its caption.
-        bubbles.say(DAMAGE_LINE.text, 1.6);
+        // Every third slap he says it: the recording with its caption.
+        if (e.curse) bubbles.say(DAMAGE_LINE.text, 1.6);
         banquet.hurt();
         break;
       }

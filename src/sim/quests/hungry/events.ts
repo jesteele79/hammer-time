@@ -21,8 +21,8 @@ export type HungryEvent =
   | { type: "hhStun"; who: RivalId; x: number; y: number }
   /** The server dropped her tray at his end. */
   | { type: "hhTray"; x: number; y: number }
-  /** A diner slapped his hand away from their plate, at where his hand was. */
-  | { type: "hhSlap"; who: RivalId; x: number; y: number }
+  /** A diner slapped his hand away from their plate, at where his hand was; `curse` on every third, when he says it. */
+  | { type: "hhSlap"; who: RivalId; x: number; y: number; curse: boolean }
   /** A tap of ← or → hopped his line onto a diner's plate. */
   | { type: "hhLock"; who: RivalId }
   /** He started a lecture (E); the scene picks his line. */

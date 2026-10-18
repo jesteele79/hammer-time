@@ -34,7 +34,8 @@ side quest means something. The owner left the choices to me; these are the deci
   their reaction times 0.6 (calm, the student 0.27 s, the bellhop 0.20, the nurse 0.14; a fifth quicker each level of
   anger; never under 0.1). If his hand is still within 300 px then, it is slapped: what it holds drops on the cloth, what
   it had already sent home is knocked out of the air, 100 off his plate, a 1.2 s stun; their hand lunges at his.
-- Hammer says it every time: the "absolute bullshit" recording with its caption (the bus never overlaps a recording).
+- Hammer says it on every third slap of the round (the owner, later the same day: not every time): the "absolute
+  bullshit" recording with its caption (the bus never overlaps a recording); the slaps between thud.
 - The arithmetic of a rob: a clean in-and-out keeps his hand in a guard about 0.18 s, so a calm student can be robbed
   twice; the line to the bellhop's plate runs through the student's guard, and the nurse is quicker than any rob. The far
   plates want a lecture (or the bonk) first. A guard shows red where his line runs into it, and bright while a slap is
