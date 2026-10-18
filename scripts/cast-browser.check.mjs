@@ -185,6 +185,22 @@ try {
   assert.ok(m.puddles >= 1, "coffee on the floor");
   await shot("cast-coffee.png");
 
+  // 6b. Snot sticks (owner, 2026-10-18: it has to look gross): the conference wing's server, snotted, wears a glob of it
+  // where it hit her, strands dripping off it.
+  await heal();
+  const globs = () => page.evaluate(() => window.__next.goo?.globs ?? 0);
+  const globsBefore = await globs();
+  for (let i = 0; i < 4 && (await globs()) <= globsBefore; i++) {
+    const t = await page.evaluate(() => window.__next.cast.positions["server-tables"]);
+    await tp(Math.round(t.x) - 450);
+    await face(1);
+    await page.keyboard.press("KeyF");
+    for (const end = Date.now() + 1600; Date.now() < end && (await globs()) <= globsBefore; ) await page.waitForTimeout(30);
+  }
+  assert.ok((await globs()) > globsBefore, "snot sticks to the staffer it hits");
+  await page.waitForTimeout(600);
+  await shot("cast-snot.png");
+
   // 7. The shield, last, since it lasts ten seconds and bowls whoever leaps at him: whatever he runs into goes
   // flying. (The gift drops where he stands, so teleport first: a little behind the floor bellhop, wherever his cart
   // has taken him by now.)

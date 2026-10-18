@@ -12,8 +12,8 @@ import type { HeroState, Stage, Target } from "./types";
 
 /** `id` is unique in the world, so the renderer can match a blob across two steps. */
 export type Snot = { id: number; x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
-/** Snot, the tray's water or coffee on the floor: staff slip on any of them. */
-export type Puddle = { x: number; y: number; w: number; life: number; max: number; kind: "snot" | SpillKind };
+/** Snot, the tray's water or coffee on the floor: staff slip on any of them. `hot`: the pepper's snot, drawn chili-flecked. */
+export type Puddle = { x: number; y: number; w: number; life: number; max: number; kind: "snot" | SpillKind; hot?: boolean };
 
 /** The shipped embers (280/330 px/s, −40/−30 up, 1.15 s, puddles 15/22 wide for 7/9 s) at the new scale. */
 export const SNOT = {
@@ -102,7 +102,7 @@ export function stepSnot(
     if (b.life > 0 && floor !== null && b.y >= floor) {
       b.life = 0;
       const life = b.hot ? SNOT.hotPuddleLife : SNOT.puddleLife;
-      w.puddles.push({ x: b.x, y: floor, w: b.hot ? SNOT.hotPuddle : SNOT.puddle, life, max: life, kind: "snot" });
+      w.puddles.push({ x: b.x, y: floor, w: b.hot ? SNOT.hotPuddle : SNOT.puddle, life, max: life, kind: "snot", hot: b.hot });
       if (w.puddles.length > SNOT.puddles) w.puddles.shift();
       events.push({ type: "splat", x: b.x, y: floor, floor: true, hot: b.hot });
     }

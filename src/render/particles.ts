@@ -39,7 +39,11 @@ export const RECIPES = {
   impact: { speed: [260, 620], angle: [0, 360], gravity: 900, drag: 2, life: [0.25, 0.45], size: [9, 3], colors: ["#fff4c8", "#e9a23b"], additive: true },
   debris: { speed: [300, 760], angle: [200, 340], gravity: 2200, drag: 0.6, life: [0.5, 0.9], size: [8, 5], colors: ["#d4783c", "#e7d2b4"], additive: false },
   snot: { speed: [20, 90], angle: [0, 360], gravity: 300, drag: 3, life: [0.2, 0.35], size: [7, 2], colors: ["#c8dc8c", "#8fae4f"], additive: false },
-  splat: { speed: [160, 420], angle: [190, 350], gravity: 1800, drag: 1, life: [0.3, 0.55], size: [9, 4], colors: ["#c8dc8c", "#7d9a3c"], additive: false },
+  // Snot landing: thick gobs flung up and out (owner, 2026-10-18: it has to look gross).
+  splat: { speed: [160, 460], angle: [190, 350], gravity: 1700, drag: 0.8, life: [0.35, 0.6], size: [12, 6], colors: ["#d4ea7a", "#6f9a22"], additive: false },
+  // A drip off a glob of snot stuck to someone, falling straight down; the pepper's is mustard-green.
+  drip: { speed: [0, 40], angle: [80, 100], gravity: 1500, drag: 0.2, life: [0.45, 0.7], size: [6, 5], colors: ["#bcd95a", "#7da32a"], additive: false },
+  dripHot: { speed: [0, 40], angle: [80, 100], gravity: 1500, drag: 0.2, life: [0.45, 0.7], size: [7, 5], colors: ["#e4e070", "#8a8414"], additive: false },
   spray: { speed: [420, 900], angle: [150, 250], gravity: 1600, drag: 0.5, life: [0.35, 0.6], size: [5, 3], colors: ["#d8f0ff", "#6db4f0"], additive: false },
   steam: { speed: [40, 110], angle: [250, 290], gravity: -220, drag: 1.4, life: [0.6, 1.1], size: [10, 24], colors: ["#f2f2f2", "#9aa3ad"], additive: false },
   glint: { speed: [0, 30], angle: [0, 360], gravity: 0, drag: 2, life: [0.25, 0.4], size: [14, 2], colors: ["#ffffff", "#fff2a8"], additive: true },

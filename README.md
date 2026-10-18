@@ -108,9 +108,17 @@ running move is never restarted.
 - **F, C or K, the snot rocket:** his left hand comes up and presses one
   nostril, he rears back and blows, then flicks the hand off forward and
   drops it. Three charges, one back every 1.5 s, half a second between shots
-  and three in flight at most. It leaves just ahead of his nose, knocks a cart
-  and splats, or lands as a puddle that dries in 7 s. Hot snot (the pepper's)
-  burns orange, sheds embers, is faster and bigger and goes through a cart.
+  and three in flight at most. It leaves just ahead of his nose and knocks a
+  cart. It looks gross where it lands (owner, 2026-10-18; `src/render/goo.ts`).
+  On someone, the pig included, it sticks where it hit, to their head, chest or
+  hips: a lumpy, see-through glob with smaller gobs sprayed round it and a
+  string sagging off it, runs of goo down its lower edge, and strands off them
+  that stretch down, let a drip go and grow again (four globs a person at most).
+  On the floor it is a splat that spreads out, overshoots and settles: a mound
+  of goo with a wet shine, a lumpy skirt, splash fingers and droplets, strings
+  pulled up off it as it lands; it dries in 7 s. Hot snot (the pepper's) burns
+  orange in the air, sheds embers, is faster and bigger and goes through a
+  cart; where it lands it is mustard-green, flecked with chili.
 - **T, the towel:** with any heat, on the ground, he stands still, lets the
   mallet hang down in his right hand, brings the towel up in his left and
   wipes his face, flicks the sweat off and shines; heat drains fast. That hand
@@ -612,7 +620,9 @@ blend, mirroring, the skeleton matching the painted joints, grounding), the
 render checks (the quality governor, the skinned body matching the painting
 at rest and every bone landing on its solved joint, comic words kept off the
 face and in view, the towel at his face while his left hand wipes it, the
-towel hand drawn over his head only where it covers nothing else), the
+towel hand drawn over his head only where it covers nothing else, snot
+sticking where it hit and turning with them, its strands dripping and never
+through the floor, lumpy globs and splats the same every frame), the
 sim checks (jump height and cut, run speed and stop, coyote time and the jump
 buffer, landing on a platform at speed, crouch and slide under a pass,
 determinism, a screen crossed in 2.6 s, landings that never hold him and
@@ -676,14 +686,16 @@ practice round from the card (dives, a charged rob, a bonk, a duck, a break, a
 blur, three screen shapes, the tally and its best, Play again with Space held),
 a round with the art missing, the BUFFET door in a shift and what it pays, and
 `/?quest=hungry`; the moves browser check
-swings, bonks a cart, fires and splats snot, towels off and smashes, and
+swings, bonks a cart, fires snot that splats on the cart and on the floor
+(drawn as a splat), towels off and smashes, and
 checks the sounds; the acts browser check waits for the watch check, the tap
 and the harrumph, lectures, takes the two pips' hits and the lost life, and
 stands on the grand staircase; the cast browser check jumps the first
 bellhop's cart and bonks it back into him, knocks a rushing server down with
 the shatter, freezes a staffer and schools a student with the lecture, swats a
-plane, draws the projector ambush and its coffee, and bowls a bellhop with the
-shield. The boards land under `artifacts/`:
+plane, draws the projector ambush and its coffee, shows the Buc-ee's the floor
+bellhop carries, snots the conference wing's server, who wears it, and bowls a
+bellhop with the shield. The boards land under `artifacts/`:
 `hammer-clips.png` (the clips, then every move and act), `hammer-moves.png`
 and `hammer-acts.png` (each in ten frames, half again as large),
 `hammer-slopes.png` (standing and walking on five slopes, both ways),

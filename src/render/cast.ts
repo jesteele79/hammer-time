@@ -11,8 +11,10 @@ import type { Point, Rect, Snapshot } from "../sim/types";
 import type { Quality } from "./app";
 import { RIM, castHeadScale, hatWorldWidth, rimFor } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt, type Rim } from "./cast-body";
+import { GOO, addGlob, drawGlob, globPoint, stepGlob, stickGlob, type Glob } from "./goo";
 import { between } from "./interp";
 import { PALETTE, tones } from "./palette";
+import type { Particles } from "./particles";
 
 export type HairStyle = "short" | "bun" | "ponytail" | "curly" | "bald" | "bob" | "beanie";
 /** One person's build and clothes: the stand-in draws from it, and R2b-2 keeps it for the recolors. */
@@ -158,7 +160,6 @@ export function drawFigure(g: Graphics, s: Solved, look: CastLook, o: FigureOpts
         g.circle(j.chest.x + f * 16 * k, j.neck.y + (18 + i * 22) * k, 4 * k)
           .fill(PALETTE.brass)
           .stroke({ width: 2, color: INK });
-    if (o.slimed) g.ellipse(j.chest.x, j.chest.y, 26 * k, 18 * k).fill("#8fbf3f").stroke({ width: 3, color: INK });
   }
   // The apron hangs from the waist over the near leg.
   if (look.apron && !sil)
@@ -252,11 +253,10 @@ function drawProp(g: Graphics, j: Record<JointName, Point>, k: number, f: 1 | -1
   }
 }
 
-/** What the role carries, and the slime: over the painted body as over the stand-in. */
+/** What the role carries: over the painted body as over the stand-in. The slime is the goo layer's (`Cast`). */
 export function drawCarried(g: Graphics, s: Solved, o: FigureOpts): void {
   if (o.silhouette) return;
   drawProp(g, s.joints, s.scale, s.facing, o);
-  if (o.slimed) g.ellipse(s.joints.chest.x, s.joints.chest.y, 26 * s.scale, 18 * s.scale).fill("#8fbf3f").stroke({ width: 3, color: INK });
 }
 
 /** A caricature head on the neck seat: skull, ear, nose, eye, mouth, hair or hat; the front is the way he faces. */
@@ -417,6 +417,12 @@ type View = {
   mask: Graphics | null;
   air: boolean;
   squashT: number;
+  /** The snot stuck to them, drawn over the figure; the frame they were last drawn in, to stick a hit where it landed. */
+  goo: Graphics;
+  globs: Glob[];
+  frame: { x: number; y: number; k: number; joints: Solved["joints"]; facing: 1 | -1 } | null;
+  gooT: number;
+  slimedT: number;
 };
 const SHADOW_RX = 60;
 /** How far past the view a cast member is still drawn: a figure walking in is already posed. */
@@ -467,10 +473,13 @@ export class Cast {
   /** The rim light is off at the low quality tier. */
   private rimOn = true;
 
+  private gooSeed = 1;
+
   constructor(
     layer: Container,
     ambient: number,
     private readonly registry: Registry | null = null,
+    private readonly particles: Particles | null = null,
   ) {
     this.container.sortableChildren = true;
     this.container.tint = ambient;
@@ -534,9 +543,28 @@ export class Cast {
         const art = this.arts.get(n.person) ?? null;
         const painted = art ? new PaintedFigure(art) : null;
         const carried = new Graphics();
-        root.addChild(shadow, body, ...(painted ? [painted.container] : []), carried, stars);
+        const goo = new Graphics();
+        root.addChild(shadow, body, ...(painted ? [painted.container] : []), carried, goo, stars);
         this.container.addChild(root);
-        v = { person: n.person, recolor: n.recolor, root, body, painted, carried, shadow, stars, look: recolored(LOOKS[n.person], n.recolor), mask: null, air: !n.onGround, squashT: 0 };
+        v = {
+          person: n.person,
+          recolor: n.recolor,
+          root,
+          body,
+          painted,
+          carried,
+          shadow,
+          stars,
+          look: recolored(LOOKS[n.person], n.recolor),
+          mask: null,
+          air: !n.onGround,
+          squashT: 0,
+          goo,
+          globs: [],
+          frame: null,
+          gooT: time,
+          slimedT: 0,
+        };
         this.views.set(n.id, v);
       }
       // Far off the view he is neither posed nor drawn; his view is kept for when he comes back.
@@ -557,6 +585,7 @@ export class Cast {
       v.carried.clear();
       v.shadow.clear();
       v.stars.clear();
+      v.goo.clear();
       if (hidden) {
         const cover = coverOf(n.x, level);
         if (!cover) continue;
@@ -612,6 +641,8 @@ export class Cast {
       // The root is scaled by k: the edge's offset is in world px.
       const rim = lit && { ...lit, px: RIM.offset / k };
       this.draw(v, solved, { role: n.role, job: n.job, act: n.act, hat: n.hat, prop: n.prop, slimed: n.slimed, silhouette: false }, n.recolor, dazed, rim);
+      v.frame = { x: n.x, y: n.y + dy * k, k, joints: solved.joints, facing: n.facing };
+      this.drawGoo(v, n.slimed, -dy, time);
       if (dazed) {
         const c = solved.crown;
         for (let i = 0; i < STARS.n; i++) {
@@ -622,6 +653,38 @@ export class Cast {
       this.crowns.set(n.id, { x: n.x + solved.crown.x * k, y: n.y + (dy + solved.crown.y) * k, facing: n.facing });
     }
     for (const [id, v] of this.views) if (!seen.has(id)) this.drop(id, v);
+  }
+
+  /**
+   * The snot on them: a glob for a hit that came while they were off the screen (slimed, none stuck yet), then each glob
+   * stepped and drawn over the figure, its strands down to their floor (`floor` in the figure's frame), its drips let go.
+   */
+  private drawGoo(v: View, slimed: boolean, floor: number, time: number): void {
+    const dt = Math.min(0.1, Math.max(0, time - v.gooT));
+    v.gooT = time;
+    const f = v.frame!;
+    v.slimedT = slimed && !v.globs.length ? v.slimedT + dt : 0;
+    if (v.slimedT > GOO.late) addGlob(v.globs, stickGlob(f.joints, f.facing, { x: f.joints.chest.x + f.facing * 12, y: f.joints.chest.y }, false, this.gooSeed++));
+    for (const g of v.globs) {
+      const at = globPoint(g, f.joints, f.facing);
+      for (const d of stepGlob(g, dt, floor - at.y)) this.particles?.emit(g.hot ? "dripHot" : "drip", f.x + (at.x + d.x) * f.k, f.y + (at.y + d.y) * f.k, 1);
+      drawGlob(v.goo, g, at, floor);
+    }
+  }
+
+  /** Snot hit cast member `id` at world `x, y`: it sticks to the part of them it hit. Nothing for anyone not drawn yet. */
+  slime(id: number, x: number, y: number, hot: boolean): void {
+    const v = this.views.get(id);
+    const f = v?.frame;
+    if (!v || !f) return;
+    addGlob(v.globs, stickGlob(f.joints, f.facing, { x: (x - f.x) / f.k, y: (y - f.y) / f.k }, hot, this.gooSeed++));
+  }
+
+  /** How many globs of snot are stuck to the cast, for the checks. */
+  get globs(): number {
+    let n = 0;
+    for (const v of this.views.values()) n += v.globs.length;
+    return n;
   }
 
   private drop(id: number, v: View): void {

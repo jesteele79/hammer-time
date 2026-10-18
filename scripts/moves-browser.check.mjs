@@ -66,6 +66,14 @@ try {
   await page.screenshot({ path: resolve(out, "moves-snot.png") });
   m = await waitFor((x) => x.puddles >= 1 || (x.events.splat ?? 0) >= 1, 2000);
   assert.ok((m.events.splat ?? 0) >= 1, "it splats");
+  // Another the other way, clear of the cart: on the floor it lies as a gross splat (owner, 2026-10-18).
+  await page.waitForTimeout(400);
+  await tap("ArrowLeft", 150);
+  await tap("KeyF");
+  m = await waitFor((x) => x.puddles >= 1, 2500);
+  assert.ok(m.puddles >= 1, "snot on the floor");
+  assert.equal((await page.evaluate(() => window.__next.goo)).splats, m.puddles, "each drawn as a splat");
+  await page.screenshot({ path: resolve(out, "moves-splat.png") });
 
   m = await moves();
   assert.ok(m.heat > 0, `heat from the moves: ${m.heat}`);

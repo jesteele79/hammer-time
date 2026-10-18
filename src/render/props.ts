@@ -2,6 +2,7 @@ import { Container, Graphics } from "pixi.js";
 import type { Missile } from "../sim/missiles";
 import type { Puddle, Snot } from "../sim/snot";
 import type { Snapshot, Target } from "../sim/types";
+import { GOO, drawSplat } from "./goo";
 import { between } from "./interp";
 import { PALETTE, tones } from "./palette";
 import type { Particles } from "./particles";
@@ -164,6 +165,8 @@ export class Props {
   private readonly puddles: Graphics[] = [];
   private readonly missiles: Graphics[] = [];
   private trailT = 0;
+  /** How many puddles the last sync drew as snot splats, for the checks. */
+  splats = 0;
 
   constructor(
     layer: Container,
@@ -192,6 +195,7 @@ export class Props {
     });
     this.pool(this.puddles, s.puddles.length, 0);
     s.puddles.forEach((p, i) => drawPuddle(this.puddles[i], p));
+    this.splats = s.puddles.filter((p) => p.kind === "snot").length;
     this.pool(this.missiles, s.missiles.length, 3);
     s.missiles.forEach((m, i) => {
       drawMissile(this.missiles[i], m);
@@ -298,11 +302,18 @@ export function drawMissile(g: Graphics, m: Missile) {
 
 const PUDDLE_COLORS = { snot: "#9cc24a", water: "#7cc8f0", coffee: "#6b3a1e", gravy: "#8a5a2b", grease: "#d9a441" } as const;
 
-/** A flat glossy puddle on the floor, in what was spilled, that fades over its last second. */
+/** A flat glossy puddle on the floor, in what was spilled, that fades over its last second; snot lands as a gross splat. */
 export function drawPuddle(g: Graphics, p: Puddle) {
   const h = p.w * 0.18;
   const c = tones(PUDDLE_COLORS[p.kind]);
   g.clear();
+  if (p.kind === "snot") {
+    // Its shape keyed to where it landed: the same splat every frame.
+    drawSplat(g, p.w * GOO.splatDraw, (Math.round(p.x) * 31 + Math.round(p.y)) >>> 0, !!p.hot, p.max - p.life);
+    g.position.set(p.x, p.y);
+    g.alpha = Math.min(1, p.life);
+    return;
+  }
   g.ellipse(0, 0, p.w / 2, h / 2).fill(c.shadow).stroke({ width: 3, color: INK });
   g.ellipse(-p.w * 0.04, -h * 0.08, p.w * 0.38, h * 0.3).fill(c.base);
   g.ellipse(-p.w * 0.16, -h * 0.16, p.w * 0.12, h * 0.1).fill({ color: "#ffffff", alpha: 0.75 });

@@ -8,6 +8,7 @@ import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
 import { castHeadScale } from "./cast-art";
 import { loadPigArt, PaintedFigure, type CastArt } from "./cast-body";
+import { addGlob, drawGlob, globPoint, stepGlob, stickGlob, type Glob } from "./goo";
 import { PALETTE } from "./palette";
 import type { Particles } from "./particles";
 
@@ -85,13 +86,18 @@ export class PigView {
   private last: Pose | null = null;
   private blendT = BLEND_T;
   private crownAt: { x: number; y: number; facing: 1 | -1 } | null = null;
+  /** The snot stuck to it, over the painting (the drawn pig carries none), and the frame it was last drawn in. */
+  private readonly goo = new Graphics();
+  private globs: Glob[] = [];
+  private frame: { x: number; y: number; k: number; joints: Record<string, { x: number; y: number }>; facing: 1 | -1 } | null = null;
+  private gooSeed = 1;
   private here: { x: number; y: number; facing: 1 | -1 } = { x: 0, y: 0, facing: -1 };
 
   constructor(
     parent: Container,
     private readonly particles: Particles,
   ) {
-    this.body.addChild(this.standIn);
+    this.body.addChild(this.standIn, this.goo);
     this.container.addChild(this.body);
     this.container.visible = false;
     parent.addChild(this.container, this.tuftLayer);
@@ -106,7 +112,7 @@ export class PigView {
     this.art = art;
     this.figure = new PaintedFigure(art);
     this.body.removeChild(this.standIn);
-    this.body.addChild(this.figure.container);
+    this.body.addChildAt(this.figure.container, 0);
     this.kind = "painted";
     try {
       this.tuftTextures = await Promise.all((registry.pig?.stuffing ?? []).map((p) => Assets.load<Texture>(ART_BASE + p.file)));
@@ -157,6 +163,32 @@ export class PigView {
       }
     } else this.dustT = 0;
     this.draw(pose, pigFace(ctx), cur.facing);
+    this.drawGoo(dt);
+  }
+
+  /** Each glob of snot stepped and drawn over the painting, its strands down to the pig's floor, its drips let go. */
+  private drawGoo(dt: number): void {
+    this.goo.clear();
+    const f = this.frame;
+    if (!f) return;
+    const floor = (this.floorY - f.y) / f.k;
+    for (const g of this.globs) {
+      const at = globPoint(g, f.joints, f.facing);
+      for (const d of stepGlob(g, dt, floor - at.y)) this.particles.emit(g.hot ? "dripHot" : "drip", f.x + (at.x + d.x) * f.k, f.y + (at.y + d.y) * f.k, 1);
+      drawGlob(this.goo, g, at, floor);
+    }
+  }
+
+  /** Snot hit it at world `x, y`: it sticks to the part of the painted pig it hit. */
+  slime(x: number, y: number, hot: boolean): void {
+    const f = this.frame;
+    if (!f) return;
+    addGlob(this.globs, stickGlob(f.joints, f.facing, { x: (x - f.x) / f.k, y: (y - f.y) / f.k }, hot, this.gooSeed++));
+  }
+
+  /** How many globs of snot are stuck to it, for the checks. */
+  get globCount(): number {
+    return this.globs.length;
   }
 
   /**
@@ -175,10 +207,12 @@ export class PigView {
       this.body.position.set(0, dy * k);
       this.body.scale.set(k);
       this.figure.apply(solved, { recolor: null, dazed: false, hat: false, silhouette: false, face }, null);
+      this.frame = { x: this.here.x, y: this.here.y + dy * k, k, joints: solved.joints, facing };
       this.crownAt = { x: this.here.x + solved.crown.x * k, y: this.here.y + (solved.crown.y + dy) * k, facing };
       return;
     }
     const mid = -PIG_HEIGHT * 0.4;
+    this.frame = null;
     drawPigStandIn(this.standIn, face);
     this.body.pivot.set(0, mid);
     this.body.position.set(0, mid * pose.squash.y);
@@ -246,6 +280,8 @@ export class PigView {
     this.container.filters = null;
     for (const t of this.tufts) t.s.destroy();
     this.tufts.length = 0;
+    this.globs = [];
+    this.goo.clear();
   }
 
   destroy(): void {

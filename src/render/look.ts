@@ -169,7 +169,7 @@ export async function startLook(
   // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
   const lighting = createLighting(scene, render.quality, [...[...SHIFT, STASH].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
   const props = new Props(scene.layers.play, particles, scene.ambient);
-  const cast = new Cast(scene.layers.play, scene.ambient, registry);
+  const cast = new Cast(scene.layers.play, scene.ambient, registry, particles);
   cast.setQuality(render.quality);
   render.onQuality = (q) => {
     lighting.setQuality(q);
@@ -438,6 +438,8 @@ export async function startLook(
     bubbles.think(lines[Math.floor(Math.random() * lines.length)].text, 1.6);
   };
 
+  /** The cast member (or cart) the last snot hit named: its splat, next, sticks the snot to them. */
+  let snotOn: { id: number; x: number; y: number } | null = null;
   const show = (e: GameEvent, at: Frame) => {
     const { face, view, facing } = at;
     // Besting someone offers a recording; the bus rolls its pool's shipped chance and keeps its gap.
@@ -451,7 +453,10 @@ export async function startLook(
           particles.emit("debris", e.x, e.y, 10);
           words.say("BONK!", e.x, e.y - 70, false, face, view);
           smugT = SMUG_T;
-        } else if (e.by === "snot") words.say("SPLAT!", e.x, e.y - 50, false, face, view);
+        } else if (e.by === "snot") {
+          words.say("SPLAT!", e.x, e.y - 50, false, face, view);
+          snotOn = { id: e.target, x: e.x, y: e.y };
+        }
         break;
       case "burst":
         particles.emit("ring", e.x, e.y, 24);
@@ -464,7 +469,14 @@ export async function startLook(
         words.say(e.hot ? "HOT HONK!" : "HONK!", e.x + facing * 60, e.y - 60, false, face, view);
         break;
       case "splat":
-        particles.emit("splat", e.x, e.y, 14);
+        particles.emit("splat", e.x, e.y, e.floor ? 14 : 18);
+        // In the air it hit someone: the cast member its hit named (a cart keeps none), or else the pig, the only other thing
+        // that stops it; it sticks where it hit them.
+        if (!e.floor) {
+          if (snotOn && snotOn.x === e.x && snotOn.y === e.y) cast.slime(snotOn.id, e.x, e.y, e.hot);
+          else pigView.slime(e.x, e.y, e.hot);
+        }
+        snotOn = null;
         break;
       // The sweat flies forward off the towel at his face, from just in front of it so the face
       // keep-out doesn't take it: the recipe throws left, so mirror it facing right.
@@ -1200,6 +1212,7 @@ export async function startLook(
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.carrying = objects.carrying;
+      window.__next.goo = { globs: cast.globs + pigView.globCount, splats: props.splats };
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.headTintChain = character.headTintChain();
       window.__next.faceScreen = faceOnScreen;

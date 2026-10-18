@@ -1128,3 +1128,92 @@ test("captions follow the voice: a thought waits while a recording's caption is 
   c.step(2.01);
   assert.equal(c.think("Any day now.", 1.6), true, "with nothing spoken, thoughts show");
 });
+
+import { GOO, addGlob, globOutline, globPoint, globSpatter, splatGrow, splatShape, stepGlob, stickGlob } from "../src/render/goo.ts";
+
+test("snot sticks where it hit: on the nearest joint, and it stays there as they turn and move", () => {
+  const right = solve(REST_POSE, 1, 0.22);
+  const left = solve(REST_POSE, -1, 0.22);
+  const at = { x: right.joints.chest.x + 10, y: right.joints.chest.y - 6 };
+  const g = stickGlob(right.joints, 1, at, false, 3);
+  assert.equal(g.joint, "chest");
+  const back = globPoint(g, right.joints, 1);
+  assert.ok(Math.abs(back.x - at.x) < 1e-9 && Math.abs(back.y - at.y) < 1e-9, "where it hit");
+  const turned = globPoint(g, left.joints, -1);
+  assert.ok(Math.abs(turned.x - (left.joints.chest.x - 10)) < 1e-9 && Math.abs(turned.y - at.y) < 1e-9, "mirrored when they turn");
+  // A hit on the face sits on the face, never pulled down to the chest.
+  const face = { x: right.crown.x, y: right.crown.y + 30 };
+  const f = stickGlob(right.joints, 1, face, false, 4);
+  const p = globPoint(f, right.joints, 1);
+  assert.ok(Math.hypot(p.x - face.x, p.y - face.y) < 1e-9, `on the face: ${JSON.stringify(p)}`);
+  // A hit well off the body lands on its edge, not in the air.
+  const far = stickGlob(right.joints, 1, { x: right.joints.chest.x + 400, y: right.joints.chest.y }, false, 5);
+  assert.ok(Math.hypot(far.ox, far.oy) <= GOO.reach + 1e-9, "held on the body");
+});
+
+test("each glob has two or three strands that stretch down, let a drip go at full length and start again short", () => {
+  const g = stickGlob({ chest: { x: 0, y: -200 } }, 1, { x: 0, y: -200 }, false, 9);
+  assert.ok(g.strands.length >= 2 && g.strands.length <= 3, `strands: ${g.strands.length}`);
+  for (const s of g.strands) assert.ok(s.max >= GOO.len[0] && s.max <= GOO.len[1] && s.len <= GOO.stub + 1e-9);
+  // Each hangs from the tip of a run of goo down off the glob's lower edge.
+  for (const s of g.strands) assert.ok(s.top >= g.r * 0.9 && s.top <= g.r * 1.6, `a run below the glob: ${s.top}`);
+  const drips = [];
+  let longest = 0;
+  for (let i = 0; i < 600; i++) {
+    drips.push(...stepGlob(g, 1 / 120));
+    longest = Math.max(longest, ...g.strands.map((s) => s.len));
+  }
+  assert.ok(drips.length >= 2, `drips in five seconds: ${drips.length}`);
+  assert.ok(longest <= GOO.len[1] + 1e-9, "never longer than the longest");
+  for (const d of drips) assert.ok(d.y > 0, "a drip falls from below the glob");
+  // Over a floor close under it, a strand lies on the floor instead of dripping through it.
+  const low = stickGlob({ chest: { x: 0, y: -20 } }, 1, { x: 0, y: -20 }, false, 9);
+  const onFloor = [];
+  for (let i = 0; i < 600; i++) onFloor.push(...stepGlob(low, 1 / 120, 12));
+  assert.equal(onFloor.length, 0, "no drip through the floor");
+  for (const s of low.strands) assert.ok(s.len <= 12 + 1e-9, `stopped at the floor: ${s.len}`);
+});
+
+test("someone carries four globs at most: the oldest dries off", () => {
+  const list = [];
+  for (let i = 0; i < 6; i++) addGlob(list, stickGlob({ chest: { x: 0, y: -200 } }, 1, { x: i, y: -200 }, false, i));
+  assert.equal(list.length, GOO.max);
+  assert.deepEqual(list.map((g) => g.seed), [2, 3, 4, 5]);
+});
+
+test("a glob is lumpy, sags at the bottom and is sprayed round with smaller gobs, not a dot, the same frame to frame", () => {
+  const a = globOutline(GOO.r, 7);
+  assert.deepEqual(globOutline(GOO.r, 7), a, "the same for its seed");
+  assert.notDeepEqual(globOutline(GOO.r, 8), a, "another glob, another shape");
+  const radii = a.map((p) => Math.hypot(p.x, p.y));
+  assert.ok(Math.max(...radii) / Math.min(...radii) > 1.25, `lobed: ${Math.min(...radii)}..${Math.max(...radii)}`);
+  assert.ok(Math.max(...a.map((p) => p.y)) > -Math.min(...a.map((p) => p.y)) * 1.1, "it sags: lower than it is high");
+  assert.ok(GOO.r >= 28, `big enough to read at a distance: ${GOO.r}`);
+  const gobs = globSpatter(GOO.r, 7);
+  assert.deepEqual(globSpatter(GOO.r, 7), gobs, "the same for its seed");
+  assert.ok(gobs.length >= 3 && gobs.length <= 5, `gobs: ${gobs.length}`);
+  for (const g of gobs) {
+    const d = Math.hypot(g.x, g.y);
+    assert.ok(d >= GOO.r * 1.1 && d <= GOO.r * 2.4 && g.r < GOO.r * 0.45, `a gob off the glob: ${JSON.stringify(g)}`);
+  }
+});
+
+test("snot on the floor is a lumpy splat with a mound in the middle, splash fingers and droplets all round, spreading out as it lands", () => {
+  const s = splatShape(102, 41);
+  assert.deepEqual(splatShape(102, 41), s, "the same for its seed");
+  const xs = s.rim.map((p) => p.x);
+  const ys = s.rim.map((p) => p.y);
+  const w = Math.max(...xs) - Math.min(...xs);
+  const h = Math.max(...ys) - Math.min(...ys);
+  assert.ok(w > 85 && w < 130, `about as wide as the puddle: ${w}`);
+  assert.ok(h < w * 0.4 && h > w * 0.2, `lying on the floor, seen from the side: ${h} of ${w}`);
+  const radii = s.rim.map((p) => Math.hypot(p.x, p.y / GOO.flat));
+  assert.ok(Math.max(...radii) / Math.min(...radii) > 1.25, "lumpy");
+  assert.ok(s.fingers.length >= 3 && s.fingers.length <= 6, `fingers: ${s.fingers.length}`);
+  for (const k of s.fingers) assert.ok(k.len > 102 / 2, `a finger reaches past the rim: ${k.len}`);
+  assert.ok(s.drops.length >= 3 && s.drops.length <= 6, `droplets: ${s.drops.length}`);
+  const sides = new Set(s.drops.map((d) => Math.sign(d.x)));
+  assert.equal(sides.size, 2, "droplets on both sides, not in a bunch");
+  assert.ok(s.mound.h > 102 * 0.1 && s.mound.w < 102 * 0.7, `a mound of goo in the middle: ${JSON.stringify(s.mound)}`);
+  assert.ok(splatGrow(0) < 0.5 && splatGrow(0.09) > 1 && Math.abs(splatGrow(0.4) - 1) < 1e-9, "it spreads, overshoots and settles");
+});

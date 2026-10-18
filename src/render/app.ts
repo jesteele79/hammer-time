@@ -39,6 +39,8 @@ export type NextProbe = {
   heroScreenX?: number;
   /** How many staffers on screen show the prize they carry over their heads. */
   carrying?: number;
+  /** Globs of snot stuck to the cast and the pig, and snot splats on the floor. */
+  goo?: { globs: number; splats: number };
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
   /** His face box on screen, CSS px: nothing in the shell may cover it. */
