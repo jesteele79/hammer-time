@@ -273,8 +273,8 @@ export function NextGame({
           {touch && !veiled && mode !== "card" && mode !== "questCard" && hud && (
             <NextTouch
               onPress={press}
-              // At the banquet only the arrows, Jump and Hammer do anything: nothing else lights.
-              ready={hud.quest ? { fire: false, lecture: false, super: false } : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }}
+              // At the banquet only the arrows, Jump, Hammer and the lecture do anything: nothing else lights.
+              ready={hud.quest ? { fire: false, lecture: hud.lecture, super: false } : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }}
             />
           )}
           <NextVeil

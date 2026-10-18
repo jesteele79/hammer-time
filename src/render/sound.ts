@@ -53,7 +53,11 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   hhBus: ["slide"],
   hhCart: ["boom"],
   hhClash: ["clash"],
-  hhSlap: ["thud"],
+  // Slapped, he says it: the damage recording.
+  hhSlap: ["curse", "thud"],
+  hhLock: ["tickSfx"],
+  hhLecture: ["harrumph"],
+  doggyBag: ["chomp", "power"],
   hhSwat: ["thud"],
   hhTray: ["ding"],
 };

@@ -1,6 +1,6 @@
 import { Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
-import { ASIDES, DAMAGE_LINE, LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
+import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, LECTURES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import type { TauntTarget } from "../game/taunts";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
@@ -492,6 +492,18 @@ export async function startLook(
         words.say("WHAM!", e.x + e.dir * 120, e.y - 60, true, face, view);
         bubbles.say(DAMAGE_LINE.text, 1.6);
         break;
+      // The doggy bag caught the hit that would have knocked him flat: he eats his leftovers instead.
+      case "doggyBag":
+        particles.emit("crumbs", e.x, e.y, 14);
+        // In front of him at his middle, clear of the caption over his head even on a narrow phone.
+        words.say("LEFTOVERS!", at.crown.x + facing * 260, at.crown.y + 260, true, face, view);
+        bubbles.think(DOGGY_LINE.text, 1.6);
+        break;
+      // Back from the banquet: what it paid, in the hint line for a moment (the R4 review's deferred minor).
+      case "questPaid":
+        note = `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}`;
+        noteT = NOTE_T * 2;
+        break;
       case "pickup":
         objects.pop(e.kind, e.x, e.y);
         note = pickupNote(e.kind, world.hero);
@@ -771,6 +783,8 @@ export async function startLook(
   /** The banquet is up: its card, its round, its tally, or a break in its round. */
   const inBanquet = () => !!game.quest && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
   let banqueting = false;
+  /** Which of his banquet lectures comes next. */
+  let banquetLectures = 0;
   let shownQuest: Hungry | null = null;
   let questDives = 0;
 
@@ -860,8 +874,23 @@ export async function startLook(
         break;
       case "hhSlap": {
         const p = onScreen(e);
+        particles.emit("impact", p.x, p.y, 12);
         words.say("SLAP!", p.x, p.y - 100, true, face, view);
+        // He says it, every slap: the recording with its caption.
+        bubbles.say(DAMAGE_LINE.text, 1.6);
         banquet.hurt();
+        break;
+      }
+      // His lecture: the service when the server is at his end of the table, the food and the manners otherwise.
+      case "hhLecture": {
+        const server = q.server.away <= 0 && q.server.s >= 0.5;
+        const lines = server ? SERVER_LECTURES : BANQUET_LECTURES;
+        bubbles.think(lines[banquetLectures++ % lines.length].text, 1.8);
+        break;
+      }
+      case "hhSchooled": {
+        const p = e.who === "server" ? onScreen(e) : onScreen(SEATS[e.who].plate);
+        particles.emit("glint", p.x, p.y - 200, 5);
         break;
       }
       case "hhSwat": {
@@ -939,6 +968,7 @@ export async function startLook(
         dives: questDives,
         coiling: q.hammer.dive?.phase === "coil",
         aim: q.hammer.aim,
+        lock: q.hammer.lock,
         duck: q.hammer.duck,
         stun: q.hammer.stun,
         result: q.result,
@@ -1327,6 +1357,13 @@ export async function startLook(
       heal() {
         world.hero.patience = PATIENCE_MAX;
       },
+      /** His patience down to `n` pips, and a doggy bag or not: the save's check. */
+      patience(n: number) {
+        world.hero.patience = n;
+      },
+      doggy(n = 1) {
+        world.hero.doggy = n;
+      },
       clearShelves() {
         for (const p of game.pickups) p.taken = true;
         for (const c of game.crates) c.used = true;
@@ -1341,13 +1378,13 @@ export async function startLook(
       pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }) {
         if (world.pig) Object.assign(world.pig, o, o.state === "recover" ? { timer: 30, vx: 0 } : {});
       },
-      /** The running round: its clock, dishes on a rival's plate, his line on a rival's plate, dishes landed on his. */
+      /** The running round: its clock, dishes on a rival's plate, his line locked on a rival's plate, dishes landed on his. */
       quest(o: { time?: number; plate?: { who: RivalId; kinds: FoodKind[] }; aim?: RivalId; eat?: FoodKind[] }) {
         const q = game.quest;
         if (!q) return;
         if (o.time !== undefined) q.time = o.time;
         if (o.plate) q.rivals[o.plate.who].plate.push(...o.plate.kinds);
-        if (o.aim) q.hammer.aim = screenDeg(1, sub(SEATS[o.aim].plate, SEATS.hammer.plate));
+        if (o.aim) Object.assign(q.hammer, { aim: screenDeg(1, sub(SEATS[o.aim].plate, SEATS.hammer.plate)), lock: o.aim });
         for (const k of o.eat ?? []) land(q, "hammer", k);
       },
       /** Runs the round's clock out: its tally is next. */

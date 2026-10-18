@@ -65,6 +65,34 @@ export const LECTURES: Line[] = [
   "That is not a real major.",
 ].map(think);
 
+/** His lecture at the banquet table (owner, 2026-10-18): the food and the table manners. Thoughts, never recordings. */
+export const BANQUET_LECTURES: Line[] = [
+  "Elbows OFF the table.",
+  "That's not a portion. That's a sample.",
+  "Chew with your mouth closed.",
+  "That shrimp has seen things.",
+  "I've had better brisket at a gas station.",
+  "Napkin. Lap. Now.",
+  "You call that a plate? That's a coaster.",
+  "The buffet has rules. I wrote them.",
+  "Kolache is a breakfast food. Put it down.",
+  "Nobody needs four deviled eggs. Except me.",
+].map(think);
+
+/** And when the server is at his end of the table: the service. */
+export const SERVER_LECTURES: Line[] = [
+  "Refill. My. Tea.",
+  "I asked for this ten minutes ago.",
+  "Coke ZERO. Write it down.",
+  "Your section is a disgrace.",
+  "I'll be speaking to your manager.",
+  "Is this Pepsi? Don't answer that.",
+  "Bring the cart back. All of it.",
+].map(think);
+
+/** The doggy bag catches him: he eats his leftovers instead of going down. */
+export const DOGGY_LINE = think("Saved it for later.");
+
 /** Hammer's opener to a student, and what the student says back. */
 export const STUDENT_EXCHANGES: { hammer: Line; reply: string }[] = [
   ["Read the syllabus, rookie.", "It's on the rubric."],

@@ -266,7 +266,9 @@ Banquet") and then a sixty-second round at a banquet table. The lobby waits behi
 his heat, the shield and the pepper hold. The tally's Continue (Enter, Space or "Back to the lobby") stands him at the
 door with 0.6 s of grace (the key that closed it neither jumps nor swings), and he brings home the round's score, a can
 for the Coke Zero, a full smash for the nuts, the Buc-ee's shield as he walks out, and the pepper with full patience for
-the hot sauce or a full belly (GOOD TIPPER or better); no lives. The door then hangs a THANK YOU card and stays shut
+the hot sauce or a full belly (GOOD TIPPER or better); no lives. **COMPED wins a doggy bag** (see below): the round's
+card names the prize, the score turns gold once it is his, and the hint on the way back says what the banquet paid
+("Banquet +31,900 · doggy bag packed"). The door then hangs a THANK YOU card and stays shut
 through the stash and lost lives; a new shift opens it again. The restaurant's PRIVATE DINING stays closed for R8.
 
 - **The table** (`src/sim/quests/hungry/table.ts`): round, seen from above at an angle as the owner painted it, its top
@@ -278,15 +280,32 @@ through the stash and lost lives; a new shift opens it again. The restaurant's P
   back in 0.10 s; whatever its 110 px sweep crosses on the way out rides in his hand and flies home to his plate in
   0.25 s, scoring as it lands. One dive every 0.3 s; holding the key never repeats one. His reach grows 10 px a dish
   eaten, to 760. Held past 0.12 s the press charges, to 1180 at 0.5 s (a marker shows where it stops); a charged dive
-  that ends on a rival's plate robs its top dish ("YOINK!", its value plus 100). ← and → swing his line up to 30
-  degrees either way on screen, and it stays where it is left. His body tips 40 degrees over the cloth while a head
-  lift keeps his face level (`src/sim/rig/dive.ts`).
-- **The rivals** react to food coming to rest within 400 px of their plates (the student 0.55 s, the bellhop 0.40, the
-  nurse 0.28), mash bursts of 2 to 4 dives, and grow a fifth quicker for each plate he robs (calming after 8 s). Robbed,
-  the student throws a paper plane ("Heads up!": 150 points off, unless he ducks, swats it or is out on the table), the
-  bellhop slides a suitcase onto his line for 4 s ("Your bag, sir."), and the nurse stays angry: a hand in her red
-  ring is slapped ("Sanitize!", a second's stun, his thought "I've HAD my shots."). Two hands out within 110 px clash:
-  both come back empty and the food near them scatters. The server clears food resting at the rim beside her.
+  that ends on a rival's plate robs its top dish ("YOINK!", its value plus 100). His body tips 40 degrees over the
+  cloth while a head lift keeps his face level (`src/sim/rig/dive.ts`).
+- **Steering** (2026-10-18): a tap of ← or → hops his line onto the next diner's plate that way (← toward the far side,
+  → toward the near side) and locks it there, ringed in amber; holding Space then charges straight at that plate and
+  goes out the moment its reach gets there, stopping on the plate and robbing its top dish (a tap whose reach covers a
+  locked plate robs it too). Held, ← and → sweep his line freely up to 30 degrees either way (after a hop, once 0.2 s
+  have passed), and it stays where it is left. His line is always drawn, in amber over a dark edge so it reads on the
+  white cloth, out to where his hand would stop, and the dishes it would sweep are ringed.
+- **The rivals** (hard since 2026-10-18) react to food coming to rest within 450 px of their plates (the student
+  0.45 s, the bellhop 0.33, the nurse 0.24), mash bursts of 2 to 5 dives, and grow a fifth quicker for each plate he
+  robs or lecture he gives (to four levels, calming one every 12 s). Robbed, the student throws a paper plane ("Heads
+  up!": 150 points off, unless he ducks, swats it or is out on the table) and the bellhop slides a suitcase onto his line
+  for 4 s ("Your bag, sir."). Two hands out within 110 px clash: both come back empty and the food near them scatters.
+  The server clears food resting at the rim beside her.
+- **They guard their plates**: his hand within 300 px of a diner's plate starts their slap, which comes after their
+  reaction times 0.6 (calm: the student 0.27 s, the bellhop 0.20, the nurse 0.14; never under 0.1); a hand still there
+  is slapped ("SLAP!", their line, and Hammer says it: the "absolute bullshit" recording with its caption, every time).
+  What his hand held drops on the cloth, what it had sent home is knocked out of the air, 100 points off and a 1.2 s
+  stun; their hand lunges at his. A clean rob of a calm student is safe; the bellhop's line runs through the student's
+  guard and the nurse is too quick, so the far plates want a lecture first. A guard shows red where his line runs into
+  it, and bright while a slap is coming.
+- **E lectures the table** (2026-10-18): his thought is a food or table-manners insult ("Elbows OFF the table.", "I've
+  had better brisket at a gas station.") or, with the server at his end, one about the service ("Refill. My. Tea.").
+  A fifth of the way into its 0.8 s every diner and the server freeze for 2.2 s (no dives, no slaps, no clearing), each
+  answering in a bubble ("Okay, boomer.", "Very good, sir.", "Sir, chew your food.", "I'll get my manager."), and come
+  out of it a level angrier. Once every 7 s; no dive meanwhile.
 - **H bonks** the rim in front of him: food within 300 px jumps toward the middle, a rival's hand there is stunned 2
   s, the server at his corner drops her tray (four dishes) and leaves for 15 s, a suitcase is slammed off, paper is
   swatted. ↓ ducks under the edge. P or Escape is the break.
@@ -295,19 +314,27 @@ through the stash and lost lives; a new shift opens it again. The restaurant's P
   second; the six specials once each between 5 and 50 s (Coke Zero, the nuts and Buc-ee's are the products' own
   pictures; the hot sauce, the to-go box and the check come from the food sheet).
 - **The score**: the shipped values; grabs less than 1.2 s apart double from the fifth and triple from the tenth (the
-  bonus counted apart); the to-go box doubles the next five; the check costs 400 and a paper hit 150. The grade lines
-  keep the shipped 3000, 2000 and 1200 in proportion, scaled by the scripted rounds
+  bonus counted apart); the to-go box doubles the next five; the check costs 400, a paper hit 150 and a slap 100. The
+  grade lines keep the shipped 3000, 2000 and 1200 in proportion, scaled by the scripted rounds
   (`node --loader ./scripts/game-test-loader.mjs scripts/banquet-tune.mjs`: over ten seeds standing still scores 0,
-  steady tapping a median of 19890, sharp play 31510) by 9.95: COMPED from 29850, GOOD TIPPER from 19900, SPLIT THE
-  CHECK from 11940, else WATER ONLY. The tally names the grade, the score and the best, and what the round came to.
+  steady tapping a median of 16610, sharp play 31900, the sharp player robbing only what is safe and lecturing first)
+  by 10.1: COMPED from 30300, GOOD TIPPER from 20200, SPLIT THE CHECK from 12120, else WATER ONLY. The tally names the
+  grade, the score and the best, the doggy bag won or what wins it, and what the round came to (slaps among it).
 - **Practice**: the start screen's Side quests card plays a round on the same page, and `/?quest=hungry` opens one
   straight away; its tally offers Play again and Start screen, and never touches a shift. Door rounds and practice
   share one best (`hammer-time-best-banquet`).
-- **The screen**: the top bar shows the round's score and its clock; the panel reads "Hungry Hungry Hammer / The
-  Banquet" with his reach (the charge growing past a tick at his tap's) and his combo; the hint names what matters
-  most; the break card lists the banquet's keys; the touch pad's arrows aim, Jump dives (hold to charge), Hammer bonks
-  and ↓ ducks. The camera frames the whole table, all four eaters and the chute between the bars on a laptop and on a
+- **The screen**: the top bar shows the round's score (gold past COMPED) and its clock; the panel reads "Hungry Hungry
+  Hammer / The Banquet" with his reach (the charge growing past a tick at his tap's), his combo and the lecture's wait
+  (not on a phone on its side, where the pad's lit Lecture says it); the hint names what matters most; the break card
+  lists the banquet's keys; the touch pad's arrows hop and aim, Jump dives (hold to charge), Lecture lectures, Hammer
+  bonks and ↓ ducks. The camera frames the whole table, all four eaters and the chute between the bars on a laptop and on a
   phone either way; the cards sit on the right half, away from his face, on a wide screen.
+
+**The doggy bag** (owner, 2026-10-18: make the side quest mean something). COMPED from the BUFFET door sends him back
+to the lobby with a doggy bag, shown as a takeout box beside his patience. It rides with him through the shift's venues
+and a lost life, until the hit that would knock him flat: he eats his leftovers instead ("LEFTOVERS!", his thought
+"Saved it for later."), is only hurt, and is back at full patience with the pepper. One bag; practice wins none (its
+tally says what the door would have given).
 
 The banquet is a mode of the Game (`questCard`, `quest`, `questTally`) over its own sim (`src/sim/quests/hungry/`:
 `food.ts` the dishes' disc physics, `hungry.ts` the round, `drive.ts` the scripted players) and drawn by

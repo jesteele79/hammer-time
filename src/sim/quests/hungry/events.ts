@@ -21,7 +21,14 @@ export type HungryEvent =
   | { type: "hhStun"; who: RivalId; x: number; y: number }
   /** The server dropped her tray at his end. */
   | { type: "hhTray"; x: number; y: number }
-  | { type: "hhSlap"; x: number; y: number }
+  /** A diner slapped his hand away from their plate, at where his hand was. */
+  | { type: "hhSlap"; who: RivalId; x: number; y: number }
+  /** A tap of ← or → hopped his line onto a diner's plate. */
+  | { type: "hhLock"; who: RivalId }
+  /** He started a lecture (E); the scene picks his line. */
+  | { type: "hhLecture" }
+  /** The lecture landed on a diner or the server: frozen where they stand, at their plate or their spot. */
+  | { type: "hhSchooled"; who: RivalId | "server"; x: number; y: number }
   /** The student let a paper plane go. */
   | { type: "hhPlane"; x: number; y: number }
   /** A plane reached his spot: `hit` costs 150; otherwise he was ducked or out on the table. */

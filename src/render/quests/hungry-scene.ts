@@ -2,8 +2,8 @@ import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js
 import { ART_BASE, type Registry } from "../../art/registry";
 import { HEAD_SCALE } from "../../sim/constants";
 import { DISH, FOODS, type FoodKind } from "../../sim/quests/hungry/food";
-import { HUNGRY, handOf, planeAt, serverAt, type Eater, type Hungry, type Rival } from "../../sim/quests/hungry/hungry";
-import { BANQUET_SCALE, RIVALS, SEATS, TABLE, dirOf, floorOf, onScreen, type EaterId, type RivalId } from "../../sim/quests/hungry/table";
+import { HUNGRY, baseReach, handOf, planeAt, serverAt, underLine, type Eater, type Hungry, type Rival } from "../../sim/quests/hungry/hungry";
+import { BANQUET_SCALE, RIVALS, SEATS, TABLE, dirOf, dist, floorOf, onScreen, sub, type EaterId, type RivalId } from "../../sim/quests/hungry/table";
 import { ACTIONS, displayU, overlay } from "../../sim/rig/actions";
 import { castPose } from "../../sim/rig/cast";
 import { CLIPS } from "../../sim/rig/clips";
@@ -278,7 +278,7 @@ export class BanquetView {
     this.smugT = Math.max(0, this.smugT - dt);
     this.hurtT = Math.max(0, this.hurtT - dt);
     this.syncDishes(q);
-    this.drawMarks(q);
+    this.drawMarks(q, time);
     this.drawPlates(q);
     this.drawCases(q);
     this.drawCart(q);
@@ -317,24 +317,57 @@ export class BanquetView {
       }
   }
 
-  /** His line, faint, while he aims or charges, and the marker where a charge will stop; the angry nurse's zone. */
-  private drawMarks(q: Hungry) {
+  /**
+   * His line, always there (stronger as a charge builds) out to where his hand would stop, the dishes it would sweep ringed,
+   * and the plate it is locked on ringed bold (owner, 2026-10-18: a better way to steer his hand to each plate); in amber
+   * over a dark edge, which reads on the white cloth. A diner's guard round their plate shows where his line runs into it,
+   * redder the angrier they are, and bright while their slap is coming.
+   */
+  private drawMarks(q: Hungry, time: number) {
     const g = this.marks.clear();
+    // The round over, its tally up: nothing more to aim at.
+    if (q.result) return;
     const h = q.hammer;
     const p = SEATS.hammer.plate;
     const coil = h.dive?.phase === "coil" ? h.dive : null;
+    const out = !!h.dive && !coil;
     const dir = coil ? coil.dir : dirOf(1, h.aim);
-    const reach = coil ? coil.reach : 0;
-    if (reach || h.aim !== 0) {
-      const a = onScreen(p);
-      const b = onScreen({ x: p.x + dir.x * (reach || HUNGRY.reach.base), y: p.y + dir.y * (reach || HUNGRY.reach.base) });
-      g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 6, color: 0xffffff, alpha: 0.35, cap: "round" });
-      if (reach) g.ellipse(b.x, b.y, 46, 46 * TABLE.squash).stroke({ width: 5, color: 0xffcf3a, alpha: 0.9 });
+    const lockAt = h.lock ? dist(SEATS[h.lock].plate, p) : Infinity;
+    const reach = coil ? coil.reach : Math.min(baseReach(q), lockAt);
+    const end = h.lock ? lockAt : reach;
+    const zone = HUNGRY.guard.zone;
+    for (const id of RIVALS) {
+      const r = q.rivals[id];
+      if (r.asleep) continue;
+      const v = sub(SEATS[id].plate, p);
+      const along = Math.min(end, Math.max(0, v.x * dir.x + v.y * dir.y));
+      const crossed = !out && Math.hypot(v.x - dir.x * along, v.y - dir.y * along) <= zone;
+      const coming = r.slap >= 0;
+      if (!coming && !crossed) continue;
+      const c = onScreen(SEATS[id].plate);
+      g.ellipse(c.x, c.y, zone, zone * TABLE.squash)
+        .fill({ color: 0xd8443c, alpha: coming ? 0.24 : 0.06 + 0.03 * r.anger })
+        .stroke({ width: coming ? 7 : 4, color: 0xd8443c, alpha: coming ? 0.95 : 0.3 + 0.12 * r.anger });
     }
-    if (q.rivals.nurse.anger > 0) {
-      const c = onScreen(SEATS.nurse.plate);
-      g.ellipse(c.x, c.y, HUNGRY.slap.zone, HUNGRY.slap.zone * TABLE.squash).fill({ color: 0xd8443c, alpha: 0.12 }).stroke({ width: 4, color: 0xd8443c, alpha: 0.5 });
+    if (out) return;
+    const AMBER = 0xe8961e;
+    const EDGE = { color: 0x4a2c0c, alpha: 0.4 };
+    const ring = (x: number, y: number, rx: number, ry: number, width: number, alpha: number) => {
+      g.ellipse(x, y, rx, ry).stroke({ width: width + 4, ...EDGE });
+      g.ellipse(x, y, rx, ry).stroke({ width, color: AMBER, alpha });
+    };
+    for (const d of underLine(q, dir, reach)) {
+      const c = onScreen(d);
+      const rx = drawWidth(d.kind, d.r) / 2 + 8;
+      ring(c.x, c.y, rx, rx * 0.5, 4, 0.95);
     }
+    const a = onScreen(p);
+    const b = onScreen({ x: p.x + dir.x * end, y: p.y + dir.y * end });
+    g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 11, cap: "round", ...EDGE });
+    g.moveTo(a.x, a.y).lineTo(b.x, b.y).stroke({ width: 6, color: AMBER, alpha: coil ? 1 : 0.8, cap: "round" });
+    const stop = onScreen({ x: p.x + dir.x * reach, y: p.y + dir.y * reach });
+    if (!h.lock || reach < lockAt - 1) ring(stop.x, stop.y, 40, 40 * TABLE.squash, 5, coil ? 1 : 0.8);
+    if (h.lock) ring(b.x, b.y, 96, 96 * TABLE.squash, 8, 0.7 + 0.3 * Math.sin(time * 7));
   }
 
   /** Each plate, its stack's top few dishes on it. */
@@ -434,7 +467,7 @@ export class BanquetView {
       const off = d.handOffset(pose, facing);
       const lying = { x: hand.x - off.x, y: hand.y - off.y };
       d.pose(pose, facing, { x: stand.x + (lying.x - stand.x) * k, y: stand.y + (lying.y - stand.y) * k }, r.stun > 0, time);
-    } else d.pose(castPose({ role: "office", act: "idle", t: time, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 }), facing, stand, r.stun > 0, time, "planted");
+    } else d.pose(castPose({ role: "office", act: "idle", t: time, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 }), facing, stand, r.stun > 0 || r.frozen > 0, time, "planted");
     // Standing behind the far rim the table hides them below the waist; diving they lie on the cloth.
     d.container.zIndex = k > 0 ? Z.divers + d.container.y / 1e4 : seat.far ? Z.far : Z.ends;
   }
@@ -461,8 +494,10 @@ export class BanquetView {
     let pose: Pose = CLIPS.idle((time * 0.4) % 1, ctx);
     let k = 0;
     if (h.duck) pose = CLIPS.crouch(1, ctx);
-    else if (h.stun > 0) pose = ACTIONS.hurt(Math.min(1, (HUNGRY.slap.stun - h.stun) * 1.4));
+    else if (h.stun > 0) pose = ACTIONS.hurt(Math.min(1, (HUNGRY.guard.stun - h.stun) * 1.4));
     else if (h.swing > 0) pose = overlay(pose, ACTIONS.swing(displayU("swing", 1 - h.swing / HUNGRY.swing)), "upper", 1);
+    // The lecture: the shift's wagging finger over his stance at the table.
+    else if (h.lecture > 0) pose = overlay(pose, ACTIONS.lecture(1 - h.lecture / HUNGRY.lecture.move), "upper", 1);
     else if (h.dive?.phase === "coil") pose = coilPose(h.dive.held / HUNGRY.charge);
     else if (h.dive) {
       k = diveK(h.dive.ext);
@@ -480,7 +515,7 @@ export class BanquetView {
       feet = { x: stand.x + (lying.x - stand.x) * k, y: stand.y + (lying.y - stand.y) * k };
     }
     const out = h.dive && (h.dive.phase === "out" || h.dive.phase === "hold");
-    const expression = h.stun > 0 || this.hurtT > 0 ? "hurt" : out ? "chomp" : this.smugT > 0 ? "smug" : "neutral";
+    const expression = h.stun > 0 || this.hurtT > 0 ? "hurt" : out ? "chomp" : this.smugT > 0 || h.lecture > 0 ? "smug" : "neutral";
     ch.container.position.set(feet.x, feet.y);
     ch.container.scale.set(S);
     // Out over the cloth his shadow would lie on the cloth's drop: only standing does he throw one, on the floor.

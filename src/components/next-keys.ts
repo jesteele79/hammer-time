@@ -12,10 +12,11 @@ export const KEYS: [string, string][] = [
   ["P", "break"],
 ];
 
-/** The banquet's keys, for its break card (R4 §3). */
+/** The banquet's keys, for its break card (R4 §3; the plates and the lecture since 2026-10-18). */
 export const BANQUET_KEYS: [string, string][] = [
-  ["Space", "dive, hold to charge"],
-  ["← →", "aim"],
+  ["← →", "tap: next plate, hold: aim"],
+  ["Space", "grab, hold to reach"],
+  ["E", "lecture the table"],
   ["H", "bonk the table"],
   ["↓", "duck"],
   ["P", "break"],

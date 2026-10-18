@@ -12,6 +12,17 @@ function CanIcon() {
   return <img className="next-hud__can" src="/coke-zero.webp" alt="" />;
 }
 
+/** The doggy bag from the banquet: a takeout box, drawn. */
+function DoggyIcon() {
+  return (
+    <svg className="next-hud__doggy" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9h16l-2 11H6z" />
+      <path d="M4 9l3-4h10l3 4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M9 5c0-2 6-2 6 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Pause and sound, drawn: two bars, and a speaker with its waves or a cross. */
 function PauseIcon() {
   return (
@@ -60,7 +71,7 @@ export function NextHud({
   return (
     <div className={touch ? "next-hud next-hud--touch" : "next-hud"}>
       <section className="next-hud__bar-top" aria-label="Run">
-        <span className="next-hud__score" aria-label={`Score ${score}`}>
+        <span className="next-hud__score" data-comped={!!q && q.score >= q.goal} aria-label={`Score ${score}`}>
           {String(score).padStart(6, "0")}
         </span>
         {!q && (
@@ -141,15 +152,22 @@ export function NextHud({
                 {q.combo} in a row · {q.chomps} chomped
               </dd>
             </div>
+            <div className="next-hud__row next-hud__row--lecture">
+              <dt>Lecture</dt>
+              <dd className="next-hud__lecture" data-ready={q.lecture === 0}>
+                {q.lecture === 0 ? "Ready · E" : `${q.lecture}s`}
+              </dd>
+            </div>
           </dl>
         ) : (
           <dl className="next-hud__rows">
             <div className="next-hud__row">
               <dt>Patience</dt>
-              <dd aria-label={`${hud.patience} of ${hud.patienceMax}`} data-hot={hud.hot}>
+              <dd aria-label={`${hud.patience} of ${hud.patienceMax}${hud.doggy > 0 ? ", doggy bag" : ""}`} data-hot={hud.hot}>
                 {Array.from({ length: hud.patienceMax }, (_, i) => (
                   <i key={i} className="next-hud__pip next-hud__pip--patience" style={fill(i < hud.patience ? 1 : 0)} />
                 ))}
+                {hud.doggy > 0 && <DoggyIcon />}
               </dd>
             </div>
             <div className="next-hud__row">

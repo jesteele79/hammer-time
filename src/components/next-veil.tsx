@@ -1,6 +1,10 @@
 import type { HudPayload } from "@/render/hud";
 import type { GameMode } from "@/sim/game";
 import { FOODS } from "@/sim/quests/hungry/food";
+import { GRADES, HUNGRY } from "@/sim/quests/hungry/hungry";
+
+/** COMPED's line, as the cards write it. */
+const GOAL = GRADES[0][0].toLocaleString("en-US");
 import { BANQUET_KEYS, KEYS } from "./next-keys";
 
 export type VeilInfo = {
@@ -127,6 +131,9 @@ export function NextVeil({
           <p className="next-veil__eyebrow">Side quest</p>
           <h2 className="next-veil__title">Hungry Hungry Hammer</h2>
           <p className="next-veil__line">The Banquet</p>
+          <p className="next-veil__line next-veil__line--prize">
+            {info.quest?.door ? `Get COMPED (${GOAL}) to take home a doggy bag` : `In a shift, COMPED (${GOAL}) takes home a doggy bag`}
+          </p>
         </section>
       </div>
     );
@@ -138,10 +145,16 @@ export function NextVeil({
       `Combo bonus +${r.comboBonus} (best ${r.bestCombo} in a row)`,
       ...(r.robbed ? [`Robbed other plates ${r.robbed} time${r.robbed > 1 ? "s" : ""}`] : []),
       ...(r.paper ? [`Paper to the face: ${r.paper} (-${r.paper * 150})`] : []),
+      ...(r.slapped ? [`Slapped ${r.slapped} time${r.slapped > 1 ? "s" : ""} (-${r.slapped * HUNGRY.guard.cost})`] : []),
       ...(r.specials.length ? [`Specials: ${r.specials.map((k) => FOODS[k].name).join(", ")}`] : []),
       ...(r.bill ? ["Picked up the check: -400"] : []),
       ...(r.full ? ["Full belly: the pepper on the way back"] : []),
     ];
+    const prize = r.doggy
+      ? info.quest.door
+        ? "Doggy bag packed: it saves you from the next knockdown"
+        : "COMPED: from the BUFFET door that wins a doggy bag"
+      : `COMPED (${GOAL}) wins a doggy bag`;
     return (
       <div className="next-veil" data-place={place}>
         <section className="next-veil__card next-veil__card--tally" role="dialog" aria-label={r.grade}>
@@ -157,6 +170,9 @@ export function NextVeil({
               <dd>{String(best).padStart(6, "0")}</dd>
             </div>
           </dl>
+          <p className="next-veil__line next-veil__line--prize" data-won={r.doggy}>
+            {prize}
+          </p>
           <ul className="next-veil__lines">
             {lines.map((l) => (
               <li key={l}>{l}</li>

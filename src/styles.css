@@ -172,6 +172,19 @@ button:focus-visible {
 .next-hud__combo:not([data-mult="1"]) {
   color: #e9b866;
 }
+/* The banquet's lecture: its wait, gold once he can lecture again. */
+.next-hud__lecture {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: var(--hud-dim);
+}
+.next-hud__lecture[data-ready="true"] {
+  color: #e9b866;
+}
 /* Heat is slowing him: the bar glows and pulses red until he cools or towels off. */
 .next-hud__bar[data-slowed="true"] {
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.6), 0 0 8px rgb(224 72 47 / 0.75);
@@ -335,6 +348,26 @@ button:focus-visible {
 }
 .next-hud__score {
   letter-spacing: 0.05em;
+}
+/* At the banquet, past COMPED's line: the doggy bag is his, the score turns gold. */
+.next-hud__score[data-comped="true"] {
+  color: var(--hud-gold);
+  text-shadow: 0 0 10px rgb(233 184 102 / 0.55);
+}
+/* A phone on its side: the banquet panel keeps to two rows, clear of his head; the pad's lit Lecture button says it. */
+@media (max-height: 499px) {
+  .next-hud__row--lecture {
+    display: none;
+  }
+}
+/* The doggy bag from the banquet, beside the patience it saves. */
+.next-hud__doggy {
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  fill: #f4f1ea;
+  color: var(--hud-gold);
+  vertical-align: middle;
 }
 .next-hud__cans {
   display: inline-flex;
@@ -561,6 +594,14 @@ button:focus-visible {
 .next-veil__line {
   margin: 8px 0 0;
   font-size: 15px;
+  color: rgb(243 234 216 / 0.78);
+}
+/* What the banquet is worth: the doggy bag, gold once it is won. */
+.next-veil__line--prize {
+  font-weight: 600;
+  color: var(--hud-gold);
+}
+.next-veil__line--prize[data-won="false"] {
   color: rgb(243 234 216 / 0.78);
 }
 .next-veil__lives {

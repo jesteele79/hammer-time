@@ -1,7 +1,7 @@
 import { STEP } from "../../constants";
 import { emptyInput, type Input } from "../../input";
 import { FOODS, settled, type Dish } from "./food";
-import { HUNGRY, baseReach, createHungry, serverAt, stepHungry, type Hungry, type HungryResult } from "./hungry";
+import { HUNGRY, baseReach, createHungry, plateDeg, serverAt, slapFor, stepHungry, type Hungry, type HungryResult } from "./hungry";
 import { RIVALS, SEATS, dirOf, dist, onLine, screenDeg, sub } from "./table";
 
 /** A scripted player for the grade lines (R4 §6): the keys for this step of the round. */
@@ -15,7 +15,7 @@ function aimTo(input: Input, aim: number, deg: number, within = 2.5): boolean {
   input.held[deg > aim ? "left" : "right"] = true;
   return true;
 }
-const free = (q: Hungry) => !q.hammer.dive && q.hammer.swing <= 0 && q.hammer.stun <= 0;
+const free = (q: Hungry) => !q.hammer.dive && q.hammer.swing <= 0 && q.hammer.stun <= 0 && q.hammer.lecture <= 0;
 
 /** Never presses a key. */
 export const idlePlayer: Player = () => emptyInput();
@@ -43,9 +43,18 @@ const crosses = (d: Dish, dir: { x: number; y: number }, reach: number) => {
   return along >= 0 && along <= reach && off <= HUNGRY.sweep + d.r;
 };
 
+/** A rival's plate topped by an entree. */
+const entreeOn = (q: Hungry, id: (typeof RIVALS)[number]) => {
+  const top = q.rivals[id].plate[q.rivals[id].plate.length - 1];
+  return !!top && FOODS[top].course === "entree";
+};
+/** About how long a rob keeps his hand within a diner's guard: the last 300 px out, the hold, and 300 px back. */
+const ROB_EXPOSED = HUNGRY.guard.zone / HUNGRY.out + HUNGRY.hold + HUNGRY.guard.zone / HUNGRY.back;
+
 /**
- * Bonks the server at his corner; robs a rival's plate topped by an entree with a full charge (not the angry nurse's);
- * otherwise mashes along whichever line crosses the most food.
+ * Bonks the server at his corner; robs a rival's plate topped by an entree, locked on it with a tap and charged till the
+ * hand gets there, when the diner is lectured or too slow to slap it, and lectures the table first when that would
+ * free a plate; otherwise mashes along whichever line crosses the most food.
  */
 export function sharpPlayer(): Player {
   let holding = 0;
@@ -63,14 +72,21 @@ export function sharpPlayer(): Player {
       return input;
     }
     if (h.since < HUNGRY.cadence) return input;
-    for (const id of RIVALS) {
-      const r = q.rivals[id];
-      const top = r.plate[r.plate.length - 1];
-      if (!top || FOODS[top].course !== "entree" || (id === "nurse" && r.anger > 0)) continue;
-      const deg = degTo(SEATS[id].plate);
-      if (Math.abs(deg) > HUNGRY.aim || dist(SEATS[id].plate, P) > HUNGRY.reach.charged) continue;
-      // A plate across the table is a small mark: 2.5 degrees off the nurse's goes wide of it, 1 lands on it.
-      if (aimTo(input, h.aim, deg, 1)) return input;
+    // The student's plate is the only one whose line crosses no one else's guard: the far plates wait for a lecture.
+    const safe = (id: (typeof RIVALS)[number]) =>
+      RIVALS.every((o) => q.rivals[o].frozen > 1.2 || q.rivals[o].asleep) || (id === "student" && slapFor(q.rivals.student) > ROB_EXPOSED);
+    const marks = RIVALS.filter((id) => entreeOn(q, id));
+    const mark = marks.find(safe);
+    if (!mark && marks.length && h.lectureCd <= 0) {
+      input.held.lecture = input.pressed.lecture = true;
+      return input;
+    }
+    if (mark) {
+      if (h.lock !== mark) {
+        const way = plateDeg(mark) > h.aim ? "left" : "right";
+        input.held[way] = input.pressed[way] = true;
+        return input;
+      }
       input.held.jump = input.pressed.jump = true;
       holding = Math.ceil(HUNGRY.charge / STEP);
       return input;

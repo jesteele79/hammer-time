@@ -1055,7 +1055,7 @@ test("the banquet's feel: the bonk that catches something, the clash and the car
   assert.ok(feelOf({ type: "hhCart", x: 0, y: 0 }).trauma >= 0.5);
 });
 
-test("the HUD in the round: its score and clock, his reach from his tap's to 1180 as it charges, the combo, the chomps, the door or practice; none in the shift", () => {
+test("the HUD in the round: its score and clock, his reach from his tap's to 1180 as it charges, the combo, the chomps, the door or practice, the lecture's wait and COMPED's line; none in the shift", () => {
   const g = createGame({ lobby: LOBBY, stash: STASH }, 3, { cast: false, title: true });
   assert.equal(hudOf(g, null).quest, null);
   g.newQuest(5);
@@ -1067,8 +1067,11 @@ test("the HUD in the round: its score and clock, his reach from his tap's to 118
   q.score.eaten = 9;
   q.time = 12.2;
   const hud = hudOf(g, null).quest;
-  assert.deepEqual(hud, { score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, result: null });
-  assert.equal(hudOf(g, null).hint, "Tap Space to dive · hold to reach farther and rob a plate · ← → aim · H bonks the server");
+  assert.deepEqual(hud, { score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, lecture: 0, goal: 30300, result: null });
+  assert.equal(hudOf(g, null).hint, "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server");
+  assert.equal(hudOf(g, null).lecture, true, "the pad lights Lecture");
+  q.hammer.lectureCd = 4.2;
+  assert.deepEqual([hudOf(g, null).quest.lecture, hudOf(g, null).lecture], [5, false], "and counts down its wait");
 });
 
 test("what a staffer carries breaks on the hit that knocks it from his hands, not again on his knockout", () => {

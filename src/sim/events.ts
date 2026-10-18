@@ -127,5 +127,7 @@ export type GameEvent =
   /** The banquet's own events (R4): see src/sim/quests/hungry/events.ts. */
   | HungryEvent
   /** Back from the banquet's tally: what it paid. */
-  | { type: "questPaid"; score: number; grade: string }
+  | { type: "questPaid"; score: number; grade: string; doggy: boolean }
+  /** A doggy bag caught the hit that would have knocked him flat: he eats his leftovers, at his head. */
+  | { type: "doggyBag"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

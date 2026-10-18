@@ -32,7 +32,7 @@ export type NextProbe = {
   /** The canvas draws: false while the start screen covers it. */
   drawing?: boolean;
   /** Hungry Hungry Hammer while it is up (R4): its clock, score and chomps, his dives this round, his line, and the table on screen in CSS px. */
-  quest?: { time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; duck: boolean; stun: number; result: unknown; frame: { x: number; y: number; w: number; h: number } };
+  quest?: { time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; lock: string | null; duck: boolean; stun: number; result: unknown; frame: { x: number; y: number; w: number; h: number } };
   /** Set by the look scene once it runs. */
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean };
   heroScreenHeight?: number;
@@ -109,6 +109,10 @@ export type NextProbe = {
     heat(n: number): void;
     /** Restores his patience, so a check's later steps do not inherit the earlier ones' pips. */
     heal(): void;
+    /** Sets his patience pips. */
+    patience(n: number): void;
+    /** Gives him doggy bags from the banquet (one by default). */
+    doggy(n?: number): void;
     /** Sends one of the cast off the level by spawn id, so a check can watch a hazard without them in the way. */
     dismiss(spawn: string): void;
     /** Sets the pig's HP, counts or state, for the checks. */

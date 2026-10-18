@@ -28,6 +28,8 @@ export const HUNGRY = {
   aim: 30,
   /** How fast ← and → swing his line, degrees a second. */
   aimRate: 90,
+  /** A tap of ← or → hops his line onto the next plate that way; held past this after a hop, it sweeps on from there. */
+  hop: 0.2,
   /** A rival's plate is reached within this of its middle. */
   plate: 60,
   rob: 100,
@@ -41,8 +43,16 @@ export const HUNGRY = {
   /** His swing at the table is the shift's: the strike lands a third of the way in. */
   swing: MOVE_SECONDS.swing,
   strike: SWING_ACTIVE[0],
-  rival: { range: 400, cone: 50, burst: [2, 4] as const, calm: 8, floor: 0.15, quicker: 0.8, stun: 2 },
-  slap: { zone: 300, stun: 1 },
+  /** Hard (owner, 2026-10-18): quicker and greedier than R4's, slower to calm, and no angrier than `anger`. */
+  rival: { range: 450, cone: 50, burst: [2, 5] as const, calm: 12, floor: 0.12, quicker: 0.8, stun: 2, anger: 4 },
+  /**
+   * Every diner guards their plate (owner, 2026-10-18): his hand within `zone` of it starts their slap, which comes after
+   * their reaction times `react` (never under `floor`); if his hand is still there it is slapped: what it holds drops, a
+   * `stun`, `cost` off his plate. Their hand lunges at his `lunge` times a dive's speed.
+   */
+  guard: { zone: 300, react: 0.6, floor: 0.1, lunge: 2, stun: 1.2, cost: 100 },
+  /** E (owner, 2026-10-18): the lecture lands a fifth of the way into its 0.8 s and freezes the table; they come out angrier. */
+  lecture: { move: 0.8, deliver: 0.2, cooldown: 7, freeze: 2.2 },
   plane: { windup: 0.6, speed: 650, hit: 150 },
   suitcase: { t: 4, out: 250, w: 120, h: 80 },
   clash: { reach: 110, scatter: 150, speed: 400 },
@@ -64,8 +74,11 @@ const ALL_COURSES: FoodKind[] = [...COURSES.appetizer, ...COURSES.entree, ...COU
 const CART_FROM: Point = { x: 1500, y: -760 };
 const CART_TO: Point = { x: Math.cos(-35 * DEG) * TABLE.r, y: Math.sin(-35 * DEG) * TABLE.r };
 
-/** The shipped grade lines, scaled together by the scripted rounds (R4 §6; 8.25 until his sweep was measured on screen). */
-export const GRADE_SCALE = 9.95;
+/**
+ * The shipped grade lines, scaled together by the scripted rounds (R4 §6; 8.25 until his sweep was measured on screen,
+ * 9.95 until the table fought back on 2026-10-18).
+ */
+export const GRADE_SCALE = 10.1;
 export type Grade = "COMPED" | "GOOD TIPPER" | "SPLIT THE CHECK" | "WATER ONLY";
 export const GRADES: readonly (readonly [number, Grade])[] = (
   [
@@ -97,6 +110,8 @@ export type Dive = {
   haul: { kind: FoodKind; bonus: number }[];
   /** Where the hand was over the last 0.1 s: the clash. */
   trail: Point[];
+  /** A diner's slap: a lunge at his hand that sweeps nothing and never clashes. */
+  slap: boolean;
 };
 export type Eater = {
   id: EaterId;
@@ -108,16 +123,23 @@ export type Eater = {
   /** What is on their plate, the top last. */
   plate: FoodKind[];
 };
-export type Hammer = Eater & { id: "hammer"; aim: number; duck: boolean; swing: number; bonked: boolean };
-/** `asleep` (the tests' quiet table): there, plate and all, never diving. */
-export type Rival = Eater & { id: RivalId; base: number; anger: number; calm: number; wait: number; target: number | null; burst: number; asleep: boolean };
+/**
+ * `lock` the diner whose plate his line is on (a tap of ← or → hops it there); `hopT` seconds since the last hop;
+ * `lecture` seconds left of a lecture, `lectureCd` until the next, `lectured` once it has landed.
+ */
+export type Hammer = Eater & { id: "hammer"; aim: number; duck: boolean; swing: number; bonked: boolean; lock: RivalId | null; hopT: number; lecture: number; lectureCd: number; lectured: boolean };
+/**
+ * `asleep` (the tests' quiet table): there, plate and all, never diving. `frozen` seconds left of a lecture's hold;
+ * `slap` seconds until their slap lands, or -1.
+ */
+export type Rival = Eater & { id: RivalId; base: number; anger: number; calm: number; wait: number; target: number | null; burst: number; asleep: boolean; frozen: number; slap: number };
 export type Flight = { kind: FoodKind; to: EaterId; from: Point; t: number; bonus: number };
 export type Plane = { from: Point; to: Point; d: number; wait: number; done: boolean; hit: boolean };
 export type Suitcase = Box & { t: number };
 /** `s` 0 at the right end, 1 at his corner; `wait` lingering at an end. */
-export type Server = { s: number; dir: 1 | -1; away: number; quiet: number; wait: number };
+export type Server = { s: number; dir: 1 | -1; away: number; quiet: number; wait: number; frozen: number };
 export type Cart = { x: number; y: number; crashed: boolean };
-export type Score = { plate: number; bonus: number; chain: number; best: number; last: number; togo: number; eaten: number; robbed: number; paper: number; specials: FoodKind[]; bill: boolean };
+export type Score = { plate: number; bonus: number; chain: number; best: number; last: number; togo: number; eaten: number; robbed: number; paper: number; slapped: number; specials: FoodKind[]; bill: boolean };
 export type HungryResult = {
   score: number;
   grade: Grade;
@@ -129,8 +151,12 @@ export type HungryResult = {
   bestCombo: number;
   robbed: number;
   paper: number;
+  /** Times a diner slapped his hand. */
+  slapped: number;
   specials: FoodKind[];
   bill: boolean;
+  /** COMPED: a doggy bag goes home with him from the BUFFET door (owner, 2026-10-18). */
+  doggy: boolean;
   cans: number;
   nuts: boolean;
   bucees: boolean;
@@ -159,11 +185,25 @@ export type Hungry = {
   score: Score;
   /** His thoughts this round: each once. */
   said: Set<string>;
+  /** Lectures given and slaps landed: which reply each diner gives next. */
+  lines: number;
   events: HungryEvent[];
   result: HungryResult | null;
 };
 
-const RIVAL_BASE: Record<RivalId, number> = { student: 0.55, bellhop: 0.4, nurse: 0.28 };
+const RIVAL_BASE: Record<RivalId, number> = { student: 0.45, bellhop: 0.33, nurse: 0.24 };
+/** What each diner says when the lecture lands on them, and when they slap his hand: speech bubbles. */
+const LECTURED: Record<RivalId | "server", readonly string[]> = {
+  student: ["Okay, boomer.", "Sir, this is a buffet.", "I'm putting this on my story."],
+  bellhop: ["Very good, sir.", "I'll make a note of it, sir.", "Of course, sir."],
+  nurse: ["Sir, chew your food.", "That's a choking hazard.", "Deep breaths, sir."],
+  server: ["I'll get my manager.", "I'll be right back with that.", "Is Pepsi okay?"],
+};
+const SLAPS: Record<RivalId, readonly string[]> = {
+  student: ["Bro. Hands.", "Get your own!", "Literally mine."],
+  bellhop: ["Hands off, sir.", "That's mine, sir.", "Not the luggage, sir."],
+  nurse: ["Sanitize!", "Hands where I can see them!", "Wash those first!"],
+};
 function eater<I extends EaterId>(id: I): Eater & { id: I } {
   return { id, dive: null, since: HUNGRY.cadence, stun: 0, plate: [] };
 }
@@ -171,7 +211,7 @@ function eater<I extends EaterId>(id: I): Eater & { id: I } {
 export function createHungry(seed: number, opts: HungryOptions = {}): Hungry {
   const rng = seededRandom(seed);
   const scheduled = opts.schedule !== false;
-  const rival = (id: RivalId): Rival => ({ ...eater(id), base: RIVAL_BASE[id], anger: 0, calm: 0, wait: -1, target: null, burst: 0, asleep: opts.rivals === false });
+  const rival = (id: RivalId): Rival => ({ ...eater(id), base: RIVAL_BASE[id], anger: 0, calm: 0, wait: -1, target: null, burst: 0, asleep: opts.rivals === false, frozen: 0, slap: -1 });
   const { from, to } = HUNGRY.specials;
   return {
     rng,
@@ -179,19 +219,20 @@ export function createHungry(seed: number, opts: HungryOptions = {}): Hungry {
     time: 0,
     dishes: [],
     nextId: 1,
-    hammer: { ...eater("hammer"), aim: 0, duck: false, swing: 0, bonked: false },
+    hammer: { ...eater("hammer"), aim: 0, duck: false, swing: 0, bonked: false, lock: null, hopT: Infinity, lecture: 0, lectureCd: 0, lectured: false },
     rivals: { student: rival("student"), bellhop: rival("bellhop"), nurse: rival("nurse") },
     flights: [],
     planes: [],
     suitcases: [],
-    server: { s: 0, dir: 1, away: opts.server === false ? Infinity : 0, quiet: 0, wait: 0 },
+    server: { s: 0, dir: 1, away: opts.server === false ? Infinity : 0, quiet: 0, wait: 0, frozen: 0 },
     cart: null,
     poured: WAVES.map(() => !scheduled),
     specials: scheduled ? SPECIALS.map((kind) => ({ at: from + rng() * (to - from), kind, done: false })) : [],
     scheduled,
     frenzyT: 0,
-    score: { plate: 0, bonus: 0, chain: 0, best: 0, last: -99, togo: 0, eaten: 0, robbed: 0, paper: 0, specials: [], bill: false },
+    score: { plate: 0, bonus: 0, chain: 0, best: 0, last: -99, togo: 0, eaten: 0, robbed: 0, paper: 0, slapped: 0, specials: [], bill: false },
     said: new Set(),
+    lines: 0,
     events: [],
     result: null,
   };
@@ -206,6 +247,16 @@ export function addDish(q: Hungry, kind: FoodKind, x: number, y: number, vx = 0,
 
 /** His tap's reach: the hungrier he gets, the farther he stretches (R4 §3). */
 export const baseReach = (q: Hungry) => Math.min(HUNGRY.reach.max, HUNGRY.reach.base + HUNGRY.reach.step * q.score.eaten);
+
+/** The dishes on the cloth a sweep from his plate along `dir` out to `reach` would take: what his line rings. */
+export function underLine(q: Hungry, dir: Point, reach: number): Dish[] {
+  const p = SEATS.hammer.plate;
+  return q.dishes.filter((x) => {
+    if (x.fall > 0) return false;
+    const { along, off } = onLine(sub(x, p), dir);
+    return along >= 0 && along <= reach && off <= HUNGRY.sweep + x.r;
+  });
+}
 
 /** Where an eater's hand is on the table top: on their plate, or out along their dive. */
 export function handOf(e: Eater): Point {
@@ -281,18 +332,52 @@ function stepCart(q: Hungry, dt: number) {
   think(q, "Bring the cart back.");
 }
 
-const newDive = (dir: Point, reach: number, phase: DivePhase): Dive => ({ phase, t: 0, held: 0, dir, reach, ext: 0, charged: false, rob: null, haul: [], trail: [] });
+const newDive = (dir: Point, reach: number, phase: DivePhase): Dive => ({ phase, t: 0, held: 0, dir, reach, ext: 0, charged: false, rob: null, haul: [], trail: [], slap: false });
+
+/** How many degrees up on screen a diner's plate looks from his. */
+export const plateDeg = (id: RivalId) => screenDeg(1, sub(SEATS[id].plate, SEATS.hammer.plate));
+
+/**
+ * A tap of ← (`way` 1, toward the far side) or → (-1): his line hops onto the next diner's plate that way and locks there.
+ * Past the last plate that way the lock lets go and the key sweeps instead. True when it hopped.
+ */
+function hop(q: Hungry, way: 1 | -1): boolean {
+  const h = q.hammer;
+  const next = RIVALS.map((id) => ({ id, deg: plateDeg(id) }))
+    .filter((p) => Math.abs(p.deg) <= HUNGRY.aim && (way > 0 ? p.deg > h.aim + 0.5 : p.deg < h.aim - 0.5))
+    .sort((a, b) => way * (a.deg - b.deg))[0];
+  if (!next) {
+    h.lock = null;
+    return false;
+  }
+  h.aim = next.deg;
+  h.lock = next.id;
+  q.events.push({ type: "hhLock", who: next.id });
+  return true;
+}
 
 /**
  * Where a coiling dive will stop: his tap reach, or the charge so far (linear from the tap's reach to 1180 between 0.12
- * and 0.5 s); and a charged line ends on the first rival plate along it that has something on it.
+ * and 0.5 s). Locked on a plate, it stops on the plate as soon as it reaches it and robs its top dish (`arrived`: a
+ * charge then goes out at once). Otherwise a charged line ends on the first rival plate along it that has something on it.
  */
-function aimDive(q: Hungry, d: Dive) {
+function aimDive(q: Hungry, d: Dive): boolean {
   const base = baseReach(q);
   const k = Math.min(1, Math.max(0, (d.held - HUNGRY.tap) / (HUNGRY.charge - HUNGRY.tap)));
   let reach = d.charged ? base + (HUNGRY.reach.charged - base) * k : base;
   reach = Math.min(reach, caseStop(q, SEATS.hammer.plate, d.dir));
   d.rob = null;
+  const lock = q.hammer.lock;
+  if (lock) {
+    const along = dist(SEATS[lock].plate, SEATS.hammer.plate);
+    const arrived = reach >= along - 1e-6;
+    if (arrived) {
+      reach = along;
+      if (q.rivals[lock].plate.length > 0) d.rob = lock;
+    }
+    d.reach = reach;
+    return arrived;
+  }
   if (d.charged) {
     const p = SEATS.hammer.plate;
     const on = RIVALS.map((id) => {
@@ -307,16 +392,40 @@ function aimDive(q: Hungry, d: Dive) {
     }
   }
   d.reach = reach;
+  return false;
 }
 
 function stepHammer(q: Hungry, input: Input, dt: number) {
   const h = q.hammer;
   h.stun = Math.max(0, h.stun - dt);
   h.since += dt;
-  // ← swings his line toward the far side, → toward the near side, as he would steer from where he stands.
-  if (input.held.left !== input.held.right) h.aim = Math.min(HUNGRY.aim, Math.max(-HUNGRY.aim, h.aim + (input.held.left ? 1 : -1) * HUNGRY.aimRate * dt));
-  h.duck = input.held.down && !h.dive && h.swing <= 0;
-  const free = !h.duck && h.stun <= 0;
+  h.hopT += dt;
+  h.lectureCd = Math.max(0, h.lectureCd - dt);
+  // ← works toward the far side, → toward the near side, as he would steer from where he stands: a tap hops his line onto
+  // the next plate that way; held, it sweeps (after a hop, once the tap's moment has passed).
+  const tapped = input.pressed.left !== input.pressed.right ? (input.pressed.left ? 1 : -1) : 0;
+  const held = input.held.left !== input.held.right ? (input.held.left ? 1 : -1) : 0;
+  if (tapped && hop(q, tapped)) h.hopT = 0;
+  else if (held && h.hopT >= HUNGRY.hop - 1e-9) {
+    h.aim = Math.min(HUNGRY.aim, Math.max(-HUNGRY.aim, h.aim + held * HUNGRY.aimRate * dt));
+    h.lock = null;
+  }
+  if (h.lecture > 0) {
+    h.lecture = Math.max(0, h.lecture - dt);
+    if (!h.lectured && 1 - h.lecture / HUNGRY.lecture.move >= HUNGRY.lecture.deliver - 1e-9) {
+      h.lectured = true;
+      lecture(q);
+    }
+  }
+  h.duck = input.held.down && !h.dive && h.swing <= 0 && h.lecture <= 0;
+  const free = !h.duck && h.stun <= 0 && h.lecture <= 0;
+  if (input.pressed.lecture && !h.dive && h.swing <= 0 && free && h.lectureCd <= 0) {
+    h.lecture = HUNGRY.lecture.move;
+    h.lectureCd = HUNGRY.lecture.cooldown;
+    h.lectured = false;
+    q.events.push({ type: "hhLecture" });
+    return;
+  }
   if (input.pressed.hammer && !h.dive && h.swing <= 0 && free) {
     h.swing = HUNGRY.swing;
     h.bonked = false;
@@ -339,8 +448,8 @@ function stepHammer(q: Hungry, input: Input, dt: number) {
     d.held += dt;
     d.dir = dirOf(1, h.aim);
     d.charged = d.held > HUNGRY.tap;
-    aimDive(q, d);
-    if (!(input.held.jump || input.held.fire) || d.held >= HUNGRY.charge - 1e-9) {
+    const arrived = aimDive(q, d) && d.charged;
+    if (!(input.held.jump || input.held.fire) || d.held >= HUNGRY.charge - 1e-9 || arrived) {
       d.phase = "out";
       d.t = 0;
       q.events.push({ type: "hhDive", who: "hammer", charged: d.charged });
@@ -356,9 +465,8 @@ function advance(q: Hungry, e: Eater, dt: number) {
   d.t += dt;
   if (d.phase === "out") {
     const from = d.ext;
-    d.ext = Math.min(d.reach, d.ext + HUNGRY.out * dt);
-    if (e.id === "hammer" && slapped(q)) return;
-    sweep(q, e, from, d.ext);
+    d.ext = Math.min(d.reach, d.ext + HUNGRY.out * (d.slap ? HUNGRY.guard.lunge : 1) * dt);
+    if (!d.slap) sweep(q, e, from, d.ext);
     if (d.ext >= d.reach - 1e-9) {
       d.phase = "hold";
       d.t = 0;
@@ -438,8 +546,10 @@ export function payback(q: Hungry, id: RivalId): void {
   } else say(q, "nurse", "Excuse me?");
 }
 
-/** A rival's reaction now: a fifth quicker each level of anger, never under 0.15 s (R4 §4). */
+/** A rival's reaction now: a fifth quicker each level of anger, never under 0.12 s (R4 §4, quicker since 2026-10-18). */
 export const reactionFor = (r: Rival) => Math.max(HUNGRY.rival.floor, r.base * HUNGRY.rival.quicker ** r.anger);
+/** How long a diner takes to slap a hand at their plate: their reaction times 0.6, never under 0.1 s. */
+export const slapFor = (r: Rival) => Math.max(HUNGRY.guard.floor, reactionFor(r) * HUNGRY.guard.react);
 
 /** A dish a rival goes for: at rest within 400 px of its plate, on a line within 50 degrees of level on screen, either way. */
 function reachable(r: Rival, d: Dish): boolean {
@@ -461,8 +571,9 @@ function stepRival(q: Hungry, r: Rival, dt: number) {
     }
   }
   r.stun = Math.max(0, r.stun - dt);
+  r.frozen = Math.max(0, r.frozen - dt);
   if (r.dive) return advance(q, r, dt);
-  if (r.asleep || r.stun > 0) {
+  if (r.asleep || r.stun > 0 || r.frozen > 0) {
     r.wait = -1;
     r.target = null;
     r.burst = 0;
@@ -530,21 +641,84 @@ function drop(q: Hungry, e: Eater, at: Point) {
   d.haul = [];
 }
 
-/** The angry nurse slaps a hand that comes into her zone: what it holds drops, he is stunned a second (R4 §4). */
-function slapped(q: Hungry): boolean {
-  const n = q.rivals.nurse;
+/**
+ * Every diner guards their plate (owner, 2026-10-18): his hand out within 300 px of it starts their slap; when it comes,
+ * a hand still there is slapped. A lectured, bonked or sleeping diner lets it go.
+ */
+function guard(q: Hungry, dt: number) {
   const h = q.hammer;
-  if (n.anger <= 0 || n.stun > 0 || n.asleep || !h.dive) return false;
-  const hand = handOf(h);
-  if (dist(hand, SEATS.nurse.plate) > HUNGRY.slap.zone) return false;
+  const hand = h.dive && h.dive.phase !== "coil" ? handOf(h) : null;
+  for (const id of RIVALS) {
+    const r = q.rivals[id];
+    const near = !!hand && dist(hand, SEATS[id].plate) <= HUNGRY.guard.zone;
+    if (r.asleep || r.stun > 0 || r.frozen > 0) {
+      r.slap = -1;
+      continue;
+    }
+    if (r.slap < 0) {
+      if (near) r.slap = slapFor(r);
+      continue;
+    }
+    r.slap -= dt;
+    if (r.slap > 1e-9) continue;
+    r.slap = -1;
+    if (near && hand) slap(q, r, hand);
+  }
+}
+
+/**
+ * `r` slaps his hand at `hand`: what it holds drops there, and what it sent flying home falls short onto the cloth where
+ * it is; back it goes, a 1.2 s stun and 100 off; their hand lunges at it.
+ */
+function slap(q: Hungry, r: Rival, hand: Point) {
+  const h = q.hammer;
+  const d = h.dive!;
   drop(q, h, hand);
-  h.dive.phase = "back";
-  h.dive.t = 0;
-  h.stun = HUNGRY.slap.stun;
-  q.events.push({ type: "hhSlap", x: hand.x, y: hand.y });
-  say(q, "nurse", "Sanitize!");
-  think(q, "I've HAD my shots.");
-  return true;
+  const home = SEATS.hammer.plate;
+  for (const f of q.flights.filter((x) => x.to === "hammer")) {
+    const k = Math.min(1, f.t / HUNGRY.fly);
+    addDish(q, f.kind, f.from.x + (home.x - f.from.x) * k + (q.rng() - 0.5) * 40, f.from.y + (home.y - f.from.y) * k + (q.rng() - 0.5) * 40);
+  }
+  q.flights = q.flights.filter((x) => x.to !== "hammer");
+  d.phase = "back";
+  d.t = 0;
+  h.stun = HUNGRY.guard.stun;
+  q.score.plate -= HUNGRY.guard.cost;
+  q.score.slapped++;
+  if (r.dive) drop(q, r, handOf(r));
+  const v = sub(hand, SEATS[r.id].plate);
+  const n = Math.max(1, Math.hypot(v.x, v.y));
+  r.dive = { ...newDive({ x: v.x / n, y: v.y / n }, n, "out"), slap: true };
+  r.since = 0;
+  r.wait = -1;
+  r.target = null;
+  r.burst = 0;
+  q.events.push({ type: "hhSlap", who: r.id, x: hand.x, y: hand.y });
+  say(q, r.id, SLAPS[r.id][q.lines++ % SLAPS[r.id].length]);
+}
+
+/** The lecture lands (owner, 2026-10-18): every diner awake and the server freeze where they are, a level angrier for it. */
+function lecture(q: Hungry) {
+  const n = q.lines++;
+  for (const id of RIVALS) {
+    const r = q.rivals[id];
+    if (r.asleep) continue;
+    if (r.dive) {
+      drop(q, r, handOf(r));
+      r.dive.phase = "back";
+      r.dive.t = 0;
+    }
+    Object.assign(r, { frozen: HUNGRY.lecture.freeze, anger: Math.min(HUNGRY.rival.anger, r.anger + 1), calm: 0, wait: -1, target: null, burst: 0, slap: -1 });
+    const at = SEATS[id].plate;
+    q.events.push({ type: "hhSchooled", who: id, x: at.x, y: at.y });
+    say(q, id, LECTURED[id][n % LECTURED[id].length]);
+  }
+  if (q.server.away <= 0) {
+    q.server.frozen = HUNGRY.lecture.freeze;
+    const at = serverAt(q);
+    q.events.push({ type: "hhSchooled", who: "server", x: at.x, y: at.y });
+    say(q, "server", LECTURED.server[n % LECTURED.server.length]);
+  }
 }
 
 /** Two hands out at once within 110 px of each other in the last 0.1 s (R4 §3): both back empty, the food near them scattered. */
@@ -554,7 +728,7 @@ function clashes(q: Hungry) {
   const a = handOf(h);
   for (const id of RIVALS) {
     const r = q.rivals[id];
-    if (r.dive?.phase !== "out") continue;
+    if (r.dive?.phase !== "out" || r.dive.slap) continue;
     const b = handOf(r);
     const reach = HUNGRY.clash.reach;
     const met = dist(a, b) <= reach || r.dive.trail.some((p) => dist(p, a) <= reach) || h.dive.trail.some((p) => dist(p, b) <= reach);
@@ -598,6 +772,9 @@ function stepServer(q: Hungry, dt: number) {
     if (s.away <= 0) Object.assign(s, { away: 0, s: 0, dir: 1, wait: S.linger });
     return;
   }
+  // Lectured, she stands where she is and clears nothing.
+  s.frozen = Math.max(0, s.frozen - dt);
+  if (s.frozen > 0) return;
   if (s.wait > 0) s.wait -= dt;
   else {
     s.s += (s.dir * dt) / (S.trip / 2);
@@ -761,8 +938,10 @@ function finish(q: Hungry) {
     bestCombo: sc.best,
     robbed: sc.robbed,
     paper: sc.paper,
+    slapped: sc.slapped,
     specials: [...sc.specials],
     bill: sc.bill,
+    doggy: grade === "COMPED",
     cans: sc.specials.filter((k) => k === "coke").length,
     nuts: sc.specials.includes("nuts"),
     bucees: sc.specials.includes("bucees"),
@@ -786,11 +965,15 @@ export function stepHungry(q: Hungry, input: Input, dt: number): void {
   stepHammer(q, input, dt);
   // His sweep goes first: a dish two hands cross in one step is his.
   for (const id of RIVALS) stepRival(q, q.rivals[id], dt);
+  guard(q, dt);
   clashes(q);
   stepFlights(q, dt);
   stepPlanes(q, dt);
   if (q.time >= HUNGRY.round - 1e-9) finish(q);
 }
+
+/** Whose plate is whose, in the hint. */
+export const DINER_NAME: Record<RivalId, string> = { student: "student", bellhop: "bellhop", nurse: "nurse" };
 
 /** The hint line during the round (R4 §9), first match wins. */
 export function hungryHint(q: Hungry): string {
@@ -798,6 +981,7 @@ export function hungryHint(q: Hungry): string {
   if (q.suitcases.length) return "Suitcase on the table · H clears it";
   if (q.hammer.stun > 0) return "Slapped · wait a second";
   if (q.score.togo > 0) return `To-go box · next ${q.score.togo} grabs double`;
-  if (q.rivals.nurse.anger > 0) return "The nurse is angry · keep your hand out of her zone";
-  return "Tap Space to dive · hold to reach farther and rob a plate · ← → aim · H bonks the server";
+  if (RIVALS.some((id) => q.rivals[id].frozen > 0)) return "Lectured · they're frozen, grab now";
+  if (q.hammer.lock) return `Hold Space to grab from the ${DINER_NAME[q.hammer.lock]}'s plate · ← → picks another`;
+  return "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server";
 }

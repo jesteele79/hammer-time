@@ -14,16 +14,23 @@ export const PATIENCE_MAX = 3;
 /**
  * A hit from something at `fromX`. In grace or already down it does nothing. Otherwise it costs a
  * patience pip, ends whatever he was doing, drops hot snot (the shipped game's lost form), turns
- * him to face what hit him and throws him back: hurt, or on the last pip the tumble.
+ * him to face what hit him and throws him back: hurt, or on the last pip the tumble. A doggy bag
+ * catches the last pip: he eats his leftovers instead, and is only hurt, with full patience and the
+ * pepper (owner, 2026-10-18); `bag: false` (the clock running out) leaves the bag alone.
  */
-export function damage(h: HeroState, stage: Stage, fromX: number, events: GameEvent[]): boolean {
+export function damage(h: HeroState, stage: Stage, fromX: number, events: GameEvent[], bag = true): boolean {
   if (h.invuln > 0 || h.move?.kind === "tumble") return false;
   const facing: 1 | -1 = fromX >= h.x ? 1 : -1;
   const dir: 1 | -1 = facing === 1 ? -1 : 1;
-  const down = h.patience <= 1;
+  const saved = bag && h.patience <= 1 && h.doggy > 0;
+  const down = h.patience <= 1 && !saved;
   h.facing = facing;
-  h.patience = Math.max(0, h.patience - 1);
-  h.hot = false;
+  h.patience = saved ? PATIENCE_MAX : Math.max(0, h.patience - 1);
+  h.hot = saved;
+  if (saved) {
+    h.doggy--;
+    events.push({ type: "doggyBag", x: h.x, y: h.y - h.h });
+  }
   h.hurtT = HURT.face;
   h.invuln = GRACE;
   h.slideT = 0;

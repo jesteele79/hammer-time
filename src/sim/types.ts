@@ -77,6 +77,8 @@ export type HeroState = {
   invuln: number;
   /** Seconds one-way platforms let him through after down + jump. */
   dropT: number;
+  /** Doggy bags from the banquet: each one catches a hit that would knock him flat (owner, 2026-10-18). */
+  doggy: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

@@ -5,7 +5,7 @@ import type { Game } from "../sim/game";
 import { heatZoneAt } from "../sim/hazards";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
-import { HUNGRY, baseReach, hungryHint, type HungryResult } from "../sim/quests/hungry/hungry";
+import { GRADES, HUNGRY, baseReach, hungryHint, type HungryResult } from "../sim/quests/hungry/hungry";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -32,8 +32,10 @@ export type HudPayload = {
   hot: boolean;
   /** Heat is slowing him (past half full): the heat bar pulses. */
   slowed: boolean;
-  /** The lecture is off its cooldown: the touch pad lights its button. */
+  /** The lecture is off its cooldown: the touch pad lights its button (at the banquet, the table's lecture). */
   lecture: boolean;
+  /** Doggy bags he carries from the banquet: each catches a hit that would knock him flat. */
+  doggy: number;
   /** "Checkpoint saved" shows for two seconds after a punch clock. */
   saved: boolean;
   /** The most pressing thing to know, one line. */
@@ -42,9 +44,10 @@ export type HudPayload = {
   boss: { hp: number; max: number; bonks: number; snots: number; need: number } | null;
   /**
    * The banquet (R4 §9) while its card, its round or its tally is up; null in the shift. `reach` is where his dive stops
-   * (his tap's, or the charge so far), `reachBase` his tap's; `door` when it was opened from the BUFFET door.
+   * (his tap's, or the charge so far), `reachBase` his tap's; `door` when it was opened from the BUFFET door; `lecture`
+   * whole seconds until he can lecture the table again (0: now); `goal` the score that is COMPED and wins the doggy bag.
    */
-  quest: { score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; result: HungryResult | null } | null;
+  quest: { score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null } | null;
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -124,6 +127,8 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
         mult: q.score.chain >= HUNGRY.combo.triple ? 3 : q.score.chain >= HUNGRY.combo.double ? 2 : 1,
         chomps: q.score.eaten,
         door: !!game.questDoor,
+        lecture: Math.ceil(Math.max(q.hammer.lectureCd, q.hammer.lecture)),
+        goal: GRADES[0][0],
         result: q.result,
       }
     : null;
@@ -146,7 +151,8 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     star: Math.ceil(game.run.star),
     hot: h.hot,
     slowed: h.heat > STAMINA.from,
-    lecture: h.lectureCd <= 0,
+    lecture: q ? q.hammer.lectureCd <= 0 && q.hammer.lecture <= 0 : h.lectureCd <= 0,
+    doggy: h.doggy,
     saved,
     hint: q ? hungryHint(q) : (note ?? hintOf(game)),
     boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
@@ -170,9 +176,10 @@ export const hudKey = (p: HudPayload) =>
     p.hot,
     p.slowed,
     p.lecture,
+    p.doggy,
     p.saved,
     p.hint,
     p.venue,
     p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
-    p.quest ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.result ? 1 : 0].join(",") : "",
+    p.quest ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
   ].join("|");

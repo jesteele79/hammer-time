@@ -217,11 +217,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     openQuest(createHungry(seed, { practice: true }), null, game.events);
   }
 
-  /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper; no lives. */
+  /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper, and COMPED's doggy bag; no lives. */
   function pay(r: HungryResult, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
     addScore(run, r.score);
+    if (r.doggy) h.doggy = Math.max(h.doggy, 1);
     if (r.cans) h.heat = Math.max(0, h.heat - addCans(run, r.cans, ev));
     if (r.nuts) h.charge = CHARGE_MAX;
     if (r.bucees) run.star = RUN.star;
@@ -229,7 +230,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       h.hot = true;
       h.patience = PATIENCE_MAX;
     }
-    ev.push({ type: "questPaid", score: r.score, grade: r.grade });
+    ev.push({ type: "questPaid", score: r.score, grade: r.grade, doggy: r.doggy });
   }
 
   function finishQuest() {
@@ -267,7 +268,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "over" });
       return;
     }
-    begin({ charge: world.hero.charge, patience: RUN.patience }, ev);
+    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy }, ev);
     world.hero.invuln = RUN.respawnGrace;
     ev.push({ type: "respawn" });
   }
@@ -472,7 +473,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** On to the shift's next venue: what he carries comes along; he arrives cool with full snot, his shield spent, its clocks unpunched. */
   function nextVenue(ev: GameEvent[]) {
     const h = world.hero;
-    const carry = { charge: h.charge, patience: h.patience, hot: h.hot };
+    const carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy };
     game.venue++;
     game.run.checkpoint = null;
     game.run.punched = [];
@@ -505,11 +506,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       if (run.time === 0) {
         timedOut = true;
         ev.push({ type: "timeOut" });
-        // Out of time is a knockdown where he stands, whatever grace he has; one already under way stands.
+        // Out of time is a knockdown where he stands, whatever grace he has (and whatever doggy bag); one already under
+        // way stands.
         if (h.move?.kind !== "tumble") {
           h.patience = 1;
           h.invuln = 0;
-          damage(h, world.stage, h.x + h.facing, ev);
+          damage(h, world.stage, h.x + h.facing, ev, false);
         }
       }
     }

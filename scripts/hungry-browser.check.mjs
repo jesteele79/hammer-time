@@ -1,6 +1,8 @@
 // Hungry Hungry Hammer in the browser (R4): the start screen's card to the round, dives, a charged rob, a bonk, a duck, a
 // break, the three screen shapes, the tally with Play again and Start screen and the best kept; Space on a tally carrying
-// nothing over; a round with the art missing; the BUFFET door in a shift and what it pays; /?quest=hungry.
+// nothing over; a round with the art missing; the BUFFET door in a shift and what it pays; /?quest=hungry. Since
+// 2026-10-18: a tap of an arrow locks a plate, a slap and the recording he says to it, the lecture freezing the table, the
+// doggy bag on the card and the tally, and COMPED from the door packing one.
 // Usage: BROWSER_SMOKE_CHANNEL=chrome node scripts/hungry-browser.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -35,6 +37,7 @@ try {
   await page.getByRole("button", { name: "Play Hungry Hungry Hammer" }).click();
   await waitMode(page, "questCard");
   assert.match(await page.locator(".next-veil").innerText(), /Hungry Hungry Hammer/i);
+  assert.match(await page.locator(".next-veil").innerText(), /doggy bag/i, "the card names the prize");
   await shot(page, "hungry-card.png");
   await waitMode(page, "quest");
   assert.match(await page.locator(".next-hud").innerText(), /The Banquet/i);
@@ -48,6 +51,30 @@ try {
   await page.waitForTimeout(300);
   await page.keyboard.up("ArrowLeft");
   assert.ok((await page.evaluate(() => window.__next.quest.aim)) > 10, "← swings his line toward the far side");
+  // A tap of → hops it back onto a plate and locks it there.
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(150);
+  assert.ok(["bellhop", "nurse"].includes(await page.evaluate(() => window.__next.quest.lock)), "a tap locks a plate");
+  assert.match(await page.locator(".next-hud__hint").innerText(), /Hold Space to grab from the (bellhop|nurse)'s plate/);
+  // The nurse guards her plate: a charge at it is slapped, and he says so.
+  await page.waitForTimeout(400);
+  const cursed = await page.evaluate(() => window.__next.sound.played.curse ?? 0);
+  await page.evaluate(() => window.__next.dev.quest({ plate: { who: "nurse", kinds: ["brisket"] }, aim: "nurse" }));
+  await page.keyboard.down("Space");
+  await page.waitForFunction(() => (window.__next.run.events.hhSlap ?? 0) >= 1, null, { timeout: 4000 });
+  await page.keyboard.up("Space");
+  await page.waitForTimeout(100);
+  await shot(page, "hungry-slap.png");
+  assert.ok((await page.evaluate(() => window.__next.sound.played.curse ?? 0)) > cursed, "slapped, he says it: the damage recording");
+  assert.ok((await page.evaluate(() => window.__next.quest.stun)) > 0, "his hand stung");
+  // E lectures the table: everyone freezes.
+  await page.waitForTimeout(1300);
+  await page.keyboard.press("e");
+  await page.waitForFunction(() => (window.__next.run.events.hhSchooled ?? 0) >= 3, null, { timeout: 3000 });
+  await page.waitForTimeout(200);
+  await shot(page, "hungry-lecture.png");
+  assert.match(await page.locator(".next-hud__hint").innerText(), /Lectured/);
+  await page.waitForTimeout(2300);
   // A charged rob of the bellhop's plate.
   await page.evaluate(() => window.__next.dev.quest({ plate: { who: "bellhop", kinds: ["ribeye"] } }));
   await page.evaluate(() => window.__next.dev.quest({ aim: "bellhop" }));
@@ -58,8 +85,9 @@ try {
   await page.waitForFunction(() => (window.__next.run.events.hhRob ?? 0) >= 1, null, { timeout: 3000 });
   await page.waitForTimeout(150);
   await shot(page, "hungry-dive.png");
-  // The mallet waits for him to be back from the table.
+  // The mallet waits for him to be back from the table, and for a hand slapped on the way back to stop stinging.
   await page.waitForTimeout(300);
+  await page.waitForFunction(() => window.__next.quest.stun === 0, null, { timeout: 3000 });
   await page.keyboard.press("h");
   await page.waitForFunction(() => (window.__next.run.events.hhBonk ?? 0) >= 1, null, { timeout: 3000 });
   // He ducks once the swing is through (it runs 0.42 s, the bonk a third of the way in).
@@ -102,6 +130,8 @@ try {
   assert.match(tally, /COMPED|GOOD TIPPER|SPLIT THE CHECK|WATER ONLY/);
   assert.match(tally, /Play again/i);
   assert.match(tally, /Start screen/i);
+  assert.match(tally, /doggy bag/i, "the tally names the prize");
+  assert.match(tally, /Slapped \d+ times? \(-\d+\)/i, "the slaps counted");
   await shot(page, "hungry-tally.png");
   const score = await page.evaluate(() => window.__next.quest.score);
   assert.equal(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-banquet"))), score, "the best kept");
@@ -137,10 +167,11 @@ try {
   await waitMode(page, "questCard");
   await page.keyboard.up("ArrowDown");
   await waitMode(page, "quest");
-  await page.evaluate(() => window.__next.dev.quest({ eat: ["coke", "nuts"] }));
+  await page.evaluate(() => window.__next.dev.quest({ eat: ["coke", "nuts", ...Array(60).fill("ribeye")] }));
   await page.evaluate(() => window.__next.dev.questSkip());
   await waitMode(page, "questTally");
   assert.match(await page.locator(".next-veil").innerText(), /Back to the lobby/i);
+  assert.match(await page.locator(".next-veil").innerText(), /Doggy bag packed/i, "COMPED packs the doggy bag");
   await page.keyboard.down("Space");
   await waitMode(page, "play");
   await page.waitForTimeout(500);
@@ -149,17 +180,20 @@ try {
   assert.ok(Math.abs(after.x - 4600) < 2, "back at the door");
   assert.equal(after.jumps, before.jumps, "Space on the tally did not jump");
   assert.ok(after.score > before.score, "the round's score came home");
+  assert.equal(await page.locator(".next-hud__doggy").count(), 1, "the doggy bag shows beside his patience");
+  assert.match(await page.locator(".next-hud__hint").innerText(), /Banquet \+[\d,]+ · doggy bag packed/, "what it paid, on the way back");
   await page.keyboard.down("ArrowDown");
   await page.waitForTimeout(400);
   await page.keyboard.up("ArrowDown");
   assert.equal(await mode(page), "play", "the door is spent");
-  assert.match(await page.locator(".next-hud__hint").innerText(), /thank you, come again/);
+  // Once the payout's note has had its moment, the hint is the door's.
+  await page.waitForFunction(() => /thank you, come again/.test(document.querySelector(".next-hud__hint")?.textContent ?? ""), null, { timeout: 6000 });
   await shot(page, "hungry-door-after.png");
   // The old link's meaning: straight to the banquet.
   await page.goto(`${base}?quest=hungry`);
   await page.waitForFunction(() => ["questCard", "quest"].includes(window.__next?.run?.mode), null, { timeout: 30000 });
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
-  console.log("PASS: practice from the start screen, the dive, the rob, the bonk, the duck, the break, three shapes, the tally and its best, no key carried over, the art missing, the BUFFET door and its payout, /?quest=hungry.");
+  console.log("PASS: practice from the start screen, the dive, the rob, the bonk, the duck, the break, three shapes, the tally and its best, no key carried over, the art missing, the BUFFET door and its payout, /?quest=hungry; a locked plate, a slap and what he says to it, the lecture, the doggy bag.");
 } finally {
   await browser.close();
 }
