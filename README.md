@@ -494,7 +494,12 @@ the quality (Auto steps down by itself; High, Medium and Low are kept on the
 device) and a Side quests row whose Hungry Hungry Hammer card (its picture drawn
 by the game) plays the banquet as practice on the same page. The game loads
 behind it, so clocking in is quick; a start chosen before it is ready begins as
-soon as it is. A later start begins like a fresh shift there. Pig practice ends
+soon as it is. It opens as a title sequence, once a page: the lobby comes up
+between letterbox bars and the camera creeps in, HAMMER rises, TIME. drops and
+lands with a jolt and a brass flash, and the four starts arrive along the bottom
+like a filmstrip. Clocking in plunges the camera at Hammer as the bars shut;
+back from a shift the screen only fades in, and with reduced motion it stands
+finished and clocks in at once. A later start begins like a fresh shift there. Pig practice ends
 on "Practice over" and keeps no best. "Start screen" beside Play again and Try
 again comes back to it. Its pictures are rendered by the game:
 `BROWSER_SMOKE_CHANNEL=chrome node scripts/start-art.mjs http://127.0.0.1:8090/`
