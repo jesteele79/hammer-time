@@ -144,6 +144,30 @@ test("a mezzanine floor overhead does not swallow the floor he walks on", () => 
   assert.ok(s.hero.x > 1200 && s.hero.y === 0 && s.hero.onGround, `back down: ${s.hero.x},${s.hero.y}`);
 });
 
+import { moveBody } from "../src/sim/physics.ts";
+import { GRAVITY_DOWN } from "../src/sim/constants.ts";
+
+test("coming down onto a flight of steps that rises ahead of him lands on it, wherever between two steps his feet cross it", () => {
+  // The library's 30-degree flights: up to the right, and the same flight up to the left.
+  for (const dir of [1, -1]) {
+    const flight = dir > 0 ? { x0: 0, x1: 1040, y0: 0, y1: -600 } : { x0: -1040, x1: 0, y0: -600, y1: 0 };
+    const st = flat({ floor: [flight], bounds: { x: -3000, y: -3000, w: 6000, h: 6000 } });
+    const slope = (x) => flight.y0 + ((flight.y1 - flight.y0) * (x - flight.x0)) / (flight.x1 - flight.x0);
+    for (let k = 0; k < 40; k++) {
+      const x = dir * 300;
+      const b = { x, y: slope(x) - 40 - k * 0.25, w: 110, h: 300, vx: dir * 736, vy: 900, onGround: false };
+      let lowest = -Infinity;
+      for (let i = 0; i < 60 && !b.onGround; i++) {
+        b.vy += GRAVITY_DOWN * STEP;
+        moveBody(b, st, STEP);
+        lowest = Math.max(lowest, b.y - slope(b.x));
+      }
+      assert.ok(b.onGround && Math.abs(b.y - slope(b.x)) < 1e-6, `dir ${dir}, ${k * 0.25} px: landed on the flight at ${b.x.toFixed(1)}, ${b.y.toFixed(1)}`);
+      assert.ok(lowest < 1e-6, `dir ${dir}, ${k * 0.25} px: his feet never sank into it (${lowest.toFixed(2)} px)`);
+    }
+  }
+});
+
 test("a long fall never exceeds the terminal speed", () => {
   const w = createWorld(flat({ bounds: { x: -2000, y: -9000, w: 22000, h: 10000 } }), { x: 100, y: -8000 });
   let fastest = 0;

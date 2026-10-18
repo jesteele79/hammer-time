@@ -53,6 +53,7 @@ export function canStand(body: { x: number; y: number; w: number }, stage: Stage
  */
 export function moveBody(body: Body, stage: Stage, dt: number, onBump?: (s: Rect) => void): void {
   const wasOnGround = body.onGround;
+  const prevX = body.x;
   const prevY = body.y;
   const walls = blockers(stage);
 
@@ -80,9 +81,12 @@ export function moveBody(body: Body, stage: Stage, dt: number, onBump?: (s: Rect
   }
 
   if (body.vy >= 0) {
-    // Grounded, the floor may sit a step above or below the feet; airborne, only one the feet crossed counts.
-    const fy = floorAt(stage, body.x, wasOnGround ? body.y - SNAP : prevY);
-    if (fy !== null && body.y >= fy - (wasOnGround ? SNAP : 0) && prevY <= fy + (wasOnGround ? SNAP : 0)) {
+    // Grounded, the floor may sit a step above or below the feet; airborne, only one the feet crossed counts. A flight
+    // rising ahead of him climbs up to the step's run toward his feet (none is steeper than 45 degrees): crossed too, or
+    // he would drop through the steps he lands on.
+    const rise = wasOnGround ? SNAP : Math.abs(body.x - prevX);
+    const fy = floorAt(stage, body.x, wasOnGround ? body.y - SNAP : prevY - rise);
+    if (fy !== null && body.y >= fy - (wasOnGround ? SNAP : 0) && prevY <= fy + rise) {
       body.y = fy;
       body.vy = 0;
       body.onGround = true;

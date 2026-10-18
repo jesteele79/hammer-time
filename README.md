@@ -588,7 +588,8 @@ face and in view, the towel at his face while his left hand wipes it, the
 towel hand drawn over his head only where it covers nothing else), the
 sim checks (jump height and cut, run speed and stop, coyote time and the jump
 buffer, landing on a platform at speed, crouch and slide under a pass,
-determinism, a screen crossed in 2.6 s, landings that never hold him), the
+determinism, a screen crossed in 2.6 s, landings that never hold him and
+never drop him through a flight of steps), the
 move checks in `moves.check.mjs` (the feel table and the hit-stop clock, move
 timing and priority, mashing, moves in the air, crouched or sliding, heat and
 the towel, snot charges and puddles, the swept mallet and once-per-swing hits,
