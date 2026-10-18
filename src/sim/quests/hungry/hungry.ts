@@ -5,7 +5,7 @@ import { seededRandom } from "../../rewards";
 import type { Point } from "../../types";
 import type { HungryEvent } from "./events";
 import { COURSES, DISH, FOODS, SPECIALS, settled, stepDishes, type Box, type Course, type Dish, type FoodKind } from "./food";
-import { RIVALS, SEATS, TABLE, dirOf, dist, screenDeg, sub, type EaterId, type RivalId } from "./table";
+import { RIVALS, SEATS, TABLE, dirOf, dist, onLine, screenDeg, sub, type EaterId, type RivalId } from "./table";
 
 const DEG = Math.PI / 180;
 
@@ -64,8 +64,8 @@ const ALL_COURSES: FoodKind[] = [...COURSES.appetizer, ...COURSES.entree, ...COU
 const CART_FROM: Point = { x: 1500, y: -760 };
 const CART_TO: Point = { x: Math.cos(-35 * DEG) * TABLE.r, y: Math.sin(-35 * DEG) * TABLE.r };
 
-/** The shipped grade lines, scaled together by the scripted rounds (R4 §6; Task 5 sets it). */
-export const GRADE_SCALE = 8.25;
+/** The shipped grade lines, scaled together by the scripted rounds (R4 §6; 8.25 until his sweep was measured on screen). */
+export const GRADE_SCALE = 9.95;
 export type Grade = "COMPED" | "GOOD TIPPER" | "SPLIT THE CHECK" | "WATER ONLY";
 export const GRADES: readonly (readonly [number, Grade])[] = (
   [
@@ -379,15 +379,14 @@ function advance(q: Hungry, e: Eater, dt: number) {
   }
 }
 
-/** The hand moved out from `from` to `to`: every dish on the cloth whose plate it crossed goes into the haul. */
+/** The hand moved out from `from` to `to`: every dish on the cloth it passed over on screen goes into the haul. */
 function sweep(q: Hungry, e: Eater, from: number, to: number) {
   const d = e.dive!;
   const p = SEATS[e.id].plate;
   const took = q.dishes.filter((x) => {
     if (x.fall > 0) return false;
-    const v = sub(x, p);
-    const along = v.x * d.dir.x + v.y * d.dir.y;
-    return along >= from && along <= to && Math.abs(v.x * d.dir.y - v.y * d.dir.x) <= HUNGRY.sweep + x.r;
+    const { along, off } = onLine(sub(x, p), d.dir);
+    return along >= from && along <= to && off <= HUNGRY.sweep + x.r;
   });
   if (!took.length) return;
   q.dishes = q.dishes.filter((x) => !took.includes(x));

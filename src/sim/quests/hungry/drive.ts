@@ -2,16 +2,16 @@ import { STEP } from "../../constants";
 import { emptyInput, type Input } from "../../input";
 import { FOODS, settled, type Dish } from "./food";
 import { HUNGRY, baseReach, createHungry, serverAt, stepHungry, type Hungry, type HungryResult } from "./hungry";
-import { RIVALS, SEATS, dirOf, dist, screenDeg, sub } from "./table";
+import { RIVALS, SEATS, dirOf, dist, onLine, screenDeg, sub } from "./table";
 
 /** A scripted player for the grade lines (R4 §6): the keys for this step of the round. */
 export type Player = (q: Hungry) => Input;
 
 const P = SEATS.hammer.plate;
 const degTo = (x: { x: number; y: number }) => screenDeg(1, sub(x, P));
-/** Swings his line toward `deg`: true while it still has to. */
-function aimTo(input: Input, aim: number, deg: number): boolean {
-  if (Math.abs(deg - aim) <= 2.5) return false;
+/** Swings his line toward `deg`, to within `within` degrees: true while it still has to. */
+function aimTo(input: Input, aim: number, deg: number, within = 2.5): boolean {
+  if (Math.abs(deg - aim) <= within) return false;
   input.held[deg > aim ? "left" : "right"] = true;
   return true;
 }
@@ -37,11 +37,10 @@ export function steadyPlayer(): Player {
   };
 }
 
-/** Whether a dish's plate lies across a sweep from his plate along `dir` out to `reach`. */
+/** Whether a dish lies under a sweep from his plate along `dir` out to `reach`, as the sim's sweep measures it. */
 const crosses = (d: Dish, dir: { x: number; y: number }, reach: number) => {
-  const v = sub(d, P);
-  const along = v.x * dir.x + v.y * dir.y;
-  return along >= 0 && along <= reach && Math.abs(v.x * dir.y - v.y * dir.x) <= HUNGRY.sweep + d.r;
+  const { along, off } = onLine(sub(d, P), dir);
+  return along >= 0 && along <= reach && off <= HUNGRY.sweep + d.r;
 };
 
 /**
@@ -70,7 +69,8 @@ export function sharpPlayer(): Player {
       if (!top || FOODS[top].course !== "entree" || (id === "nurse" && r.anger > 0)) continue;
       const deg = degTo(SEATS[id].plate);
       if (Math.abs(deg) > HUNGRY.aim || dist(SEATS[id].plate, P) > HUNGRY.reach.charged) continue;
-      if (aimTo(input, h.aim, deg)) return input;
+      // A plate across the table is a small mark: 2.5 degrees off the nurse's goes wide of it, 1 lands on it.
+      if (aimTo(input, h.aim, deg, 1)) return input;
       input.held.jump = input.pressed.jump = true;
       holding = Math.ceil(HUNGRY.charge / STEP);
       return input;

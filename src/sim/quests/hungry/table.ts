@@ -45,5 +45,19 @@ export function dirOf(facing: 1 | -1, deg: number): Point {
   const n = Math.hypot(x, y);
   return { x: x / n, y: y / n };
 }
+/**
+ * A point of the table top (an offset `v` from a line's start) against a line along `dir`, as the eye sees them: how far
+ * along the line, in the line's own table px (so it compares with a dive's reach), and how far beside it in screen px.
+ * The hands and the dishes are drawn upright on the squashed cloth, so whether one passes over the other is a matter of
+ * the screen, not of the table's depth (owner, 2026-10-17: he looked to grab air).
+ */
+export function onLine(v: Point, dir: Point): { along: number; off: number } {
+  const sx = dir.x;
+  const sy = dir.y * TABLE.squash;
+  const len2 = sx * sx + sy * sy;
+  const vx = v.x;
+  const vy = v.y * TABLE.squash;
+  return { along: (vx * sx + vy * sy) / len2, off: Math.abs(vx * sy - vy * sx) / Math.sqrt(len2) };
+}
 /** How many degrees up from `facing` a table-top direction looks on screen. */
 export const screenDeg = (facing: 1 | -1, d: Point) => Math.atan2(d.y * TABLE.squash, d.x * facing) / DEG;

@@ -298,8 +298,8 @@ through the stash and lost lives; a new shift opens it again. The restaurant's P
   bonus counted apart); the to-go box doubles the next five; the check costs 400 and a paper hit 150. The grade lines
   keep the shipped 3000, 2000 and 1200 in proportion, scaled by the scripted rounds
   (`node --loader ./scripts/game-test-loader.mjs scripts/banquet-tune.mjs`: over ten seeds standing still scores 0,
-  steady tapping a median of 16590, sharp play 26150) by 8.25: COMPED from 24750, GOOD TIPPER from 16500, SPLIT THE
-  CHECK from 9900, else WATER ONLY. The tally names the grade, the score and the best, and what the round came to.
+  steady tapping a median of 19890, sharp play 31510) by 9.95: COMPED from 29850, GOOD TIPPER from 19900, SPLIT THE
+  CHECK from 11940, else WATER ONLY. The tally names the grade, the score and the best, and what the round came to.
 - **Practice**: the start screen's Side quests card plays a round on the same page, and `/?quest=hungry` opens one
   straight away; its tally offers Play again and Start screen, and never touches a shift. Door rounds and practice
   share one best (`hammer-time-best-banquet`).

@@ -186,7 +186,8 @@ test("his reach grows 10 px for every dish he eats and stops at 760", () => {
 test("the sweep takes what it crosses on the way out, carries it to full stretch and flies it home in 0.25 s; nothing past the hand or wide of it", () => {
   const q = alone();
   const on = addDish(q, "ribeye", P.x + 300, P.y + 40);
-  const wide = addDish(q, "shrimp", P.x + 300, P.y + 120);
+  // Wide of his hand on screen: 260 px of the cloth's depth is 96 px on screen, past the hand's 55 and the dish's 27.
+  const wide = addDish(q, "shrimp", P.x + 300, P.y + 260);
   const past = addDish(q, "club", P.x + 600, P.y);
   const behind = addDish(q, "pie", P.x - 100, P.y);
   const evs = tap(q);
@@ -587,7 +588,8 @@ test("the clash: his hand and a rival's within 110 px while both are out bounce 
   const bv = sub({ x: 40, y: 100 }, SEATS.bellhop.plate);
   const bn = Math.hypot(bv.x, bv.y);
   q.rivals.bellhop.dive = { phase: "out", t: 0, held: 0, dir: { x: bv.x / bn, y: bv.y / bn }, reach: 1000, ext: bn - 20, charged: false, rob: null, haul: [{ kind: "pie", bonus: 0 }], trail: [] };
-  const nearby = addDish(q, "shrimp", 20, 180);
+  // Near the clash, but behind both hands as they come on, so neither sweeps it this step.
+  const nearby = addDish(q, "shrimp", -60, 90);
   const evs = run(q, STEP);
   assert.equal(of(evs, "hhClash").length, 1);
   assert.deepEqual([q.hammer.dive.phase, q.rivals.bellhop.dive.phase], ["back", "back"]);
@@ -636,7 +638,8 @@ test("over ten rounds each: standing still is WATER ONLY, a steady tapper's medi
 });
 
 test("the sharp player does what it says: dives, robs with a charge, and bonks the server", () => {
-  const q = createHungry(3, { practice: true });
+  // Seed 3 never puts an entree on top of a rival's plate once his hand sweeps what it passes over on screen: nothing to rob.
+  const q = createHungry(1, { practice: true });
   const player = sharpPlayer();
   const counts = {};
   while (!q.result) {
@@ -848,4 +851,29 @@ test("a robbery sets off the rival's payback: the bellhop's suitcase, the studen
   const sevs = run(s, 3, { jump: true });
   assert.equal(of(sevs, "hhRob").length, 1);
   assert.equal(of(sevs, "hhPlane").length, 1, "the student throws paper");
+});
+
+test("the hand takes what it passes over on screen: the cloth's depth is drawn squashed, so 150 px beside his line on the table is under his hand", () => {
+  // Straight along the table: 150 px of depth either side is 55 px on screen, inside the hand's 110 px sweep.
+  const q = alone();
+  const behindLine = addDish(q, "ribeye", P.x + 300, P.y + 150);
+  const beforeLine = addDish(q, "club", P.x + 250, P.y - 150);
+  const clear = addDish(q, "shrimp", P.x + 350, P.y + 260);
+  tap(q);
+  run(q, 1);
+  const left = q.dishes.map((d) => d.id);
+  assert.ok(!left.includes(behindLine.id) && !left.includes(beforeLine.id), "both dishes his hand passed over");
+  assert.ok(left.includes(clear.id), "a dish clear of his hand on screen stays");
+  // Aimed 20 degrees up the table: a dish 50 px beside the line on screen, either side of it, is his too.
+  for (const side of [1, -1]) {
+    const a = alone();
+    a.hammer.aim = 20;
+    const dir = dirOf(1, 20);
+    const hand = { x: P.x + dir.x * 300, y: P.y + dir.y * 300 };
+    const n = { x: -Math.sin((20 * Math.PI) / 180), y: Math.cos((20 * Math.PI) / 180) };
+    const beside = addDish(a, "ribeye", hand.x + side * n.x * 50, hand.y + (side * n.y * 50) / TABLE.squash);
+    tap(a);
+    run(a, 1);
+    assert.ok(!a.dishes.some((d) => d.id === beside.id), `aimed up, the dish 50 px ${side > 0 ? "above" : "below"} his line on screen`);
+  }
 });

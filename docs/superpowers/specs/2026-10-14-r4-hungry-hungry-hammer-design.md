@@ -186,6 +186,12 @@ takes several dishes and the chain passes ten inside a dive, so most grabs tripl
 shipped one, and that score comes home onto the shift's. The owner kept it whole (2026-10-15): a steady round adds about a
 sixth of a fast shift's 110,000, a sharp one a quarter.
 
+Since 2026-10-17 (the owner: he looked to grab air), the hand's 110 px sweep is measured on screen, as the hands and the
+dishes are drawn, not on the cloth's squashed depth: along a straight dive it had reached only about 30 px either side of
+his line on screen while his hand, drawn at twice his size, covered dishes well outside that. The scripted rounds then
+scored a fifth more (steady 19890, sharp 31510) and set the scale at 9.95: COMPED from 29850, GOOD TIPPER from 19900,
+SPLIT THE CHECK from 11940.
+
 ## 7. The BUFFET door
 
 - The lobby's BUFFET door (4600) opens with ↓ on the floor in front of it, as the STAFF ONLY door does: not in the air,
