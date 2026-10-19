@@ -399,3 +399,17 @@ test("never more than two travelers talking at once, whatever the crowd does", (
   }
   assert.ok(worst <= 2, `${worst} talking at once`);
 });
+
+import { masherPlayer, personPlayer, sharpPlayer, playRound } from "../src/sim/quests/fares/drive.ts";
+
+const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+
+test("the grade lines hold over ten seeds: a masher lands C GROUP, a person books four to six, a sharp player reaches A1 in seven or more", () => {
+  const seeds = [...Array(10).keys()].map((i) => i + 1);
+  const masher = seeds.map((s) => playRound(s, masherPlayer));
+  assert.ok(masher.every((r) => r.grade === "C GROUP"), `${masher.map((r) => r.booked)}`);
+  const person = seeds.map((s) => playRound(s, personPlayer(s)).booked);
+  assert.ok(median(person) >= 4 && median(person) <= 6, `person ${person}`);
+  const sharp = seeds.map((s) => playRound(s, sharpPlayer()));
+  assert.ok(sharp.filter((r) => r.preferred).length >= 7, `sharp ${sharp.map((r) => r.booked)}`);
+});

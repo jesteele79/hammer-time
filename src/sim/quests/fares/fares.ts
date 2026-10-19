@@ -283,13 +283,18 @@ function stepTags(q: Fares, dt: number) {
 }
 
 /** The press: where the crosshair is now is where the scalpel lands, against the tags live now. */
-function press(q: Fares) {
-  const at = aimOf(q);
+/** What a scalpel landing on `at` now would do: the agent's clipboard first, then the tag under it, cancelled or clouded or booked. */
+export function outcomeAt(q: Fares, at: Point): { outcome: Outcome; tag: Tag | null } {
   const tag = tagAt(q, at);
   const agent = agentBox(q);
-  let outcome: Outcome = "miss";
-  if (agent && inside(at, agent)) outcome = "agent";
-  else if (tag) outcome = tag.stopped > 0 ? "stop" : q.cloud && thirdOf(cityAt(tag.city).x) === q.cloud.third ? "cloud" : "book";
+  if (agent && inside(at, agent)) return { outcome: "agent", tag };
+  if (!tag) return { outcome: "miss", tag };
+  return { outcome: tag.stopped > 0 ? "stop" : q.cloud && thirdOf(cityAt(tag.city).x) === q.cloud.third ? "cloud" : "book", tag };
+}
+
+function press(q: Fares) {
+  const at = aimOf(q);
+  const { outcome, tag } = outcomeAt(q, at);
   q.shot = { at, t: 0, phase: "windup", outcome, tag };
   q.thrown++;
   q.events.push({ type: "fdThrow", at });
