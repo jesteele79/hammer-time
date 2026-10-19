@@ -578,3 +578,159 @@ test("the HUD in the gate's round: the score, the scalpels left, the steady hand
   assert.deepEqual(hudOf(g, null).quest, { id: "fares", score: 684, left: 7, steady: 2.3, steadyMax: 2.5, position: "B13", streak: 3, door: false, result: null });
   assert.equal(hudOf(g, null).hint, "Space throws · hold Shift to steady your hand · E mouths off");
 });
+
+import { SAMPLE, stepSamples } from "../src/sim/samples.ts";
+import { T } from "../src/sim/cast.ts";
+import { newMove } from "../src/sim/moves.ts";
+import { createCart } from "../src/sim/targets.ts";
+import { createPig } from "../src/sim/pig.ts";
+import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
+import { cuesFor, tauntFor } from "../src/render/sound.ts";
+
+/** Him on the flat floor route under the balcony (9300, between the shuttle and STAFF ONLY), facing right, with boxes; no carts in the way. */
+const lobber = (boxes = 3, cast = false, x = 9300) => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 3, { cast });
+  until(g, "play");
+  g.world.targets = [];
+  Object.assign(g.world.hero, { x, y: 0, vx: 0, vy: 0, onGround: true, move: null, facing: 1, boxes });
+  g.step(input());
+  return g;
+};
+const lob = (g) => {
+  g.step(input({ box: true }, { box: true }));
+  const out = [...g.events];
+  for (let i = 0; i < 60; i++) {
+    g.step(input({ box: true }));
+    out.push(...g.events);
+  }
+  return out;
+};
+
+test("B lobs one box from his free hand; held, it lobs one; one every 0.4 s; with none left, nothing", () => {
+  const g = lobber(2);
+  const evs = lob(g);
+  assert.equal(of(evs, "sampleThrow").length, 1);
+  assert.equal(g.world.hero.boxes, 1);
+  for (let i = 0; i < 10; i++) g.step(input());
+  lob(g);
+  assert.equal(g.world.hero.boxes, 0);
+  assert.equal(of(lob(g), "sampleThrow").length, 0, "none left");
+  assert.ok(g.world.hero.boxes >= 0);
+  const c = lobber(3);
+  c.step(input({ box: true }, { box: true }));
+  for (let i = 0; i < Math.round(0.37 / STEP); i++) c.step(input());
+  c.step(input({ box: true }, { box: true }));
+  for (let i = 0; i < 60; i++) c.step(input());
+  assert.equal(c.world.hero.boxes, 2, "the lob is over but 0.4 s have not passed");
+  for (let i = 0; i < Math.round(0.05 / STEP); i++) c.step(input());
+  c.step(input({ box: true }, { box: true }));
+  for (let i = 0; i < 60; i++) c.step(input());
+  assert.equal(c.world.hero.boxes, 1);
+});
+
+test("from standing a box lands about 640 px ahead, either way he faces", () => {
+  for (const facing of [1, -1]) {
+    const g = lobber(1);
+    g.world.hero.facing = facing;
+    const x0 = g.world.hero.x;
+    const evs = lob(g);
+    for (let i = 0; i < 240; i++) {
+      g.step(input());
+      evs.push(...g.events);
+    }
+    const land = of(evs, "sampleStop").find((e) => e.on === "floor");
+    assert.ok(land && Math.abs(land.x - x0) > 520 && Math.abs(land.x - x0) < 760 && Math.sign(land.x - x0) === facing, `${facing}: ${land?.x - x0}`);
+  }
+});
+
+test("a box freezes a staffer or a student on their feet for 1.5 s with birds, 50 points, no damage; the lecture still freezes 1.8 s", () => {
+  for (const role of ["server", "student"]) {
+    const g = lobber(1, true);
+    const n = g.world.cast.find((c) => c.role === role);
+    Object.assign(n, { x: g.world.hero.x + 450, y: 0, vx: 0, act: "idle", actT: 0 });
+    const score = g.run.score, hits = n.hits;
+    const evs = lob(g);
+    for (let i = 0; i < 120 && !of(evs, "sampleHit").length; i++) {
+      g.step(input());
+      evs.push(...g.events);
+    }
+    assert.equal(of(evs, "sampleHit").length, 1, role);
+    assert.deepEqual([n.act, n.birds, n.hits], ["frozen", true, hits]);
+    assert.equal(g.run.score, score + SAMPLE.points);
+    const hit = g.world.time;
+    while (g.world.time - hit < 1.4) g.step(input());
+    assert.equal(n.act, "frozen", "still at 1.4 s");
+    while (g.world.time - hit < 1.6) g.step(input());
+    assert.notEqual(n.act, "frozen", "free by 1.6 s");
+    assert.equal(n.birds, false);
+  }
+  assert.equal(T.freeze, 1.8);
+});
+
+test("a wall, the pig and a cart stop a box with no effect; a staffer already down lets it pass; down the shaft it is gone; never NaN", () => {
+  // Just short of the service corridor (its low ceiling from 14800, 220 up), the box's arc flies into its mouth.
+  const wall = lobber(1, false, 14650);
+  const evs = lob(wall);
+  for (let i = 0; i < 120; i++) {
+    wall.step(input());
+    evs.push(...wall.events);
+    for (const s of wall.world.samples) assert.ok(Number.isFinite(s.x + s.y + s.vx + s.vy));
+  }
+  assert.ok(of(evs, "sampleStop").some((e) => e.on === "wall"));
+  const shaft = lobber(1, false, 5800);
+  lob(shaft);
+  for (let i = 0; i < 600; i++) shaft.step(input());
+  assert.equal(shaft.world.samples.length, 0, "a box down the shaft is gone");
+  const down = lobber(1, true);
+  const n = down.world.cast.find((c) => c.role === "server");
+  Object.assign(n, { x: down.world.hero.x + 450, y: 0, vx: 0, act: "down", actT: 0 });
+  const passed = lob(down);
+  for (let i = 0; i < 120; i++) {
+    down.step(input());
+    passed.push(...down.events);
+  }
+  assert.equal(of(passed, "sampleHit").length, 0, "over a staffer already down");
+  const w = { stage: wall.world.stage, samples: [], targets: [{ ...createCart(1, 9500, 0) }], cast: [], pig: { ...createPig(GIFTSHOP.boss, 0), x: 9300, state: "recover" } };
+  w.samples.push({ id: 1, x: 9000, y: -150, vx: 620, vy: 0, landed: -1, hit: false });
+  const stops = [];
+  for (let i = 0; i < 120; i++) stepSamples(w, STEP, stops);
+  assert.ok(stops.some((e) => e.type === "sampleStop" && (e.on === "pig" || e.on === "cart")), "the pig or the cart stopped it");
+  assert.equal(w.pig.hp, createPig(GIFTSHOP.boss, 0).hp, "the pig unhurt");
+});
+
+test("never from a crouch, a slide, a flop or a knockdown", () => {
+  const g = lobber(3);
+  Object.assign(g.world.hero, { crouch: true });
+  assert.equal(of(lob(g), "sampleThrow").length, 0, "crouched");
+  Object.assign(g.world.hero, { crouch: false, move: newMove("tumble") });
+  g.step(input({ box: true }, { box: true }));
+  assert.equal(of(g.events, "sampleThrow").length, 0, "knocked down");
+});
+
+test("a box in flight is gone when he walks into the stash; the boxes he carries come back with him", () => {
+  const g = lobber(2);
+  const staff = LOBBY.doors.find((d) => d.kind === "stash");
+  Object.assign(g.world.hero, { x: staff.x - 40 });
+  g.step(input({ box: true }, { box: true }));
+  for (let i = 0; i < 40; i++) g.step(input());
+  Object.assign(g.world.hero, { x: staff.x, y: 0, vx: 0, onGround: true, move: null });
+  g.step(input());
+  downAt(g);
+  assert.equal(g.level.id, "stash");
+  assert.equal(g.world.samples.length, 0);
+  assert.equal(g.world.hero.boxes, 1);
+});
+
+test("the box's sounds and taunts: a swish, a thud and the birds' tweet; a student's or the staff's pool", () => {
+  assert.deepEqual(cuesFor({ type: "sampleHit", id: 1, role: "server", x: 0, y: 0, points: 50 }), ["thud", "tweet"]);
+  assert.equal(tauntFor({ type: "sampleHit", id: 1, role: "student", x: 0, y: 0, points: 50 }), "student");
+  assert.equal(tauntFor({ type: "sampleHit", id: 1, role: "server", x: 0, y: 0, points: 50 }), "staff");
+});
+
+test("the hint teaches the boxes until the first is thrown, and the HUD counts them", () => {
+  const g = lobber(2);
+  assert.equal(hudOf(g, null).boxes, 2);
+  assert.equal(hintOf(g), "Boxes of #15 blades · B lobs one · it freezes staff");
+  lob(g);
+  assert.notEqual(hintOf(g), "Boxes of #15 blades · B lobs one · it freezes staff");
+});

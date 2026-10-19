@@ -10,6 +10,9 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   flop: ["slide", "thud"],
   swing: ["whoosh"],
   superStart: ["power"],
+  sampleThrow: ["swish"],
+  sampleHit: ["thud", "tweet"],
+  sampleStop: ["thud"],
   burst: ["boom"],
   sniff: ["sniff"],
   fire: ["honk"],
@@ -104,6 +107,9 @@ export function tauntFor(e: GameEvent): TauntTarget | null {
       return e.kind === "plane" ? "student" : null;
     case "pigHit":
       return "pig";
+    // A box of blades freezing someone bests them like a lecture: the student's pool or the staff's.
+    case "sampleHit":
+      return e.role === "student" ? "student" : "staff";
     default:
       return null;
   }

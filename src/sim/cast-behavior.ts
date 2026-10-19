@@ -1,5 +1,5 @@
 import { CAST_LINES, RETORTS, STAFF_SIGHS, pick } from "../game/lines";
-import { SPILL_OF, linesOf } from "./cast";
+import { SPILL_OF, freezeNpc, linesOf } from "./cast";
 import {
   CAST,
   CHAIN,
@@ -408,7 +408,10 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
       return;
     case "frozen":
       n.vx = 0;
-      if (n.actT >= T.freeze) setAct(n, "idle");
+      if (n.actT >= n.freeze) {
+        n.birds = false;
+        setAct(n, "idle");
+      }
       return;
     case "schooled":
       n.vx = 0;
@@ -587,9 +590,7 @@ function lectureOn(w: CastWorld, reach: Rect, events: GameEvent[]): void {
         n.x0 = n.x - 400;
         n.x1 = n.x + 400;
       }
-      n.vx = 0;
-      n.facing = toward(n, w.hero);
-      setAct(n, "frozen");
+      freezeNpc(n, T.freeze, false, w.hero);
       say(n, linesOf(n).frozen ?? pick(STAFF_SIGHS, n.k + frozen), events);
       events.push({ type: "castFreeze", id: n.id, x: n.x, y: n.y - n.h, points: POINTS.frozen });
       frozen++;

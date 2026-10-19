@@ -229,3 +229,6 @@ export const IMPACT_WORDS = ["BONK!", "WHAM!", "CLONK!", "THWACK!"];
 export function pick<T>(list: readonly T[], seed: number): T {
   return list[(Math.abs(Math.floor(seed)) || 0) % list.length];
 }
+
+/** His thought, now and then, as a box of blades bonks someone (R5 §9): each at most once a venue. */
+export const SAMPLE_LINES: Line[] = [think("Free sample."), think("Read the IFU."), think("You're welcome."), think("That's a sterile field, trainee.")];

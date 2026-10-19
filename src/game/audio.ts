@@ -327,6 +327,11 @@ export class AudioBus {
     this.noise(0.05, 0.12, 3000, "highpass");
   }
 
+  /** The birds round a head a box of blades froze: three quick chirps (R5 §14). */
+  tweet() {
+    [0, 0.09, 0.18].forEach((d, i) => this.blip(2600 + i * 220, 0.05, "sine", 0.05, 3400 + i * 200, d));
+  }
+
   private noise(
     duration: number,
     gain: number,

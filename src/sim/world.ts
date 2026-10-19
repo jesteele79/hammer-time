@@ -10,6 +10,7 @@ import { stepMissiles, type Missile } from "./missiles";
 import { stepPig, type Pig } from "./pig";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
+import { fireSample, stepSamples, type Sample } from "./samples";
 import { stepTargets } from "./targets";
 import { stepHeatZones, stepSwingDoors, type HeatZone, type SwingDoor } from "./hazards";
 import type { HeroState, Point, Snapshot, Stage, Target } from "./types";
@@ -29,6 +30,9 @@ export type World = {
   snot: Snot[];
   /** The last snot id handed out. */
   nextSnot: number;
+  /** Boxes of #15 blades in the air or lying a moment (R5). */
+  samples: Sample[];
+  nextSample: number;
   puddles: Puddle[];
   time: number;
   /** What happened in the last step. */
@@ -60,6 +64,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     nextMissile: 0,
     snot: [],
     nextSnot: 0,
+    samples: [],
+    nextSample: 0,
     puddles: [],
     time: 0,
     events: [],
@@ -83,8 +89,10 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       world.swing = swingContact(h, world, events);
       superBurst(h, world.targets, events);
       fireSnot(h, world, events);
+      fireSample(h, world, events);
       deliverLecture(h, events);
       stepSnot(world, STEP, events);
+      stepSamples(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP, events);
       stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
@@ -103,6 +111,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         hero: { ...h, move: h.move && { ...h.move, victims: [...h.move.victims] } },
         targets: world.targets.map((t) => ({ ...t })),
         snot: world.snot.map((b) => ({ ...b, hit: [...b.hit] })),
+        samples: world.samples.map((b) => ({ ...b })),
         puddles: world.puddles.map((p) => ({ ...p })),
         cast: world.cast.map((n) => ({ ...n })),
         missiles: world.missiles.map((m) => ({ ...m })),

@@ -391,6 +391,13 @@ function hairOn(g: Graphics, at: (x: number, y: number) => Point, rx: number, ry
   }
 }
 
+/** A little inked bird about (x, y), wings up or down with `flap`: the birds round a head a box of blades froze (R5 §9). */
+export function bird(g: Graphics, x: number, y: number, s: number, flap: number) {
+  g.ellipse(x, y, s, s * 0.62).fill("#6ec3f0").stroke({ width: 2, color: INK });
+  g.poly([x - s * 0.2, y, x - s * 0.9, y - s * (0.4 + flap), x + s * 0.2, y - s * 0.2]).fill("#4aa4dc").stroke({ width: 2, color: INK, join: "round" });
+  g.poly([x + s * 0.9, y - s * 0.1, x + s * 1.4, y + s * 0.05, x + s * 0.9, y + s * 0.2]).fill("#ffb02e").stroke({ width: 1.5, color: INK, join: "round" });
+}
+
 /** A five-point star about (x, y). */
 export function star(g: Graphics, x: number, y: number, r: number) {
   const pts: number[] = [];
@@ -648,6 +655,14 @@ export class Cast {
         for (let i = 0; i < STARS.n; i++) {
           const a = time * STARS.rate + (i * Math.PI * 2) / STARS.n;
           star(v.stars, c.x + Math.cos(a) * STARS.r, c.y - 20 + Math.sin(a) * STARS.r * 0.35, STARS.size);
+        }
+      }
+      // A box of blades froze them: three birds circle the head while it lasts.
+      if (n.act === "frozen" && n.birds) {
+        const c = solved.crown;
+        for (let i = 0; i < 3; i++) {
+          const a = time * 3 + (i * Math.PI * 2) / 3;
+          bird(v.stars, c.x + Math.cos(a) * 66, c.y - 36 + Math.sin(a) * 22, 20, Math.sin(time * 18 + i) * 0.3);
         }
       }
       this.crowns.set(n.id, { x: n.x + solved.crown.x * k, y: n.y + (dy + solved.crown.y) * k, facing: n.facing });

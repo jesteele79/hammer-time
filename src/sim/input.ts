@@ -8,9 +8,9 @@ export type Action =
   | "towel"
   | "hammer"
   | "super"
-  | "lecture";
+  | "lecture" | "box";
 
-export const ACTIONS: Action[] = ["left", "right", "jump", "run", "down", "fire", "towel", "hammer", "super", "lecture"];
+export const ACTIONS: Action[] = ["left", "right", "jump", "run", "down", "fire", "towel", "hammer", "super", "lecture", "box"];
 
 /** `held` is the state this step; `pressed` is true only on the step an action went down. */
 export type Input = { held: Record<Action, boolean>; pressed: Record<Action, boolean> };
@@ -45,6 +45,7 @@ export const KEY_BINDINGS: Record<string, Action> = {
   KeyQ: "super",
   KeyE: "lecture",
   KeyL: "lecture",
+  KeyB: "box",
 };
 
 /** The input for one step from the keys and the touch buttons down now, and the actions held last step. */

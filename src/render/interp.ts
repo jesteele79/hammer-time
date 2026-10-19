@@ -1,10 +1,11 @@
 import type { Snapshot } from "../sim/types";
 
 /** The props, the cast and the missiles between the last two steps, matched by id: what slow motion shows between them. */
-export function between(prev: Snapshot, cur: Snapshot, alpha: number): Pick<Snapshot, "targets" | "snot" | "puddles" | "cast" | "missiles"> {
+export function between(prev: Snapshot, cur: Snapshot, alpha: number): Pick<Snapshot, "targets" | "snot" | "samples" | "puddles" | "cast" | "missiles"> {
   const at = (a: number, b: number) => a + (b - a) * alpha;
   const carts = new Map(prev.targets.map((t) => [t.id, t]));
   const blobs = new Map(prev.snot.map((b) => [b.id, b]));
+  const boxes = new Map(prev.samples.map((b) => [b.id, b]));
   const people = new Map(prev.cast.map((n) => [n.id, n]));
   const thrown = new Map(prev.missiles.map((m) => [m.id, m]));
   return {
@@ -14,6 +15,10 @@ export function between(prev: Snapshot, cur: Snapshot, alpha: number): Pick<Snap
     }),
     snot: cur.snot.map((b) => {
       const p = blobs.get(b.id);
+      return p ? { ...b, x: at(p.x, b.x), y: at(p.y, b.y) } : b;
+    }),
+    samples: cur.samples.map((b) => {
+      const p = boxes.get(b.id);
       return p ? { ...b, x: at(p.x, b.x), y: at(p.y, b.y) } : b;
     }),
     puddles: cur.puddles,

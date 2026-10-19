@@ -20,12 +20,17 @@ const ACT: Button[] = [
 ];
 
 /** The touch pad (spec §10): pressed while a finger is down, the ready moves lit. */
+/** The boxes of #15 blades (R5 §9): a button after Jump only while he has some, the one time the pad has eleven. */
+const BOX: Button = { action: "box", label: "Box of blades", glyph: "Box" };
+
 export function NextTouch({
   onPress,
   ready,
+  boxes = 0,
 }: {
   onPress: (action: Action, down: boolean) => void;
   ready: Partial<Record<Action, boolean>>;
+  boxes?: number;
 }) {
   // What the pad holds down now: when it goes away (a card covers the game), it lets go of all of it.
   const held = useRef(new Set<Action>());
@@ -67,6 +72,7 @@ export function NextTouch({
           className="next-touch__button"
           data-action={b.action}
           data-ready={ready[b.action] ?? undefined}
+          data-count={b.action === "box" ? boxes : undefined}
           aria-label={b.label}
           {...bind(b.action)}
         >
@@ -78,7 +84,7 @@ export function NextTouch({
   return (
     <div className="next-touch" aria-label="Touch controls">
       {pad(MOVE, "move")}
-      {pad(ACT, "act")}
+      {pad(boxes > 0 ? [...ACT, BOX] : ACT, "act")}
     </div>
   );
 }

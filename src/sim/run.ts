@@ -51,9 +51,11 @@ export type Run = {
   spent: string[];
   /** He has belly-flopped this shift: the hint that teaches it is done (owner, 2026-10-18). */
   flopped: boolean;
+  /** He has lobbed a box of #15 blades this shift: the hint stops teaching it. */
+  lobbed: boolean;
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);

@@ -4,6 +4,7 @@ import type { Move } from "./moves";
 import type { Pig } from "./pig";
 import type { HeatZone, SwingDoor } from "./hazards";
 import type { Puddle, Snot } from "./snot";
+import type { Sample } from "./samples";
 
 export type Point = { x: number; y: number };
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -85,6 +86,8 @@ export type HeroState = {
   flopChain: number;
   /** Boxes of #15 blades from the gate: B lobs one at staff (owner, R5). */
   boxes: number;
+  /** Seconds until he can lob the next box. */
+  boxCd: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */
@@ -107,4 +110,4 @@ export type Target = {
   spilled: boolean;
 };
 
-export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null };
+export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null };

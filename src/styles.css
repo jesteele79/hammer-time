@@ -378,6 +378,24 @@ button:focus-visible {
   color: #f4f1ea;
   vertical-align: middle;
 }
+/* The boxes of #15 blades from the gate, with how many he has left (R5). */
+.next-hud__boxes {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--hud-gold);
+  font-weight: 700;
+}
+.next-hud__boxes svg {
+  width: 24px;
+  height: 20px;
+  fill: #f4f1ea;
+}
+.next-hud__boxes .next-hud__boxes-band {
+  fill: #2f6fd0;
+}
 .next-hud__cans {
   display: inline-flex;
   align-items: center;
@@ -524,6 +542,17 @@ button:focus-visible {
   border-color: #e9b866;
   color: #e9b866;
   box-shadow: 0 0 10px rgb(233 184 102 / 0.35);
+}
+/* The boxes of blades' button says how many are left. */
+.next-touch__button[data-action="box"] {
+  position: relative;
+}
+.next-touch__button[data-action="box"]::after {
+  content: attr(data-count);
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  font-size: 11px;
 }
 
 /* The cards: in the lower half over a scrim that fades out before his face. */

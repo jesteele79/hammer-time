@@ -281,7 +281,8 @@ export function NextGame({
             <NextTouch
               onPress={press}
               // At the banquet only the arrows, Jump, Hammer and the lecture do anything: nothing else lights.
-              ready={hud.quest ? { fire: false, lecture: hud.lecture, super: false } : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax }}
+              ready={hud.quest ? { fire: false, lecture: hud.lecture, super: false } : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax, box: hud.boxes > 0 }}
+              boxes={hud.quest ? 0 : hud.boxes}
             />
           )}
           <NextVeil

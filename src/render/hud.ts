@@ -67,6 +67,8 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 /** What the banquet's belly-flop is and how to do it, until he has done one (owner, 2026-10-18). */
 export const FLOP_HINT = "Belly-flop · run, then ↓ · it knocks staff over";
+/** Until he has lobbed his first box of #15 blades (R5 §9). */
+export const BOX_HINT = "Boxes of #15 blades · B lobs one · it freezes staff";
 /** A tally's "New best": a score above the best kept before the round, never a tie with it. */
 export const isNewBest = (score: number, before: number) => score > before;
 
@@ -111,6 +113,7 @@ export function hintOf(game: Game): string {
   if (h.boiled) return "Too hot to run · T to towel off";
   if (h.heat >= HEAT.tired) return "Overheated · T to towel off";
   if (h.flop && !game.run.flopped) return FLOP_HINT;
+  if (h.boxes > 0 && !game.run.lobbed) return BOX_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
   if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";
   // A prize to fight for, once the threats, his own state and the first lesson have had their say.

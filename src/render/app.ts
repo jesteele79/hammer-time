@@ -117,6 +117,7 @@ export type NextProbe = {
     patience(n: number): void;
     /** Gives him doggy bags from the banquet (one by default). */
     doggy(n?: number): void;
+    boxes(n?: number): void;
     /** Gives him the banquet's belly-flop, or takes it away. */
     flop(on?: boolean): void;
     /** Slow motion at `scale` for `seconds` of wall time (0 ends it): frame-by-frame screenshots of a quick move. */

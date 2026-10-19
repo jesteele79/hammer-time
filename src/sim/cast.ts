@@ -4,7 +4,7 @@ import { bodyRect } from "./geometry";
 import type { CarriedKind, CastPerson, Level } from "./level";
 import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
-import type { Rect, Stage, Target } from "./types";
+import type { Point, Rect, Stage, Target } from "./types";
 
 export type CastRole = "bellhop" | "server" | "office" | "student";
 export type CastAct =
@@ -135,6 +135,9 @@ export type Npc = {
   k: number;
   /** What he carries until he is knocked out for good (the game drops it). */
   carry: CarriedKind | null;
+  /** How long this freeze lasts: the lecture's, or a box of blades' with birds round the head (R5). */
+  freeze: number;
+  birds: boolean;
 };
 
 export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target[]): Npc[] {
@@ -191,11 +194,21 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       cue: false,
       k,
       carry: s.carry ?? null,
+      freeze: T.freeze,
+      birds: false,
     };
   });
 }
 
 export const npcRect = (n: Npc): Rect => bodyRect(n);
+/** Frozen where they stand for `seconds`, facing `from`: the lecture's freeze, or a box of blades' with birds (R5 §9). */
+export function freezeNpc(n: Npc, seconds: number, birds: boolean, from: Point): void {
+  n.vx = 0;
+  n.facing = from.x < n.x ? -1 : 1;
+  n.freeze = seconds;
+  n.birds = birds;
+  setAct(n, "frozen");
+}
 export const setAct = (n: Npc, act: CastAct): void => {
   n.act = act;
   n.actT = 0;

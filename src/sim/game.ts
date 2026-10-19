@@ -165,6 +165,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.missiles = [];
     world.nextMissile = 0;
     world.snot = [];
+    world.samples = [];
     world.puddles = [];
     world.hits = [];
     world.swing = [];
@@ -375,6 +376,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.swingDoors = createSwingDoors(level.swingDoors ?? []);
     world.zone = null;
     world.snot = [];
+    world.samples = [];
     world.puddles = [];
     world.hits = [];
     world.swing = [];
@@ -555,6 +557,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.step(input);
     ev.push(...world.events);
     if (world.events.some((e) => e.type === "flop")) run.flopped = true;
+    if (world.events.some((e) => e.type === "sampleThrow")) run.lobbed = true;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {

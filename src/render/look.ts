@@ -1,6 +1,6 @@
 import { Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
-import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, LECTURES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
+import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, LECTURES, SAMPLE_LINES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import type { TauntTarget } from "../game/taunts";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
@@ -615,6 +615,20 @@ export async function startLook(
       case "castFreeze":
         words.say("+50", e.x, e.y - 40, false, face, view);
         break;
+      // A box of blades bonked someone: the free sample nobody wanted, and now and then his line (each once a venue).
+      case "sampleHit": {
+        words.say("FREE SAMPLE!", e.x, e.y - 300, false, face, view);
+        if (sampleVenue !== game.level.id) {
+          sampleVenue = game.level.id;
+          samplesSaid.clear();
+        }
+        const line = SAMPLE_LINES.find((l) => !samplesSaid.has(l.text));
+        if (line && Math.random() < 0.4) {
+          samplesSaid.add(line.text);
+          bubbles.think(line.text, 1.6);
+        }
+        break;
+      }
       case "castSchooled":
         words.say("SCHOOLED", e.x, e.y - 40, false, face, view);
         break;
@@ -815,6 +829,9 @@ export async function startLook(
   let banqueting = false;
   /** Which of his banquet lectures comes next. */
   let banquetLectures = 0;
+  /** The box of blades's lines said in this venue (R5 §9): each once a venue. */
+  let sampleVenue = "";
+  const samplesSaid = new Set<string>();
   let shownQuest: Hungry | null = null;
   let questDives = 0;
 
@@ -1402,6 +1419,10 @@ export async function startLook(
       },
       doggy(n = 1) {
         world.hero.doggy = n;
+      },
+      /** Boxes of #15 blades in his pockets (R5), for the checks. */
+      boxes(n = 3) {
+        world.hero.boxes = n;
       },
       flop(on = true) {
         world.hero.flop = on;

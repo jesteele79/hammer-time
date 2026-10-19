@@ -23,6 +23,10 @@ export type GameEvent =
   | { type: "burst"; x: number; y: number }
   | { type: "sniff" }
   | { type: "fire"; x: number; y: number; hot: boolean }
+  /** A box of #15 blades left his hand; it froze a staffer or a student (R5 §9); something stopped it, or it landed. */
+  | { type: "sampleThrow"; x: number; y: number }
+  | { type: "sampleHit"; id: number; role: CastRole; x: number; y: number; points: number }
+  | { type: "sampleStop"; x: number; y: number; on: "pig" | "cart" | "wall" | "floor" }
   | { type: "splat"; x: number; y: number; floor: boolean; hot: boolean }
   | { type: "wipeStart" }
   | { type: "stroke"; n: number }

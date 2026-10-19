@@ -1,6 +1,7 @@
 import { Container, Graphics } from "pixi.js";
 import type { Missile } from "../sim/missiles";
 import type { Puddle, Snot } from "../sim/snot";
+import { SAMPLE, type Sample } from "../sim/samples";
 import type { Snapshot, Target } from "../sim/types";
 import { GOO, drawSplat } from "./goo";
 import { between } from "./interp";
@@ -164,6 +165,8 @@ export class Props {
   private readonly blobs: Graphics[] = [];
   private readonly puddles: Graphics[] = [];
   private readonly missiles: Graphics[] = [];
+  /** The boxes of #15 blades in the air or lying a moment (R5 §9). */
+  private readonly boxes: Graphics[] = [];
   private trailT = 0;
   /** How many puddles the last sync drew as snot splats, for the checks. */
   splats = 0;
@@ -193,6 +196,8 @@ export class Props {
       drawSnot(this.blobs[i], b);
       if (trail) this.particles.emit(b.hot ? "ember" : "snot", b.x, b.y, b.hot ? 2 : 1);
     });
+    this.pool(this.boxes, s.samples.length, 3);
+    s.samples.forEach((b, i) => drawSample(this.boxes[i], b));
     this.pool(this.puddles, s.puddles.length, 0);
     s.puddles.forEach((p, i) => drawPuddle(this.puddles[i], p));
     this.splats = s.puddles.filter((p) => p.kind === "snot").length;
@@ -273,6 +278,17 @@ function drawSnot(g: Graphics, b: Snot) {
   g.ellipse(r * 0.25 * stretch, -r * 0.3, r * 0.35 * stretch, r * 0.2).fill(body.highlight);
   g.position.set(b.x, b.y);
   g.rotation = Math.atan2(b.vy, b.vx);
+}
+
+/** A sealed box of #15 blades, white with a blue band, tumbling end over end in the air and fading where it lies. */
+export function drawSample(g: Graphics, b: Sample) {
+  g.clear();
+  g.roundRect(-22, -15, 44, 30, 4).fill("#f7f5ef").stroke({ width: 3, color: INK, join: "round" });
+  g.rect(-22, -4, 44, 9).fill("#2f6fd0");
+  g.moveTo(-22, -4).lineTo(22, -4).moveTo(-22, 5).lineTo(22, 5).stroke({ width: 2, color: INK });
+  g.position.set(b.x, b.y - (b.landed >= 0 ? 15 : 0));
+  g.rotation = b.landed >= 0 ? 0 : b.x / 60;
+  g.alpha = b.landed >= 0 ? Math.max(0, 1 - b.landed / SAMPLE.fade) : 1;
 }
 
 /** A paper plane, a folded dart pointing along its flight, or the office worker's cup tumbling. */

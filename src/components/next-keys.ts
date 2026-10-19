@@ -9,6 +9,7 @@ export const KEYS: [string, string][] = [
   ["E", "lecture"],
   ["T", "towel"],
   ["Q", "smash"],
+  ["B", "box of blades"],
   ["P", "break"],
 ];
 

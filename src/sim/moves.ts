@@ -35,6 +35,8 @@ export const SWING_ACTIVE = [0.33, 0.72] as const;
 /** The strike over the head, sampled for contact but never drawn. */
 export const SWING_CUT = [0.33, 0.36] as const;
 export const SUPER_CUT = [0.42, 0.46] as const;
+/** One box of #15 blades every this many seconds (R5 §9). */
+export const LOB_COOLDOWN = 0.4;
 /** The throw's whip over his head, never drawn: cocked behind his head, then out ahead. */
 export const THROW_CUT = [0.55, 0.62] as const;
 export const SNOT_FIRE_U = 0.45;
@@ -108,6 +110,10 @@ export function startMove(h: HeroState, input: Input, alive: number, events: Gam
     h.move = newMove("swing");
     h.heat = Math.min(100, h.heat + HEAT.swing);
     events.push({ type: "swing" });
+  } else if (p.box && h.boxes > 0 && h.boxCd <= 0) {
+    // A box of #15 blades, lobbed from his free hand: the mallet stays in his fist.
+    h.move = newMove("lob");
+    h.boxCd = LOB_COOLDOWN;
   }
 }
 
@@ -213,6 +219,7 @@ export function stepHeat(h: HeroState, input: Input, dt: number, events: GameEve
   } else if (h.heat < HEAT.cool) h.boiled = false;
   h.sinus = Math.min(SINUS_MAX, h.sinus + dt / SINUS_REFILL);
   h.fireCd = Math.max(0, h.fireCd - dt);
+  h.boxCd = Math.max(0, h.boxCd - dt);
   h.lectureCd = Math.max(0, h.lectureCd - dt);
   h.hurtT = Math.max(0, h.hurtT - dt);
   h.invuln = Math.max(0, h.invuln - dt);
