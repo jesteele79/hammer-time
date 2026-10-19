@@ -230,7 +230,7 @@ import { between } from "../src/render/interp.ts";
 import { RECIPES, drift, launch } from "../src/render/particles.ts";
 
 test("props draw between the last two steps, as Hammer does, matched by id", () => {
-  const snap = (cartX, blobs) => ({ time: 0, hero: null, targets: [{ id: 1, x: cartX, y: -40 }], snot: blobs, puddles: [], cast: [], missiles: [] });
+  const snap = (cartX, blobs) => ({ time: 0, hero: null, targets: [{ id: 1, x: cartX, y: -40 }], snot: blobs, samples: [], puddles: [], cast: [], missiles: [] });
   const prev = snap(1000, [
     { id: 4, x: 0, y: 0 },
     { id: 5, x: 50, y: 0 },
@@ -355,8 +355,8 @@ import { LOOKS, recolored } from "../src/render/cast.ts";
 
 test("the cast and the missiles draw between the last two steps, matched by id", () => {
   const npc = (x, y) => ({ id: 1001, spawn: "s", x, y, alive: true });
-  const prev = { time: 0, hero: {}, targets: [], snot: [], puddles: [], cast: [npc(100, 0)], missiles: [{ id: 1, x: 0, y: 0 }] };
-  const cur = { time: 1, hero: {}, targets: [], snot: [], puddles: [], cast: [npc(200, -40)], missiles: [{ id: 1, x: 100, y: -20 }, { id: 2, x: 500, y: 0 }] };
+  const prev = { time: 0, hero: {}, targets: [], snot: [], samples: [], puddles: [], cast: [npc(100, 0)], missiles: [{ id: 1, x: 0, y: 0 }] };
+  const cur = { time: 1, hero: {}, targets: [], snot: [], samples: [], puddles: [], cast: [npc(200, -40)], missiles: [{ id: 1, x: 100, y: -20 }, { id: 2, x: 500, y: 0 }] };
   const b = between(prev, cur, 0.25);
   assert.deepEqual([b.cast[0].x, b.cast[0].y], [125, -10]);
   assert.deepEqual([b.missiles[0].x, b.missiles[0].y, b.missiles[1].x], [25, -5, 500]);
