@@ -3,7 +3,7 @@ import type { GameEvent } from "./events";
 import type { Input } from "./input";
 import type { HeroState, Rect } from "./types";
 
-export type MoveKind = "swing" | "super" | "snot" | "wipe" | "lecture" | "watch" | "tap" | "hurt" | "tumble";
+export type MoveKind = "swing" | "super" | "snot" | "wipe" | "lecture" | "watch" | "tap" | "hurt" | "tumble" | "throw" | "lob";
 export type Move = { kind: MoveKind; t: number; fired: boolean; burst: boolean; lastU: number; stroke: number; victims: number[]; held: number };
 
 // The shipped game's timings (its combat and rig); the watch and tap are its idle beats.
@@ -17,6 +17,10 @@ export const MOVE_SECONDS: Record<MoveKind, number> = {
   tap: 3,
   hurt: 0.45,
   tumble: 1.6,
+  /** The dart throw at the gate (R5 §3): the scalpel leaves his hand at its end. */
+  throw: 0.3,
+  /** The underhand lob of a box of #15 blades (R5 §9). */
+  lob: 0.35,
 };
 /** The tumble's frame where he lands flat: the sim holds it while he is still in the air. */
 export const TUMBLE_LAND = 0.3;
@@ -31,6 +35,8 @@ export const SWING_ACTIVE = [0.33, 0.72] as const;
 /** The strike over the head, sampled for contact but never drawn. */
 export const SWING_CUT = [0.33, 0.36] as const;
 export const SUPER_CUT = [0.42, 0.46] as const;
+/** The throw's whip over his head, never drawn: cocked behind his head, then out ahead. */
+export const THROW_CUT = [0.55, 0.62] as const;
 export const SNOT_FIRE_U = 0.45;
 export const WIPE_SCRUB = [0.12, 0.62] as const;
 export const WIPE_FLICK = [0.62, 0.78] as const;

@@ -455,3 +455,27 @@ export function castPose(c: CastPoseCtx): Pose {
       return hop(t);
   }
 }
+
+/** The travelers' beats at the gate (R5 §7), over whatever they are doing: upper body only. */
+export type Reaction = "ooh" | "laugh" | "clap";
+export const REACTION_SECONDS: Record<Reaction, number> = { ooh: 0.9, laugh: 1.2, clap: 1.4 };
+/** The joints a reaction owns: the arms, the chest and the head; the legs and the seat stay the act's. */
+const REACTION_JOINTS: JointName[] = ["chest", "neck", "head", "shoulderNear", "elbowNear", "wristNear", "shoulderFar", "elbowFar", "wristFar"];
+/**
+ * A reaction `t` seconds in, eased in over its first 0.2 s and out over its last 0.25: ooh leans in with both hands up to
+ * the chest, laugh tips the head back with the shoulders shaking, clap brings the hands together in front and claps.
+ */
+export function castReaction(base: Pose, kind: Reaction, t: number): Pose {
+  const len = REACTION_SECONDS[kind];
+  const w = smooth(clamp01(Math.min(t / 0.2, (len - t) / 0.25)));
+  const out = structuredClone(base);
+  const add: Partial<Record<JointName, number>> =
+    kind === "ooh"
+      ? { shoulderNear: 45, elbowNear: 70, shoulderFar: 40, elbowFar: 70 }
+      : kind === "laugh"
+        ? { shoulderNear: 25, elbowNear: 80, shoulderFar: 15, elbowFar: 60, chest: -4 + 3 * Math.sin(t * TAU * 6), neck: -4 }
+        : { shoulderNear: 50, elbowNear: 85 + 15 * Math.sin(t * TAU * 3), shoulderFar: 50, elbowFar: 85 - 15 * Math.sin(t * TAU * 3) };
+  for (const j of REACTION_JOINTS) out.rot[j] = (base.rot[j] ?? 0) + (add[j] ?? 0) * w;
+  out.lean = base.lean + (kind === "ooh" ? 6 : kind === "laugh" ? -6 + 2 * Math.sin(t * TAU * 6) : 2) * w;
+  return out;
+}

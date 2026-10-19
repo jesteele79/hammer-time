@@ -154,7 +154,7 @@ import { MOVE_SECONDS, SWING_CUT, SUPER_CUT, WIPE_SCRUB } from "../src/sim/moves
 import { FREE, HOLD } from "../src/sim/rig/clips.ts";
 import { pose } from "../src/sim/rig/pose.ts";
 
-const KINDS = ["swing", "super", "snot", "wipe", "lecture", "watch", "tap", "hurt", "tumble"];
+const KINDS = ["swing", "super", "snot", "wipe", "lecture", "watch", "tap", "hurt", "tumble", "throw", "lob"];
 
 test("two-bone IK puts the wrist on a reachable target with the hand at the asked angle", () => {
   for (const [arm, target, hand, bend] of [["near", { x: 40, y: 200 }, 10, -1], ["near", { x: -50, y: 320 }, 150, 1], ["far", { x: -20, y: 380 }, 80, 1]]) {
@@ -171,7 +171,8 @@ test("two-bone IK puts the wrist on a reachable target with the hand at the aske
 
 // The exceptions to the face rule, his left arm only: it wipes his face with the towel (owner,
 // 2026-10-11) and presses his nose for the snot rocket (owner, 2026-10-12).
-const FACE_ALLOWED = { swing: [], super: [], snot: ["far upper arm", "far forearm"], wipe: ["far upper arm", "far forearm"], lecture: [], watch: [], tap: [], hurt: [], tumble: [] };
+// At the gate (R5) his fist holds a scalpel, not the mallet, which leans on his cart: its own probe is below.
+const FACE_ALLOWED = { swing: [], super: [], snot: ["far upper arm", "far forearm"], wipe: ["far upper arm", "far forearm"], lecture: [], watch: [], tap: [], hurt: [], tumble: [], throw: ["mallet handle", "mallet head"], lob: [] };
 
 // The owner's head scale is 0.26; the sweep keeps a margin either side of it. Since the head sank into
 // the collar (2026-10-12), a head as small as 0.22 would meet the slam's folded-over arm.
@@ -256,7 +257,7 @@ test("the fist never turns on the handle during any move", () => {
 
 
 test("every act moves smoothly: no step jumps a hand, the mallet or his head", () => {
-  for (const kind of ["wipe", "lecture", "watch", "tap", "hurt", "tumble"]) {
+  for (const kind of ["wipe", "lecture", "watch", "tap", "hurt", "tumble", "lob"]) {
     const du = 1 / 120 / MOVE_SECONDS[kind];
     for (const part of ["handFar", "malletHead", "neck"]) {
       let prev = null,
@@ -865,4 +866,42 @@ test("into the flop from any clip and out of it to any clip, the blend never cro
           const r = faceClear(solve(blend(from, to, i / 20), 1, headScale));
           assert.ok(r.ok, `${name}, t ${i / 20}, head ${headScale}: ${r.offender} crosses the face`);
         }
+});
+
+import { segmentClear } from "../src/sim/rig/face.ts";
+import { LOB_RELEASE } from "../src/sim/rig/actions.ts";
+import { THROW_CUT } from "../src/sim/moves.ts";
+
+/** The scalpel in his fist at the gate: 70 units of blade ahead of the grip along the handle's line, 30 of handle behind. */
+const scalpelOf = (s) => {
+  const g = s.joints.grip, m = s.joints.malletHead;
+  const d = Math.hypot(m.x - g.x, m.y - g.y);
+  const ux = (m.x - g.x) / d, uy = (m.y - g.y) / d;
+  return [{ x: g.x - ux * 30 * s.scale, y: g.y - uy * 30 * s.scale }, { x: g.x + ux * 70 * s.scale, y: g.y + uy * 70 * s.scale }];
+};
+
+test("the throw cocks the scalpel behind his head and whips it forward inside a cut: the scalpel clear of his face in every drawn frame", () => {
+  for (let i = 0; i <= 400; i++)
+    for (const facing of [1, -1])
+      for (const headScale of [0.24, 0.26, 0.3]) {
+        const u = displayU("throw", i / 400);
+        const s = solve(ACTIONS.throw(u), facing, headScale);
+        const [butt, tip] = scalpelOf(s);
+        assert.ok(segmentClear(s, butt, tip, 8), `throw u=${u} facing ${facing} head ${headScale}: the scalpel`);
+        assert.ok(!(u > THROW_CUT[0] && u < THROW_CUT[1]), `throw draws u=${u} inside its cut`);
+      }
+  const cocked = solve(ACTIONS.throw(THROW_CUT[0]), 1, 0.26), out = solve(ACTIONS.throw(1), 1, 0.26);
+  assert.ok(cocked.joints.handNear.y < cocked.joints.neck.y && cocked.joints.handNear.x < cocked.joints.neck.x, "cocked up behind his head");
+  assert.ok(out.joints.handNear.x > out.joints.chest.x + 80 && out.joints.handNear.y < out.joints.chest.y, "whipped out ahead");
+});
+
+test("the lob swings his free hand from behind his hip to chest height ahead, always under his face", () => {
+  for (let i = 0; i <= 400; i++)
+    for (const facing of [1, -1]) {
+      const s = solve(ACTIONS.lob(i / 400), facing, 0.26);
+      assert.ok(s.joints.handFar.y > s.faceBox.y + s.faceBox.h, `lob u=${i / 400}: under his face`);
+    }
+  const back = solve(ACTIONS.lob(0.3), 1, 0.26), go = solve(ACTIONS.lob(LOB_RELEASE), 1, 0.26);
+  assert.ok(back.joints.handFar.x < back.joints.pelvis.x, "back behind his hip");
+  assert.ok(go.joints.handFar.x > go.joints.chest.x + 40, "out ahead at the release");
 });

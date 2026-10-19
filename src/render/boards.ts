@@ -50,7 +50,7 @@ const EXPRESSIONS: Expression[] = ["neutral", "angry", "hurt", "smug", "bored", 
 const HEAD_SCALES = [0.22, 0.26, 0.3];
 const COSTUMES: Costume[] = ["affliction", "scrubs", "suit", "banquet"];
 const CTX: ClipCtx = { t: 0, speed: 640, vy: 0, facing: 1 };
-const MOVES: MoveKind[] = ["swing", "super", "snot", "wipe", "lecture"];
+const MOVES: MoveKind[] = ["swing", "super", "snot", "wipe", "lecture", "throw", "lob"];
 /** What he does when he is not attacking: the idle acts and taking a hit. */
 const ACTS: MoveKind[] = ["watch", "tap", "hurt", "tumble"];
 const MOVE_FRAMES = 10;

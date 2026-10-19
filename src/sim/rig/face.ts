@@ -29,6 +29,15 @@ const distToRect = (p: Point, r: Rect) => {
   return Math.hypot(dx, dy);
 };
 
+/** A drawn thing from `a` to `b` (solved px), `radius` rest units wide round its line, kept off the face box: the scalpel at the gate (R5). */
+export function segmentClear(solved: Solved, a: Point, b: Point, radius: number): boolean {
+  for (let i = 0; i < SAMPLES; i++) {
+    const t = i / (SAMPLES - 1);
+    if (distToRect({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }, solved.faceBox) < radius * solved.scale) return false;
+  }
+  return true;
+}
+
 /**
  * Probes every limb and the mallet against the face box; names the first thing that crosses it.
  * `allow` names parts that may cross it: only his left arm, while it wipes his face with the towel.
@@ -45,6 +54,6 @@ export function faceClear(solved: Solved, allow: readonly string[] = []): { ok: 
       if (distToRect(p, faceBox) < radius * scale) return { ok: false, offender: name };
     }
   }
-  if (distToRect(joints.malletHead, faceBox) < MALLET_HEAD * scale) return { ok: false, offender: "mallet head" };
+  if (!allow.includes("mallet head") && distToRect(joints.malletHead, faceBox) < MALLET_HEAD * scale) return { ok: false, offender: "mallet head" };
   return { ok: true };
 }

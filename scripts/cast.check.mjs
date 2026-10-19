@@ -1054,3 +1054,22 @@ test("the hit that knocks the tray from a server's hands says so, and she spills
   until(w, () => npc(w, "s").act === "down", 3);
   assert.equal(w.puddles.filter((p) => p.kind === "water").length, 1, "no second puddle");
 });
+
+import { castReaction, REACTION_SECONDS } from "../src/sim/rig/cast.ts";
+
+test("the travelers' ooh, laugh and clap move only the upper body over a seated pose, smoothly", () => {
+  const seated = (t) => castPose({ role: "office", act: "idle", t, speed: 0, onGround: true, sit: true, spin: 0, hits: 0 });
+  for (const kind of ["ooh", "laugh", "clap"]) {
+    let last = null;
+    for (let t = 0; t <= REACTION_SECONDS[kind]; t += STEP) {
+      const base = seated(t), p = castReaction(base, kind, t);
+      for (const j of ["hipNear", "hipFar", "kneeNear", "kneeFar"]) assert.equal(p.rot[j], base.rot[j], `${kind}: ${j} stays`);
+      if (last) for (const [j, v] of Object.entries(p.rot)) assert.ok(Math.abs(v - (last.rot[j] ?? v)) <= 9, `${kind} t=${t.toFixed(2)}: ${j} jumps`);
+      last = p;
+    }
+    const mid = castReaction(seated(0), kind, REACTION_SECONDS[kind] / 2);
+    assert.ok(Math.abs(mid.rot.shoulderNear - seated(0).rot.shoulderNear) >= 20, `${kind} moves his arms`);
+    const end = castReaction(seated(0), kind, REACTION_SECONDS[kind]);
+    assert.ok(Math.abs(end.rot.shoulderNear - seated(0).rot.shoulderNear) < 1e-6, `${kind} ends where it began`);
+  }
+});

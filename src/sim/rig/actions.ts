@@ -1,5 +1,5 @@
 import type { MoveKind } from "../moves";
-import { MOVE_SECONDS, SUPER_CUT, SWING_CUT, TAP_HARRUMPH, TUMBLE_LAND, WIPE_FLICK, WIPE_SCRUB } from "../moves";
+import { MOVE_SECONDS, SUPER_CUT, SWING_CUT, THROW_CUT, TAP_HARRUMPH, TUMBLE_LAND, WIPE_FLICK, WIPE_SCRUB } from "../moves";
 import { FREE, HOLD, flatFeet } from "./clips";
 import { armTo, legTo } from "./ik";
 import { blend, linear, out, pose, smooth, smoother, track, type Key, type Pose } from "./pose";
@@ -17,8 +17,10 @@ export const ACTION_MASK: Record<MoveKind, "upper" | "whole"> = {
   tap: "whole",
   hurt: "whole",
   tumble: "whole",
+  throw: "upper",
+  lob: "upper",
 };
-const CUTS: Partial<Record<MoveKind, readonly [number, number]>> = { swing: SWING_CUT, super: SUPER_CUT };
+const CUTS: Partial<Record<MoveKind, readonly [number, number]>> = { swing: SWING_CUT, super: SUPER_CUT, throw: THROW_CUT };
 
 /** The frame drawn at u. Inside a cut the strike lands at once, so the arc over the head is never drawn. */
 export function displayU(kind: MoveKind, u: number): number {
@@ -378,7 +380,57 @@ function squatLeg(leg: "near" | "far", lift: number) {
   return legTo(leg, { x: A.x, y: A.y + lift }, angleOf(A, T), 1);
 }
 
+// The dart throw (R5 §3): the near arm swings back and down behind him and up to cock the scalpel behind his head,
+// holds a beat, whips over the top inside the cut, and ends out ahead, below his face, the blade up. Keyed as world
+// angles (upper arm U, forearm F, hand H; 0 ahead, up positive) turned into rotations, the long way round so it never
+// passes in front of his face; a blend to or from it takes the short way, under his chin.
+const UPPER_REST = -78.69;
+const FORE_FROM_UPPER = 29.63;
+const HAND_FROM_FORE = -1.38;
+const THROW_KEYS = { U: [-82, -150, -230, -230, -390, -390], F: [2, -110, -270, -270, -355, -360], H: [2, -110, -250, -250, -335, -330] };
+const THROW_AT = [0, 0.2, 0.45, THROW_CUT[0], THROW_CUT[1], 1];
+const throwKeys = (v: number[]) => v.map((x, i) => [THROW_AT[i], x] as const) as K;
+const THROW = {
+  U: throwKeys(THROW_KEYS.U),
+  F: throwKeys(THROW_KEYS.F),
+  H: throwKeys(THROW_KEYS.H),
+  lean: [[0, 0], [0.45, -6], [THROW_CUT[0], -6], [THROW_CUT[1], 6, linear], [1, 4]] as K,
+};
+
+/** Where the box leaves his free hand, as a fraction of the lob. */
+export const LOB_RELEASE = 0.55;
+/** The lob's far wrist (chest frame, rest units): back behind his hip, then swung through to chest height ahead, and home. */
+const LOB_BACK: Point = { x: -45, y: 150 };
+const LOB_OUT: Point = { x: 85, y: 215 };
+const LOB_FOLLOW: Point = { x: 95, y: 235 };
+export function lobHand(u: number): Point {
+  if (u < 0.3) return bez(HANG, { x: -30, y: 125 }, LOB_BACK, smooth(u / 0.3));
+  if (u < LOB_RELEASE) return bez(LOB_BACK, { x: 20, y: 110 }, LOB_OUT, smooth((u - 0.3) / (LOB_RELEASE - 0.3)));
+  if (u < 0.75) return mix(LOB_OUT, LOB_FOLLOW, smooth((u - LOB_RELEASE) / (0.75 - LOB_RELEASE)));
+  return bez(LOB_FOLLOW, { x: 70, y: 170 }, HANG, smooth((u - 0.75) / 0.25));
+}
+export function lobHandDeg(u: number): number {
+  const keys = [[0, HANG_DEG], [0.3, -110], [LOB_RELEASE, 30], [0.75, 40], [1, HANG_DEG]] as K;
+  return at(keys, u);
+}
+
 export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
+  throw: (u) => {
+    const U = at(THROW.U, u);
+    const F = at(THROW.F, u);
+    const H = at(THROW.H, u);
+    return pose({
+      rot: { shoulderNear: U - UPPER_REST, elbowNear: F - U - FORE_FROM_UPPER, wristNear: H - F - HAND_FROM_FORE, shoulderFar: FREE },
+      lean: at(THROW.lean, u),
+    });
+  },
+  lob: (u) => {
+    const far = armTo("far", lobHand(u), lobHandDeg(u), -1);
+    return pose({
+      rot: { ...HOLD, shoulderFar: far.shoulder, elbowFar: far.elbow, wristFar: far.wrist },
+      lean: at([[0, 0], [0.3, -3], [LOB_RELEASE, 4], [1, 0]] as K, u),
+    });
+  },
   swing: (u) =>
     pose({
       rot: {
