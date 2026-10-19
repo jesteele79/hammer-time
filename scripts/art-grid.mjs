@@ -19,13 +19,16 @@ const target = args[0] ?? "affliction";
 const person = target.startsWith("cast/") ? target.slice(5) : null;
 const wall = target.startsWith("wall/") ? target.slice(5) : null;
 const pig = target === "pig";
-const banquetTarget = target.startsWith("banquet/") ? target.slice(8) : null;
-const banquetFile = banquetTarget === "room" ? "art/incoming/backdrops/ballroom.png" : banquetTarget === "table" ? "art/incoming/props/banquet-table.png" : null;
-const rawPng = wall ? readFileSync(`art/incoming/backdrops/${wall}.png`) : banquetTarget === "room" ? readFileSync(banquetFile) : null;
+// Gate B7 (R5): gate/room the room as painted (its cut's floor line and window band), gate/sheet its pieces' sheet.
+const gateTarget = target.startsWith("gate/") ? target.slice(5) : null;
+const banquetTarget = target.startsWith("banquet/") ? target.slice(8) : gateTarget === "room" ? "gate-room" : gateTarget === "sheet" ? "gate-sheet" : null;
+const banquetFile =
+  banquetTarget === "room" ? "art/incoming/backdrops/ballroom.png" : banquetTarget === "table" ? "art/incoming/props/banquet-table.png" : banquetTarget === "gate-room" ? "art/incoming/backdrops/gate.png" : banquetTarget === "gate-sheet" ? "art/incoming/props/gate-sheet.png" : null;
+const rawPng = wall ? readFileSync(`art/incoming/backdrops/${wall}.png`) : banquetTarget === "room" || banquetTarget === "gate-room" ? readFileSync(banquetFile) : null;
 const keyed = rawPng
   ? { png: rawPng, ...(await sharp(rawPng).metadata()) }
   : await keyOut(
-      readFileSync(banquetTarget === "table" ? banquetFile : pig ? "art/incoming/pig/pig-body.png" : person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`),
+      readFileSync(banquetTarget === "table" || banquetTarget === "gate-sheet" ? banquetFile : pig ? "art/incoming/pig/pig-body.png" : person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`),
     );
 const [x0, y0, w, h] = args.length >= 5 ? args.slice(1, 5).map(Number) : [0, 0, keyed.width, keyed.height];
 const scale = Number(args[5] ?? (args.length >= 5 ? 2 : 1));
@@ -62,6 +65,11 @@ if (!bare && banquetTarget === "room" && existsSync("art/cuts/ballroom.json")) {
   const [cx, cy] = cut.table;
   shapes.push(`<line x1="${px(cx - 30)}" y1="${py(cy)}" x2="${px(cx + 30)}" y2="${py(cy)}" stroke="#ff3b3b" stroke-width="3"/>`, `<line x1="${px(cx)}" y1="${py(cy - 30)}" x2="${px(cx)}" y2="${py(cy + 30)}" stroke="#ff3b3b" stroke-width="3"/>`);
   shapes.push(`<line x1="${px(cx - cut.span / 2)}" y1="${py(cy)}" x2="${px(cx + cut.span / 2)}" y2="${py(cy)}" stroke="#3bfff0" stroke-width="2"/>`);
+}
+if (!bare && banquetTarget === "gate-room" && existsSync("art/cuts/gate.json")) {
+  const cut = JSON.parse(readFileSync("art/cuts/gate.json", "utf8"));
+  shapes.push(`<line x1="0" y1="${py(cut.floor)}" x2="${W}" y2="${py(cut.floor)}" stroke="#3bfff0" stroke-width="3"/>`);
+  for (const y of cut.windows) shapes.push(`<line x1="0" y1="${py(y)}" x2="${W}" y2="${py(y)}" stroke="#ff3b3b" stroke-width="3"/>`);
 }
 if (!bare && banquetTarget === "table" && existsSync("art/cuts/banquet-table.json")) {
   const { center, radii } = JSON.parse(readFileSync("art/cuts/banquet-table.json", "utf8")).top;

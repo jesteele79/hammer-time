@@ -969,3 +969,14 @@ test("a food sheet whose rows sit off the even grid is cut by the green between 
     assert.ok(Math.abs(c.width - want) <= 4 && Math.abs(c.height - want) <= 4, `cell ${i + 1}: ${c.width}x${c.height}, not about ${want}`);
   });
 });
+
+test("the gate sheet's seven pieces are named in the brief's order; six or eight refuse", async () => {
+  const { nameGatePieces } = await import("./art-cut.mjs");
+  const { GATE_PIECES } = await import("../src/art/registry.ts");
+  const piece = (i) => ({ file: `p${i}.png`, width: 10 + i, height: 10, base: { x: 5, y: 9 } });
+  const named = nameGatePieces([...Array(7).keys()].map(piece));
+  assert.deepEqual(Object.keys(named), [...GATE_PIECES]);
+  assert.equal(named.box.width, 16);
+  assert.throws(() => nameGatePieces([...Array(6).keys()].map(piece)), /6 pieces, not 7/);
+  assert.throws(() => nameGatePieces([...Array(8).keys()].map(piece)), /8 pieces, not 7/);
+});

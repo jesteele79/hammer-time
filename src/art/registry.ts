@@ -64,7 +64,20 @@ export type Registry = {
     table?: { file: string; width: number; height: number; top: { cx: number; cy: number; rx: number; ry: number } };
     food?: { file: string; width: number; height: number }[];
   };
+  /**
+   * Gate B7 (R5 §13): the room as painted, with the row where its wall meets the floor and its window band's top and
+   * bottom rows; the plane that takes off behind the glass; the sheet's seven pieces by name. Missing from an older sync,
+   * or while a painting is not in.
+   */
+  gate?: {
+    room?: { file: string; width: number; height: number; floor: number; windows: { top: number; bottom: number } };
+    plane?: { file: string; width: number; height: number };
+    pieces?: Partial<Record<GatePiece, Piece>>;
+  };
 };
+/** The gate sheet's pieces, left to right as painted (R5 §13); scripts/art-cut.mjs has the same list. */
+export const GATE_PIECES = ["podium", "kiosk", "seats", "cart", "stanchion", "scalpel", "box"] as const;
+export type GatePiece = (typeof GATE_PIECES)[number];
 
 export const ART_BASE = "/art/";
 /** The face box used when a plate has none registered (fractions of the plate). */

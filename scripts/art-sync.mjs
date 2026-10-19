@@ -28,6 +28,7 @@ import {
   webpPaths,
   wallCrop,
   sheetPieces,
+  nameGatePieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -211,7 +212,7 @@ async function bodies(registry) {
 }
 
 const CAST_IN = "art/incoming/cast";
-const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse"];
+const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {
@@ -431,6 +432,44 @@ async function banquet(registry) {
     });
 }
 
+const GATE = { room: "art/incoming/backdrops/gate.png", plane: "art/incoming/props/gate-plane.png", sheet: "art/incoming/props/gate-sheet.png" };
+
+/** Gate B7 (R5 §13): the room placed by its cut, the plane keyed, the sheet cut into its seven named pieces. */
+async function gate(registry) {
+  registry.gate = {};
+  mkdirSync(join(OUT, "gate"), { recursive: true });
+  if (existsSync(GATE.room)) {
+    const file = "art/cuts/gate.json";
+    if (!existsSync(file)) console.warn(`gate: painted but not cut yet (no ${file}); the drawn gate stands in`);
+    else
+      await tolerant("gate", strict, async () => {
+        const cut = JSON.parse(readFileSync(file, "utf8"));
+        const meta = await sharp(GATE.room).metadata();
+        writeFileSync(join(OUT, "gate/room.png"), await sharp(GATE.room).png().toBuffer());
+        registry.gate.room = { file: "gate/room.png", width: meta.width, height: meta.height, floor: cut.floor, windows: { top: cut.windows[0], bottom: cut.windows[1] } };
+        console.log(`gate: ${meta.width}x${meta.height}, the floor at ${cut.floor}, the windows ${cut.windows}`);
+      });
+  }
+  if (existsSync(GATE.plane))
+    await tolerant("gate plane", strict, async () => {
+      const keyed = await keyOut(readFileSync(GATE.plane));
+      writeFileSync(join(OUT, "gate/plane.png"), keyed.png);
+      registry.gate.plane = { file: "gate/plane.png", width: keyed.width, height: keyed.height };
+      console.log(`gate plane: ${keyed.width}x${keyed.height}`);
+    });
+  if (existsSync(GATE.sheet))
+    await tolerant("gate sheet", strict, async () => {
+      const named = nameGatePieces(await sheetPieces(await keyOut(readFileSync(GATE.sheet))));
+      registry.gate.pieces = {};
+      for (const [name, p] of Object.entries(named)) {
+        const file = `gate/${name}.png`;
+        writeFileSync(join(OUT, file), p.png);
+        registry.gate.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+      }
+      console.log(`gate sheet: ${Object.keys(named).join(", ")}`);
+    });
+}
+
 async function publish(registry) {
   const pngs = [];
   const rigs = [];
@@ -467,6 +506,7 @@ await pig(registry);
 await backdrops(registry);
 await walls(registry);
 await banquet(registry);
+await gate(registry);
 await products();
 writeFileSync(join(OUT, "registry.json"), JSON.stringify(await publish(registry), null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);

@@ -1506,3 +1506,11 @@ export function webpPaths(value) {
   if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, webpPaths(v)]));
   return value;
 }
+
+/** The gate sheet's pieces, left to right as the brief paints them (R5 §13); src/art/registry.ts has the same list. */
+export const GATE_PIECES = ["podium", "kiosk", "seats", "cart", "stanchion", "scalpel", "box"];
+/** The gate sheet's pieces by name; a sheet with more or fewer than seven is refused, its painting to be redone. */
+export function nameGatePieces(pieces) {
+  if (pieces.length !== GATE_PIECES.length) throw new Error(`the gate sheet has ${pieces.length} pieces, not ${GATE_PIECES.length}`);
+  return Object.fromEntries(GATE_PIECES.map((name, i) => [name, pieces[i]]));
+}
