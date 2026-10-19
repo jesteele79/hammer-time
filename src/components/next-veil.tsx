@@ -1,4 +1,4 @@
-import type { HudPayload } from "@/render/hud";
+import { isNewBest, type HudPayload } from "@/render/hud";
 import type { GameMode } from "@/sim/game";
 import { FOODS } from "@/sim/quests/hungry/food";
 import { GRADES, HUNGRY } from "@/sim/quests/hungry/hungry";
@@ -23,6 +23,8 @@ export type VeilInfo = {
   /** Hungry Hungry Hammer while it is up (its card, round, break or tally), and its own best (R4). */
   quest: HudPayload["quest"];
   banquetBest: number;
+  /** The side quest's best as it stood when its round's card showed: what the tally's score must beat. */
+  bestBefore: number;
 };
 
 function Lives({ n, portrait }: { n: number; portrait: string | null }) {
@@ -166,7 +168,7 @@ export function NextVeil({
               <dd>{String(r.score).padStart(6, "0")}</dd>
             </div>
             <div>
-              <dt>{r.score >= best && r.score > 0 ? "New best" : "Best"}</dt>
+              <dt>{isNewBest(r.score, info.bestBefore) ? "New best" : "Best"}</dt>
               <dd>{String(best).padStart(6, "0")}</dd>
             </div>
           </dl>

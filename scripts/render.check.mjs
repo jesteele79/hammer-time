@@ -1217,3 +1217,9 @@ test("snot on the floor is a lumpy splat with a mound in the middle, splash fing
   assert.ok(s.mound.h > 102 * 0.1 && s.mound.w < 102 * 0.7, `a mound of goo in the middle: ${JSON.stringify(s.mound)}`);
   assert.ok(splatGrow(0) < 0.5 && splatGrow(0.09) > 1 && Math.abs(splatGrow(0.4) - 1) < 1e-9, "it spreads, overshoots and settles");
 });
+
+import { isNewBest } from "../src/render/hud.ts";
+
+test("a tally says New best only when the score beats the best kept before the round, never on a tie", () => {
+  assert.deepEqual([isNewBest(5000, 4000), isNewBest(5000, 5000), isNewBest(4000, 5000), isNewBest(0, 0)], [true, false, false, false]);
+});

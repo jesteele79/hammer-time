@@ -981,7 +981,7 @@ export const DINER_NAME: Record<RivalId, string> = { student: "student", bellhop
 
 /** The hint line during the round (R4 §9), first match wins. */
 export function hungryHint(q: Hungry): string {
-  if (q.planes.length) return "Paper incoming · ↓ ducks, H swats";
+  if (q.planes.some((p) => !p.done)) return "Paper incoming · ↓ ducks, H swats";
   if (q.suitcases.length) return "Suitcase on the table · H clears it";
   if (q.hammer.stun > 0) return "Slapped · wait a second";
   if (q.score.togo > 0) return `To-go box · next ${q.score.togo} grabs double`;

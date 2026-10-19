@@ -88,6 +88,7 @@ export function NextGame({
   const [first, setFirst] = useState(true);
   const [best, setBest] = useState(0);
   const [banquetBest, setBanquetBest] = useState(0);
+  const [bestBefore, setBestBefore] = useState(0);
   const [muted, setMuted] = useState(false);
   const [place, setPlace] = useState<"top" | "bottom" | "right">("bottom");
   const [ready, setReady] = useState(false);
@@ -200,6 +201,11 @@ export function NextGame({
     }
   }, [ready, pendingQuest]);
 
+  // What a round's score must beat to be a new best: its best as the round's card showed.
+  useEffect(() => {
+    if (mode === "questCard") setBestBefore(banquetBest);
+  }, [mode, banquetBest]);
+
   // The banquet's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
   const questResult = hud?.quest?.result ?? null;
   useEffect(() => {
@@ -244,6 +250,7 @@ export function NextGame({
     practice,
     quest: hud?.quest ?? null,
     banquetBest,
+    bestBefore,
   };
   // Practice's tally always offers the start screen (it was opened from there, or from its link straight in).
   const titleBack = title || (!!hud?.quest && !hud.quest.door);

@@ -57,6 +57,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 /** What the banquet's belly-flop is and how to do it, until he has done one (owner, 2026-10-18). */
 export const FLOP_HINT = "Belly-flop · run, then ↓ · it knocks staff over";
+/** A tally's "New best": a score above the best kept before the round, never a tie with it. */
+export const isNewBest = (score: number, before: number) => score > before;
+
 /** A staffer this near on his level who still carries a prize names it in the hint (owner, 2026-10-18). */
 const CARRY_HINT = { x: 700, y: 300 } as const;
 const CARRIED_NAME: Record<CarriedKind, string> = { can: "Coke Zero", nuts: "mixed nuts", bucees: "Buc-ee's" };

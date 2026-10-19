@@ -1296,3 +1296,11 @@ test("a flop past a door with ↓ held never opens it on the way: the STAFF ONLY
   downAt(g);
   assert.equal(g.level.id, "stash");
 });
+
+test("the hint warns of paper only while a plane is still coming, not while a missed one sails past", () => {
+  const q = createHungry(1, { schedule: false, rivals: false, server: false });
+  q.planes.push({ from: { x: 0, y: 0 }, to: { x: 1, y: 0 }, d: 0, wait: 0, done: false, hit: false });
+  assert.equal(hungryHint(q), "Paper incoming · ↓ ducks, H swats");
+  q.planes[0].done = true;
+  assert.notEqual(hungryHint(q), "Paper incoming · ↓ ducks, H swats");
+});
