@@ -18,7 +18,9 @@ import { createCart, knock } from "./targets";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
-import { createHungry, stepHungry, type Hungry, type HungryResult } from "./quests/hungry/hungry";
+import { createHungry, stepHungry, type HungryResult } from "./quests/hungry/hungry";
+import { createFares, stepFares, type FaresResult } from "./quests/fares/fares";
+import type { Quest, QuestId } from "./quests/quest";
 
 export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title" | "questCard" | "quest" | "questTally";
 /** The lobby and its stash, and the venues after the lobby in the shift's order (R3 §2). */
@@ -50,11 +52,11 @@ export type Game = {
   /** Back to the start screen: the game holds, nothing steps, until a new run is chosen. */
   toTitle(): void;
   /** The banquet while its card shows, it runs, or its tally waits (R4). */
-  quest: Hungry | null;
+  quest: Quest | null;
   /** The door it was opened from; null for practice from the start screen. */
   questDoor: DoorSpec | null;
   /** Practice from the start screen, or Play again on a practice tally: a round on its own (R4 §8). */
-  newQuest(seed: number): void;
+  newQuest(seed: number, id?: QuestId): void;
   /** Continue on a door's tally: what he ate comes home with him, and he stands at the door (R4 §7). */
   finishQuest(): void;
 };
@@ -205,20 +207,20 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
   }
 
-  function openQuest(q: Hungry, door: DoorSpec | null, ev: GameEvent[]) {
+  function openQuest(q: Quest, door: DoorSpec | null, ev: GameEvent[]) {
     game.quest = q;
     game.questDoor = door;
     setMode("questCard", ev, RUN.cardT);
   }
 
-  function newQuest(seed: number) {
+  function newQuest(seed: number, id: QuestId = "hungry") {
     if (game.mode !== "title" && !(game.mode === "questTally" && !game.questDoor)) return;
     game.events = [];
-    openQuest(createHungry(seed, { practice: true }), null, game.events);
+    openQuest(id === "fares" ? createFares(seed, { practice: true }) : createHungry(seed, { practice: true }), null, game.events);
   }
 
   /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper, and COMPED's doggy bag and belly-flop; no lives. */
-  function pay(r: HungryResult, ev: GameEvent[]) {
+  function payHungry(r: HungryResult, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
     addScore(run, r.score);
@@ -231,7 +233,22 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       h.hot = true;
       h.patience = PATIENCE_MAX;
     }
-    ev.push({ type: "questPaid", score: r.score, grade: r.grade, doggy: r.doggy, flop: r.flop });
+    ev.push({ type: "questPaid", quest: "hungry", score: r.score, grade: r.grade, doggy: r.doggy, flop: r.flop, boxes: 0, cans: r.cans, lives: 0 });
+  }
+
+  /** What the gate pays (R5 §8): its score, a box of #15 blades a booking, the cans, a full smash from B GROUP, a life at A1. */
+  function payFares(r: FaresResult, ev: GameEvent[]) {
+    const h = world.hero;
+    const run = game.run;
+    addScore(run, r.score);
+    h.boxes += r.boxes;
+    if (r.cans) h.heat = Math.max(0, h.heat - addCans(run, r.cans, ev));
+    if (r.nuts) h.charge = CHARGE_MAX;
+    for (let i = 0; i < r.lives; i++) {
+      run.lives++;
+      ev.push({ type: "oneUp" });
+    }
+    ev.push({ type: "questPaid", quest: "fares", score: r.score, grade: r.grade, doggy: false, flop: false, boxes: r.boxes, cans: r.cans, lives: r.lives });
   }
 
   function finishQuest() {
@@ -239,7 +256,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const d = game.questDoor;
     if (game.mode !== "questTally" || !q?.result || !d) return;
     const ev: GameEvent[] = (game.events = []);
-    pay(q.result, ev);
+    if (q.id === "fares") payFares(q.result, ev);
+    else payHungry(q.result, ev);
     const h = world.hero;
     h.move = null;
     h.crouch = false;
@@ -269,7 +287,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "over" });
       return;
     }
-    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy, flop: world.hero.flop }, ev);
+    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy, flop: world.hero.flop, boxes: world.hero.boxes }, ev);
     world.hero.invuln = RUN.respawnGrace;
     ev.push({ type: "respawn" });
   }
@@ -400,7 +418,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     ev.push({ type: "door", kind: d.kind, id: d.id });
     if (d.kind === "quest") {
       game.run.spent.push(d.id);
-      openQuest(createHungry((game.run.seed ^ Math.imul(Math.round(d.x), 7919)) >>> 0), d, ev);
+      const seed = (game.run.seed ^ Math.imul(Math.round(d.x), 7919)) >>> 0;
+      openQuest(d.quest === "fares" ? createFares(seed) : createHungry(seed), d, ev);
       return true;
     }
     if (d.kind === "stash") {
@@ -475,7 +494,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** On to the shift's next venue: what he carries comes along; he arrives cool with full snot, his shield spent, its clocks unpunched. */
   function nextVenue(ev: GameEvent[]) {
     const h = world.hero;
-    const carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy, flop: h.flop };
+    const carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy, flop: h.flop, boxes: h.boxes };
     game.venue++;
     game.run.checkpoint = null;
     game.run.punched = [];
@@ -598,7 +617,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       if (game.modeT <= 1e-9) setMode("quest", ev);
     } else if (game.mode === "quest") {
       const q = game.quest!;
-      stepHungry(q, input, STEP);
+      if (q.id === "fares") stepFares(q, input, STEP);
+      else stepHungry(q, input, STEP);
       ev.push(...q.events);
       if (q.result) setMode("questTally", ev);
     } else if (game.mode === "play") playStep(input, ev);

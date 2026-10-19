@@ -413,3 +413,168 @@ test("the grade lines hold over ten seeds: a masher lands C GROUP, a person book
   const sharp = seeds.map((s) => playRound(s, sharpPlayer()));
   assert.ok(sharp.filter((r) => r.preferred).length >= 7, `sharp ${sharp.map((r) => r.booked)}`);
 });
+
+import { createGame } from "../src/sim/game.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+import { RUN } from "../src/sim/run.ts";
+import { CHARGE_MAX } from "../src/sim/moves.ts";
+import { hintOf, hudOf } from "../src/render/hud.ts";
+
+const SHUTTLE = LOBBY.doors.find((d) => d.id === "shuttle");
+const BUFFET = LOBBY.doors.find((d) => d.id === "buffet");
+const lobbyGame = (opts = {}) => createGame({ lobby: LOBBY, stash: STASH }, 3, { cast: false, ...opts });
+const until = (g, mode, seconds = 5, held = {}) => {
+  for (let i = 0; i < Math.round(seconds / STEP) && g.mode !== mode; i++) g.step(input(held));
+  return g.mode;
+};
+const at = (g, door) => {
+  until(g, "play");
+  Object.assign(g.world.hero, { x: door.x, y: 0, vx: 0, vy: 0, onGround: true, move: null });
+  g.step(input());
+  return g;
+};
+const downAt = (g) => {
+  g.step(input({ down: true }, { down: true }));
+  return [...g.events];
+};
+/** A gate round from the door (its hazards switched off, so a cloud or the agent can't eat a throw), `book` bookings at Austin then misses to the end, its tally up. */
+const gateRound = (g, book = 0) => {
+  downAt(g);
+  until(g, "quest");
+  const q = g.quest;
+  q.hazards = false;
+  for (let i = 0; i < 10; i++) {
+    if (i < book) addTag(q, "AUS");
+    q.pin = i < book ? cityAt("AUS") : OCEAN;
+    g.step(input({ jump: true }, { jump: true }));
+    for (let s = 0; s < Math.round((FARES.windup + FARES.flight) / STEP) + 2; s++) g.step(input());
+  }
+  until(g, "questTally", FARES.end + 0.5);
+  return q;
+};
+
+test("↓ in front of the AIRPORT SHUTTLE door opens Fare Darts: its card, then the round; never from the air", () => {
+  const g = at(lobbyGame(), SHUTTLE);
+  assert.equal(hintOf(g), "↓ AIRPORT SHUTTLE · Fare Darts");
+  downAt(g);
+  assert.deepEqual([g.mode, g.quest.id, g.quest.practice, g.questDoor.id], ["questCard", "fares", false, "shuttle"]);
+  assert.equal(until(g, "quest", RUN.cardT + 0.1), "quest");
+  const air = at(lobbyGame(), SHUTTLE);
+  Object.assign(air.world.hero, { y: -200, onGround: false });
+  downAt(air);
+  assert.equal(air.mode, "play");
+});
+
+test("a key held through the round's card throws nothing; only a fresh press does", () => {
+  const g = at(lobbyGame(), SHUTTLE);
+  downAt(g);
+  until(g, "quest", RUN.cardT + 0.1, { jump: true });
+  for (let i = 0; i < 30; i++) g.step(input({ jump: true }));
+  assert.equal(g.quest.thrown, 0);
+  g.step(input({ jump: true }, { jump: true }));
+  assert.equal(g.quest.thrown, 1);
+});
+
+test("a break mid-throw holds the shot, the crosshair and the steady meter, and the shot lands once after", () => {
+  const g = at(lobbyGame(), SHUTTLE);
+  downAt(g);
+  until(g, "quest");
+  g.quest.hazards = false;
+  addTag(g.quest, "AUS");
+  g.quest.pin = cityAt("AUS");
+  g.step(input({ jump: true, run: true }, { jump: true }));
+  const { theta, steady } = g.quest;
+  const t = g.quest.shot.t;
+  g.togglePause();
+  for (let i = 0; i < 120; i++) g.step(input({ run: true, jump: true }, { jump: true }));
+  assert.deepEqual([g.quest.theta, g.quest.steady, g.quest.shot.t], [theta, steady, t]);
+  g.togglePause();
+  for (let i = 0; i < 80; i++) g.step(input());
+  assert.deepEqual([g.quest.stuck, g.quest.bookings.length], [1, 1]);
+});
+
+test("Continue stands him at the shuttle door with grace and brings home the score, a box a booking, three cans a Wanna Get Away, the smash", () => {
+  const g = at(lobbyGame(), SHUTTLE);
+  Object.assign(g.world.hero, { charge: 0, boxes: 0 });
+  const before = { score: g.run.score, cans: g.run.cans };
+  const q = gateRound(g, 4);
+  const r = q.result;
+  assert.deepEqual([r.booked, r.boxes, r.cans, r.nuts, r.lives], [4, 4, 12, true, 0]);
+  g.finishQuest();
+  const h = g.world.hero;
+  assert.deepEqual([g.mode, h.x, h.onGround, h.boxes, h.charge], ["play", SHUTTLE.x, true, 4, CHARGE_MAX]);
+  assert.ok(h.invuln >= RUN.questGrace - 1e-9);
+  assert.equal(g.run.cans, before.cans + 12);
+  assert.equal(g.run.score, before.score + r.score + 12 * RUN.canPoints);
+  const paid = of(g.events, "questPaid")[0];
+  assert.deepEqual([paid.quest, paid.boxes, paid.cans, paid.lives], ["fares", 4, 12, 0]);
+});
+
+test("A-LIST PREFERRED from the door is an extra life", () => {
+  const g = at(lobbyGame(), SHUTTLE);
+  const lives = g.run.lives;
+  gateRound(g, 7);
+  assert.equal(g.quest.result.lives, 1);
+  g.finishQuest();
+  assert.equal(g.run.lives, lives + 1);
+  assert.equal(of(g.events, "oneUp").length, 1);
+});
+
+test("the shuttle is spent once a shift, through a lost life, and apart from the BUFFET; a new shift opens it again", () => {
+  const g = at(lobbyGame(), SHUTTLE);
+  gateRound(g);
+  g.finishQuest();
+  for (let i = 0; i < 30; i++) g.step(input({ down: true }));
+  g.step(input());
+  downAt(g);
+  assert.equal(g.mode, "play", "spent; the held key opened nothing");
+  assert.equal(hintOf(g), "AIRPORT SHUTTLE · thank you, come again");
+  g.world.hero.y = 99999;
+  until(g, "dying", 1);
+  until(g, "play", 8);
+  at(g, SHUTTLE);
+  downAt(g);
+  assert.equal(g.mode, "play", "still spent after a lost life");
+  at(g, BUFFET);
+  downAt(g);
+  assert.deepEqual([g.mode, g.quest.id], ["questCard", "hungry"], "the BUFFET is its own");
+  g.newRun(9);
+  at(g, SHUTTLE);
+  downAt(g);
+  assert.equal(g.mode, "questCard", "a new shift opens it");
+});
+
+test("the boxes ride with him through a lost life and into the next venue; a new shift has none", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT] }, 3, { cast: false });
+  until(g, "play");
+  g.world.hero.boxes = 3;
+  g.world.hero.y = 99999;
+  until(g, "dying", 1);
+  until(g, "play", 8);
+  assert.equal(g.world.hero.boxes, 3, "through a lost life");
+  g.world.hero.x = 15800;
+  for (let i = 0; i < Math.round(20 / STEP) && g.mode !== "card"; i++) g.step(input({ right: true }));
+  assert.deepEqual([g.level.id, g.world.hero.boxes], ["restaurant", 3], "into the next venue");
+  g.newRun(4);
+  assert.equal(g.world.hero.boxes, 0);
+});
+
+test("practice: newQuest(seed, 'fares') plays a round on its own that never touches a shift", () => {
+  const g = lobbyGame({ title: true });
+  g.newQuest(5, "fares");
+  assert.deepEqual([g.mode, g.quest.id, g.quest.practice, g.questDoor], ["questCard", "fares", true, null]);
+  g.newQuest(6);
+  assert.equal(g.quest.id, "fares", "no new round over a running card");
+});
+
+test("the HUD in the gate's round: the score, the scalpels left, the steady hand, his position, the streak and its hint", () => {
+  const g = lobbyGame({ title: true });
+  g.newQuest(5, "fares");
+  until(g, "quest");
+  const q = g.quest;
+  Object.assign(q, { score: 684, thrown: 3, stuck: 3, steady: 2.3, position: 72, streak: 3 });
+  assert.deepEqual(hudOf(g, null).quest, { id: "fares", score: 684, left: 7, steady: 2.3, steadyMax: 2.5, position: "B13", streak: 3, door: false, result: null });
+  assert.equal(hudOf(g, null).hint, "Space throws · hold Shift to steady your hand · E mouths off");
+});

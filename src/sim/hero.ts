@@ -31,7 +31,7 @@ import { HEAT, LOCKING, SINUS_MAX, tiredFactor } from "./moves";
 import { canStand, floorAt, floorUnder, moveBody } from "./physics";
 import type { HeroMotion, HeroState, Point, Stage } from "./types";
 
-export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patience?: number; doggy?: number; flop?: boolean };
+export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patience?: number; doggy?: number; flop?: boolean; boxes?: number };
 
 export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
   return {
@@ -67,6 +67,7 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     doggy: opts.doggy ?? 0,
     flop: opts.flop ?? false,
     flopChain: 0,
+    boxes: opts.boxes ?? 0,
   };
 }
 

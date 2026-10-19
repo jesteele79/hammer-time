@@ -1,4 +1,5 @@
 import type { HeatZone } from "./hazards";
+import type { QuestId } from "./quests/quest";
 import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, Stage } from "./types";
 
 export type { CartLoad };
@@ -38,7 +39,7 @@ export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest";
  * `closed` doors say what opens them; a `quest` door opens a side quest once a shift (the BUFFET's banquet, R4 §7); `x`
  * is the door's middle, `y` the floor in front of it; a `locked` exit is chained until the pig is down.
  */
-export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string; locked?: boolean; quest?: "hungry" };
+export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string; locked?: boolean; quest?: QuestId };
 export type CheckpointSpec = { id: string; x: number; y: number };
 export type SignSpec = { x: number; y: number; label: string; note?: string };
 export type FurnitureKind =

@@ -167,6 +167,7 @@ export type HungryResult = {
 /** The tests' switches: no waves, specials, cart or frenzy; the rivals asleep; the server away for good. */
 export type HungryOptions = { practice?: boolean; schedule?: boolean; rivals?: boolean; server?: boolean };
 export type Hungry = {
+  id: "hungry";
   rng: () => number;
   practice: boolean;
   time: number;
@@ -216,6 +217,7 @@ export function createHungry(seed: number, opts: HungryOptions = {}): Hungry {
   const rival = (id: RivalId): Rival => ({ ...eater(id), base: RIVAL_BASE[id], anger: 0, calm: 0, wait: -1, target: null, burst: 0, asleep: opts.rivals === false, frozen: 0, slap: -1 });
   const { from, to } = HUNGRY.specials;
   return {
+    id: "hungry",
     rng,
     practice: !!opts.practice,
     time: 0,

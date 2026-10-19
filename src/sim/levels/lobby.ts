@@ -47,7 +47,7 @@ export const LOBBY: Level = {
   doors: [
     { id: "buffet", kind: "quest", x: 4600, y: 0, label: "BUFFET", quest: "hungry" },
     { id: "mclub", kind: "closed", x: 8800, y: -520, label: "M CLUB", opens: "Platinum members only" },
-    { id: "shuttle", kind: "closed", x: 9100, y: 0, label: "AIRPORT SHUTTLE", opens: "Opens with Fare Darts" },
+    { id: "shuttle", kind: "quest", x: 9100, y: 0, label: "AIRPORT SHUTTLE", quest: "fares" },
     { id: "staff", kind: "stash", x: 9700, y: 0, label: "STAFF ONLY" },
     { id: "out", kind: "exit", x: 15950, y: 0, label: "CLOCK OUT" },
   ],

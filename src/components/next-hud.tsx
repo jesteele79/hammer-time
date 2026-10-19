@@ -74,7 +74,7 @@ export function NextHud({
 }) {
   if (!hud) return null;
   // The banquet's round (R4 §9): its own score, clock and rows in the shift's places.
-  const q = hud.quest;
+  const q = hud.quest?.id === "hungry" ? hud.quest : null;
   const score = q ? q.score : hud.score;
   const full = hud.charge >= hud.chargeMax;
   const lives = Math.max(0, hud.lives);

@@ -1,6 +1,8 @@
 import type { CastHitBy, CastJob, CastRole } from "./cast";
 import type { GameMode } from "./game";
 import type { HungryEvent } from "./quests/hungry/events";
+import type { FaresEvent } from "./quests/fares/events";
+import type { QuestId } from "./quests/quest";
 import type { MissileKind } from "./missiles";
 import type { CrateKind, DoorKind, LevelId } from "./level";
 import type { PickupKind } from "./rewards";
@@ -130,8 +132,10 @@ export type GameEvent =
   | { type: "pigRefill"; x: number; y: number }
   /** The banquet's own events (R4): see src/sim/quests/hungry/events.ts. */
   | HungryEvent
-  /** Back from the banquet's tally: what it paid. */
-  | { type: "questPaid"; score: number; grade: string; doggy: boolean; flop: boolean }
+  /** Fare Darts' own events (R5): see src/sim/quests/fares/events.ts. */
+  | FaresEvent
+  /** Back from a side quest's tally: what it paid. */
+  | { type: "questPaid"; quest: QuestId; score: number; grade: string; doggy: boolean; flop: boolean; boxes: number; cans: number; lives: number }
   /** A doggy bag caught the hit that would have knocked him flat: he eats his leftovers, at his head. */
   | { type: "doggyBag"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

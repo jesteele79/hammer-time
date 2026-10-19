@@ -6,7 +6,9 @@ import { heatZoneAt } from "../sim/hazards";
 import type { CarriedKind } from "../sim/level";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
-import { GRADES, HUNGRY, baseReach, hungryHint, type HungryResult } from "../sim/quests/hungry/hungry";
+import { GRADES, HUNGRY, baseReach, hungryHint, type Hungry, type HungryResult } from "../sim/quests/hungry/hungry";
+import { FARES, faresHint, groupOf, type Fares, type FaresResult } from "../sim/quests/fares/fares";
+import { QUEST_NAMES } from "../sim/quests/quest";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -50,8 +52,16 @@ export type HudPayload = {
    * (his tap's, or the charge so far), `reachBase` his tap's; `door` when it was opened from the BUFFET door; `lecture`
    * whole seconds until he can lecture the table again (0: now); `goal` the score that is COMPED and wins the doggy bag.
    */
-  quest: { score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null } | null;
+  quest: BanquetHud | GateHud | null;
+  /** Boxes of #15 blades he carries from the gate (R5 §9). */
+  boxes: number;
 };
+export type BanquetHud = { id: "hungry"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
+/**
+ * Fare Darts (R5 §12) while its card, its round or its tally is up: `left` scalpels still on the tray, `steady` seconds
+ * left of the steady hand out of `steadyMax`, `position` his boarding group ("B13"), `streak` bookings in a row.
+ */
+export type GateHud = { id: "fares"; score: number; left: number; steady: number; steadyMax: number; position: string; streak: number; door: boolean; result: FaresResult | null };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -72,7 +82,7 @@ export function hintOf(game: Game): string {
     if (d.kind === "stash") return `↓ ${d.label} · the stash`;
     if (d.kind === "return") return "↓ at the cart · back to the lobby";
     if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
-    if (d.kind === "quest") return game.run.spent.includes(d.id) ? `${d.label} · thank you, come again` : `↓ ${d.label} · Hungry Hungry Hammer`;
+    if (d.kind === "quest") return game.run.spent.includes(d.id) ? `${d.label} · thank you, come again` : `↓ ${d.label} · ${QUEST_NAMES[d.quest ?? "hungry"]}`;
     return `${d.label} · ${d.opens ?? "closed"}`;
   }
   if (h.crouch) return "Stay low · release ↓ when clear to stand";
@@ -132,22 +142,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const clocked = game.level.time > 0;
   const time = clocked ? Math.ceil(game.run.time) : null;
   const q = game.quest;
-  const quest = q
-    ? {
-        score: Math.max(0, Math.round(q.score.plate + q.score.bonus)),
-        time: Math.max(0, Math.ceil(HUNGRY.round - q.time)),
-        reach: Math.round(q.hammer.dive?.phase === "coil" ? q.hammer.dive.reach : baseReach(q)),
-        reachBase: baseReach(q),
-        reachMax: HUNGRY.reach.charged,
-        combo: q.score.chain,
-        mult: q.score.chain >= HUNGRY.combo.triple ? 3 : q.score.chain >= HUNGRY.combo.double ? 2 : 1,
-        chomps: q.score.eaten,
-        door: !!game.questDoor,
-        lecture: Math.ceil(Math.max(q.hammer.lectureCd, q.hammer.lecture)),
-        goal: GRADES[0][0],
-        result: q.result,
-      }
-    : null;
+  const quest = q ? (q.id === "hungry" ? banquetHud(q, !!game.questDoor) : gateHud(q, !!game.questDoor)) : null;
   return {
     venue: game.level.name,
     world: game.level.world,
@@ -167,14 +162,37 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     star: Math.ceil(game.run.star),
     hot: h.hot,
     slowed: h.heat > STAMINA.from,
-    lecture: q ? q.hammer.lectureCd <= 0 && q.hammer.lecture <= 0 : h.lectureCd <= 0,
+    lecture: q ? q.id !== "hungry" || (q.hammer.lectureCd <= 0 && q.hammer.lecture <= 0) : h.lectureCd <= 0,
     doggy: h.doggy,
     flop: h.flop,
     saved,
-    hint: q ? hungryHint(q) : (note ?? hintOf(game)),
+    hint: q ? (q.id === "hungry" ? hungryHint(q) : faresHint(q)) : (note ?? hintOf(game)),
     boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
     quest,
+    boxes: h.boxes,
   };
+}
+
+function banquetHud(q: Hungry, door: boolean): BanquetHud {
+  return {
+    id: "hungry",
+    score: Math.max(0, Math.round(q.score.plate + q.score.bonus)),
+    time: Math.max(0, Math.ceil(HUNGRY.round - q.time)),
+    reach: Math.round(q.hammer.dive?.phase === "coil" ? q.hammer.dive.reach : baseReach(q)),
+    reachBase: baseReach(q),
+    reachMax: HUNGRY.reach.charged,
+    combo: q.score.chain,
+    mult: q.score.chain >= HUNGRY.combo.triple ? 3 : q.score.chain >= HUNGRY.combo.double ? 2 : 1,
+    chomps: q.score.eaten,
+    door,
+    lecture: Math.ceil(Math.max(q.hammer.lectureCd, q.hammer.lecture)),
+    goal: GRADES[0][0],
+    result: q.result,
+  };
+}
+
+function gateHud(q: Fares, door: boolean): GateHud {
+  return { id: "fares", score: q.score, left: FARES.throws - q.thrown, steady: q.steady, steadyMax: FARES.steady.budget, position: groupOf(q.position), streak: q.streak, door, result: q.result };
 }
 
 /** Changes only when the HUD would look different: whole heat points, tenths of a snot charge, whole seconds. */
@@ -199,5 +217,7 @@ export const hudKey = (p: HudPayload) =>
     p.hint,
     p.venue,
     p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
-    p.quest ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
+    p.quest?.id === "hungry" ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
+    p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",
+    p.boxes,
   ].join("|");

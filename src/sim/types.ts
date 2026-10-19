@@ -83,6 +83,8 @@ export type HeroState = {
   flop: boolean;
   /** How many staff this flop has bowled over (the chain). */
   flopChain: number;
+  /** Boxes of #15 blades from the gate: B lobs one at staff (owner, R5). */
+  boxes: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

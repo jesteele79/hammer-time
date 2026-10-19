@@ -207,7 +207,7 @@ export function NextGame({
   }, [mode, banquetBest]);
 
   // The banquet's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
-  const questResult = hud?.quest?.result ?? null;
+  const questResult = hud?.quest?.id === "hungry" ? hud.quest.result : null;
   useEffect(() => {
     if (mode !== "questTally" || !questResult) return;
     const score = questResult.score;

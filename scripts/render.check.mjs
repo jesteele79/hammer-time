@@ -1072,7 +1072,7 @@ test("the HUD in the round: its score and clock, his reach from his tap's to 118
   q.score.eaten = 9;
   q.time = 12.2;
   const hud = hudOf(g, null).quest;
-  assert.deepEqual(hud, { score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, lecture: 0, goal: 30300, result: null });
+  assert.deepEqual(hud, { id: "hungry", score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, lecture: 0, goal: 30300, result: null });
   assert.equal(hudOf(g, null).hint, "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server");
   assert.equal(hudOf(g, null).lecture, true, "the pad lights Lecture");
   q.hammer.lectureCd = 4.2;

@@ -139,7 +139,7 @@ export function NextVeil({
         </section>
       </div>
     );
-  if (mode === "questTally" && info.quest?.result) {
+  if (mode === "questTally" && info.quest?.id === "hungry" && info.quest.result) {
     const r = info.quest.result;
     const best = Math.max(info.banquetBest, r.score);
     const lines = [

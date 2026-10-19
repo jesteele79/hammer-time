@@ -519,7 +519,10 @@ export async function startLook(
         break;
       // Back from the banquet: what it paid, in the hint line for a moment (the R4 review's deferred minor).
       case "questPaid":
-        note = `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}${e.flop ? " · belly-flop" : ""}`;
+        note =
+          e.quest === "fares"
+            ? `Gate +${e.score.toLocaleString("en-US")}${e.boxes ? ` · ${e.boxes} ${e.boxes === 1 ? "box" : "boxes"} of #15 blades` : ""}${e.cans ? ` · +${e.cans} cans` : ""}${e.lives ? " · extra life" : ""}`
+            : `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}${e.flop ? " · belly-flop" : ""}`;
         noteT = NOTE_T * 2;
         break;
       case "pickup":
@@ -808,7 +811,7 @@ export async function startLook(
   };
 
   /** The banquet is up: its card, its round, its tally, or a break in its round. */
-  const inBanquet = () => !!game.quest && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
+  const inBanquet = () => game.quest?.id === "hungry" && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
   let banqueting = false;
   /** Which of his banquet lectures comes next. */
   let banquetLectures = 0;
@@ -952,8 +955,9 @@ export async function startLook(
 
   /** A frame of the banquet: the round drawn, framed between the bars, its words and the HUD. */
   const banquetTick = (dt: number, simDt: number) => {
+    const q = game.quest;
+    if (q?.id !== "hungry") return;
     if (!banqueting) enterBanquet();
-    const q = game.quest!;
     // His dives this round, for the checks: a new round counts from nothing.
     if (q !== shownQuest) {
       shownQuest = q;
@@ -1423,7 +1427,7 @@ export async function startLook(
       /** The running round: its clock, dishes on a rival's plate, his line locked on a rival's plate, dishes landed on his. */
       quest(o: { time?: number; plate?: { who: RivalId; kinds: FoodKind[] }; aim?: RivalId; eat?: FoodKind[] }) {
         const q = game.quest;
-        if (!q) return;
+        if (q?.id !== "hungry") return;
         if (o.time !== undefined) q.time = o.time;
         if (o.plate) q.rivals[o.plate.who].plate.push(...o.plate.kinds);
         if (o.aim) Object.assign(q.hammer, { aim: screenDeg(1, sub(SEATS[o.aim].plate, SEATS.hammer.plate)), lock: o.aim });
@@ -1431,7 +1435,7 @@ export async function startLook(
       },
       /** Runs the round's clock out: its tally is next. */
       questSkip() {
-        if (game.quest && !game.quest.result) game.quest.time = HUNGRY.round - STEP / 2;
+        if (game.quest?.id === "hungry" && !game.quest.result) game.quest.time = HUNGRY.round - STEP / 2;
       },
     };
   const look: Look = {
