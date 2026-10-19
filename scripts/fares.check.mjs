@@ -254,3 +254,148 @@ test("his lines on the way: leaving group C, passing A16, a third booking in a r
   addTag(q, "BOS");
   assert.ok(of(throwAt(q, "BOS"), "fdThink").some((e) => e.text === "I don't PAY Business Select. I AM business select."));
 });
+
+import { TRAVELERS, faresHint } from "../src/sim/quests/fares/fares.ts";
+
+/** Throws at the bare map every `gap` seconds, recording how many had stuck when each hazard came. */
+const patient = (seed, gap = 2) => {
+  const q = createFares(seed, { practice: true, mouth: false });
+  const at = { cloud: [], stop: [], agent: [], seating: [], fee: [] };
+  for (let s = 0; s < 400 / STEP && !q.result; s++) {
+    const press = q.shot === null && s % Math.round(gap / STEP) === 0;
+    q.pin = OCEAN;
+    stepFares(q, press ? input({ jump: true }, { jump: true }) : input(), STEP);
+    for (const e of q.events) {
+      if (e.type === "fdCloud" && e.on) at.cloud.push(q.stuck);
+      if (e.type === "fdStop" && e.on) at.stop.push(q.stuck);
+      if (e.type === "fdAgent" && e.on) at.agent.push(q.stuck);
+      if (e.type === "fdTag" && e.kind !== "fare") at[e.kind].push(q.stuck);
+    }
+  }
+  return at;
+};
+
+test("the hazards come in their windows: the cloud after the 2nd and 6th, the stop once in 2..8, the agent once in 4..8, ASSIGNED SEATING once in 5..9, BAG FEE once", () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    const at = patient(seed);
+    assert.deepEqual(at.cloud, [2, 6], `seed ${seed} cloud`);
+    assert.ok(at.stop.length === 1 && at.stop[0] >= 1 && at.stop[0] <= 7, `seed ${seed} stop ${at.stop}`);
+    assert.ok(at.agent.length === 1 && at.agent[0] >= 3 && at.agent[0] <= 7, `seed ${seed} agent ${at.agent}`);
+    assert.ok(at.seating.length === 1 && at.seating[0] >= 4 && at.seating[0] <= 8, `seed ${seed} seating ${at.seating}`);
+    assert.equal(at.fee.length, 1, `seed ${seed} fee`);
+  }
+});
+
+test("under the cloud a tag can't be booked: the scalpel sticks, no points, a miss, and Denver", () => {
+  const q = quiet();
+  addTag(q, "DEN");
+  q.cloud = { third: 1, t: 0 }; // the middle third, 360 to 720: Denver is at 373
+  const evs = throwAt(q, "DEN");
+  assert.deepEqual([of(evs, "fdStick")[0].outcome, q.score, q.misses], ["cloud", 0, 1]);
+  assert.ok(of(evs, "fdThink").some((e) => e.text === "Denver. Of course."));
+  assert.equal(faresHint(q), "Storm over the map · wait it out");
+});
+
+test("the cancelled flight costs 200 and is a miss; the agent's clipboard eats a scalpel; the bonus tags pay and are bookings", () => {
+  const q = quiet();
+  const t = addTag(q, "OKC");
+  t.stopped = 2;
+  assert.equal(faresHint(q), "Cancelled flight · don't hit the X");
+  const stop = throwAt(q, "OKC");
+  assert.deepEqual([of(stop, "fdStick")[0].outcome, q.score, q.cancelled, q.misses], ["stop", -200, 1, 1]);
+  assert.ok(of(stop, "fdSay").some((e) => e.who === "agent" && e.text === "Sir, that flight is cancelled."));
+  q.agent = { t: 0.7 };
+  const clip = throwAt(q, { x: MAP.w / 2 + 10, y: MAP.h - 40 });
+  assert.equal(of(clip, "fdStick")[0].outcome, "agent");
+  assert.ok(of(clip, "fdSay").some((e) => e.text === "Sir, you can't do that here."));
+  addTag(q, "MDW", "seating");
+  const seat = throwAt(q, "MDW");
+  assert.deepEqual([of(seat, "fdStick")[0].outcome, of(seat, "fdStick")[0].points, q.bookings.length], ["book", 500, 1]);
+  assert.ok(of(seat, "fdThink").some((e) => e.text === "BRING BACK OPEN SEATING."));
+  addTag(q, "STL", "fee");
+  const fee = throwAt(q, "STL");
+  assert.equal(of(fee, "fdStick")[0].points, 300);
+  assert.ok(of(fee, "fdThink").some((e) => e.text === "Bags used to fly FREE."));
+});
+
+test("his mouth: an insult about every 6 s on its own, about every 3 on a streak, each answered", () => {
+  const q = quiet(2, { mouth: true });
+  const times = [];
+  let answered = 0;
+  for (let i = 0; i < 40 / STEP; i++) {
+    stepFares(q, input(), STEP);
+    if (of(q.events, "fdInsult").length) times.push(q.time);
+    answered += of(q.events, "fdSay").length;
+  }
+  const gaps = times.slice(1).map((t, i) => t - times[i]);
+  assert.ok(gaps.length >= 4 && gaps.every((g) => g >= 5 && g <= 7), `${gaps}`);
+  assert.ok(answered >= times.length - 1, "answered");
+  const s = quiet(3, { mouth: true });
+  for (let i = 0; i < 3; i++) {
+    addTag(s, "AUS");
+    throwAt(s, "AUS");
+  }
+  const streak = [];
+  for (let i = 0; i < 20 / STEP; i++) {
+    stepFares(s, input(), STEP);
+    if (of(s.events, "fdInsult").length) streak.push(s.time);
+  }
+  const sg = streak.slice(1).map((t, i) => t - streak[i]);
+  assert.ok(sg.length >= 4 && sg.every((g) => g >= 2.5 && g <= 3.5), `${sg}`);
+});
+
+test("E mouths off at once, but not while a scalpel is in the air, nor over the last insult's bubble", () => {
+  const q = quiet(5);
+  stepsF(q, 0.5);
+  stepFares(q, input({ lecture: true }, { lecture: true }), STEP);
+  assert.equal(of(q.events, "fdInsult").length, 1, "E");
+  stepFares(q, input({ lecture: true }, { lecture: true }), STEP);
+  assert.equal(of(q.events, "fdInsult").length, 0, "the bubble is still up");
+  q.pin = OCEAN;
+  stepsF(q, 1.3);
+  stepFares(q, input({ jump: true }, { jump: true }), STEP);
+  stepFares(q, input({ lecture: true }, { lecture: true }), STEP);
+  assert.equal(of(q.events, "fdInsult").length, 0, "not mid-throw");
+});
+
+test("a miss: angry for 2 s, the crowd laughs, and he doubles down with two insults, the first at one who laughed", () => {
+  const q = quiet(3, { mouth: true });
+  stepsF(q, 1.5);
+  const evs = throwAt(q, OCEAN);
+  evs.push(...stepsF(q, 1.4));
+  const mood = of(evs, "fdMood").find((e) => e.mood === "angry");
+  assert.ok(mood && mood.seconds === 2);
+  const laugh = of(evs, "fdCrowd").find((e) => e.kind === "laugh");
+  assert.ok(laugh && laugh.who.length >= 1 && laugh.who.length <= 3);
+  const pissed = of(evs, "fdInsult").filter((e) => e.mood === "pissed");
+  assert.equal(pissed.length, 2);
+  assert.ok(laugh.who.includes(pissed[0].at));
+});
+
+test("the crowd: one or two ooh at a booking, all four on a streak, all clap at A1; smug through the streak", () => {
+  const q = quiet(4, { mouth: true });
+  const evs = [];
+  for (let i = 0; i < 7; i++) {
+    addTag(q, "AUS");
+    evs.push(...throwAt(q, "AUS"));
+  }
+  const ooh = of(evs, "fdCrowd").filter((e) => e.kind === "ooh");
+  assert.ok(ooh[0].who.length >= 1 && ooh[0].who.length <= 2);
+  assert.equal(ooh[ooh.length - 1].who.length, TRAVELERS.length);
+  assert.ok(of(evs, "fdCrowd").some((e) => e.kind === "clap" && e.who.length === 4));
+  assert.ok(of(evs, "fdMood").some((e) => e.mood === "smug"));
+});
+
+test("never more than two travelers talking at once, whatever the crowd does", () => {
+  const q = quiet(9, { mouth: true });
+  const ends = [];
+  let worst = 0;
+  for (let i = 0; i < 30 / STEP; i++) {
+    if (i % 60 === 0) addTag(q, i % 120 ? "AUS" : "HOU");
+    q.pin = i % 240 < 120 ? cityAt(i % 120 ? "AUS" : "HOU") : OCEAN;
+    stepFares(q, i % 60 === 1 ? input({ jump: true }, { jump: true }) : input(), STEP);
+    for (const e of of(q.events, "fdSay")) if (e.who !== "agent") ends.push(q.time + e.seconds);
+    worst = Math.max(worst, ends.filter((end) => end > q.time).length);
+  }
+  assert.ok(worst <= 2, `${worst} talking at once`);
+});

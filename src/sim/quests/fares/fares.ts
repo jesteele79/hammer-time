@@ -89,6 +89,16 @@ export type Fares = {
   cancelled: number;
   cloud: { third: 0 | 1 | 2; t: number } | null;
   agent: { t: number } | null;
+  /** The hazards still to come (R5 §6). */
+  due: Due[];
+  /** Seconds to his next insult on its own; when the last came; seconds to a miss's second insult, or -1. */
+  mouthT: number;
+  insultAt: number;
+  again: number;
+  /** When each traveler's bubble now up comes down: never more than two at once. */
+  talk: number[];
+  /** Which reply comes next. */
+  lines: number;
   /** The tests' and the dev hook's held crosshair. */
   pin: Point | null;
   /** His thoughts this round: each once. */
@@ -99,10 +109,16 @@ export type Fares = {
   result: FaresResult | null;
 };
 
+/** A hazard to come: `after` that many scalpels have stuck, `delay` seconds later. */
+export type Due = { what: "cloud" | "stop" | "agent" | "seating" | "fee"; after: number; delay: number; done: boolean };
+
 export function createFares(seed: number, opts: FaresOptions = {}): Fares {
+  const rng = seededRandom(seed);
+  /** A hazard coming as he lines up throw k of from..to: after k - 1 have stuck. */
+  const due = (what: Due["what"], from: number, to: number): Due => ({ what, after: from + Math.floor(rng() * (to - from + 1)) - 1, delay: rng() * 0.8, done: false });
   return {
     id: "fares",
-    rng: seededRandom(seed),
+    rng,
     practice: !!opts.practice,
     spawning: opts.tags !== false,
     hazards: opts.hazards !== false,
@@ -128,6 +144,12 @@ export function createFares(seed: number, opts: FaresOptions = {}): Fares {
     cancelled: 0,
     cloud: null,
     agent: null,
+    due: [due("cloud", 3, 3), due("cloud", 7, 7), due("stop", FARES.stop.from, FARES.stop.to), due("agent", FARES.agent.from, FARES.agent.to), due("seating", FARES.seating.from, FARES.seating.to), due("fee", 1, FARES.throws)],
+    mouthT: FARES.mouth.every * (0.85 + 0.3 * rng()),
+    insultAt: -Infinity,
+    again: -1,
+    talk: [],
+    lines: 0,
     pin: null,
     said: new Set(),
     endT: -1,
@@ -151,6 +173,18 @@ export function tagRect(t: Tag): Rect {
   return { x: c.x - s.w / 2 - PAD, y: c.y - s.h / 2 - PAD, w: s.w + 2 * PAD, h: s.h + 2 * PAD };
 }
 const inside = (p: Point, r: Rect) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+/** Which third of the map, west to east, a point is in: the storm cloud covers one. */
+const thirdOf = (x: number) => Math.min(2, Math.max(0, Math.floor((x / MAP.w) * 3))) as 0 | 1 | 2;
+
+/** The gate agent crossing in front of the board: out from her podium to the map's middle and back, over its lowest band. */
+export function agentBox(q: Fares): Rect | null {
+  if (!q.agent) return null;
+  const u = Math.min(1, q.agent.t / FARES.agent.t);
+  const k = u < 0.5 ? 2 * u : 2 - 2 * u;
+  const half = FARES.agent.w / 2;
+  const x = MAP.w + half - (MAP.w / 2 + half) * k;
+  return { x: x - half, y: MAP.h - FARES.agent.band, w: FARES.agent.w, h: FARES.agent.band };
+}
 /** The live tag a point books: of those whose rect holds it, the one whose city is nearest. */
 export function tagAt(q: Fares, p: Point): Tag | null {
   let best: Tag | null = null;
@@ -189,6 +223,40 @@ function think(q: Fares, text: string, seconds = 1.8) {
   q.events.push({ type: "fdThink", text, seconds });
 }
 
+/** What the travelers say back to him, what they say at a booking, at a streak and at a miss (R5 §7). */
+const REPLIES = ["Okay, boomer.", "Sir, I'm on a call.", "...wow.", "I'm filming this.", "It's a free country.", "Did he just—"];
+const OOH = ["Ooh!", "Ahh!", "Nice!"];
+const LAUGHS = ["HA!", "Ha ha ha!", "Nice throw, grandpa."];
+
+/** A line in a bubble: the agent always; a traveler only while fewer than two are talking. */
+function say(q: Fares, who: Traveler | "agent", text: string, seconds: number = FARES.mouth.bubble) {
+  if (who !== "agent") {
+    q.talk = q.talk.filter((end) => end > q.time);
+    if (q.talk.length >= 2) return;
+    q.talk.push(q.time + seconds);
+  }
+  q.events.push({ type: "fdSay", who, text, seconds });
+}
+const pickOf = <T>(q: Fares, list: readonly T[]) => list[Math.floor(q.rng() * list.length)];
+/** Between `min` and `max` of the travelers, at random. */
+function someTravelers(q: Fares, min: number, max: number): Traveler[] {
+  const left = [...TRAVELERS];
+  const out: Traveler[] = [];
+  for (let n = min + Math.floor(q.rng() * (max - min + 1)); n > 0; n--) out.push(left.splice(Math.floor(q.rng() * left.length), 1)[0]);
+  return out;
+}
+/** Whom an insult is for: a traveler, or one time in six the agent. */
+const targetOf = (q: Fares): Traveler | "agent" => (q.rng() < 1 / 6 ? "agent" : pickOf(q, TRAVELERS));
+
+/** His outer monologue: an insult (the scene picks the line by its mood), and its answer. */
+function insult(q: Fares, at: Traveler | "agent", mood: "calm" | "gloat" | "pissed") {
+  q.events.push({ type: "fdInsult", at, mood });
+  q.insultAt = q.time;
+  q.mouthT = (q.streak >= FARES.streak ? FARES.mouth.streak : FARES.mouth.every) * (0.85 + 0.3 * q.rng());
+  if (at === "agent") say(q, "agent", "Sir, please.");
+  else say(q, at, REPLIES[q.lines++ % REPLIES.length]);
+}
+
 function spawnTag(q: Fares) {
   const free = CITY_CODES.filter((c) => c !== HOME && !q.tags.some((t) => t.city === c));
   if (!free.length) return;
@@ -199,7 +267,10 @@ function spawnTag(q: Fares) {
 function stepTags(q: Fares, dt: number) {
   for (const t of q.tags) {
     t.t += dt;
-    if (t.stopped > 0) t.stopped = Math.max(0, t.stopped - dt);
+    if (t.stopped > 0) {
+      t.stopped = Math.max(0, t.stopped - dt);
+      if (t.stopped === 0 || t.t >= t.life) q.events.push({ type: "fdStop", tag: t.id, on: false });
+    }
   }
   for (const t of q.tags.filter((t) => t.t >= t.life)) q.events.push({ type: "fdTagGone", id: t.id });
   q.tags = q.tags.filter((t) => t.t < t.life);
@@ -215,7 +286,11 @@ function stepTags(q: Fares, dt: number) {
 function press(q: Fares) {
   const at = aimOf(q);
   const tag = tagAt(q, at);
-  q.shot = { at, t: 0, phase: "windup", outcome: tag ? "book" : "miss", tag };
+  const agent = agentBox(q);
+  let outcome: Outcome = "miss";
+  if (agent && inside(at, agent)) outcome = "agent";
+  else if (tag) outcome = tag.stopped > 0 ? "stop" : q.cloud && thirdOf(cityAt(tag.city).x) === q.cloud.third ? "cloud" : "book";
+  q.shot = { at, t: 0, phase: "windup", outcome, tag };
   q.thrown++;
   q.events.push({ type: "fdThrow", at });
 }
@@ -241,10 +316,21 @@ function book(q: Fares, s: Shot, tag: Tag) {
   if (from >= 120 && q.position < 120) think(q, "I don't do group C.");
   if (from > 15 && q.position <= 15) think(q, "A16. Right where I belong.");
   if (q.streak === FARES.streak) think(q, "Rapid Rewards. Rapidly.");
+  if (tag.kind === "seating") think(q, "BRING BACK OPEN SEATING.");
+  if (tag.kind === "fee") think(q, "Bags used to fly FREE.");
+  const streaking = q.streak >= FARES.streak;
+  if (q.streak === FARES.streak) q.events.push({ type: "fdMood", mood: "smug", seconds: 0 });
+  if (q.mouth) {
+    const who = streaking ? [...TRAVELERS] : someTravelers(q, 1, 2);
+    q.events.push({ type: "fdCrowd", kind: "ooh", who });
+    for (const t of who) say(q, t, streaking ? "OOOOH!" : pickOf(q, OOH));
+    if (streaking) insult(q, pickOf(q, TRAVELERS), "gloat");
+  }
   if (q.position === 0 && !q.preferred) {
     q.preferred = true;
     q.events.push({ type: "fdPreferred" });
-    q.events.push({ type: "fdSay", who: "agent", text: "Now boarding... just Mr. Hammer.", seconds: 2 });
+    say(q, "agent", "Now boarding... just Mr. Hammer.", 2);
+    if (q.mouth) q.events.push({ type: "fdCrowd", kind: "clap", who: [...TRAVELERS] });
   }
 }
 
@@ -253,9 +339,24 @@ function miss(q: Fares, s: Shot) {
   q.streak = 0;
   const from = q.position;
   q.position = Math.min(FARES.ladder.start, from + FARES.ladder.miss);
-  q.events.push({ type: "fdStick", at: s.at, outcome: s.outcome, booking: null, points: 0, tag: s.tag?.id ?? null });
+  const cost = s.outcome === "stop" ? FARES.stop.cost : 0;
+  q.score -= cost;
+  q.events.push({ type: "fdStick", at: s.at, outcome: s.outcome, booking: null, points: -cost, tag: s.tag?.id ?? null });
   if (q.position !== from) q.events.push({ type: "fdLadder", from, to: q.position });
-  think(q, "That's a $400 demo unit.");
+  if (s.outcome === "stop") {
+    q.cancelled++;
+    say(q, "agent", "Sir, that flight is cancelled.", 1.8);
+  } else if (s.outcome === "agent") say(q, "agent", "Sir, you can't do that here.", 1.8);
+  else if (s.outcome === "cloud") think(q, "Denver. Of course.");
+  else think(q, "That's a $400 demo unit.");
+  // A miss makes him pissed: the crowd laughs and he doubles down, the first insult at one who laughed.
+  q.events.push({ type: "fdMood", mood: "angry", seconds: FARES.mouth.angry });
+  if (!q.mouth) return;
+  const who = someTravelers(q, 1, 3);
+  q.events.push({ type: "fdCrowd", kind: "laugh", who });
+  for (const t of who) say(q, t, pickOf(q, LAUGHS));
+  insult(q, who[0], "pissed");
+  q.again = FARES.mouth.again;
 }
 
 function stick(q: Fares, s: Shot) {
@@ -291,6 +392,61 @@ function resultOf(q: Fares): FaresResult {
   };
 }
 
+/** A hazard begins; false while it has to wait (a ground stop needs a live fare to cancel). */
+function start(q: Fares, what: Due["what"]): boolean {
+  if (what === "cloud") {
+    q.cloud = { third: Math.floor(q.rng() * 3) as 0 | 1 | 2, t: 0 };
+    q.events.push({ type: "fdCloud", third: q.cloud.third, on: true });
+  } else if (what === "stop") {
+    const live = q.tags.filter((t) => t.kind === "fare" && t.stopped === 0 && t.life - t.t > 0.5);
+    if (!live.length) return false;
+    const t = pickOf(q, live);
+    t.stopped = FARES.stop.t;
+    q.events.push({ type: "fdStop", tag: t.id, on: true });
+  } else if (what === "agent") {
+    q.agent = { t: 0 };
+    q.events.push({ type: "fdAgent", on: true });
+  } else {
+    const free = CITY_CODES.filter((c) => c !== HOME && !q.tags.some((t) => t.city === c));
+    addTag(q, pickOf(q, free), what);
+  }
+  return true;
+}
+
+function stepHazards(q: Fares, dt: number) {
+  if (q.cloud && (q.cloud.t += dt) >= FARES.cloud.t) {
+    q.events.push({ type: "fdCloud", third: q.cloud.third, on: false });
+    q.cloud = null;
+  }
+  if (q.agent && (q.agent.t += dt) >= FARES.agent.t) {
+    q.events.push({ type: "fdAgent", on: false });
+    q.agent = null;
+  }
+  if (!q.hazards) return;
+  for (const d of q.due) {
+    if (d.done || q.stuck < d.after) continue;
+    d.delay -= dt;
+    if (d.delay <= 0) d.done = start(q, d.what);
+  }
+}
+
+function stepMouth(q: Fares, input: Input, dt: number) {
+  if (q.again >= 0 && (q.again -= dt) <= 0) {
+    q.again = -1;
+    insult(q, pickOf(q, TRAVELERS), "pissed");
+  }
+  if (q.mouth && !q.shot && (q.mouthT -= dt) <= 0) insult(q, targetOf(q), "calm");
+  if (input.pressed.lecture && !q.shot && q.time - q.insultAt >= FARES.mouth.again) insult(q, targetOf(q), "calm");
+}
+
+/** The hint line during the round (R5 §12), first match wins. */
+export function faresHint(q: Fares): string {
+  if (q.cloud) return "Storm over the map · wait it out";
+  if (q.tags.some((t) => t.stopped > 0)) return "Cancelled flight · don't hit the X";
+  if (q.preferred) return "A-LIST PREFERRED · every scalpel counts double";
+  return "Space throws · hold Shift to steady your hand · E mouths off";
+}
+
 /** One step of the round. */
 export function stepFares(q: Fares, input: Input, dt: number): void {
   q.events = [];
@@ -300,6 +456,7 @@ export function stepFares(q: Fares, input: Input, dt: number): void {
   if (steadied) q.steady = Math.max(0, q.steady - dt);
   q.theta += q.w * (steadied ? FARES.steady.factor : 1) * dt;
   stepTags(q, dt);
+  stepHazards(q, dt);
   const s = q.shot;
   if (s) {
     s.t += dt;
@@ -310,6 +467,7 @@ export function stepFares(q: Fares, input: Input, dt: number): void {
     }
     if (s.phase === "flight" && s.t >= FARES.flight - 1e-9) stick(q, s);
   } else if (q.thrown < FARES.throws && throwPressed(input)) press(q);
+  stepMouth(q, input, dt);
   if (q.endT >= 0) {
     q.endT -= dt;
     if (q.endT <= 1e-9) {
