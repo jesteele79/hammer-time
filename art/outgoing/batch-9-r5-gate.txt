@@ -1,0 +1,88 @@
+HAMMER TIME — ART BATCH 9: GATE B7 (R5, FARE DARTS)
+Four paintings for the side quest behind the lobby's AIRPORT SHUTTLE door: the gate (the room), a plane for the window,
+a sheet of the gate's pieces, and the gate agent. The design is docs/superpowers/specs/2026-10-18-r5-fare-darts-design.md
+§13. The game draws the route map board, the fare tags, the crosshair and everything on the board itself; do not paint
+any of that.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails and boxes are blank.
+- Southwest Airlines' colors are welcome (a bold blue, a warm red, a sunny yellow) but never its name, its heart or any
+  other logo.
+- The whole subject inside the frame with margin all round.
+- PNG.
+
+------------------------------------------------------------------------------------------------------------------
+ITEM 1: THE GATE AGENT (pose-locked like the cast)
+
+Attach:
+  Image 1: art/incoming/hammer/body-affliction.png (Hammer's full body: THE POSE, FRAMING AND DRAWING STYLE TO COPY)
+  Image 2: art/outgoing/references/hammer-profile.png (the drawing style)
+  Image 3: art/incoming/cast/bellhop-1.png and art/incoming/cast/nurse.png (finished cast members: the pose, finish and
+           placement done right)
+
+She is NOT the man in Images 1 and 2. She will be cut into parts and animated exactly like Image 1 and like the people
+already in art/incoming/cast/, so her body must copy Image 1's pose, camera, framing and drawing style precisely, while
+having her own face, build, height and clothes.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point exactly left. The torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, exactly like Image 1. A clear triangular green gap between the near forearm and the belly. The far arm parallel and slightly offset so its outline and open hand can be told apart. Never a hand behind the back, on a hip, or crossing the body.
+- Both soles flat with the same small forward-back stagger as Image 1 (the far foot a step ahead), toes exactly left, both shoes fully visible.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait) and the same placement in the frame: the soles at the same height near the bottom, the figure centered with green margin all round. She is a little shorter than Image 1: the soles stay where Image 1's are; only the top of her head sits lower.
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No hat, no cap, no headset. No props, nothing in the hands (the game gives her a clipboard).
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no scenery, no texture, no gradient.
+
+gate-agent.png
+An airline gate agent at the end of a long shift: a composed, unflappable woman in her late forties, a little shorter than Image 1, short dark curly hair, small gold stud earrings, a patient tight-lipped look that has heard it all (lips closed). A navy blue short-sleeved polo shirt with a thin red-and-yellow stripe at the collar and sleeve hems and a small blank white name badge on the chest, grey uniform trousers, plain black comfortable work shoes, a blue lanyard round her neck with a blank white ID card. Nothing in her hands.
+Save to: art/incoming/cast/
+
+------------------------------------------------------------------------------------------------------------------
+ITEMS 2 TO 4: THE GATE, THE PLANE AND THE GATE'S PIECES
+
+Attach:
+  art/outgoing/references/hammer-profile.png (the drawing style)
+  art/incoming/backdrops/lobby-far-1.png and art/incoming/backdrops/lobby-mid.png (the game's painted walls and objects:
+  the finish, line weight and palette these must match)
+  art/incoming/cast/bellhop-1.png (a finished game character: the inked finish)
+
+2. gate.png (save to art/incoming/backdrops/)
+Gate B7 at the San Antonio airport, seen straight on, at the widest landscape size available.
+- Seen straight on, as if the camera stands square to the wall: every horizontal line (the ceiling, the window frames,
+  the sill, the wall's base) perfectly level across the whole picture. No perspective running off to the sides, no
+  corners, no side walls.
+- Across the top, a band of plain light ceiling with flat recessed lights.
+- Below it, a long band of floor-to-ceiling windows divided by dark steel mullions at even spacing, from about a sixth
+  of the way down to about three-fifths of the way down. Through the glass: a sunny Texas afternoon, a pale blue sky with
+  a few clouds, a strip of grey apron and taxiway with yellow lines, a low distant terminal building, and two airliners
+  parked nose-in at jet bridges, painted in a bold blue with a red and yellow belly stripe (no names, no logos, no
+  numbers).
+- Below the windows, a plain low wall in warm grey down to the wall's base, one straight level line about three-quarters
+  of the way down the picture. Below that line a speckled cream terrazzo floor runs to the bottom edge, plain, with
+  nothing standing or lying on it.
+- Nothing stands in front of the wall or the windows: no seats, no podium, no signs, no screens, no people, no plants.
+- Both side edges plain mullion-and-glass and plain wall, nothing cut in half, so the game can widen the picture.
+
+3. gate-plane.png (save to art/incoming/props/)
+One airliner in side view facing LEFT, wheels down as if just lifting off, in the same bold blue with a red and yellow
+belly stripe and a red tail with a yellow band, a row of small windows, no name, no logo, no numbers, on flat bright
+green (#00FF00), the whole plane in frame with wide green margin, landscape.
+
+4. gate-sheet.png (save to art/incoming/props/)
+On flat bright green (#00FF00), landscape, the widest size available, these seven objects, each whole and upright and
+seen straight from the side or the front as listed, spread across the picture in this order from left to right, with
+wide green space between them and around them; nothing touches another object or the picture's edge:
+  a. A gate podium seen from the front: a waist-high counter in bold blue with a pale grey top and a thin red and yellow
+     stripe, a small dark monitor on a stand at its top right showing a blank blue screen.
+  b. A boarding-pass kiosk seen from the side: a pale grey cabinet on a short post, a dark slot near its top and a small
+     open tray sticking out in front, nothing in the tray.
+  c. A row of four connected black vinyl airport gate seats on a chrome beam, seen from BEHIND: the four seat backs side
+     by side, the armrests and the beam's legs below.
+  d. A stainless steel instrument cart seen from the side: two flat shelves on four legs with small black wheels, empty.
+  e. One chrome stanchion post on a round base, with the end of a blue retractable belt hooked on it.
+  f. One surgical scalpel, side view, lying level: a ribbed steel handle and a curved #15 blade.
+  g. One small sealed cardboard box of scalpel blades, seen at a slight angle from the front: white with a blue band,
+     about the size of a deck of cards, blank (no text).
+No shadows, no text, letters, numbers or logos.

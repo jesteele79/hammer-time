@@ -1,0 +1,57 @@
+HAMMER TIME — R5, THE CODEX PROMPTS
+
+These are for Codex in its mode that works on this laptop (it reads the brief and the reference images from the repo
+and saves its images straight into art/incoming/). Paste each into a new Codex chat. The two can run at the same time.
+The brief they point at: art/outgoing/batch-9-r5-gate.txt.
+
+
+1. THE GATE AGENT (batch 9, item 1)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-9-r5-gate.txt in full. It is the brief. Make ITEM 1 only, and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png and art\incoming\cast\nurse.png, and the other people in art\incoming\cast\ — the pose and style done right. The gate agent must match them for style, finish and placement in the frame.
+
+3. Make gate-agent.png. Use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: she has her own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+
+4. Before you keep her, put her side by side with Image 1, bellhop-1.png and nurse.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and empty. The far arm and hand visible just behind the near one, with a green gap between the near forearm and the belly.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's; only the top of her head sits lower.
+   - Short dark curly hair, nothing on her head; the lanyard and the name badge are the only extras; nothing held, nothing in the hands.
+   - A navy blue polo with a thin red-and-yellow stripe at the collar and sleeves, grey trousers, black shoes.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text, letters or logos anywhere; the badge and the ID card are blank.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Clearly a different person from everyone already in art\incoming\cast\, and not looking like the man in Image 1.
+
+5. Save the keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\gate-agent.png, and the exact prompt you used for it as gate-agent.prompt.txt in the same folder.
+
+6. Stop. In a few lines, tell me how many tries it took and anything on the checklist you could not get right.
+
+
+2. THE GATE, THE PLANE AND THE GATE'S PIECES (batch 9, items 2 to 4)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-9-r5-gate.txt in full. It is the brief. Make ITEMS 2 TO 4, and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\backdrops\lobby-far-1.png and art\incoming\backdrops\lobby-mid.png — the game's painted walls and objects: the finish, line weight and palette to match.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish everything must match.
+
+3. Make the three items one at a time, in this order: gate.png, gate-plane.png, gate-sheet.png. Use your built-in image generation at the widest landscape size it offers. Do not upscale or resize afterward. Once gate.png is kept, attach it to the other two generations as the reference for the planes' colors and the light.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - gate.png: seen straight on, every horizontal line level, no side walls or corners; the ceiling band across the top; the window band from about a sixth to about three-fifths of the way down, divided by evenly spaced dark mullions, with the sunny apron, a distant terminal and two blue airliners parked at jet bridges outside; the plain warm grey wall below it; the wall's base one straight level line about three-quarters of the way down; plain speckled cream terrazzo below it to the bottom edge; nothing standing in front of the wall or on the floor; nothing cut in half at the side edges; no people; no text, letters, numbers or logos anywhere, the planes included.
+   - gate-plane.png: one blue airliner with a red and yellow belly stripe and a red tail with a yellow band, in side view facing LEFT, wheels down, the whole plane on flat bright green (#00FF00) with wide margin, no shadow, no text, numbers or logos.
+   - gate-sheet.png: exactly seven objects in the brief's order from left to right (the podium, the kiosk, the four seats seen from behind, the instrument cart, the stanchion, the scalpel, the box of blades), each whole and upright, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text, letters, numbers or logos.
+   - All three: the same inked cartoon style as bellhop-1.png and the lobby's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\gate.png, C:\Users\jeste\Desktop\hammer-time\art\incoming\props\gate-plane.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\gate-sheet.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. When all three are saved, stop. List each file, how many tries it took, and anything on the checklist you could not get right.
