@@ -4,6 +4,7 @@ import type { HudPayload } from "@/render/hud";
 import type { Look } from "@/render/look";
 import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
+import type { QuestId } from "@/sim/quests/quest";
 import { NextHud } from "./next-hud";
 import { NextStart, type Start } from "./next-start";
 import { NextTouch } from "./next-touch";
@@ -13,6 +14,8 @@ import { NextVeil } from "./next-veil";
 const BEST_KEY = "hammer-time-best-next";
 /** Hungry Hungry Hammer's best, door rounds and practice alike (R4 §1, decision 6). */
 const BANQUET_BEST_KEY = "hammer-time-best-banquet";
+/** Fare Darts' best, door rounds and practice alike (R5 §1, decision 16). */
+export const FARES_BEST_KEY = "hammer-time-best-fares";
 const QUALITY_KEY = "hammer-time-quality";
 const QUALITIES: readonly Quality[] = ["ultra", "high", "medium", "low"];
 const TOUCH_QUERY = "(pointer: coarse), (max-width: 899px)";
@@ -75,8 +78,8 @@ export function NextGame({
   start?: "restaurant" | "campus" | "arena";
   /** On the start screen first; the game loads behind it. */
   title?: boolean;
-  /** Straight into a side quest's practice once the game is ready (`/?quest=hungry`, R4 §8). */
-  quest?: "hungry";
+  /** Straight into a side quest's practice once the game is ready (`/?quest=hungry` or `/?quest=fares`, R4 §8, R5 §11). */
+  quest?: QuestId;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -88,13 +91,14 @@ export function NextGame({
   const [first, setFirst] = useState(true);
   const [best, setBest] = useState(0);
   const [banquetBest, setBanquetBest] = useState(0);
+  const [faresBest, setFaresBest] = useState(0);
   const [bestBefore, setBestBefore] = useState(0);
   const [muted, setMuted] = useState(false);
   const [place, setPlace] = useState<"top" | "bottom" | "right">("bottom");
   const [ready, setReady] = useState(false);
   const [pending, setPending] = useState<Start | null>(null);
-  // A practice round asked for before the game was ready: by the Side quests card, or by the page's own link.
-  const [pendingQuest, setPendingQuest] = useState(!!quest);
+  // A practice round asked for before the game was ready: by a Side quests card, or by the page's own link.
+  const [pendingQuest, setPendingQuest] = useState<QuestId | null>(quest ?? null);
   const [practice, setPractice] = useState(start === "arena");
   const [quality, setQualityState] = useState<Quality | null>(null);
   // The page is live once mounted: until then the server-drawn start screen's buttons are disabled, since a tap would be lost.
@@ -105,28 +109,29 @@ export function NextGame({
   const qualityChosen = useRef<{ q: Quality | null } | null>(null);
   const touch = useMedia(TOUCH_QUERY);
   const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear" || mode === "questCard" || mode === "questTally";
-  // The banquet's card, its tally, or a break in its round.
-  const atBanquet = mode === "questCard" || mode === "questTally" || (mode === "pause" && !!hud?.quest);
+  // A side quest's card, its tally, or a break in its round.
+  const atQuest = mode === "questCard" || mode === "questTally" || (mode === "pause" && !!hud?.quest);
 
-  // While a card shows, keep it in the half of the screen away from his face (he may lie low after a fall); at the
-  // banquet on a screen wider than tall, the right half, his face being at the table's left end.
+  // While a card shows, keep it in the half of the screen away from his face (he may lie low after a fall); at a side
+  // quest on a screen wider than tall, the right half, his face being at the table's left end or the gate's left.
   useEffect(() => {
     if (!carded) return;
     const update = () => {
       const f = look.current?.face();
       if (!f) return;
-      if (atBanquet && innerWidth > innerHeight && f.x + f.w / 2 < innerWidth / 2) setPlace("right");
+      if (atQuest && innerWidth > innerHeight && f.x + f.w / 2 < innerWidth / 2) setPlace("right");
       else setPlace(f.y + f.h / 2 > innerHeight / 2 ? "top" : "bottom");
     };
     update();
     const timer = setInterval(update, 200);
     return () => clearInterval(timer);
-  }, [carded, mode, atBanquet]);
+  }, [carded, mode, atQuest]);
 
   useEffect(() => {
     setLive(true);
     setBest(readNumber(BEST_KEY));
     setBanquetBest(readNumber(BANQUET_BEST_KEY));
+    setFaresBest(readNumber(FARES_BEST_KEY));
     setQualityState(readQuality());
   }, []);
 
@@ -196,31 +201,33 @@ export function NextGame({
   // A practice round asked for while the game loaded begins once it is ready, from the start screen.
   useEffect(() => {
     if (ready && pendingQuest) {
-      look.current?.newQuest();
-      setPendingQuest(false);
+      look.current?.newQuest(pendingQuest);
+      setPendingQuest(null);
     }
   }, [ready, pendingQuest]);
 
-  // What a round's score must beat to be a new best: its best as the round's card showed.
+  // What a round's score must beat to be a new best: its own quest's best as the round's card showed.
+  const questId = hud?.quest?.id ?? null;
   useEffect(() => {
-    if (mode === "questCard") setBestBefore(banquetBest);
-  }, [mode, banquetBest]);
+    if (mode === "questCard") setBestBefore(questId === "fares" ? faresBest : banquetBest);
+  }, [mode, questId, banquetBest, faresBest]);
 
-  // The banquet's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
-  const questResult = hud?.quest?.id === "hungry" ? hud.quest.result : null;
+  // A side quest's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
+  const questResult = hud?.quest?.result ?? null;
   useEffect(() => {
-    if (mode !== "questTally" || !questResult) return;
+    if (mode !== "questTally" || !questResult || !questId) return;
     const score = questResult.score;
-    setBanquetBest((b) => {
+    const [key, set] = questId === "fares" ? [FARES_BEST_KEY, setFaresBest] : [BANQUET_BEST_KEY, setBanquetBest];
+    set((b) => {
       if (score <= b) return b;
-      writeNumber(BANQUET_BEST_KEY, score);
+      writeNumber(key, score);
       return score;
     });
-  }, [mode, questResult]);
+  }, [mode, questResult, questId]);
 
-  const playQuest = () => {
-    if (look.current) look.current.newQuest();
-    else setPendingQuest(true);
+  const playQuest = (id: QuestId) => {
+    if (look.current) look.current.newQuest(id);
+    else setPendingQuest(id);
   };
   const begin = (s: Start) => {
     practiceRef.current = s.id === "arena";
@@ -250,6 +257,7 @@ export function NextGame({
     practice,
     quest: hud?.quest ?? null,
     banquetBest,
+    faresBest,
     bestBefore,
   };
   // Practice's tally always offers the start screen (it was opened from there, or from its link straight in).
@@ -263,6 +271,7 @@ export function NextGame({
           ready={ready}
           best={best}
           banquetBest={banquetBest}
+          faresBest={faresBest}
           muted={muted}
           quality={quality}
           onMute={toggleMute}
@@ -280,8 +289,15 @@ export function NextGame({
           {touch && !veiled && mode !== "card" && mode !== "questCard" && hud && (
             <NextTouch
               onPress={press}
-              // At the banquet only the arrows, Jump, Hammer and the lecture do anything: nothing else lights.
-              ready={hud.quest ? { fire: false, lecture: hud.lecture, super: false } : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax, box: hud.boxes > 0 }}
+              // At the banquet only the arrows, Jump, Hammer and the lecture do anything; at the gate every action key throws,
+              // Run steadies while the meter lasts and the lecture mouths off: nothing else lights.
+              ready={
+                hud.quest?.id === "fares"
+                  ? { jump: true, hammer: true, fire: true, super: true, run: hud.quest.steady > 0, lecture: true }
+                  : hud.quest
+                    ? { fire: false, lecture: hud.lecture, super: false }
+                    : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax, box: hud.boxes > 0 }
+              }
               boxes={hud.quest ? 0 : hud.boxes}
             />
           )}
@@ -293,7 +309,7 @@ export function NextGame({
             onNewRun={() => look.current?.newRun()}
             onTitle={titleBack ? () => look.current?.toTitle() : undefined}
             onContinue={() => look.current?.finishQuest()}
-            onQuestAgain={() => look.current?.newQuest()}
+            onQuestAgain={() => look.current?.newQuest(hud?.quest?.id)}
           />
         </>
       )}

@@ -1,5 +1,13 @@
 import type { CSSProperties } from "react";
 import type { HudPayload } from "@/render/hud";
+import { FARES } from "@/sim/quests/fares/fares";
+
+/** The gate's tray, and the bookings in a row that make a streak (R5 §5, §12). */
+const TRAY = FARES.throws;
+const STREAK = FARES.streak;
+/** The gate's default hint on a keyboard, and on a touch screen in its place (R5 §12). */
+const GATE_KEY_HINT = "Space throws · hold Shift to steady your hand · E mouths off";
+const GATE_TOUCH_HINT = "Tap to throw · hold Run to steady · Lecture mouths off";
 
 const level = (heat: number) => (heat < 45 ? "cool" : heat < 80 ? "warm" : "hot");
 const fill = (v: number): CSSProperties => ({ ["--fill" as string]: Math.min(1, Math.max(0, v)) });
@@ -48,6 +56,16 @@ function BoxesIcon({ n }: { n: number }) {
   );
 }
 
+/** A scalpel on the gate's tray (R5 §12): the handle and the blade, dim once thrown. */
+function ScalpelIcon({ spent }: { spent: boolean }) {
+  return (
+    <svg className="next-hud__scalpel" data-spent={spent} viewBox="0 0 8 24" aria-hidden="true">
+      <rect x="2.5" y="9" width="3" height="14" rx="1" />
+      <path d="M2.5 9.5L3 3l2.5-2.5V9.5z" className="next-hud__scalpel-blade" />
+    </svg>
+  );
+}
+
 /** Pause and sound, drawn: two bars, and a speaker with its waves or a cross. */
 function PauseIcon() {
   return (
@@ -86,26 +104,30 @@ export function NextHud({
   onMute?: () => void;
 }) {
   if (!hud) return null;
-  // The banquet's round (R4 §9): its own score, clock and rows in the shift's places.
+  // The banquet's round (R4 §9): its own score, clock and rows in the shift's places; the gate's (R5 §12) its score, the
+  // scalpels on the tray in the clock's place, and its steady hand, boarding group and streak.
   const q = hud.quest?.id === "hungry" ? hud.quest : null;
-  const score = q ? q.score : hud.score;
+  const g = hud.quest?.id === "fares" ? hud.quest : null;
+  const score = q ? q.score : g ? g.score : hud.score;
   const full = hud.charge >= hud.chargeMax;
   const lives = Math.max(0, hud.lives);
   // A mouse press must not leave a button focused: Space would then press it instead of jumping.
   const noFocus = (e: { preventDefault(): void }) => e.preventDefault();
+  // On a touch screen the round's own hint teaches the pad and the scene (R5 §12).
+  const hint = g && touch && hud.hint === GATE_KEY_HINT ? GATE_TOUCH_HINT : hud.hint;
   return (
     <div className={touch ? "next-hud next-hud--touch" : "next-hud"}>
       <section className="next-hud__bar-top" aria-label="Run">
         <span className="next-hud__score" data-comped={!!q && q.score >= q.goal} aria-label={`Score ${score}`}>
           {String(score).padStart(6, "0")}
         </span>
-        {!q && (
+        {!q && !g && (
           <span className="next-hud__cans" aria-label={`${hud.cans} Coke Zero`}>
             <CanIcon />
             {String(hud.cans).padStart(2, "0")}
           </span>
         )}
-        {!q && (
+        {!q && !g && (
           <span className="next-hud__lives" aria-label={`${lives} ${lives === 1 ? "life" : "lives"}`}>
             {Array.from({ length: lives > LIFE_PIPS ? 1 : lives }, (_, i) =>
               hud.portrait ? <img key={i} src={hud.portrait} alt="" /> : <i key={i} />,
@@ -113,13 +135,19 @@ export function NextHud({
             {lives > LIFE_PIPS && <b>×{lives}</b>}
           </span>
         )}
-        {!q && hud.star > 0 && (
+        {!q && !g && hud.star > 0 && (
           <span className="next-hud__star" aria-label={`Buc-ee's shield, ${hud.star} seconds`}>
             <img src="/art/products/beaver.webp" alt="" />
             {hud.star}
           </span>
         )}
-        {q ? (
+        {g ? (
+          <span className="next-hud__tray" aria-label={`${g.left} of ${TRAY} scalpels left`}>
+            {Array.from({ length: TRAY }, (_, i) => (
+              <ScalpelIcon key={i} spent={i >= g.left} />
+            ))}
+          </span>
+        ) : q ? (
           <span className="next-hud__clock" data-hurry={q.time <= 10} aria-label={`${q.time} seconds left`}>
             {clock(q.time)}
           </span>
@@ -135,7 +163,7 @@ export function NextHud({
           <SoundIcon muted={muted} />
         </button>
       </section>
-      {!q && hud.boss && (
+      {!q && !g && hud.boss && (
         <section className="next-hud__boss" aria-label="The Pink Menace">
           <span className="next-hud__boss-name">The Pink Menace</span>
           <span className="next-hud__boss-bar" role="meter" aria-label="Its stuffing" aria-valuemin={0} aria-valuemax={hud.boss.max} aria-valuenow={hud.boss.hp}>
@@ -155,11 +183,36 @@ export function NextHud({
         <header className="next-hud__head">
           {hud.portrait && <img className="next-hud__portrait" src={hud.portrait} alt="" />}
           <div>
-            <div className="next-hud__venue">{q ? "Hungry Hungry Hammer" : hud.venue}</div>
-            <div className="next-hud__mode">{q ? "The Banquet" : `World ${hud.world}`}</div>
+            <div className="next-hud__venue">{q ? "Hungry Hungry Hammer" : g ? "Fare Darts" : hud.venue}</div>
+            <div className="next-hud__mode">{q ? "The Banquet" : g ? "Gate B7" : `World ${hud.world}`}</div>
           </div>
         </header>
-        {q ? (
+        {g ? (
+          <dl className="next-hud__rows">
+            <div className="next-hud__row">
+              <dt>Steady</dt>
+              <dd aria-label={`${g.steady.toFixed(1)} of ${g.steadyMax} seconds`}>
+                <span className="next-hud__bar next-hud__bar--steady" data-empty={g.steady <= 0}>
+                  <b style={{ width: `${(100 * g.steady) / g.steadyMax}%` }} />
+                </span>
+              </dd>
+            </div>
+            <div className="next-hud__row">
+              <dt>Boarding</dt>
+              <dd className="next-hud__group" data-group={g.position[0]}>
+                {g.position}
+              </dd>
+            </div>
+            {g.streak >= STREAK && (
+              <div className="next-hud__row">
+                <dt>Streak</dt>
+                <dd className="next-hud__combo" data-mult={2}>
+                  ×{g.streak}
+                </dd>
+              </div>
+            )}
+          </dl>
+        ) : q ? (
           <dl className="next-hud__rows">
             <div className="next-hud__row">
               <dt>Reach</dt>
@@ -229,7 +282,7 @@ export function NextHud({
           Checkpoint saved
         </div>
       )}
-      <p className="next-hud__hint">{hud.hint}</p>
+      <p className="next-hud__hint">{hint}</p>
     </div>
   );
 }

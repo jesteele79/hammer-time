@@ -22,3 +22,11 @@ export const BANQUET_KEYS: [string, string][] = [
   ["↓", "duck"],
   ["P", "break"],
 ];
+
+/** The gate's keys, for its break card (R5 §12): any action key throws. */
+export const GATE_KEYS: [string, string][] = [
+  ["Space", "throw a scalpel"],
+  ["Shift", "steady your hand"],
+  ["E", "mouth off"],
+  ["P", "break"],
+];

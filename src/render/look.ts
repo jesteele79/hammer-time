@@ -134,7 +134,7 @@ export type Look = {
   /** The start screen's quality choice: a tier kept on this device, or null to let the game choose (and step down). */
   setQuality(q: Quality | null): void;
   /** Hungry Hungry Hammer as practice: from the start screen's card, or Play again on its tally (R4 §8). */
-  newQuest(): void;
+  newQuest(id?: QuestId): void;
   /** Continue on the BUFFET door's tally: back in the lobby with what he ate (R4 §7). */
   finishQuest(): void;
 };
@@ -1822,9 +1822,9 @@ export async function startLook(
       if (q) render.setQuality(q);
       else render.auto();
     },
-    newQuest() {
+    newQuest(id) {
       forgetPresses();
-      game.newQuest(newSeed());
+      game.newQuest(newSeed(), id ?? game.quest?.id ?? "hungry");
       for (const e of game.events) feel(e);
     },
     finishQuest() {

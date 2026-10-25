@@ -378,6 +378,41 @@ button:focus-visible {
   color: #f4f1ea;
   vertical-align: middle;
 }
+/* The gate's tray in the clock's place (R5 §12): ten small scalpels, the thrown ones dim. */
+.next-hud__tray {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.next-hud__scalpel {
+  width: 7px;
+  height: 20px;
+  fill: #8d969f;
+  transition: opacity 0.2s;
+}
+.next-hud__scalpel .next-hud__scalpel-blade {
+  fill: #e9edf0;
+}
+.next-hud__scalpel[data-spent="true"] {
+  opacity: 0.22;
+}
+/* The steady hand: blue while it lasts, the well alone once spent. */
+.next-hud__bar--steady > b {
+  background: #6db4f0;
+  transition: width 60ms linear;
+}
+/* His boarding group, gold in A. */
+.next-hud__group {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  color: var(--hud-text);
+}
+.next-hud__group[data-group="A"] {
+  color: var(--hud-gold);
+}
 /* The boxes of #15 blades from the gate, with how many he has left (R5). */
 .next-hud__boxes {
   display: inline-flex;
@@ -534,9 +569,10 @@ button:focus-visible {
 .next-touch__button[data-action="down"] {
   font-size: 22px;
 }
+/* Jump and Hammer tinted gold over the pad's dark, so they read over a light floor too (the gate's terrazzo). */
 .next-touch__button[data-action="jump"],
 .next-touch__button[data-action="hammer"] {
-  background: rgb(201 162 74 / 0.32);
+  background: linear-gradient(rgb(201 162 74 / 0.32), rgb(201 162 74 / 0.32)), rgb(20 25 32 / 0.82);
 }
 .next-touch__button[data-ready="true"] {
   border-color: #e9b866;
@@ -680,6 +716,71 @@ button:focus-visible {
   gap: 28px;
   margin: 14px 0 0;
 }
+/* The gate's tally (R5 §8): one printed boarding pass per booking, fanned out, its class's color on its stub. */
+.next-veil__passes {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.next-veil__pass {
+  --stub: #304cb2;
+  display: grid;
+  justify-items: start;
+  flex: 0 0 auto;
+  width: 64px;
+  padding: 5px 4px 5px 11px;
+  text-align: left;
+  border-radius: 6px;
+  background: linear-gradient(to right, var(--stub) 0 6px, #fbf7ee 6px);
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.45);
+  color: #1f2a5c;
+  rotate: var(--tilt);
+  transform-origin: 50% 120%;
+}
+.next-veil__pass + .next-veil__pass {
+  margin-left: -10px;
+}
+/* Six or more: each pass shows its stub, its city and its group, the next one over the rest of it. */
+.next-veil__passes[data-many] .next-veil__pass {
+  width: 58px;
+}
+.next-veil__passes[data-many] .next-veil__pass + .next-veil__pass {
+  margin-left: -22px;
+}
+.next-veil__pass[data-kind="wga"] {
+  --stub: #ffbf27;
+}
+.next-veil__pass[data-kind="anytime"] {
+  --stub: #c8102e;
+}
+.next-veil__pass[data-kind="seating"] {
+  --stub: #9aa3ad;
+}
+.next-veil__pass[data-kind="fee"] {
+  --stub: #f28c28;
+}
+.next-veil__pass b {
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1;
+}
+.next-veil__pass span {
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+.next-veil__pass small {
+  margin-top: 2px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1;
+  color: #c8102e;
+}
 .next-veil__scores dt {
   font-size: 11px;
   font-weight: 600;
@@ -728,8 +829,8 @@ button:focus-visible {
   --look-y: 0;
   /* The filmstrip's cards are a quarter of what the side quest leaves, their pictures widescreen; the lobby's floor
      gives way to the dark a little above them, so Hammer and the pig always stand clear of the strip. */
-  --quest-w: clamp(196px, 19vw, 280px);
-  --card: calc((100vw - 104px - var(--quest-w)) / 4);
+  --card: calc((100vw - 116px) / 6);
+  --quest-w: calc(2 * var(--card) + 12px);
   --floor: calc(var(--card) / 2.39 + 40px);
   --lamp: #ffd88c;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -1152,8 +1253,12 @@ button:focus-visible {
 .next-start__quests {
   grid-area: quests;
   display: flex;
-  flex-direction: column;
+  gap: 12px;
   align-self: end;
+  min-width: 0;
+}
+.next-start__quest {
+  flex: 1 1 0;
   min-width: 0;
 }
 /* In the strip the side quests' label is a tag on the banquet's picture, so the strip's cards line up. */
@@ -1522,16 +1627,17 @@ button:focus-visible {
   .next-start__venue b {
     font-size: 16px;
   }
-  /* The side quest on one line beside a smaller picture, so the start screen still fits. */
+  /* The side quests under their label, side by side, each beside a smaller picture, so the start screen still fits. */
   .next-start__quests {
     flex-direction: row;
-    align-items: center;
-    gap: 12px;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 4px 10px;
   }
   .next-start__quests-k {
     position: static;
-    flex: none;
-    max-width: 64px;
+    flex: 0 0 100%;
+    max-width: none;
     padding: 0;
     background: none;
     font-size: 11px;
@@ -1548,12 +1654,22 @@ button:focus-visible {
     padding: 6px 12px 6px 6px;
   }
   .next-start__quest .next-start__shot {
-    width: 76px;
+    width: 44px;
     margin: 0;
     border-radius: 6px;
   }
   .next-start__quest b {
-    font-size: 15px;
+    font-size: 13px;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    white-space: normal;
+  }
+  .next-start__quest small {
+    font-size: 11px;
+  }
+  /* Room for the best: the place goes. */
+  .next-start__where {
+    display: none;
   }
 }
 /* A tablet upright: room for the four starts in one row, and Clock in no wider than a thumb needs. */

@@ -2,10 +2,22 @@ import { isNewBest, type HudPayload } from "@/render/hud";
 import type { GameMode } from "@/sim/game";
 import { FOODS } from "@/sim/quests/hungry/food";
 import { GRADES, HUNGRY } from "@/sim/quests/hungry/hungry";
+import type { FareClass, TagKind } from "@/sim/quests/fares/board";
+import { FARES, groupOf } from "@/sim/quests/fares/fares";
 
 /** COMPED's line, as the cards write it. */
 const GOAL = GRADES[0][0].toLocaleString("en-US");
-import { BANQUET_KEYS, KEYS } from "./next-keys";
+import { BANQUET_KEYS, GATE_KEYS, KEYS } from "./next-keys";
+
+/** A printed pass's class, as the board names it (R5 §4, §6). */
+const CLASS_NAME: Record<FareClass | Exclude<TagKind, "fare">, string> = {
+  wga: "Wanna Get Away",
+  anytime: "Anytime",
+  business: "Business Select",
+  seating: "ASSIGNED SEATING",
+  fee: "BAG FEE",
+};
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 export type VeilInfo = {
   venue: string;
@@ -23,6 +35,8 @@ export type VeilInfo = {
   /** Hungry Hungry Hammer while it is up (its card, round, break or tally), and its own best (R4). */
   quest: HudPayload["quest"];
   banquetBest: number;
+  /** Fare Darts' own best (R5). */
+  faresBest: number;
   /** The side quest's best as it stood when its round's card showed: what the tally's score must beat. */
   bestBefore: number;
 };
@@ -113,7 +127,7 @@ export function NextVeil({
         <section className="next-veil__card" role="dialog" aria-label="On break">
           <h2 className="next-veil__title">On break</h2>
           <p className="next-veil__keys">
-            {(info.quest ? BANQUET_KEYS : KEYS).map(([key, what]) => (
+            {(info.quest?.id === "fares" ? GATE_KEYS : info.quest ? BANQUET_KEYS : KEYS).map(([key, what]) => (
               <span key={key} className="next-hud__key">
                 <kbd>{key}</kbd>
                 {what}
@@ -123,6 +137,19 @@ export function NextVeil({
           <button type="button" className="next-veil__button" onClick={onResume}>
             Back to work
           </button>
+        </section>
+      </div>
+    );
+  if (mode === "questCard" && info.quest?.id === "fares")
+    return (
+      <div className="next-veil next-veil--card" data-place={place}>
+        <section className="next-veil__card" aria-live="polite">
+          <p className="next-veil__eyebrow">Side quest</p>
+          <h2 className="next-veil__title">Fare Darts</h2>
+          <p className="next-veil__line">Gate B7 · SAT</p>
+          <p className="next-veil__line next-veil__line--prize">
+            {info.quest.door ? "Book fares to bring home boxes of #15 blades" : "From the AIRPORT SHUTTLE door, every fare booked brings home a box of #15 blades"}
+          </p>
         </section>
       </div>
     );
@@ -180,6 +207,76 @@ export function NextVeil({
               Belly-flop learned: run, then ↓ to flop through the staff
             </p>
           )}
+          <ul className="next-veil__lines">
+            {lines.map((l) => (
+              <li key={l}>{l}</li>
+            ))}
+          </ul>
+          {info.quest.door ? (
+            <button type="button" className="next-veil__button" onClick={onContinue}>
+              Back to the lobby
+            </button>
+          ) : (
+            <>
+              <button type="button" className="next-veil__button" onClick={onQuestAgain}>
+                Play again
+              </button>
+              {toTitle}
+            </>
+          )}
+        </section>
+      </div>
+    );
+  }
+  if (mode === "questTally" && info.quest?.id === "fares" && info.quest.result) {
+    const r = info.quest.result;
+    const best = Math.max(info.faresBest, r.score);
+    const by = (cls: FareClass) => r.bookings.filter((b) => b.cls === cls).length;
+    const lines = [
+      r.booked ? `Booked ${r.booked}: ${by("wga")} Wanna Get Away · ${by("anytime")} Anytime · ${by("business")} Business Select` : "Nothing booked",
+      ...(r.companions ? [`Companion Pass ×${r.companions} (double)`] : []),
+      ...(r.seating ? [`ASSIGNED SEATING +${FARES.seating.points}`] : []),
+      ...(r.fee ? [`BAG FEE +${FARES.fee.points}`] : []),
+      ...(r.cancelled ? [`Cancelled flight: -${r.cancelled * FARES.stop.cost}`] : []),
+      `${plural(r.misses, "miss", "misses")} · best streak ${r.bestStreak} in a row`,
+    ];
+    const won = [
+      ...(r.boxes ? [plural(r.boxes, "box of #15 blades", "boxes of #15 blades")] : []),
+      ...(r.cans ? [`+${r.cans} cans`] : []),
+      ...(r.nuts ? ["a full smash"] : []),
+      ...(r.lives ? ["an extra life"] : []),
+    ].join(" · ");
+    const prize = !won ? "Every fare booked brings home a box of #15 blades" : info.quest.door ? `Bringing home: ${won}` : `From the door this would bring home ${won}`;
+    const n = r.bookings.length;
+    return (
+      <div className="next-veil" data-place={place}>
+        <section className="next-veil__card next-veil__card--tally" role="dialog" aria-label={r.grade}>
+          <p className="next-veil__eyebrow">Side quest · Fare Darts</p>
+          <h2 className="next-veil__title">{r.grade}</h2>
+          <dl className="next-veil__scores">
+            <div>
+              <dt>Score</dt>
+              <dd>{String(r.score).padStart(6, "0")}</dd>
+            </div>
+            <div>
+              <dt>{isNewBest(r.score, info.bestBefore) ? "New best" : "Best"}</dt>
+              <dd>{String(best).padStart(6, "0")}</dd>
+            </div>
+          </dl>
+          {n > 0 && (
+            <ol className="next-veil__passes" aria-label="Boarding passes" data-many={n > 5 || undefined}>
+              {r.bookings.map((b, i) => (
+                <li key={i} className="next-veil__pass" data-kind={b.cls ?? b.kind} style={{ ["--tilt" as string]: `${(i - (n - 1) / 2) * (n > 5 ? 2.5 : 4)}deg` }}>
+                  <b>{b.city}</b>
+                  <span>{CLASS_NAME[b.cls ?? (b.kind as Exclude<TagKind, "fare">)]}</span>
+                  <small>{groupOf(b.position)}</small>
+                </li>
+              ))}
+            </ol>
+          )}
+          <p className="next-veil__line next-veil__line--prize" data-won={!!won}>
+            {prize}
+          </p>
           <ul className="next-veil__lines">
             {lines.map((l) => (
               <li key={l}>{l}</li>

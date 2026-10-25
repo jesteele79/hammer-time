@@ -47,6 +47,8 @@ try {
     await page.waitForFunction(() => window.__next?.run?.mode === "title");
     await page.waitForTimeout(300);
     await fits(page, w, h);
+    // The Side quests row holds both rounds (R5 §11), each card whole on the screen.
+    assert.deepEqual(await page.locator(".next-start__quest").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label"))), ["Play Hungry Hungry Hammer", "Play Fare Darts"], `${w}x${h}: both side quests`);
     await page.screenshot({ path: resolve(out, `start-${w}x${h}.png`) });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -128,6 +130,34 @@ try {
   await page.waitForFunction(() => window.__next?.run?.mode === "questCard" || window.__next?.run?.mode === "quest");
   await page.waitForTimeout(1500);
   await page.screenshot({ path: resolve(out, "start-hungry.png") });
+  // Fare Darts, clicked while the game still loads: its card on this page once it is ready (R5 §11).
+  await page.goto(url);
+  await page.evaluate(() => {
+    localStorage.setItem("hammer-time-best-next", "0");
+    localStorage.removeItem("hammer-time-best-fares");
+  });
+  await page.getByRole("button", { name: "Play Fare Darts" }).click();
+  await page.waitForFunction(() => window.__next?.run?.mode === "questCard" || window.__next?.run?.mode === "quest");
+  if ((await page.evaluate(() => window.__next.run.mode)) === "questCard") await page.locator(".next-veil__title", { hasText: "Fare Darts" }).waitFor();
+  await page.waitForFunction(() => window.__next?.run?.mode === "quest" && window.__next.quest?.id === "fares");
+  assert.match(await page.locator(".next-hud__venue").innerText(), /Fare Darts/i);
+  await page.screenshot({ path: resolve(out, "start-fares.png") });
+  // A booking, then the rest of the tray: the tally keeps its best apart from the shift's.
+  await page.evaluate(() => window.__next.dev.fares({ calm: true, tag: { city: "AUS" }, pin: "AUS" }));
+  await page.keyboard.press("Space");
+  await page.waitForFunction(() => window.__next.quest.booked === 1);
+  await page.evaluate(() => window.__next.dev.questSkip());
+  await page.waitForFunction(() => window.__next.run.mode === "questTally");
+  const fares = await page.evaluate(() => window.__next.quest.score);
+  assert.ok(fares > 0, "a booking scored");
+  await page.getByRole("button", { name: "Play again" }).waitFor();
+  assert.ok(await page.getByRole("button", { name: "Start screen" }).isVisible(), "practice's tally offers the start screen");
+  assert.equal(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-fares"))), fares, "the gate's best kept");
+  assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-next")), "0", "the shift's best untouched");
+  await page.screenshot({ path: resolve(out, "start-fares-tally.png") });
+  // /?quest=fares opens the practice round straight from the start screen (R5 §1, decision 16).
+  await page.goto(`${base}?dev=1&quest=fares`);
+  await page.waitForFunction(() => window.__next?.run?.mode === "quest" && window.__next.quest?.id === "fares");
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log("PASS: the start screen fits all three sizes, starts each place fresh, keeps practice out of the best, and leaves cleanly.");
 } finally {

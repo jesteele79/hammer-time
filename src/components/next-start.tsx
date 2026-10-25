@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Quality } from "@/render/app";
+import type { QuestId } from "@/sim/quests/quest";
 import { KEYS } from "./next-keys";
 
 /** Where a shift can start: the shift's venue index, its card's picture and words. The gift shop alone is pig practice. */
@@ -29,8 +30,8 @@ const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matche
 /**
  * The start screen (R3 §7) as a title sequence in the shell's slate and gold: the lobby fills the screen, the title is
  * hammered on, and where to start (the whole shift, the restaurant, the campus, or pig practice) runs along the bottom
- * with "Clock in", the best, mute, the keys, the quality, and the side quests (Hungry Hungry Hammer, played here as
- * practice, R4 §8).
+ * with "Clock in", the best, mute, the keys, the quality, and the side quests (Hungry Hungry Hammer and Fare Darts,
+ * played here as practice, R4 §8 and R5 §11).
  * The game loads behind it: a start picked before it is ready begins as soon as it is, with no plunge, since the screen
  * must stay up until then. It is drawn at once; its buttons wait, disabled, until the page is live, so no tap is lost.
  */
@@ -39,6 +40,7 @@ export function NextStart({
   ready,
   best,
   banquetBest,
+  faresBest,
   muted,
   quality,
   onMute,
@@ -52,13 +54,15 @@ export function NextStart({
   best: number;
   /** Hungry Hungry Hammer's own best, door rounds and practice alike. */
   banquetBest: number;
+  /** Fare Darts' own best, door rounds and practice alike. */
+  faresBest: number;
   muted: boolean;
   quality: Quality | null;
   onMute: () => void;
   onQuality: (q: Quality | null) => void;
   onStart: (s: Start) => void;
-  /** The Side quests card: a practice round of Hungry Hungry Hammer, on this page. */
-  onQuest: () => void;
+  /** A Side quests card: a practice round of that quest, on this page. */
+  onQuest: (id: QuestId) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const [full] = useState(() => !sequenced);
@@ -188,12 +192,23 @@ export function NextStart({
       </nav>
       <section className="next-start__quests" aria-label="Side quests">
         <span className="next-start__quests-k">Side quests</span>
-        <button type="button" className="next-start__quest" aria-label="Play Hungry Hungry Hammer" onClick={() => leave(onQuest)} disabled={!live}>
+        <button type="button" className="next-start__quest" aria-label="Play Hungry Hungry Hammer" onClick={() => leave(() => onQuest("hungry"))} disabled={!live}>
           <span className="next-start__shot">
             <img src="/start/banquet.webp" alt="" draggable={false} />
           </span>
           <b>Hungry Hungry Hammer</b>
-          <small>Banquet table · best {pad(banquetBest)}</small>
+          <small>
+            <span className="next-start__where">Banquet table · </span>best {pad(banquetBest)}
+          </small>
+        </button>
+        <button type="button" className="next-start__quest" aria-label="Play Fare Darts" onClick={() => leave(() => onQuest("fares"))} disabled={!live}>
+          <span className="next-start__shot">
+            <img src="/start/gate.webp" alt="" draggable={false} />
+          </span>
+          <b>Fare Darts</b>
+          <small>
+            <span className="next-start__where">Gate B7 · </span>best {pad(faresBest)}
+          </small>
         </button>
       </section>
       <div className="next-start__film" aria-hidden="true" />
