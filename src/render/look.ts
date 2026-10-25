@@ -49,7 +49,7 @@ import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { createScene } from "./scene";
-import { createSound, heard, tauntFor } from "./sound";
+import { createSound, heard, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
@@ -1050,9 +1050,10 @@ export async function startLook(
     bubbles.update(simDt, { crown: banquet.crown(), face, facing: 1, view });
     speech.update(simDt, (id) => banquet.crownOf(id), face, view);
     particles.update(simDt, face);
-    // The lobby's music plays on through the round (R4 §1, decision 10).
-    sound.music(game.mode === "quest" ? game.level.music : null);
-    afterFrame(simDt, false);
+    // Each side quest has its own song (owner, 2026-10-25), faster for the frenzy.
+    const tune = questMusic(q);
+    sound.music(game.mode === "quest" ? tune.theme : null);
+    afterFrame(simDt, game.mode === "quest" && tune.hurry);
     vignette.width = scene.width;
     vignette.height = scene.height;
     if (window.__next) {
@@ -1163,8 +1164,10 @@ export async function startLook(
     bubbles.update(simDt, { crown: gate.crown(), face, facing: 1, view });
     speech.update(simDt, (id) => gate.crownOf(id), face, view);
     particles.update(simDt, face);
-    sound.music(game.mode === "quest" ? game.level.music : null);
-    afterFrame(simDt, false);
+    // Its own song (owner, 2026-10-25), faster while he is on a streak.
+    const tune = questMusic(q);
+    sound.music(game.mode === "quest" ? tune.theme : null);
+    afterFrame(simDt, game.mode === "quest" && tune.hurry);
     vignette.width = scene.width;
     vignette.height = scene.height;
     if (window.__next) {

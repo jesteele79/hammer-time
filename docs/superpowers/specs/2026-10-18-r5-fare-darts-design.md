@@ -336,6 +336,14 @@ booking's pass, with `ding`; `boom` on A-LIST PREFERRED; `splat`-free misses (th
 lands with the existing `thud`, and a new `tweet` (three quick chirps) plays with the birds. No crowd voices (§1,
 decision 12). The lobby's music plays on (§1, decision 15).
 
+**As built in R5 (2026-10-25), after the play-test.** The owner asked for "some other bonkers music for this side quest
+and hungry hungry hammer", which replaces decision 15 (and R4's decision 10) for both rounds: the gate plays "Now
+Boarding (Turbulence Mix)", airport bossa-nova muzak at twice the speed it should be, with the ding-dong chime, a lead
+hopping octaves and a jet going over, faster while he is on a streak; the banquet plays "Feeding Frenzy", a runaway
+circus galop with a kazoo, a slide whistle and a bike horn, faster for its last frenzy. Both are played by the shift's
+own synth (`SONGS` in `src/game/audio.ts`) at the lobby music's loudness; the card and the tally stay silent as
+before.
+
 ## 15. Order of work and checks
 
 One plan, executed inline with TDD and the ledger, one fresh reviewer on the most capable model at the end:

@@ -52,6 +52,8 @@ try {
   assert.match(await page.locator(".next-hud").innerText(), /Fare Darts/i);
   assert.match(await page.locator(".next-hud").innerText(), /Gate B7/i);
   assert.equal(await page.locator(".next-hud__scalpel").count(), 10, "ten scalpels on the tray");
+  // The gate's own song, not the lobby's (owner, 2026-10-25).
+  assert.ok((await page.evaluate(() => window.__next.sound.played["music:gate"] ?? 0)) >= 1, "the gate's song plays");
   await page.evaluate(() => window.__next.dev.fares({ calm: true }));
   // A booking at Austin: the score up, his pass up the ladder.
   await throwAt(page, "AUS");

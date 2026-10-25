@@ -7,12 +7,100 @@ import {
   type TauntTarget,
 } from "./taunts";
 
-type Theme = "day" | "cellar";
+export type Theme = "day" | "cellar" | "banquet" | "gate";
 
 const DAY = [392, 392, 349, 330, 294, 330, 349, 392, 440, 392, 349, 330, 294, 262, 294, 330];
 const DAY_BASS = [196, 147, 175, 131];
 const CELLAR = [220, 196, 174, 196, 165, 146, 174, 196, 220, 247, 220, 196, 174, 165, 146, 174];
 const CELLAR_BASS = [110, 87, 98, 82];
+
+/**
+ * A side quest's song (owner, 2026-10-25: "some other bonkers music for this side quest and hungry hungry hammer"):
+ * sixteenth-note steps, MIDI notes (0 a rest) for the lead and the bass, drum lines a bar long that repeat ("x" a hit),
+ * a voice doubling the lead over part of it, and gags on given steps.
+ */
+export type Song = {
+  /** Seconds a sixteenth. */
+  step: number;
+  lead: number[];
+  leadWave: OscillatorType;
+  /** Steps a lead note sounds. */
+  leadLen: number;
+  double?: { from: number; to: number; shift: number; wave: OscillatorType };
+  bass: number[];
+  bassWave: OscillatorType;
+  bassLen: number;
+  kick: string;
+  snare: string;
+  hat: string;
+  gags: Record<number, "whistle" | "honk" | "chime" | "jet">;
+};
+const bars = (...b: number[][]) => b.flat();
+/** A bossa-nova bar: the root, the fifth on the and of two and on three, the root again at the end. */
+const bossa = (root: number, fifth: number) => [root, 0, 0, 0, 0, 0, fifth, 0, fifth, 0, 0, 0, 0, 0, root, 0];
+const midi = (n: number) => 440 * 2 ** ((n - 69) / 12);
+
+export const SONGS: Record<"banquet" | "gate", Song> = {
+  // "Feeding Frenzy": a circus galop off the rails. Oom-pah under a frantic A minor lead of arpeggios and chromatic runs,
+  // then a chicken-dance chorus in C with a kazoo doubling it, a slide whistle at each turn and a bike horn.
+  banquet: {
+    step: 0.085,
+    lead: bars(
+      [69, 72, 76, 81, 80, 81, 76, 72, 69, 72, 76, 81, 83, 84, 83, 81],
+      [80, 76, 71, 76, 80, 83, 86, 83, 81, 76, 72, 76, 81, 0, 81, 0],
+      [77, 76, 75, 76, 77, 81, 84, 81, 76, 75, 76, 80, 83, 80, 76, 74],
+      [72, 71, 70, 71, 72, 74, 75, 76, 81, 80, 79, 78, 77, 76, 75, 76],
+      [72, 0, 72, 0, 74, 0, 76, 0, 77, 77, 77, 0, 76, 0, 74, 0],
+      [71, 0, 71, 0, 72, 0, 74, 0, 76, 76, 76, 0, 74, 0, 72, 0],
+      [72, 76, 79, 84, 79, 76, 72, 76, 79, 84, 88, 84, 79, 76, 72, 67],
+      [68, 71, 74, 77, 80, 83, 86, 89, 88, 86, 83, 80, 76, 0, 64, 0],
+    ),
+    leadWave: "square",
+    leadLen: 0.8,
+    double: { from: 64, to: 96, shift: -12, wave: "sawtooth" },
+    bass: bars(
+      [45, 0, 57, 0, 40, 0, 57, 0, 45, 0, 57, 0, 40, 0, 57, 0],
+      [40, 0, 56, 0, 47, 0, 56, 0, 40, 0, 56, 0, 47, 0, 56, 0],
+      [41, 0, 57, 0, 48, 0, 57, 0, 40, 0, 56, 0, 47, 0, 56, 0],
+      [40, 0, 56, 0, 47, 0, 56, 0, 45, 0, 57, 0, 40, 0, 56, 0],
+      [36, 0, 52, 0, 43, 0, 52, 0, 36, 0, 52, 0, 43, 0, 52, 0],
+      [43, 0, 53, 0, 38, 0, 53, 0, 43, 0, 53, 0, 38, 0, 53, 0],
+      [36, 0, 52, 0, 43, 0, 52, 0, 36, 0, 52, 0, 43, 0, 52, 0],
+      [40, 0, 56, 0, 44, 0, 56, 0, 47, 0, 56, 0, 50, 0, 56, 0],
+    ),
+    bassWave: "square",
+    bassLen: 1.4,
+    kick: "x...x...x...x...",
+    snare: "..x...x...x...x.",
+    hat: ".x.x.x.x.x.x.x.x",
+    gags: { 60: "whistle", 64: "honk", 96: "honk", 124: "whistle" },
+  },
+  // "Now Boarding (Turbulence Mix)": airport bossa-nova muzak at twice the speed it should be. The ding-dong chime opens
+  // each half, the second half hits turbulence (the lead hopping octaves over a buzzing double) and a jet roars over.
+  gate: {
+    step: 0.1,
+    lead: bars(
+      [77, 0, 81, 84, 0, 81, 0, 77, 76, 0, 79, 84, 0, 79, 76, 0],
+      [74, 0, 77, 81, 86, 81, 77, 74, 73, 76, 79, 82, 85, 0, 0, 0],
+      [86, 0, 84, 82, 81, 0, 79, 77, 76, 79, 84, 88, 91, 0, 88, 84],
+      [89, 88, 86, 84, 82, 81, 79, 77, 76, 0, 72, 0, 77, 0, 0, 0],
+      [82, 94, 82, 94, 81, 93, 81, 93, 79, 91, 79, 91, 77, 89, 77, 89],
+      [76, 88, 76, 88, 77, 89, 77, 89, 79, 91, 79, 91, 81, 0, 0, 0],
+      [79, 82, 86, 91, 0, 86, 0, 82, 81, 84, 88, 93, 0, 88, 0, 84],
+      [82, 81, 79, 77, 76, 74, 72, 70, 72, 0, 76, 0, 79, 0, 0, 0],
+    ),
+    leadWave: "triangle",
+    leadLen: 0.9,
+    double: { from: 64, to: 128, shift: -12, wave: "square" },
+    bass: bars(bossa(41, 48), bossa(38, 45), bossa(43, 50), bossa(36, 43), bossa(46, 53), bossa(45, 52), bossa(43, 50), bossa(48, 43)),
+    bassWave: "triangle",
+    bassLen: 3,
+    kick: "x.......x.......",
+    snare: "...x..x...x..x..",
+    hat: "x.x.x.x.x.x.x.x.",
+    gags: { 0: "chime", 64: "chime", 96: "jet" },
+  },
+};
 
 export class AudioBus {
   private ctx: AudioContext | null = null;
@@ -378,6 +466,7 @@ export class AudioBus {
 
   tick() {
     if (!this.ctx || !this.musicGain || !this.musicOn || this.muted) return;
+    if (this.theme === "banquet" || this.theme === "gate") return this.tickSong(SONGS[this.theme], this.musicGain);
     const beat = (this.theme === "cellar" ? 0.21 : 0.17) * (this.hurry ? 0.78 : 1);
     const mel = this.theme === "cellar" ? CELLAR : DAY;
     const bass = this.theme === "cellar" ? CELLAR_BASS : DAY_BASS;
@@ -392,6 +481,77 @@ export class AudioBus {
       this.nextAt += beat;
       this.step++;
     }
+  }
+
+  /** A side quest's song, scheduled a little ahead: the lead and its double, the bass, the drums and the gags. */
+  private tickSong(s: Song, bus: GainNode) {
+    if (!this.ctx) return;
+    const step = s.step * (this.hurry ? 0.78 : 1);
+    while (this.nextAt < this.ctx.currentTime + 0.28) {
+      const i = this.step % s.lead.length;
+      const t = this.nextAt;
+      const n = s.lead[i];
+      if (n) {
+        this.tone(midi(n), t, step * s.leadLen, s.leadWave, 0.09, bus);
+        const d = s.double;
+        if (d && i >= d.from && i < d.to) this.tone(midi(n + d.shift), t, step * s.leadLen, d.wave, 0.045, bus);
+      }
+      if (s.bass[i]) this.tone(midi(s.bass[i]), t, step * s.bassLen, s.bassWave, 0.08, bus);
+      const k = i % 16;
+      if (s.kick[k] === "x") this.tone(140, t, 0.12, "sine", 0.16, bus, 45);
+      if (s.snare[k] === "x") this.hit(t, 0.08, 0.07, 1800, "bandpass", bus);
+      if (s.hat[k] === "x") this.hit(t, 0.03, 0.025, 7000, "highpass", bus);
+      const gag = s.gags[i];
+      if (gag) this.gag(gag, t, bus);
+      this.nextAt += step;
+      this.step++;
+    }
+  }
+
+  /** The songs' gags: a slide whistle up, a bike horn, the airport's ding-dong, a jet going over. */
+  private gag(g: Song["gags"][number], t: number, bus: GainNode) {
+    if (g === "whistle") this.tone(520, t, 0.42, "sine", 0.1, bus, 1900);
+    else if (g === "honk") {
+      this.tone(392, t, 0.09, "square", 0.08, bus);
+      this.tone(330, t + 0.11, 0.14, "square", 0.08, bus);
+    } else if (g === "chime") {
+      this.tone(784, t, 0.5, "sine", 0.055, bus);
+      this.tone(622, t + 0.32, 0.7, "sine", 0.055, bus);
+    } else this.hit(t, 1.3, 0.06, 300, "bandpass", bus, 2600);
+  }
+
+  private noiseBuffer: AudioBuffer | null = null;
+  /** A burst of noise at `when` into `bus`, filtered (and swept), fading over `dur`: the songs' drums and the jet. */
+  private hit(when: number, dur: number, gain: number, cutoff: number, type: BiquadFilterType, bus: GainNode, sweepTo?: number) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (!this.noiseBuffer) {
+      const b = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const d = b.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      this.noiseBuffer = b;
+    }
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const volume = ctx.createGain();
+    source.buffer = this.noiseBuffer;
+    filter.type = type;
+    // Silent and tuned before its moment too: a gain left at its default 1 lets the first sample through at full volume.
+    filter.frequency.value = cutoff;
+    volume.gain.value = 0;
+    filter.frequency.setValueAtTime(cutoff, when);
+    if (sweepTo) filter.frequency.exponentialRampToValueAtTime(sweepTo, when + dur);
+    volume.gain.setValueAtTime(gain, when);
+    volume.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    source.connect(filter);
+    filter.connect(volume);
+    volume.connect(bus);
+    source.start(when, dur < 0.5 ? Math.random() * 1.4 : 0, dur + 0.02);
+    source.onended = () => {
+      source.disconnect();
+      filter.disconnect();
+      volume.disconnect();
+    };
   }
 
   jump() {

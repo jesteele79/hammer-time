@@ -457,6 +457,13 @@ and the AIRPORT SHUTTLE are spent separately, so one shift can play both.
   grade, the score and the best, fans out a printed pass per booking (its city, class and group), what the round came
   to and what comes home. Sounds: a whoosh on the throw, a thunk on the stick, the kiosk's print and a ding on a
   booking, a boom at A1.
+- **The side quests' own music** (owner, 2026-10-25: "some other bonkers music"), played by the shift's synth
+  (`SONGS` in `src/game/audio.ts`, chosen by `questMusic` in `src/render/sound.ts`) in place of the lobby's
+  during a round: at the banquet "Feeding Frenzy", a circus galop gone off the rails (oom-pah bass under a frantic A
+  minor lead of arpeggios and chromatic runs, then a chicken-dance chorus with a kazoo, a slide whistle at each turn, a
+  bike horn), faster for the last frenzy; at the gate "Now Boarding (Turbulence Mix)", airport bossa-nova muzak at
+  twice the speed it should be (the ding-dong chime opening each half, the lead hopping octaves over a buzzing double,
+  a jet going over), faster while he is on a streak. Both sit at the lobby music's loudness.
 
 Fare Darts is the Game's second quest (`Quest` in `src/sim/quests/quest.ts`) over its own sim
 (`src/sim/quests/fares/`: `board.ts` the map and the fares, `fares.ts` the round, `events.ts` its events, `drive.ts` the

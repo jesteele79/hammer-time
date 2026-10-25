@@ -1322,3 +1322,33 @@ test("the towel at the gate sounds like the shift's: the cloth as he starts, a d
   assert.deepEqual(cuesFor({ type: "fdTowel", on: true }), ["cloth"]);
   assert.deepEqual(cuesFor({ type: "fdTowel", on: false }), ["ding"]);
 });
+
+import { SONGS } from "../src/game/audio.ts";
+import { questMusic } from "../src/render/sound.ts";
+import { createHungry, HUNGRY as HUNGRY_ROUND } from "../src/sim/quests/hungry/hungry.ts";
+import { createFares } from "../src/sim/quests/fares/fares.ts";
+
+// The side quests' own music (owner, 2026-10-25: "some other bonkers music for this side quest and hungry hungry hammer").
+test("the side quests' songs: whole bars of sixteenths, notes in range, drum lines a bar long, the gags inside the song", () => {
+  assert.deepEqual(Object.keys(SONGS).sort(), ["banquet", "gate"]);
+  for (const [name, s] of Object.entries(SONGS)) {
+    assert.ok(s.lead.length > 0 && s.lead.length % 16 === 0, `${name}: whole bars`);
+    assert.equal(s.bass.length, s.lead.length, `${name}: the bass as long as the lead`);
+    for (const n of [...s.lead, ...s.bass]) assert.ok(n === 0 || (n >= 28 && n <= 100), `${name}: note ${n}`);
+    for (const line of [s.kick, s.snare, s.hat]) assert.equal(line.length, 16, `${name}: a drum line a bar long`);
+    assert.ok(s.step >= 0.07 && s.step <= 0.12, `${name}: a sixteenth of ${s.step} s`);
+    for (const at of Object.keys(s.gags)) assert.ok(Number(at) >= 0 && Number(at) < s.lead.length, `${name}: a gag on step ${at}`);
+    if (s.double) assert.ok(s.double.from >= 0 && s.double.to <= s.lead.length && s.double.from < s.double.to, `${name}: the doubling inside the song`);
+  }
+});
+
+test("each side quest plays its own song: the banquet's speeds up for the frenzy, the gate's while he is on a streak", () => {
+  const h = createHungry(3, { practice: true });
+  assert.deepEqual(questMusic(h), { theme: "banquet", hurry: false });
+  h.time = HUNGRY_ROUND.frenzy.from;
+  assert.deepEqual(questMusic(h), { theme: "banquet", hurry: true });
+  const q = createFares(3, { practice: true });
+  assert.deepEqual(questMusic(q), { theme: "gate", hurry: false });
+  q.streak = 3;
+  assert.deepEqual(questMusic(q), { theme: "gate", hurry: true });
+});

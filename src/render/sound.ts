@@ -1,4 +1,7 @@
-import { AudioBus } from "../game/audio";
+import { AudioBus, type Theme } from "../game/audio";
+import { FARES } from "../sim/quests/fares/fares";
+import { HUNGRY } from "../sim/quests/hungry/hungry";
+import type { Quest } from "../sim/quests/quest";
 import type { TauntId, TauntTarget } from "../game/taunts";
 import type { GameEvent } from "../sim/events";
 
@@ -76,7 +79,7 @@ export type Sound = {
   unlock(): void;
   play(e: GameEvent): void;
   /** The level's theme, or silence; the same theme again carries on where it was. */
-  music(theme: "day" | "cellar" | null): void;
+  music(theme: Theme | null): void;
   setHurry(on: boolean): void;
   setMuted(on: boolean): void;
   /** One of the owner's recordings, by name. */
@@ -196,12 +199,20 @@ export function cuesFor(e: GameEvent): Cue[] {
   }
 }
 
+/**
+ * A side quest's song (owner, 2026-10-25): the banquet's galop, faster for the last frenzy; the gate's bossa, faster
+ * while he is on a streak.
+ */
+export function questMusic(q: Quest): { theme: "banquet" | "gate"; hurry: boolean } {
+  return q.id === "hungry" ? { theme: "banquet", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
+}
+
 /** The shipped game's sound effects for the rebuild's events. Silent until the first key unlocks it. */
 export function createSound(): Sound {
   const bus = new AudioBus();
   const played: Record<string, number> = {};
-  let theme: "day" | "cellar" | null = null;
-  let playing: "day" | "cellar" | null = null;
+  let theme: Theme | null = null;
+  let playing: Theme | null = null;
   const sound: Sound = {
     played,
     unlocked: false,

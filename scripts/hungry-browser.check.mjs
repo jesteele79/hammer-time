@@ -43,6 +43,8 @@ try {
   await shot(page, "hungry-card.png");
   await waitMode(page, "quest");
   assert.match(await page.locator(".next-hud").innerText(), /The Banquet/i);
+  // The banquet's own song, not the lobby's (owner, 2026-10-25).
+  assert.ok((await page.evaluate(() => window.__next.sound.played["music:banquet"] ?? 0)) >= 1, "the banquet's song plays");
   await page.waitForTimeout(1500);
   // Taps 0.35 s apart on the round's own clock: a page still warming up runs it slower than the wall's, and a tap inside
   // the 0.3 s between dives is dropped.
