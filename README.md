@@ -380,6 +380,91 @@ The chute, the dessert cart, the suitcase, the paper, the plates, the tray and t
 Without a painting (or with `&noart=1`) a warm wall and drawn carpet, a drawn table, plates with three-letter tags and
 the drawn stand-ins take their places.
 
+## Fare Darts (the AIRPORT SHUTTLE door)
+
+The lobby's AIRPORT SHUTTLE door (9100, on the floor under the balcony) opens Fare Darts once a shift, by the BUFFET
+door's rules: ↓ on the floor in front of it (the hint reads "↓ AIRPORT SHUTTLE · Fare Darts") shows its card ("Side
+quest / Fare Darts / Gate B7 · SAT", "Book fares to bring home boxes of #15 blades"), then ten scalpels at the gate's
+route map. The lobby waits behind it as it does for the banquet; the tally's Continue ("Back to the lobby", Enter or
+Space) stands him at the door with 0.6 s of grace, and the door hangs its THANK YOU card until a new shift. The BUFFET
+and the AIRPORT SHUTTLE are spent separately, so one shift can play both.
+
+- **The gate** (`src/render/quests/gate-scene.ts`, placed by `gate-layout.ts`): gate B7 straight on, everyone at their
+  shift size. The back wall's band of windows looks onto the airfield, planes parked at the jet bridges and one taking
+  off behind the glass every 6 to 10 s; the route map board hangs low on the wall with the A-List ladder beside it, the
+  boarding-pass kiosk under its left corner (the printed passes slide into its tray), the podium and the gate agent
+  under its right, the stanchions in front. Hammer stands at the left facing the board, his instrument cart beside him
+  (a sterile tray of ten scalpels, the count showing, the mallet leaning on it; his fist holds a scalpel, not the
+  mallet), and four of the cast sit in a row of gate seats behind him, the seat backs hiding their legs: the office
+  worker, the student, the professor and the nurse. On an upright phone the board fills the width, he stands under its
+  left end over the ocean and the travelers sit in a front row below it. Nobody but the crossing agent stands over a
+  city or a tag; the map's bottom hangs 150 px over the floor, so the agent's head and shoulders cover exactly the band
+  her crossing blocks.
+- **The board** (`src/sim/quests/fares/board.ts`, drawn by `src/render/quests/gate-board.ts`): a 1080 by 600 cartoon US
+  in the ink style in a navy panel headed "GATE B7 · SAN ANTONIO", its 23 cities as dots with their codes (Texas's and
+  the Bay's labels set apart), a YOU ARE HERE sticker on San Antonio. The rules work in the map's own px, so where the
+  board hangs never changes a throw.
+- **Fares and tags**: one tag every 0.9 s on a random city (never SAT), at most four, each 2.6 s and flickering
+  through its last 0.6 s, centered on its city with its code and fare. The fare is 39 + 260 times the distance from San
+  Antonio, ending in 9, from 49 to 249; a fifth are flash sales at half (a red SALE flag). Wanna Get Away (under $100)
+  is a 90 by 50 yellow tag worth 300 + 2 × (100 − fare); Anytime a 120 by 60 red one worth 150; Business Select a 150 by
+  70 blue one worth 60 (and his thought "I don't PAY Business Select. I AM business select."). Booking a city already
+  booked is a Companion Pass, double. A booking prints a pass, sends the tag flying into the kiosk and moves his pass
+  up the ladder.
+- **Aim and throw**: the crosshair sweeps the map on a looping figure whose second wave runs at 1.618 times the first,
+  so it never closes and crosses every city; it starts at 1.4 rad/s and quickens 8 percent a throw, a faint trail of
+  its last 1.5 s behind it. Shift (or J, the pad's Run, or a finger held on the scene 0.2 s) slows it to 0.35 of its
+  speed while a 2.5 s meter drains, 0.2 s back a booking, the ring tightening. Space, W, Z, ↑, F, C, K, H, X or Q (or a
+  tap on the scene) throws: the point under the crosshair at the press is where the scalpel lands and what it scores
+  against. His throw cocks the scalpel up behind his head and whips it out inside a cut (`THROW_CUT`, never across his
+  face), 0.3 s; it flies 0.22 s on an arc with two spins and a trail, sticks with a thunk, wobbles 0.4 s and shakes
+  the board, the camera pushing in 4 percent while it flies. A held key never throws twice.
+- **The ladder**: boarding positions C60 up to A1; a booking moves his pass up 20, 30 on a streak (from the third
+  booking in a row), and a miss drops it a group. A1 once a round is A-LIST PREFERRED: the ladder flashes gold, the
+  agent calls "Now boarding... just Mr. Hammer.", the travelers clap and the rest of the tray counts double. His lines
+  on the way up are thoughts ("I don't do group C.", "A16. Right where I belong.", "Rapid Rewards. Rapidly.").
+- **Hazards**: a storm cloud with rain and DELAYED over a third of the map after the second and the sixth scalpels, 3 s
+  (a tag under it can't be booked: "Denver. Of course."); once a round a ground stop's red X on a live tag for 2 s
+  (hitting it costs 200: "Sir, that flight is cancelled."); once the agent walks out from her podium across the map's
+  lowest band and back, 1.4 s, with her clipboard (a scalpel on it is lost: "Sir, you can't do that here."); and once
+  each ASSIGNED SEATING (a white tag, +500, 1.6 s) and a BAG FEE (orange, +300).
+- **His mouth and the crowd**: his outer monologue, thoughts aimed at the travelers ("You CHECKED a bag? Amateur.",
+  twelve of them) every 6 s or so, every 3 s on a streak, and at once on E; a gloat on every streak booking ("Watch and
+  learn, trainees."). A miss makes him pissed: his angry face for 2 s, the heat's steam puffing from his head, and two
+  insults in a row, the first at whoever laughed ("Who moved the board?"). The travelers ooh at a booking (all of them,
+  bigger, on a streak), laugh at a miss, clap at A1 and answer him in bubbles ("Okay, boomer."); the agent says "Sir,
+  please." None of it touches the score.
+- **Grades and tuning**: A-LIST PREFERRED (A1 reached), A-LIST (seven bookings or more), B GROUP (four to six), else C
+  GROUP. The scripted players over ten seeds (`node --loader ./scripts/game-test-loader.mjs scripts/fares-tune.mjs`): a
+  masher books 0 or 1 (all C GROUP), a person 4 to 7 (median 6), and a sharp hand reaches A1 in 8 of 10, so the
+  starting numbers stood.
+- **What comes home**: the round's score, a box of #15 blades a booking, three cans a Wanna Get Away (with their points
+  and cool), a full smash for B GROUP or better and an extra life for A-LIST PREFERRED. Walking out he holds a Coke Zero
+  in his free hand for 3 s and nuts spill from his pockets for 2 s, and the hint says what the gate paid ("Gate +2,010 ·
+  3 boxes of #15 blades · +9 cans").
+- **Practice**: the start screen's Fare Darts card plays a round on the same page and `/?quest=fares` opens one
+  straight away; its tally offers Play again and Start screen, says what the door would have brought home, and never
+  touches a shift. Door rounds and practice share one best (`hammer-time-best-fares`).
+- **The screen**: the top bar shows the round's score and the tray's ten scalpels (the thrown ones dim) in the clock's
+  place; the panel reads "Fare Darts / Gate B7" with the steady hand, his boarding group and the streak; the hint names
+  the storm, the cancelled flight or A-LIST PREFERRED, else the keys ("Tap to throw · hold Run to steady · Lecture mouths
+  off" on a touch screen); the pad lights Jump, Hammer, Snot and Super (all throw), Run while the meter lasts and
+  Lecture; the break card lists the gate's keys; the cards sit on the right half on a wide screen; the tally names the
+  grade, the score and the best, fans out a printed pass per booking (its city, class and group), what the round came
+  to and what comes home. Sounds: a whoosh on the throw, a thunk on the stick, the kiosk's print and a ding on a
+  booking, a boom at A1.
+
+Fare Darts is the Game's second quest (`Quest` in `src/sim/quests/quest.ts`) over its own sim
+(`src/sim/quests/fares/`: `board.ts` the map and the fares, `fares.ts` the round, `events.ts` its events, `drive.ts` the
+scripted players). **The paintings** asked of Codex (`art/outgoing/batch-r5-codex.txt`): the room
+(`art/incoming/backdrops/gate.png`, its cut `art/cuts/gate.json` naming the floor line and the window band), the plane
+(`props/gate-plane.png`), the sheet of the gate's pieces (`props/gate-sheet.png`, cut at sync into the podium, the
+kiosk, the seats, the cart, a stanchion, a scalpel and a box) and the gate agent (`cast/gate-agent.png`, cut like the
+cast); `node scripts/art-grid.mjs gate/room` and `gate/sheet` draw their cuts. Until each is in (and with `&noart=1`)
+the drawn gate, a drawn plane, drawn pieces and the agent's stand-in in a navy polo take their places; the board, the
+ladder, the passes, the clipboard and the birds are always drawn in code, and the scalpels and the box are until the
+sheet's are wired in when it arrives. The travelers are the cast's own paintings.
+
 ## The walls
 
 Every venue of the shift stands in front of the owner's painted walls (the
@@ -551,8 +636,21 @@ without touching the arm.
   is "Hammer down", and Try again starts a new shift where the last one
   started.
 - **Doors:** Down in front of the staff door goes to the stash and Down at its
-  cart comes back, with the lobby just as he left it. The BUFFET, AIRPORT
-  SHUTTLE and M CLUB doors carry cards saying what opens them. Walking into
+  cart comes back, with the lobby just as he left it. The BUFFET door opens
+  Hungry Hungry Hammer and the AIRPORT SHUTTLE Fare Darts (above); the M CLUB
+  door carries a card saying what opens it.
+- **Boxes of #15 blades** (R5 §9), the third weapon after the mallet and the
+  snot: Fare Darts brings home a box a booking, carried like the doggy bag
+  through the venues, the stash and a lost life until thrown (a new shift
+  starts with none). B, or the pad's Box button that appears with the count
+  while he has some, lobs one underhand from his free hand on an arc about a
+  third of a screen; the first staffer or student on their feet it touches is
+  frozen 1.5 s with three birds circling their head and "FREE SAMPLE!", 50
+  points and a taunt, and now and then his thought ("Read the IFU."). The pig,
+  a cart or a wall stops it with no effect; it lands and fades. One every
+  0.4 s, never crouched, sliding, flopping or knocked down. The panel shows a
+  small box with the count beside the doggy bag, and until his first lob the
+  hint teaches it. Walking into
   CLOCK OUT ends the lobby and the shift goes on in the restaurant.
 - **The shell:** the HUD's top bar carries the score, the Coke Zero count,
   lives as small portraits, the Buc-ee's boost, the clock, and pause and mute
@@ -569,8 +667,9 @@ screen (`src/components/next-start.tsx`) shows the title over the key art,
 where to start (the whole shift from the lobby, the restaurant, the campus, or
 pig practice at the gift shop), Clock in, the personal best, sound, the keys,
 the quality (Auto steps down by itself; High, Medium and Low are kept on the
-device) and a Side quests row whose Hungry Hungry Hammer card (its picture drawn
-by the game) plays the banquet as practice on the same page. The game loads
+device) and a Side quests row whose two cards, Hungry Hungry Hammer and Fare
+Darts (their pictures drawn by the game, each with its own best), play the
+banquet and the gate as practice on the same page. The game loads
 behind it, so clocking in is quick; a start chosen before it is ready begins as
 soon as it is. It opens as a title sequence, once a page: the lobby comes up
 between letterbox bars and the camera creeps in, HAMMER rises, TIME. drops and
@@ -608,6 +707,7 @@ node scripts/pig-browser.check.mjs http://127.0.0.1:8090/
 node scripts/next-start.check.mjs http://127.0.0.1:8090/
 node scripts/hungry-browser.check.mjs http://127.0.0.1:8090/
 node scripts/flop-browser.check.mjs http://127.0.0.1:8090/
+node scripts/fares-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
@@ -662,7 +762,12 @@ scripted win) and the banquet checks in `banquet.check.mjs` (the table and its
 dishes' physics, the dive, its sweep, charge, aim and rob, the waves, the cart
 and the frenzy, the rivals, their anger and paybacks, the server, the bonk, the
 clash, the scoring, the grade lines and the three scripted players, and the
-BUFFET door, its payout, its once a shift and practice). The rig checks also sweep
+BUFFET door, its payout, its once a shift and practice) and the gate checks in
+`fares.check.mjs` (the map, the fares and their classes, the crosshair's
+figure and the steady hand, the throw at the press, bookings, Companion Passes,
+the ladder and the streak, the hazards, his mouth and the crowd, the grades and
+the three scripted players, the AIRPORT SHUTTLE door, its payout and practice,
+and the boxes of #15 blades in the shift). The rig checks also sweep
 every drawn frame of every move against the face, keep his head within 8
 degrees of his body, check every act moves without a jump, stand his feet on
 slopes to 30 degrees and land every act without a snap; the render checks
@@ -685,7 +790,10 @@ opens the side quest while it loads; the banquet's browser check plays a
 practice round from the card (dives, a charged rob, a bonk, a duck, a break, a
 blur, three screen shapes, the tally and its best, Play again with Space held),
 a round with the art missing, the BUFFET door in a shift and what it pays, and
-`/?quest=hungry`; the moves browser check
+`/?quest=hungry`; the gate's browser check does the same for Fare Darts (a
+booking, a miss, a mashed key, the steady hand, E, a break mid-flight, a blur,
+three shapes, the tally and its best, the art missing, the AIRPORT SHUTTLE door
+and what it brings home, a box lobbed at a staffer, `/?quest=fares`); the moves browser check
 swings, bonks a cart, fires snot that splats on the cart and on the floor
 (drawn as a splat), towels off and smashes, and
 checks the sounds; the acts browser check waits for the watch check, the tap
@@ -710,7 +818,10 @@ venue in six frames: `restaurant` and `campus` in the board list),
 `arena-look-1..3.png` (the gift shop), `pig.png` (the pig in every state and
 face) and `pig-steps.png` (its charge and hop frame by frame), `banquet-look-1..4.png` (the
 opening dump, a dive, the cart's crash, the frenzy: `banquet` in the board list), `banquet-dive.png` (his coil and dive
-frame by frame) and `banquet-food.png` (every dish as the table draws it); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
+frame by frame), `banquet-food.png` (every dish as the table draws it), `gate-look-1..4.png` (the gate's opening, a
+scalpel in flight, a streak with the crowd oohing, a miss with the steam: `gate` in the board list), `gate-throw.png`
+(his throw with the scalpel and his lob, ten frames each) and `box-bonk.png` (a box of #15 blades lobbed in the lobby,
+the bonk and the birds: `box-bonk`); the checks also save `run-*.png`, `moves-*.png`, `acts-*.png`,
 `cast-*.png`, `hud-*.png` and `veil-pause-*.png`. A third
 argument to `look-boards.mjs` names the boards to render, comma separated.
 

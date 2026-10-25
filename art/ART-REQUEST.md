@@ -212,6 +212,13 @@ Status (2026-10-14, R4): the banquet's ballroom (`backdrops/ballroom.png`, brief
 (`props/banquet-table.png`) are in, placed by `art/cuts/ballroom.json` and cut by
 `art/cuts/banquet-table.json`, and in the game behind the BUFFET door.
 
+Status (2026-10-25, R5): the gate is briefed in `art/outgoing/batch-9-r5-gate.txt` with paste-ready Codex prompts in
+`art/outgoing/batch-r5-codex.txt`: `backdrops/gate.png` (gate B7 straight on, the window band onto the airfield, no
+seats, podium, board or people; its cut `art/cuts/gate.json` names the floor line and the window band),
+`props/gate-plane.png` (one airliner in side view for the planes taking off) and `props/gate-sheet.png` (seven pieces
+in order: the podium, the kiosk, the seats from behind, the cart, a stanchion, a scalpel, a box of #15 blades). Not in
+yet: the drawn gate, plane and pieces stand in behind the AIRPORT SHUTTLE door until they are.
+
 ## 5. The cast
 
 **The lobby's four roles (R2b, 2026-10-12): the brief is `art/outgoing/batch-3-cast.txt`.**
@@ -260,6 +267,10 @@ Status (2026-10-14, R4): the nurse (`cast/nurse.png`, teal scrubs, badge reel, c
 bun; briefed in `art/outgoing/batch-8-r4-banquet.txt`) is in, cut by `art/cuts/cast-nurse.json`
 and in the game at the banquet table; the hospital (R7) reuses her.
 
+Status (2026-10-25, R5): the gate agent (`cast/gate-agent.png`, a navy polo, grey trousers, a lanyard with a blank
+badge, pose-locked like the cast; Codex prompt 1 in `art/outgoing/batch-r5-codex.txt`) is not in yet; her drawn stand-in
+in a navy polo works the podium. The travelers at the gate reuse `office-1`, `student-2`, `prof-1` and the nurse.
+
 ## 6. Pickups and props
 
 Each on green, same ink style, no text unless listed. Small; square images are
@@ -288,7 +299,8 @@ fine.
 - `props/sharps-bin.png`: "A red biohazard sharps container."
 - `props/sanitizer.png`: "A wall hand-sanitizer dispenser."
 - `props/scalpel.png`: "A surgical scalpel, side view, steel blade, grey
-  handle."
+  handle." (R5: now one piece of `props/gate-sheet.png`, with the box of #15
+  blades; both are drawn in code until the sheet is in and wired.)
 - `props/boarding-pass.png`: "A boarding pass card, blue and yellow, with a
   barcode and empty fields, no readable text."
 - `props/paper-plane.png`: "A folded paper airplane, side view."

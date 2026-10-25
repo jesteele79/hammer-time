@@ -116,6 +116,8 @@ Decisions I took for the owner (report these):
   the seats kept clear of Florida. The rules do not care where the board is drawn (§3), and nobody but the crossing agent
   covers a city or a tag (§1, decision 19).
 
+**As built in R5 (2026-10-25).** No painting is in yet: the gate, the planes, the pieces and the agent are the drawn stand-ins. On an upright phone the travelers sit in a front row below the board, not under its right half (seated there their heads covered Orlando's and Fort Lauderdale's tags), and the frame keeps under the HUD's panel and above the hint, which both span the screen there. The stanchions stand only on wide screens. The mallet leans against the cart's front, its head on the top shelf. The planes take off left to right, on a schedule kept by the round's clock.
+
 ## 3. Aim and throw
 
 - **The rules work on the map rectangle** in its own px (1080 by 600, x east, y south, the origin at its top-left), so
@@ -148,6 +150,8 @@ Decisions I took for the owner (report these):
 - **His face** stays clear: the arm passes behind and above his head, never across the face box, at every frame; his
   head within 8 degrees of level.
 
+**As built in R5 (2026-10-25).** The tuning held at the starting numbers: over ten seeds the masher books 0 or 1, the person 4 to 7 (median 6), the sharp hand reaches A1 in 8 of 10. His whip over the top is a cut, as the swing's (0.55 to 0.62 of the clip is never drawn): with his shoulder behind his face no arm path over or in front of his head keeps clear of it; the release ends out ahead below his face, the blade up. The windup plays the clip to the release in 0.3 s and the flight finishes it. On a touch screen a tap throws as the finger lands, and a finger held 0.2 s with no scalpel in the air steadies, in place of "a second finger held": one finger can steady while another taps to throw, and a quick tap never drains the meter.
+
 ## 4. Fares and tags
 
 - **Tags** (§12.3): one spawns every 0.9 s on a random untagged city (never SAT), at most four live, each lasting 2.6 s
@@ -163,6 +167,8 @@ Decisions I took for the owner (report these):
   printer into its tray with a tick, sends the tag flying to the printer, and lets the scalpel stick where it landed.
   **Booking a city already booked this round is a Companion Pass:** double (his thought "Companion Pass? I fly alone.").
 - **A miss** sticks in the drywall or the bare map: "That's a $400 demo unit." (§7 for what it does to him).
+
+**As built in R5 (2026-10-25).** A flash sale carries a red SALE flag on its tag's corner.
 
 ## 5. The A-List ladder and the streak
 
@@ -193,6 +199,8 @@ Decisions I took for the owner (report these):
   FREE." Both are bookings (§1, decision 4).
 - Hammer's lines are thoughts; the agent's and the travelers' are speech bubbles.
 
+**As built in R5 (2026-10-25).** A ground stop picks a live fare with more than 0.5 s left (one about to vanish would show nothing). The agent walks out from her podium to the map's middle and back, 0.7 s each way, her box her drawn body's width; she is drawn at her podium until her box passes it.
+
 ## 7. His mouth and the crowd
 
 - **Insults** (his outer monologue, §1, owner decision 3): thoughts aimed at a traveler, who answers in a bubble. One
@@ -217,6 +225,8 @@ Decisions I took for the owner (report these):
   please." when he insults her.
 - Every bubble goes through the face-safe layout; at most two travelers' bubbles at once.
 
+**As built in R5 (2026-10-25).** Each mood's lines come in turn (the insults, the gloats, the pissed ones).
+
 ## 8. The round's end, the grades and what it pays
 
 - After the tenth scalpel has stuck or bounced, a beat, then the tally.
@@ -233,6 +243,8 @@ Decisions I took for the owner (report these):
 - The hint on the way back says what the gate paid ("Gate +3,840 · 6 boxes of #15 blades · +9 cans"), as the banquet's
   does.
 
+**As built in R5 (2026-10-25).** The nuts on the way out follow the grade (B GROUP or better, the same rule as four bookings). The tally's printed passes fan out with their words left-aligned; six or more overlap so each shows its stub, its city and its group, the classes counted in the lines.
+
 ## 9. The boxes of #15 blades in the shift
 
 - **Carried** like the doggy bag (`HeroState`): through the venues, the stash and a lost life, until thrown; a new shift
@@ -245,6 +257,8 @@ Decisions I took for the owner (report these):
 - Until he has thrown the first, the hint teaches it ("Boxes of #15 blades · B lobs one · it freezes staff").
 - An occasional thought on a bonk: "Free sample." · "Read the IFU." · "You're welcome." · "That's a sterile field,
   trainee." (each at most once a venue).
+
+**As built in R5 (2026-10-25).** "FREE SAMPLE!" pops small 300 px above the hit, so the birds (20 px, circling 66 px round the head) stay in sight; a box a staffer or a wall stopped drops straight down and touches nothing more. Its hint ranks after the pepper's and the threats'. The box is drawn in code, white with a blue band, until the gate sheet's box is wired in when the sheet arrives.
 
 ## 10. The AIRPORT SHUTTLE door
 
@@ -263,6 +277,8 @@ Decisions I took for the owner (report these):
   page; its tally offers Play again and Start screen; it never touches a shift. `/?quest=fares` opens it directly (§1,
   decision 16). The row fits both cards at 1280 by 800, 390 by 844 and 844 by 390 without horizontal overflow.
 
+**As built in R5 (2026-10-25).** On a wide screen the start screen's strip holds six equal cards, the four starts and the two side quests; on an upright phone the two side quests sit side by side under their label, their pictures small and their place names dropped so the bests show.
+
 ## 12. The screen during the round
 
 - **Top bar:** the round's score, the scalpels left (ten small scalpels, spent ones dim) in the clock's place, "Fare
@@ -275,6 +291,8 @@ Decisions I took for the owner (report these):
   ↓ and Towel do nothing at the gate (and are unlit).
 - **Pause:** P or Escape, the "On break" card listing the gate's keys.
 - Every card and bar fits 1280 by 800, 390 by 844 and 844 by 390 with no horizontal overflow.
+
+**As built in R5 (2026-10-25).** The panel's rows read Steady, Boarding and Streak (×n). Jump and Hammer keep the pad's dark base under their gold tint so they read over the gate's light floor.
 
 ## 13. The art
 
@@ -308,6 +326,8 @@ are the cast's.
 **Fallbacks** (and `&noart=1`): without the gate, a drawn gate (the brainstorm's mockup: wall, windows, drawn planes,
 terrazzo); without the plane, a drawn one; without the sheet, drawn pieces; without the agent, the cast's drawn stand-in
 in a navy polo. The sync warns and goes on; a bad painting never stops it.
+
+**As built in R5 (2026-10-25).** None of the four paintings has arrived (the prompts are in `art/outgoing/batch-r5-codex.txt`); each draws its stand-in until it does. The scalpels and the box are drawn in code: drawing them from the sheet's scalpel and box is left for when the sheet arrives (the R6 handoff lists it).
 
 ## 14. Sound
 
