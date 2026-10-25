@@ -52,6 +52,7 @@ export type NextProbe = {
         position: number;
         streak: number;
         steady: number;
+        towels: number;
         preferred: boolean;
         aim: { x: number; y: number };
         tags: { city: string; kind: string; rect: ProbeRect }[];

@@ -19,6 +19,8 @@ export type FaresEvent =
   | { type: "fdCloud"; third: 0 | 1 | 2; on: boolean }
   | { type: "fdStop"; tag: number; on: boolean }
   | { type: "fdAgent"; on: boolean }
+  /** T: he towels off (`on`), and the steady hand is full again as the wipe ends (`on` false). */
+  | { type: "fdTowel"; on: boolean }
   /** An insult at a traveler or the agent: the scene picks his line from GATE_INSULTS, GATE_GLOATS or GATE_PISSED. */
   | { type: "fdInsult"; at: Traveler | "agent"; mood: "calm" | "gloat" | "pissed" }
   | { type: "fdCrowd"; kind: CrowdKind; who: Traveler[] }

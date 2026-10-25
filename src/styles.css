@@ -401,6 +401,14 @@ button:focus-visible {
   background: #6db4f0;
   transition: width 60ms linear;
 }
+/* The towel-offs left beside the steady hand. */
+.next-hud__towel {
+  flex: none;
+  width: 17px;
+  height: 14px;
+  fill: #f4f1ea;
+  color: #6db4f0;
+}
 /* His boarding group, gold in A. */
 .next-hud__group {
   margin: 0;

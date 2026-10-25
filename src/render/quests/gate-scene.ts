@@ -6,7 +6,7 @@ import { THROW_CUT } from "../../sim/moves";
 import type { CityCode, TagKind } from "../../sim/quests/fares/board";
 import type { FaresEvent } from "../../sim/quests/fares/events";
 import { FARES, TRAVELERS, agentBox, type Fares, type Traveler } from "../../sim/quests/fares/fares";
-import { ACTIONS, displayU, overlay } from "../../sim/rig/actions";
+import { ACTIONS, displayU, gateHold, overlay } from "../../sim/rig/actions";
 import { castPose, castReaction, REACTION_SECONDS, type Reaction } from "../../sim/rig/cast";
 import { CLIPS } from "../../sim/rig/clips";
 import { solve } from "../../sim/rig/fk";
@@ -17,6 +17,7 @@ import type { RenderApp } from "../app";
 import { createCharacter, type Character } from "../character";
 import { PALETTE } from "../palette";
 import type { Scene } from "../scene";
+import { TOWEL_OUT } from "../towel";
 import { Diner } from "./diner";
 import { RouteBoard, drawScalpel, scalpelInFist } from "./gate-board";
 import type { GateLayout } from "./gate-layout";
@@ -607,6 +608,7 @@ export class GateView {
     if (!ch) return;
     const ctx = { t: time, speed: 0, vy: 0, facing: 1 as const };
     let pose: Pose = CLIPS.idle((time * 0.4) % 1, ctx);
+    let towel = false;
     const s = q.shot;
     if (s) {
       this.hadShot = true;
@@ -617,10 +619,11 @@ export class GateView {
         this.hadShot = false;
         this.followT = 0;
       }
-      if (this.followT < FOLLOW) {
-        this.followT = Math.min(FOLLOW, this.followT + dt);
-        pose = overlay(pose, ACTIONS.throw(1), "upper", 1 - this.followT / FOLLOW);
-      }
+      // Toweling off (T): the shift's wipe, the towel in his free hand from its first beat to its last.
+      const wipeU = q.wipe > 0 ? Math.min(1, 1 - q.wipe / FARES.towel.seconds) : null;
+      if (wipeU !== null) towel = wipeU > TOWEL_OUT[0] && wipeU < TOWEL_OUT[1];
+      this.followT = Math.min(FOLLOW, this.followT + dt);
+      pose = gateHold(pose, wipeU, 1 - this.followT / FOLLOW);
     }
     const plate = this.registry.hammer.heads.neutral!;
     const solved = solve(pose, 1, HEAD_SCALE, plate);
@@ -628,7 +631,7 @@ export class GateView {
     const expression = this.moodNow ?? "neutral";
     ch.container.position.set(feet.x, feet.y);
     ch.container.scale.set(1);
-    ch.apply(solved, expression, l.floor - feet.y, 0xffffff);
+    ch.apply(solved, expression, l.floor - feet.y, 0xffffff, towel);
     const left = FARES.throws - q.thrown;
     const holding = s ? s.phase === "windup" : left > 0 && !q.result;
     const f = this.fist.clear();

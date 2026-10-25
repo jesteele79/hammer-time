@@ -1317,3 +1317,8 @@ test("out of the shuttle door: the can when cans came, the nuts with a full smas
   assert.equal(stepWalkOut(moved, 1 / 120, false).can, 0, "and it stays away");
   assert.deepEqual(stepWalkOut({ can: 0.001, nuts: 0 }, 0.5, false), { can: 0, nuts: 0 }, "never below zero");
 });
+
+test("the towel at the gate sounds like the shift's: the cloth as he starts, a ding as his hand is steady again", () => {
+  assert.deepEqual(cuesFor({ type: "fdTowel", on: true }), ["cloth"]);
+  assert.deepEqual(cuesFor({ type: "fdTowel", on: false }), ["ding"]);
+});

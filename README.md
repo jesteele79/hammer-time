@@ -414,7 +414,10 @@ and the AIRPORT SHUTTLE are spent separately, so one shift can play both.
 - **Aim and throw**: the crosshair sweeps the map on a looping figure whose second wave runs at 1.618 times the first,
   so it never closes and crosses every city; it starts at 1.4 rad/s and quickens 8 percent a throw, a faint trail of
   its last 1.5 s behind it. Shift (or J, the pad's Run, or a finger held on the scene 0.2 s) slows it to 0.35 of its
-  speed while a 2.5 s meter drains, 0.2 s back a booking, the ring tightening. Space, W, Z, ↑, F, C, K, H, X or Q (or a
+  speed while a 2.5 s meter drains, 0.2 s back a booking, the ring tightening. T (or the pad's Towel) towels him off
+  (owner, 2026-10-25): the shift's wipe, 0.95 s, and the meter is full again; two a round, never with a scalpel in the
+  air (with them the scripted person still books a median of six, the sharp hand reaching A1 in nine of ten). Space, W,
+  Z, ↑, F, C, K, H, X or Q (or a
   tap on the scene) throws: the point under the crosshair at the press is where the scalpel lands and what it scores
   against. His throw cocks the scalpel up behind his head and whips it out inside a cut (`THROW_CUT`, never across his
   face), 0.3 s; it flies 0.22 s on an arc with two spins and a trail, sticks with a thunk, wobbles 0.4 s and shakes
@@ -447,9 +450,10 @@ and the AIRPORT SHUTTLE are spent separately, so one shift can play both.
   touches a shift. Door rounds and practice share one best (`hammer-time-best-fares`).
 - **The screen**: the top bar shows the round's score and the tray's ten scalpels (the thrown ones dim) in the clock's
   place; the panel reads "Fare Darts / Gate B7" with the steady hand, his boarding group and the streak; the hint names
-  the storm, the cancelled flight or A-LIST PREFERRED, else the keys ("Tap to throw · hold Run to steady · Lecture mouths
-  off" on a touch screen); the pad lights Jump, Hammer, Snot and Super (all throw), Run while the meter lasts and
-  Lecture; the break card lists the gate's keys; the cards sit on the right half on a wide screen; the tally names the
+  the storm, the cancelled flight, a spent steady hand with a towel left ("Steady hand spent · T towels off") or A-LIST
+  PREFERRED, else the keys ("Tap to throw · hold Run to steady · Towel refills it · Lecture mouths off" on a touch
+  screen); the panel's Steady row shows the towels left; the pad lights Jump, Hammer, Snot and Super (all throw), Run
+  while the meter lasts, Towel while one is left and the meter is not full, and Lecture; the break card lists the gate's keys; the cards sit on the right half on a wide screen; the tally names the
   grade, the score and the best, fans out a printed pass per booking (its city, class and group), what the round came
   to and what comes home. Sounds: a whoosh on the throw, a thunk on the stick, the kiosk's print and a ding on a
   booking, a boom at A1.

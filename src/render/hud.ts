@@ -59,9 +59,10 @@ export type HudPayload = {
 export type BanquetHud = { id: "hungry"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
 /**
  * Fare Darts (R5 §12) while its card, its round or its tally is up: `left` scalpels still on the tray, `steady` seconds
- * left of the steady hand out of `steadyMax`, `position` his boarding group ("B13"), `streak` bookings in a row.
+ * left of the steady hand out of `steadyMax`, `towels` the towel-offs left that refill it, `position` his boarding group
+ * ("B13"), `streak` bookings in a row.
  */
-export type GateHud = { id: "fares"; score: number; left: number; steady: number; steadyMax: number; position: string; streak: number; door: boolean; result: FaresResult | null };
+export type GateHud = { id: "fares"; score: number; left: number; steady: number; steadyMax: number; towels: number; position: string; streak: number; door: boolean; result: FaresResult | null };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -196,7 +197,7 @@ function banquetHud(q: Hungry, door: boolean): BanquetHud {
 
 function gateHud(q: Fares, door: boolean): GateHud {
   // The cancelled flight's 200 can take the round below zero; the tally clamps it, and so does the screen.
-  return { id: "fares", score: Math.max(0, q.score), left: FARES.throws - q.thrown, steady: q.steady, steadyMax: FARES.steady.budget, position: groupOf(q.position), streak: q.streak, door, result: q.result };
+  return { id: "fares", score: Math.max(0, q.score), left: FARES.throws - q.thrown, steady: q.steady, steadyMax: FARES.steady.budget, towels: q.towels, position: groupOf(q.position), streak: q.streak, door, result: q.result };
 }
 
 /** Changes only when the HUD would look different: whole heat points, tenths of a snot charge, whole seconds. */
@@ -222,6 +223,6 @@ export const hudKey = (p: HudPayload) =>
     p.venue,
     p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
     p.quest?.id === "hungry" ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
-    p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",
+    p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.towels, p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",
     p.boxes,
   ].join("|");

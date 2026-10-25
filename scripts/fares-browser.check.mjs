@@ -84,6 +84,12 @@ try {
   await page.waitForTimeout(500);
   await page.keyboard.up("Shift");
   assert.ok((await quest(page)).steady < steady - 0.2, "the steady hand drains while Shift is held");
+  // T towels off: the wipe, then the steady hand full again and one towel fewer (owner, 2026-10-25).
+  await page.keyboard.press("t");
+  await page.waitForTimeout(400);
+  await shot(page, "fares-towel.png");
+  await page.waitForFunction(() => window.__next.quest.steady === 2.5, null, { timeout: 3000 });
+  assert.equal((await quest(page)).towels, 1, "one towel used");
   // E mouths off at once.
   const insults = await events(page, "fdInsult");
   await page.waitForTimeout(1300);

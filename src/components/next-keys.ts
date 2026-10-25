@@ -27,6 +27,7 @@ export const BANQUET_KEYS: [string, string][] = [
 export const GATE_KEYS: [string, string][] = [
   ["Space", "throw a scalpel"],
   ["Shift", "steady your hand"],
+  ["T", "towel off: steady again"],
   ["E", "mouth off"],
   ["P", "break"],
 ];

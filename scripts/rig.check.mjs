@@ -905,3 +905,20 @@ test("the lob swings his free hand from behind his hip to chest height ahead, al
   assert.ok(back.joints.handFar.x < back.joints.pelvis.x, "back behind his hip");
   assert.ok(go.joints.handFar.x > go.joints.chest.x + 40, "out ahead at the release");
 });
+
+import { gateHold } from "../src/sim/rig/actions.ts";
+
+test("the gate's stance between throws: a towel wipe begun as a throw eases back keeps his face clear but for the towel arm, and the scalpel off it", () => {
+  for (let a = 0; a < 5; a++)
+    for (const wipeU of [null, ...Array.from({ length: 21 }, (_, i) => i / 20)])
+      for (let k = 0; k <= 10; k++)
+        for (const headScale of [0.24, 0.26, 0.3]) {
+          const w = k / 10;
+          const s = solve(gateHold(CLIPS.idle(a / 5, ctx), wipeU, w), 1, headScale);
+          const allowed = wipeU === null ? FACE_ALLOWED.throw : [...FACE_ALLOWED.wipe, ...FACE_ALLOWED.throw];
+          const r = faceClear(s, allowed);
+          assert.ok(r.ok, `idle ${a / 5}, wipe ${wipeU}, easing ${w}, head ${headScale}: ${r.offender}`);
+          const [butt, tip] = scalpelOf(s);
+          assert.ok(segmentClear(s, butt, tip, 8), `idle ${a / 5}, wipe ${wipeU}, easing ${w}, head ${headScale}: the scalpel`);
+        }
+});

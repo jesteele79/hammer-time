@@ -5,9 +5,11 @@ import { FARES } from "@/sim/quests/fares/fares";
 /** The gate's tray, and the bookings in a row that make a streak (R5 §5, §12). */
 const TRAY = FARES.throws;
 const STREAK = FARES.streak;
-/** The gate's default hint on a keyboard, and on a touch screen in its place (R5 §12). */
-const GATE_KEY_HINT = "Space throws · hold Shift to steady your hand · E mouths off";
-const GATE_TOUCH_HINT = "Tap to throw · hold Run to steady · Lecture mouths off";
+/** The gate's hints that name keys, and what a touch screen says in their place (R5 §12). */
+const GATE_TOUCH_HINTS: Record<string, string> = {
+  "Space throws · hold Shift to steady · T towels off · E mouths off": "Tap to throw · hold Run to steady · Towel refills it · Lecture mouths off",
+  "Steady hand spent · T towels off": "Steady hand spent · tap Towel",
+};
 
 const level = (heat: number) => (heat < 45 ? "cool" : heat < 80 ? "warm" : "hot");
 const fill = (v: number): CSSProperties => ({ ["--fill" as string]: Math.min(1, Math.max(0, v)) });
@@ -53,6 +55,16 @@ function BoxesIcon({ n }: { n: number }) {
       </svg>
       <b>{n}</b>
     </span>
+  );
+}
+
+/** A towel-off left at the gate: a folded towel, drawn. */
+function TowelIcon() {
+  return (
+    <svg className="next-hud__towel" viewBox="0 0 20 16" aria-hidden="true">
+      <rect x="2" y="3" width="16" height="11" rx="2" />
+      <path d="M2 10h16" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
   );
 }
 
@@ -114,7 +126,7 @@ export function NextHud({
   // A mouse press must not leave a button focused: Space would then press it instead of jumping.
   const noFocus = (e: { preventDefault(): void }) => e.preventDefault();
   // On a touch screen the round's own hint teaches the pad and the scene (R5 §12).
-  const hint = g && touch && hud.hint === GATE_KEY_HINT ? GATE_TOUCH_HINT : hud.hint;
+  const hint = (g && touch && GATE_TOUCH_HINTS[hud.hint]) || hud.hint;
   return (
     <div className={touch ? "next-hud next-hud--touch" : "next-hud"}>
       <section className="next-hud__bar-top" aria-label="Run">
@@ -191,10 +203,13 @@ export function NextHud({
           <dl className="next-hud__rows">
             <div className="next-hud__row">
               <dt>Steady</dt>
-              <dd aria-label={`${g.steady.toFixed(1)} of ${g.steadyMax} seconds`}>
+              <dd aria-label={`${g.steady.toFixed(1)} of ${g.steadyMax} seconds, ${g.towels} ${g.towels === 1 ? "towel" : "towels"} left`}>
                 <span className="next-hud__bar next-hud__bar--steady" data-empty={g.steady <= 0}>
                   <b style={{ width: `${(100 * g.steady) / g.steadyMax}%` }} />
                 </span>
+                {Array.from({ length: g.towels }, (_, i) => (
+                  <TowelIcon key={i} />
+                ))}
               </dd>
             </div>
             <div className="next-hud__row">

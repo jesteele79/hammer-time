@@ -10,6 +10,8 @@ export const FARES = {
   /** The crosshair: `x = 540 + ax sin θ`, `y = 300 + ay sin(ratio θ + phase)`, θ at `w` rad/s, `w` × `rise` a throw. */
   aim: { w: 1.4, rise: 1.08, ratio: 1.618, phase: 0.7, ax: 540, ay: 300 },
   steady: { factor: 0.35, budget: 2.5, refill: 0.2 },
+  /** T towels off (owner, 2026-10-25): the shift's wipe, the steady hand full again at its end; two a round. */
+  towel: { uses: 2, seconds: 0.95 },
   tags: { every: 0.9, max: 4, life: 2.6, flicker: 0.6, flash: 0.2 },
   /** The throw clip, the scalpel's flight, and the beat after the tenth before the tally. */
   windup: 0.3,
@@ -72,6 +74,9 @@ export type Fares = {
   w: number;
   /** Seconds left of the steady hand. */
   steady: number;
+  /** Towel-offs left this round, and seconds left of one under way (0: none). */
+  towels: number;
+  wipe: number;
   thrown: number;
   stuck: number;
   shot: Shot | null;
@@ -127,6 +132,8 @@ export function createFares(seed: number, opts: FaresOptions = {}): Fares {
     theta: 0,
     w: FARES.aim.w,
     steady: FARES.steady.budget,
+    towels: FARES.towel.uses,
+    wipe: 0,
     thrown: 0,
     stuck: 0,
     shot: null,
@@ -457,8 +464,9 @@ function stepMouth(q: Fares, input: Input, dt: number) {
 export function faresHint(q: Fares): string {
   if (q.cloud) return "Storm over the map · wait it out";
   if (q.tags.some((t) => t.stopped > 0)) return "Cancelled flight · don't hit the X";
+  if (q.steady <= 0 && q.towels > 0 && q.thrown < FARES.throws) return "Steady hand spent · T towels off";
   if (q.preferred) return "A-LIST PREFERRED · every scalpel counts double";
-  return "Space throws · hold Shift to steady your hand · E mouths off";
+  return "Space throws · hold Shift to steady · T towels off · E mouths off";
 }
 
 /** One step of the round. */
@@ -466,11 +474,21 @@ export function stepFares(q: Fares, input: Input, dt: number): void {
   q.events = [];
   if (q.result) return;
   q.time += dt;
-  const steadied = input.held.run && q.steady > 0;
+  // Mid-wipe his hand is on his face: no steadying, no throw, and the steady hand comes back full as it ends.
+  const wiping = q.wipe > 0;
+  const steadied = input.held.run && q.steady > 0 && !wiping;
   if (steadied) q.steady = Math.max(0, q.steady - dt);
   q.theta += q.w * (steadied ? FARES.steady.factor : 1) * dt;
   stepTags(q, dt);
   stepHazards(q, dt);
+  if (wiping) {
+    q.wipe = Math.max(0, q.wipe - dt);
+    if (q.wipe <= 1e-9) {
+      q.wipe = 0;
+      q.steady = FARES.steady.budget;
+      q.events.push({ type: "fdTowel", on: false });
+    }
+  }
   const s = q.shot;
   if (s) {
     s.t += dt;
@@ -480,7 +498,13 @@ export function stepFares(q: Fares, input: Input, dt: number): void {
       q.events.push({ type: "fdRelease", at: s.at });
     }
     if (s.phase === "flight" && s.t >= FARES.flight - 1e-9) stick(q, s);
-  } else if (q.thrown < FARES.throws && throwPressed(input)) press(q);
+  } else if (q.thrown < FARES.throws && q.wipe <= 0 && throwPressed(input)) press(q);
+  if (input.pressed.towel && !q.shot && q.wipe <= 0 && q.towels > 0 && q.steady < FARES.steady.budget - 1e-9 && q.thrown < FARES.throws) {
+    q.towels--;
+    q.wipe = FARES.towel.seconds;
+    q.events.push({ type: "fdTowel", on: true });
+    think(q, "Sweat is for Group C.");
+  }
   stepMouth(q, input, dt);
   if (q.endT >= 0) {
     q.endT -= dt;

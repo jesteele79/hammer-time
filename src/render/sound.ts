@@ -140,6 +140,9 @@ export function cuesFor(e: GameEvent): Cue[] {
     // A scalpel sticks with a thunk; a booking's pass prints with a ding.
     case "fdStick":
       return e.outcome === "book" ? ["thunk", "print", "ding"] : ["thunk"];
+    // The towel at the gate: the cloth as he starts, the coin's ding as his hand is steady again.
+    case "fdTowel":
+      return e.on ? ["cloth"] : ["ding"];
     case "pickup":
       return PICKUP_CUES[e.kind];
     case "mode":

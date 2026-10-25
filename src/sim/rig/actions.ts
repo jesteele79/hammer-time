@@ -499,3 +499,18 @@ export const ACTIONS: Record<MoveKind, (u: number) => Pose> = {
   hurt,
   tumble,
 };
+
+/**
+ * His stance at the gate between throws (R5): the idle, a towel wipe at `wipeU` (null: none), and the throw's release
+ * easing back over it by `w` (1 just released, 0 eased back). A wipe begun on the heels of a throw eases back only his
+ * throwing arm; the other is the towel's.
+ */
+export function gateHold(idle: Pose, wipeU: number | null, w: number): Pose {
+  let p = wipeU === null ? idle : overlay(idle, ACTIONS.wipe(wipeU), ACTION_MASK.wipe, 1);
+  if (w > 0) {
+    const tail = ACTIONS.throw(1);
+    if (wipeU !== null) for (const j of ["shoulderFar", "elbowFar", "wristFar"] as const) tail.rot[j] = p.rot[j];
+    p = overlay(p, tail, "upper", w);
+  }
+  return p;
+}

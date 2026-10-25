@@ -575,8 +575,8 @@ test("the HUD in the gate's round: the score, the scalpels left, the steady hand
   until(g, "quest");
   const q = g.quest;
   Object.assign(q, { score: 684, thrown: 3, stuck: 3, steady: 2.3, position: 72, streak: 3 });
-  assert.deepEqual(hudOf(g, null).quest, { id: "fares", score: 684, left: 7, steady: 2.3, steadyMax: 2.5, position: "B13", streak: 3, door: false, result: null });
-  assert.equal(hudOf(g, null).hint, "Space throws · hold Shift to steady your hand · E mouths off");
+  assert.deepEqual(hudOf(g, null).quest, { id: "fares", score: 684, left: 7, steady: 2.3, steadyMax: 2.5, towels: 2, position: "B13", streak: 3, door: false, result: null });
+  assert.equal(hudOf(g, null).hint, "Space throws · hold Shift to steady · T towels off · E mouths off");
 });
 
 import { SAMPLE, stepSamples } from "../src/sim/samples.ts";
@@ -759,4 +759,81 @@ test("the HUD never shows a score below zero: the cancelled flight's 200 off bef
   until(g, "quest");
   g.quest.score = -200;
   assert.equal(hudOf(g, null).quest.score, 0);
+});
+
+// The towel at the gate (owner, 2026-10-25: "make him be able to towel off to steady himself"): T wipes his face and
+// refills the steady hand, so he can slow the crosshair again; two a round, so it helps without making it a pushover.
+const towelOff = (q) => {
+  stepFares(q, input({}, { towel: true }), STEP);
+  for (let i = 0; i < Math.ceil(FARES.towel.seconds / STEP) + 2; i++) stepFares(q, input(), STEP);
+};
+
+test("T towels off at the gate: a 0.95 s wipe that refills the steady hand at its end, two a round, no throw and no draining while wiping", () => {
+  assert.deepEqual(FARES.towel, { uses: 2, seconds: 0.95 });
+  const q = createFares(4, { practice: true, tags: false, hazards: false, mouth: false });
+  assert.equal(q.towels, 2);
+  stepFares(q, input({}, { towel: true }), STEP);
+  assert.equal(q.wipe, 0, "a full steady hand needs no towel");
+  assert.equal(q.towels, 2);
+  q.steady = 0.4;
+  stepFares(q, input({}, { towel: true }), STEP);
+  assert.equal(q.towels, 1);
+  assert.ok(q.wipe > 0, "wiping");
+  assert.ok(q.events.some((e) => e.type === "fdTowel" && e.on), "the wipe begins");
+  stepFares(q, input({ run: true, jump: true }, { jump: true }), STEP);
+  assert.equal(q.thrown, 0, "a throw pressed mid-wipe is dropped");
+  assert.equal(q.steady, 0.4, "Shift held mid-wipe drains nothing");
+  let refilled = false;
+  for (let i = 0; i < Math.ceil(FARES.towel.seconds / STEP) + 2; i++) {
+    stepFares(q, input(), STEP);
+    refilled ||= q.events.some((e) => e.type === "fdTowel" && !e.on);
+  }
+  assert.ok(refilled, "the refill comes at the wipe's end");
+  assert.equal(q.steady, FARES.steady.budget, "the steady hand full again");
+  assert.equal(q.wipe, 0);
+  q.steady = 0;
+  towelOff(q);
+  assert.equal(q.towels, 0);
+  assert.equal(q.steady, FARES.steady.budget);
+  q.steady = 0;
+  stepFares(q, input({}, { towel: true }), STEP);
+  assert.equal(q.wipe, 0, "no third towel");
+  assert.equal(q.steady, 0);
+});
+
+test("no towel while a scalpel is in the air, nor once the tray is empty", () => {
+  const q = createFares(4, { practice: true, tags: false, hazards: false, mouth: false });
+  q.steady = 0;
+  stepFares(q, input({ jump: true }, { jump: true }), STEP);
+  assert.ok(q.shot, "a scalpel on its way");
+  stepFares(q, input({}, { towel: true }), STEP);
+  assert.equal(q.wipe, 0);
+  assert.equal(q.towels, 2);
+  skipFares(q);
+  stepFares(q, input({}, { towel: true }), STEP);
+  assert.equal(q.wipe, 0);
+});
+
+test("the hint teaches the towel once the steady hand is spent and a towel is left", () => {
+  const q = createFares(4, { practice: true, tags: false, hazards: false, mouth: false });
+  assert.equal(faresHint(q), "Space throws · hold Shift to steady · T towels off · E mouths off");
+  q.steady = 0;
+  assert.equal(faresHint(q), "Steady hand spent · T towels off");
+  q.towels = 0;
+  assert.equal(faresHint(q), "Space throws · hold Shift to steady · T towels off · E mouths off");
+});
+
+test("the scripted person and the sharp hand towel off once their steady hand is spent, as a player would", () => {
+  for (const make of [(s) => personPlayer(s), () => sharpPlayer()]) {
+    let towels = 0;
+    for (const seed of [1, 2, 3]) {
+      const q = createFares(seed, { practice: true });
+      const player = make(seed);
+      while (!q.result) {
+        stepFares(q, player(q), STEP);
+        towels += q.events.filter((e) => e.type === "fdTowel" && e.on).length;
+      }
+    }
+    assert.ok(towels > 0, "they used a towel");
+  }
 });

@@ -15,6 +15,14 @@ function act(throwNow: boolean, steady: boolean): Input {
   return i;
 }
 
+/** The steady hand spent and a towel left, nothing in the air: a player towels off (T) to steady again. */
+const spent = (q: Fares) => !q.shot && q.wipe <= 0 && q.steady <= 0 && q.towels > 0;
+function towelOff(): Input {
+  const i = emptyInput();
+  i.held.towel = i.pressed.towel = true;
+  return i;
+}
+
 /** Throws the moment a throw can start, without aiming: the floor every grade line sits on. */
 export const masherPlayer: Player = (q) => act(!q.shot, false);
 
@@ -72,6 +80,11 @@ export function personPlayer(seed: number): Player {
       holding = false;
       return idle();
     }
+    if (spent(q)) {
+      plan = null;
+      holding = false;
+      return towelOff();
+    }
     // A person reads the path ahead, and stops re-reading it in the last tenth of a second before the throw.
     if (!plan || (--replan <= 0 && plan.at - q.time > 0.1)) {
       const pass = nextPass(q, q.w * (holding && q.steady > 0 ? FARES.steady.factor : 1));
@@ -102,6 +115,7 @@ export function sharpPlayer(): Player {
       return idle();
     }
     since += STEP;
+    if (spent(q)) return towelOff();
     const want = (t: Tag) => fair(q, t) && (since > 60 || (t.kind === "fare" ? classOf(t.fare) === "wga" : true));
     const p = crosshair(q.theta);
     const { outcome, tag } = outcomeAt(q, p);

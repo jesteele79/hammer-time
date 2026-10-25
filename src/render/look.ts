@@ -1119,6 +1119,14 @@ export async function startLook(
       case "fdMood":
         gate.mood(e.mood, e.seconds);
         break;
+      // Toweled off: the sweat flies off the towel in front of his face, and his hand is steady again.
+      case "fdTowel":
+        if (!e.on) {
+          const c = gate.crown();
+          particles.emit("spray", face.x + face.w + 24, face.y + face.h / 2, 20, true);
+          words.say("STEADY!", c.x + 180, c.y - 20, false, face, view);
+        }
+        break;
       default:
         break;
     }
@@ -1175,6 +1183,7 @@ export async function startLook(
         position: q.position,
         streak: q.streak,
         steady: q.steady,
+        towels: q.towels,
         preferred: q.preferred,
         aim: scene.toScreen(gate.toWorld(aimOf(q))),
         tags: gate.tagsInWorld().map((t) => ({ city: t.city, kind: t.kind, rect: screenRect(t.rect) })),

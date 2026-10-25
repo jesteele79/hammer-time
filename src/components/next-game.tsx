@@ -290,10 +290,10 @@ export function NextGame({
             <NextTouch
               onPress={press}
               // At the banquet only the arrows, Jump, Hammer and the lecture do anything; at the gate every action key throws,
-              // Run steadies while the meter lasts and the lecture mouths off: nothing else lights.
+              // Run steadies while the meter lasts, Towel refills it while one is left and the lecture mouths off.
               ready={
                 hud.quest?.id === "fares"
-                  ? { jump: true, hammer: true, fire: true, super: true, run: hud.quest.steady > 0, lecture: true }
+                  ? { jump: true, hammer: true, fire: true, super: true, run: hud.quest.steady > 0, towel: hud.quest.towels > 0 && hud.quest.steady < hud.quest.steadyMax, lecture: true }
                   : hud.quest
                     ? { fire: false, lecture: hud.lecture, super: false }
                     : { fire: hud.sinus >= 1, lecture: hud.lecture, super: hud.charge >= hud.chargeMax, box: hud.boxes > 0 }
