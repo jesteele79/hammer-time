@@ -752,3 +752,11 @@ test("the dev skip: the rest of the tray goes as misses and the end's beat runs 
   skipFares(q);
   assert.equal(q.misses, FARES.throws, "a second skip does nothing");
 });
+
+test("the HUD never shows a score below zero: the cancelled flight's 200 off before any booking reads 000000 (the final review)", () => {
+  const g = lobbyGame({ title: true });
+  g.newQuest(5, "fares");
+  until(g, "quest");
+  g.quest.score = -200;
+  assert.equal(hudOf(g, null).quest.score, 0);
+});

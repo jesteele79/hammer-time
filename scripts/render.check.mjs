@@ -1302,3 +1302,18 @@ test("his gate lines, word for word (R5 §7): twelve insults, four gloats, five 
   assert.deepEqual(GATE_PISSED.map((l) => l.text), ["Who moved the board?", "Somebody coughed.", "STOP. LOOKING. AT ME.", "That one doesn't count. Practice throw.", "I'll be writing to the manufacturer."]);
   for (const l of [...GATE_INSULTS, ...GATE_GLOATS, ...GATE_PISSED]) assert.equal(l.clip, undefined, l.text);
 });
+
+import { WALK_OUT, walkOutFrom, stepWalkOut } from "../src/render/walk-out.ts";
+
+test("out of the shuttle door: the can when cans came, the nuts with a full smash, and any move puts the can away so nothing is over his face (the final review)", () => {
+  assert.deepEqual(walkOutFrom({ cans: 3, grade: "C GROUP" }), { can: WALK_OUT.can, nuts: 0 });
+  assert.deepEqual(walkOutFrom({ cans: 0, grade: "B GROUP" }), { can: 0, nuts: WALK_OUT.nuts });
+  assert.deepEqual(WALK_OUT, { can: 3, nuts: 2 });
+  const w = stepWalkOut({ can: 3, nuts: 2 }, 0.5, false);
+  assert.ok(Math.abs(w.can - 2.5) < 1e-9 && Math.abs(w.nuts - 1.5) < 1e-9, "both run down");
+  const moved = stepWalkOut(w, 1 / 120, true);
+  assert.equal(moved.can, 0, "a wipe, a snot rocket, a lob or a swing puts the can away");
+  assert.ok(moved.nuts > 1.4, "the nuts keep spilling");
+  assert.equal(stepWalkOut(moved, 1 / 120, false).can, 0, "and it stays away");
+  assert.deepEqual(stepWalkOut({ can: 0.001, nuts: 0 }, 0.5, false), { can: 0, nuts: 0 }, "never below zero");
+});

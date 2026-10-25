@@ -56,6 +56,7 @@ import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { Words } from "./words";
+import { stepWalkOut, walkOutFrom, type WalkOut } from "./walk-out";
 import { BanquetView } from "./quests/hungry-scene";
 import { DINER_ID } from "./quests/diner";
 import { banquetFrame } from "./quests/frame";
@@ -93,9 +94,7 @@ const SMUG_T = 0.6;
 /** How far ahead of the towel hand the sweat spray starts. */
 const SPRAY_AHEAD = 24;
 const STEAM_EVERY = 0.08;
-/** Out of the shuttle door (R5 §8): the Coke Zero in his hand 3 s, nuts spilling 2 s, the can drawn this tall. */
-const WALK_CAN = 3;
-const WALK_NUTS = 2;
+/** The Coke Zero in his hand out of the shuttle door is drawn this tall (R5 §8). */
 const WALK_CAN_H = 46;
 /** A finger held this long on the canvas at the gate steadies his hand (R5 §3). */
 const POINTER_STEADY_MS = 200;
@@ -551,8 +550,7 @@ export async function startLook(
             : `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}${e.flop ? " · belly-flop" : ""}`;
         noteT = NOTE_T * 2;
         if (e.quest === "fares") {
-          walkOut.can = e.cans > 0 ? WALK_CAN : 0;
-          walkOut.nuts = e.grade !== "C GROUP" ? WALK_NUTS : 0;
+          Object.assign(walkOut, walkOutFrom(e));
         }
         break;
       case "pickup":
@@ -866,7 +864,7 @@ export async function startLook(
   let gatePush = 0;
   let gateSteamT = 0;
   /** Out of the shuttle door: the Coke Zero in his hand and the nuts spilling from his pockets, seconds left (R5 §8). */
-  const walkOut = { can: 0, nuts: 0 };
+  const walkOut: WalkOut = { can: 0, nuts: 0 };
   let nutsT = 0;
   const walkCan = new Sprite(Texture.EMPTY);
   walkCan.anchor.set(0.5, 0.6);
@@ -1170,7 +1168,7 @@ export async function startLook(
       window.__next.quest = {
         id: "fares",
         time: q.time,
-        score: q.score,
+        score: Math.max(0, q.score),
         thrown: q.thrown,
         stuck: q.stuck,
         booked: q.bookings.length,
@@ -1315,8 +1313,7 @@ export async function startLook(
     for (const e of pending) show(e, at);
     pending.length = 0;
     // Out of the shuttle door: a Coke Zero in his free hand, nuts spilling from his pockets (R5 §8).
-    walkOut.can = Math.max(0, walkOut.can - simDt);
-    walkOut.nuts = Math.max(0, walkOut.nuts - simDt);
+    Object.assign(walkOut, stepWalkOut(walkOut, simDt, !!m));
     const can = walkOut.can > 0 ? productTexture("can") : null;
     walkCan.visible = !!can;
     if (can) {

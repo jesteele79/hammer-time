@@ -201,6 +201,10 @@ try {
   assert.match(await page.locator(".next-hud__boxes").innerText(), /3/, "three boxes beside his patience");
   assert.match(await page.locator(".next-hud__hint").innerText(), /Gate \+[\d,]+ · 3 boxes of #15 blades · \+9 cans/, "what it paid, on the way back");
   await shot(page, "fares-door-paid.png");
+  // Any move puts the can away: the hand that holds it wipes, snots and lobs, and nothing goes over his face.
+  await page.keyboard.press("h");
+  await page.waitForTimeout(150);
+  assert.equal(await page.evaluate(() => window.__next.hero.walkOut.can), 0, "a swing puts the can away");
   await page.keyboard.down("ArrowDown");
   await page.waitForTimeout(400);
   await page.keyboard.up("ArrowDown");

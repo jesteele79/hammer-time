@@ -195,7 +195,8 @@ function banquetHud(q: Hungry, door: boolean): BanquetHud {
 }
 
 function gateHud(q: Fares, door: boolean): GateHud {
-  return { id: "fares", score: q.score, left: FARES.throws - q.thrown, steady: q.steady, steadyMax: FARES.steady.budget, position: groupOf(q.position), streak: q.streak, door, result: q.result };
+  // The cancelled flight's 200 can take the round below zero; the tally clamps it, and so does the screen.
+  return { id: "fares", score: Math.max(0, q.score), left: FARES.throws - q.thrown, steady: q.steady, steadyMax: FARES.steady.budget, position: groupOf(q.position), streak: q.streak, door, result: q.result };
 }
 
 /** Changes only when the HUD would look different: whole heat points, tenths of a snot charge, whole seconds. */
