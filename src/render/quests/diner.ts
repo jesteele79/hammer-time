@@ -34,6 +34,8 @@ export class Diner {
     private readonly person: CastPerson,
     private readonly recolor: string | null,
     private readonly noart: boolean,
+    /** Their size against the shift's: twice it at the banquet (R4 §2), the shift's own at the gate (R5 §2). */
+    private readonly scale: number = BANQUET_SCALE,
   ) {
     this.look = recolored(LOOKS[person], recolor);
     this.container.addChild(this.body, this.stars);
@@ -58,14 +60,14 @@ export class Diner {
     return a ? solve(p, facing, castHeadScale(this.look.head ?? a.head.share, a.head), a.head, a.skeleton) : solve(p, facing, 0.26);
   }
 
-  /** Their size: their own height, at twice the shift's size at the banquet (R4 §2). */
+  /** Their size: their own height, at the scene's scale. */
   private get k() {
-    return (this.look.height / HERO_HEIGHT) * BANQUET_SCALE;
+    return (this.look.height / HERO_HEIGHT) * this.scale;
   }
 
-  /** Where their far hand is from their feet, world px, in this pose: the dive anchors the hand on the cloth. */
-  handOffset(p: Pose, facing: 1 | -1): Point {
-    const j = this.solved(p, facing).joints.handFar;
+  /** Where a hand is from their feet, world px, in this pose: the dive anchors the far hand on the cloth; the gate agent holds her clipboard in her near one. */
+  handOffset(p: Pose, facing: 1 | -1, hand: "handFar" | "handNear" = "handFar"): Point {
+    const j = this.solved(p, facing).joints[hand];
     return { x: j.x * this.k, y: j.y * this.k };
   }
 

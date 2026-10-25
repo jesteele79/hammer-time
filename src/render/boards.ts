@@ -24,6 +24,7 @@ import { Particles } from "./particles";
 import { wordStar } from "./words";
 import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
+import { drawScalpel, scalpelInFist } from "./quests/gate-board";
 import { crateLogo, drawCrate, pickupView } from "./objects";
 import type { Scene } from "./scene";
 import { label } from "./text";
@@ -32,7 +33,7 @@ import { coilPose, divePose } from "../sim/rig/dive";
 import { blend, type Pose } from "../sim/rig/pose";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -142,6 +143,8 @@ type Cell = {
   ground?: Ground;
   /** A ceiling drawn this high over the floor (world px): the lowest a pass hangs. */
   ceiling?: number;
+  /** A scalpel in his fist in place of the mallet: the gate's throw (R5). */
+  scalpel?: boolean;
 };
 
 function cellPose(cell: Cell) {
@@ -211,6 +214,8 @@ export function createBoards(
   currentLevel: () => Level = () => LOBBY,
   /** The banquet's shots, drawn by the look's banquet view (R4). */
   banquet?: { moments(): Promise<string[]>; thumb(): Promise<string>; food(): Promise<string> },
+  /** The gate's shots, drawn by the look's gate view (R5). */
+  gate?: { moments(): Promise<string[]>; thumb(): Promise<string> },
 ): Boards {
   const { app } = render;
 
@@ -286,6 +291,13 @@ export function createBoards(
       ch.container.position.set(fx, fy + dy * scale);
       // A fresh towel hangs at its chain's rest shape: straight down from the hand.
       ch.apply(solved, cell.expression, -dy, undefined, towel, watch, cell.move === "snot");
+      if (cell.scalpel) {
+        ch.holdMallet(false);
+        const g = new Graphics();
+        g.zIndex = 3.5;
+        drawScalpel(g, ...scalpelInFist(solved), 7);
+        ch.container.addChild(g);
+      }
     }
     return snapshot(board, width, height);
   };
@@ -773,6 +785,16 @@ export function createBoards(
           return (await banquet!.moments()).join("\n");
         case "banquet-thumb":
           return banquet!.thumb();
+        case "gate":
+          return (await gate!.moments()).join("\n");
+        case "gate-thumb":
+          return gate!.thumb();
+        case "gate-throw": {
+          // The gate's throw with the scalpel in his fist, and the box's lob, ten frames each, half again as large as the moves.
+          const cells = [...moveCells("throw", 0, MOVE_FRAMES).map((c) => ({ ...c, scalpel: true })), ...moveCells("lob", 1, MOVE_FRAMES)];
+          const heads = Array.from({ length: MOVE_FRAMES }, (_, i) => `u = ${(i / MOVE_FRAMES).toFixed(2)}`);
+          return sheet(MOVE_FRAMES, 2, cells, ["throw", "lob"], heads, MOVE_SCALE * 1.5);
+        }
         case "banquet-food":
           return banquet!.food();
         case "flop": {

@@ -734,3 +734,21 @@ test("the hint teaches the boxes until the first is thrown, and the HUD counts t
   lob(g);
   assert.notEqual(hintOf(g), "Boxes of #15 blades · B lobs one · it freezes staff");
 });
+
+import { skipFares } from "../src/sim/quests/fares/fares.ts";
+
+test("the dev skip: the rest of the tray goes as misses and the end's beat runs to the tally", () => {
+  const q = createFares(5, { practice: true, tags: false, hazards: false, mouth: false });
+  const none = { held: {}, pressed: {} };
+  skipFares(q);
+  assert.equal(q.thrown, FARES.throws);
+  assert.equal(q.stuck, FARES.throws);
+  assert.equal(q.misses, FARES.throws);
+  assert.equal(q.shot, null);
+  for (let i = 0; i < Math.ceil((FARES.end + 0.1) / STEP); i++) stepFares(q, none, STEP);
+  assert.ok(q.result, "the tally is up");
+  assert.equal(q.result.booked, 0);
+  assert.equal(q.result.grade, "C GROUP");
+  skipFares(q);
+  assert.equal(q.misses, FARES.throws, "a second skip does nothing");
+});

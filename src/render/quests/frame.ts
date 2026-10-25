@@ -13,13 +13,17 @@ export const BANQUET_FRAME = { x: -1060, y: -700, w: 2120, h: 1380 } as const;
  * px the HUD's top bar and the touch pad (or the hint line) take.
  */
 export function banquetFrame(width: number, height: number, insets: { top: number; bottom: number }): { x: number; y: number; zoom: number } {
+  return fitFrame(BANQUET_FRAME, width, height, insets);
+}
+
+/** The camera that fits a world frame to the screen between the bars, its middle in the middle of the room between them. */
+export function fitFrame(frame: { x: number; y: number; w: number; h: number }, width: number, height: number, insets: { top: number; bottom: number }): { x: number; y: number; zoom: number } {
   const room = Math.max(1, height - insets.top - insets.bottom);
-  const scale = Math.min(width / BANQUET_FRAME.w, room / BANQUET_FRAME.h);
+  const scale = Math.min(width / frame.w, room / frame.h);
   const portrait = width < height ? PORTRAIT_ZOOM : 1;
   return {
-    x: BANQUET_FRAME.x + BANQUET_FRAME.w / 2,
-    // The frame's middle in the middle of the room between the bars.
-    y: BANQUET_FRAME.y + BANQUET_FRAME.h / 2 - (insets.top - insets.bottom) / 2 / scale,
+    x: frame.x + frame.w / 2,
+    y: frame.y + frame.h / 2 - (insets.top - insets.bottom) / 2 / scale,
     zoom: (scale * HERO_HEIGHT) / (HERO_SCREEN_FRACTION * height * portrait),
   };
 }

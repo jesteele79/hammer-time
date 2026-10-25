@@ -37,6 +37,8 @@ export type Character = {
   ): void;
   /** The product of every tint from the head sprite up to the stage: 0xffffff when nothing colors it. */
   headTintChain(): number;
+  /** The mallet in his fist, or not: at the gate his fist holds a scalpel and the mallet leans on his cart (R5 §2). */
+  holdMallet(on: boolean): void;
 };
 
 const SHADOW_RX = HERO_W * 0.55;
@@ -322,6 +324,9 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
 
       const k = Math.max(0.3, 1 - heightAboveFloor / 500);
       shadow.clear().ellipse(0, heightAboveFloor, SHADOW_RX * k, 16 * k).fill({ color: 0x000000, alpha: 0.35 });
+    },
+    holdMallet(on) {
+      if (malletSprite) malletSprite.visible = on;
     },
     headTintChain() {
       let chain = 0xffffff;

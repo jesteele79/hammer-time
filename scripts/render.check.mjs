@@ -1223,3 +1223,82 @@ import { isNewBest } from "../src/render/hud.ts";
 test("a tally says New best only when the score beats the best kept before the round, never on a tie", () => {
   assert.deepEqual([isNewBest(5000, 4000), isNewBest(5000, 5000), isNewBest(4000, 5000), isNewBest(0, 0)], [true, false, false, false]);
 });
+
+import { gateLayout, PERSON } from "../src/render/quests/gate-layout.ts";
+import { MAP as GATE_MAP, CITY_CODES, cityAt, TAGS, fareFor, classOf } from "../src/sim/quests/fares/board.ts";
+import { FARES } from "../src/sim/quests/fares/fares.ts";
+
+const SHAPES = [[1280, 800], [1920, 1080], [1440, 1080], [2560, 1080], [390, 844], [844, 390], [360, 780]];
+const GATE_INSETS = { top: 64, bottom: 44 };
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** The largest tag a city can wear, in world px: its full fare's, or a bonus tag's. */
+const biggest = (l, c) => {
+  const cls = classOf(fareFor(c, false));
+  const s = { w: Math.max(TAGS[cls].w, TAGS.seating.w), h: Math.max(TAGS[cls].h, TAGS.seating.h) };
+  const p = cityAt(c);
+  return { x: l.map.x + p.x - s.w / 2, y: l.map.y + p.y - s.h / 2, w: s.w, h: s.h };
+};
+
+test("the gate fits every screen: the board, the ladder, Hammer and the travelers' heads in the frame", () => {
+  for (const [w, h] of SHAPES) {
+    const l = gateLayout(w, h, GATE_INSETS);
+    const f = l.frame;
+    const rects = [
+      { x: l.board.x, y: l.board.y, w: 1180, h: 720 },
+      l.ladder,
+      { x: l.hammer - PERSON.stand.w / 2, y: l.floor - PERSON.stand.h, w: PERSON.stand.w, h: PERSON.stand.h },
+      ...Object.values(l.travelers).map((x) => ({ x: x - PERSON.seat.w / 2, y: l.seats.floor - PERSON.seat.head, w: PERSON.seat.w, h: PERSON.seat.head })),
+    ];
+    for (const r of rects) assert.ok(r.x >= f.x - 1 && r.y >= f.y - 1 && r.x + r.w <= f.x + f.w + 1 && r.y + r.h <= f.y + f.h + 1, `${w}x${h}: ${JSON.stringify(r)} outside`);
+    assert.equal(l.upright, w < h);
+    assert.ok(l.camera.zoom > 0 && Number.isFinite(l.camera.x + l.camera.y));
+  }
+});
+
+test("nobody stands or sits over a city's tag, and the map's bottom is 150 above the floor, so the agent's head and shoulders cover its lowest 160", () => {
+  for (const [w, h] of SHAPES) {
+    const l = gateLayout(w, h, GATE_INSETS);
+    assert.ok(Math.abs(l.floor - (l.map.y + GATE_MAP.h) - 150) <= 1, `${w}x${h}`);
+    assert.ok(l.floor - 318 <= l.map.y + GATE_MAP.h - FARES.agent.band, `${w}x${h}: the agent reaches the band`);
+    const people = [
+      { x: l.hammer - PERSON.stand.w / 2, y: l.floor - PERSON.stand.h, w: PERSON.stand.w, h: PERSON.stand.h },
+      { x: l.podium - PERSON.stand.w / 2, y: l.floor - PERSON.stand.h, w: PERSON.stand.w, h: PERSON.stand.h },
+      ...Object.values(l.travelers).map((x) => ({ x: x - PERSON.seat.w / 2, y: l.seats.floor - PERSON.seat.head, w: PERSON.seat.w, h: PERSON.seat.head })),
+    ];
+    for (const c of CITY_CODES.filter((c) => c !== "SAT"))
+      for (const p of people) assert.ok(!overlaps(p, biggest(l, c)), `${w}x${h}: someone over ${c}`);
+  }
+});
+
+test("the gate's sounds: a whoosh on the throw, a thunk on the stick, the printer and a ding on a booking, a boom at A1", () => {
+  assert.deepEqual(cuesFor({ type: "fdThrow", at: { x: 0, y: 0 } }), ["whoosh"]);
+  assert.deepEqual(cuesFor({ type: "fdStick", at: { x: 0, y: 0 }, outcome: "book", booking: null, points: 342, tag: 1 }), ["thunk", "print", "ding"]);
+  assert.deepEqual(cuesFor({ type: "fdStick", at: { x: 0, y: 0 }, outcome: "miss", booking: null, points: 0, tag: null }), ["thunk"]);
+  assert.deepEqual(cuesFor({ type: "fdPreferred" }), ["boom"]);
+});
+
+import { GATE_INSULTS, GATE_GLOATS, GATE_PISSED } from "../src/game/lines.ts";
+
+test("a scalpel sticking shakes the screen a little", () => {
+  assert.deepEqual(feelOf({ type: "fdStick", at: { x: 0, y: 0 }, outcome: "book", booking: null, points: 342, tag: 1 }), { hitstop: 0, trauma: 0.15 });
+});
+
+test("his gate lines, word for word (R5 §7): twelve insults, four gloats, five pissed, all thoughts", () => {
+  assert.deepEqual(GATE_INSULTS.map((l) => l.text), [
+    "You CHECKED a bag? Amateur.",
+    "Group C. Enjoy the middle seat.",
+    "That is not a personal item. That is a footlocker.",
+    "Shoes ON, sir. This is a gate, not a spa.",
+    "A neck pillow. At the gate. Bold.",
+    "Pre-boarding? For WHAT?",
+    "You don't line up before your number. That's not how numbers work.",
+    "No assigned seats and you still found a way to be wrong.",
+    "Speakerphone. At a gate. Incredible.",
+    "That's a four-dollar water. You paid it. I watched.",
+    "Real travelers carry on.",
+    "Fly much? No. Clearly not.",
+  ]);
+  assert.deepEqual(GATE_GLOATS.map((l) => l.text), ["Watch and learn, trainees.", "I've flown more miles than this airport.", "Write that down. That's a technique.", "Rapid Rewards. Rapidly."]);
+  assert.deepEqual(GATE_PISSED.map((l) => l.text), ["Who moved the board?", "Somebody coughed.", "STOP. LOOKING. AT ME.", "That one doesn't count. Practice throw.", "I'll be writing to the manufacturer."]);
+  for (const l of [...GATE_INSULTS, ...GATE_GLOATS, ...GATE_PISSED]) assert.equal(l.clip, undefined, l.text);
+});

@@ -327,6 +327,17 @@ export class AudioBus {
     this.noise(0.05, 0.12, 3000, "highpass");
   }
 
+  /** A scalpel sticking in the board: a short low knock and a 90 Hz blip (R5 §14). */
+  thunk() {
+    this.noise(0.06, 0.3, 500, "lowpass", 160);
+    this.blip(90, 0.09, "sine", 0.35, 60);
+  }
+
+  /** The boarding-pass printer: a fast ticking burst (R5 §14). */
+  print() {
+    for (let i = 0; i < 7; i++) this.blip(1900 + (i % 2) * 300, 0.015, "square", 0.04, undefined, 0.05 + i * 0.035);
+  }
+
   /** The birds round a head a box of blades froze: three quick chirps (R5 §14). */
   tweet() {
     [0, 0.09, 0.18].forEach((d, i) => this.blip(2600 + i * 220, 0.05, "sine", 0.05, 3400 + i * 200, d));

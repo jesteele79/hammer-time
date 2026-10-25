@@ -57,6 +57,9 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   hhBus: ["slide"],
   hhCart: ["boom"],
   hhClash: ["clash"],
+  // Fare Darts (R5 §14): the scalpel's whoosh off his hand, the boom at A1.
+  fdThrow: ["whoosh"],
+  fdPreferred: ["boom"],
   hhLock: ["tickSfx"],
   hhLecture: ["harrumph"],
   doggyBag: ["chomp", "power"],
@@ -134,6 +137,9 @@ export function cuesFor(e: GameEvent): Cue[] {
       return e.by === "mallet" ? ["bonk"] : e.by === "shield" ? ["kick"] : e.by === "snot" ? ["splat"] : [];
     case "land":
       return e.speed >= HARD_LANDING ? ["thud"] : [];
+    // A scalpel sticks with a thunk; a booking's pass prints with a ding.
+    case "fdStick":
+      return e.outcome === "book" ? ["thunk", "print", "ding"] : ["thunk"];
     case "pickup":
       return PICKUP_CUES[e.kind];
     case "mode":

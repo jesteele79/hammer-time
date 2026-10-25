@@ -374,6 +374,15 @@ function stick(q: Fares, s: Shot) {
   if (q.stuck >= FARES.throws) q.endT = FARES.end;
 }
 
+/** The dev hook's skip: the rest of the tray (one in the air too) goes as misses and the end's beat runs to the tally. */
+export function skipFares(q: Fares): void {
+  if (q.result || q.endT >= 0) return;
+  q.misses += FARES.throws - q.stuck;
+  q.thrown = q.stuck = FARES.throws;
+  q.shot = null;
+  q.endT = FARES.end;
+}
+
 function resultOf(q: Fares): FaresResult {
   const booked = q.bookings.length;
   const wga = q.bookings.filter((b) => b.kind === "fare" && b.cls === "wga").length;

@@ -4,6 +4,7 @@ import { chromium } from "playwright";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { checkedUrl } from "./browser-guard.mjs";
+import sharp from "sharp";
 
 const base = checkedUrl(process.argv[2] || "http://127.0.0.1:8090/");
 const out = resolve("artifacts");
@@ -85,6 +86,43 @@ try {
     save("banquet-dive.png", await render("banquet-dive"));
     save("banquet-food.png", await render("banquet-food"));
     count += frames.length + 2;
+  }
+  if (want("gate")) {
+    // The gate (R5): its four moments from a replayed practice round, and his throw and lob up close.
+    await page.goto(`${base}?next=1&board=1&dev=1`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const frames = (await render("gate")).split("\n");
+    frames.forEach((f, i) => save(`gate-look-${i + 1}.png`, f));
+    save("gate-throw.png", await render("gate-throw"));
+    count += frames.length + 1;
+  }
+  if (want("box-bonk")) {
+    // A box of #15 blades lobbed in the lobby, slowed down: in flight, the bonk, the birds over whoever it froze; side by side.
+    await page.goto(`${base}?next=1&dev=1`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => {
+      window.__next.dev.boxes(3);
+      window.__next.dev.teleport(4050, 0);
+    });
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => window.__next.dev.slowmo(0.2, 4));
+    await page.keyboard.down("KeyB");
+    await page.waitForTimeout(80);
+    await page.keyboard.up("KeyB");
+    await page.waitForTimeout(1300);
+    const shots = [await page.screenshot()];
+    await page.waitForFunction(() => (window.__next.run.events?.sampleHit ?? 0) > 0, null, { timeout: 8000 });
+    shots.push(await page.screenshot());
+    await page.waitForTimeout(700);
+    shots.push(await page.screenshot());
+    const { width, height } = await sharp(shots[0]).metadata();
+    const png = await sharp({ create: { width: width * 3, height, channels: 4, background: "#20242b" } })
+      .composite(shots.map((input, i) => ({ input, left: i * width, top: 0 })))
+      .png()
+      .toBuffer();
+    save("box-bonk.png", `data:image/png;base64,${png.toString("base64")}`);
+    count++;
   }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log(`PASS: ${count} boards rendered.`);

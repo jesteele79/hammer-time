@@ -57,6 +57,8 @@ export const RECIPES = {
   // Hot snot sheds embers as it flies.
   ember: { speed: [20, 90], angle: [180, 360], gravity: -160, drag: 2, life: [0.2, 0.4], size: [6, 2], colors: ["#ffd36a", "#ff5a1f"], additive: true },
   crumbs: { speed: [140, 360], angle: [200, 340], gravity: 1500, drag: 1, life: [0.3, 0.55], size: [6, 3], colors: ["#d9a86a", "#8a5a2c"], additive: false },
+  // Out of the shuttle door with a full smash: nuts spilling from his pockets, tumbling out and down (R5 §8).
+  nuts: { speed: [60, 200], angle: [30, 150], gravity: 1800, drag: 0.6, life: [0.25, 0.38], size: [10, 8], colors: ["#d0a066", "#7a4f24"], additive: false },
   gold: { speed: [200, 480], angle: [0, 360], gravity: 300, drag: 2, life: [0.35, 0.6], size: [9, 3], colors: ["#fff1a0", "#f2c230"], additive: true },
   // The pepper crate's steam, a slow wisp rising off its top.
   steamPuff: { speed: [20, 60], angle: [250, 290], gravity: -120, drag: 1.2, life: [0.8, 1.3], size: [8, 20], colors: ["#ffffff", "#c9c2b8"], additive: false },

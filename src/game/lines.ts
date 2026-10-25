@@ -232,3 +232,34 @@ export function pick<T>(list: readonly T[], seed: number): T {
 
 /** His thought, now and then, as a box of blades bonks someone (R5 §9): each at most once a venue. */
 export const SAMPLE_LINES: Line[] = [think("Free sample."), think("Read the IFU."), think("You're welcome."), think("That's a sterile field, trainee.")];
+
+/** His outer monologue at gate B7 (R5 §7): the travelers get these between throws, on their own or on E. */
+export const GATE_INSULTS: Line[] = [
+  think("You CHECKED a bag? Amateur."),
+  think("Group C. Enjoy the middle seat."),
+  think("That is not a personal item. That is a footlocker."),
+  think("Shoes ON, sir. This is a gate, not a spa."),
+  think("A neck pillow. At the gate. Bold."),
+  think("Pre-boarding? For WHAT?"),
+  think("You don't line up before your number. That's not how numbers work."),
+  think("No assigned seats and you still found a way to be wrong."),
+  think("Speakerphone. At a gate. Incredible."),
+  think("That's a four-dollar water. You paid it. I watched."),
+  think("Real travelers carry on."),
+  think("Fly much? No. Clearly not."),
+];
+/** On a streak, a gloat on every booking. */
+export const GATE_GLOATS: Line[] = [
+  think("Watch and learn, trainees."),
+  think("I've flown more miles than this airport."),
+  think("Write that down. That's a technique."),
+  think("Rapid Rewards. Rapidly."),
+];
+/** After a miss he doubles down, the first at whoever laughed. */
+export const GATE_PISSED: Line[] = [
+  think("Who moved the board?"),
+  think("Somebody coughed."),
+  think("STOP. LOOKING. AT ME."),
+  think("That one doesn't count. Practice throw."),
+  think("I'll be writing to the manufacturer."),
+];

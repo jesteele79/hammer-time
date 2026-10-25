@@ -1,6 +1,9 @@
 import { Application, RendererType, UPDATE_PRIORITY, type Ticker } from "pixi.js";
 import type { GameEvent } from "../sim/events";
 import type { FoodKind } from "../sim/quests/hungry/food";
+import type { CityCode, TagKind } from "../sim/quests/fares/board";
+
+type ProbeRect = { x: number; y: number; w: number; h: number };
 import { refreshFrom, shouldStepDown } from "./quality";
 
 export type Quality = "ultra" | "high" | "medium" | "low";
@@ -31,10 +34,33 @@ export type NextProbe = {
   starts?: number;
   /** The canvas draws: false while the start screen covers it. */
   drawing?: boolean;
-  /** Hungry Hungry Hammer while it is up (R4): its clock, score and chomps, his dives this round, his line, and the table on screen in CSS px. */
-  quest?: { time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; lock: string | null; duck: boolean; stun: number; result: unknown; frame: { x: number; y: number; w: number; h: number } };
+  /**
+   * The side quest while it is up. Hungry Hungry Hammer (R4): its clock, score and chomps, his dives this round, his line,
+   * and the table on screen. Fare Darts (R5): its clock and score, the scalpels thrown and stuck, the bookings, his
+   * boarding position, the streak, the steady hand, A-LIST PREFERRED, and the crosshair, the live tags and the board on
+   * screen. Screen rects and points in CSS px.
+   */
+  quest?:
+    | { id: "hungry"; time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; lock: string | null; duck: boolean; stun: number; result: unknown; frame: ProbeRect }
+    | {
+        id: "fares";
+        time: number;
+        score: number;
+        thrown: number;
+        stuck: number;
+        booked: number;
+        position: number;
+        streak: number;
+        steady: number;
+        preferred: boolean;
+        aim: { x: number; y: number };
+        tags: { city: string; kind: string; rect: ProbeRect }[];
+        result: unknown;
+        frame: ProbeRect;
+      };
   /** Set by the look scene once it runs. */
-  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; clip?: string };
+  /** `walkOut`: out of the shuttle door, the seconds left of the can in his hand and the nuts spilling (R5 §8). */
+  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
   heroScreenX?: number;
   /** How many staffers on screen show the prize they carry over their heads. */
@@ -128,8 +154,10 @@ export type NextProbe = {
     pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }): void;
     /** The running round: its clock, dishes on a rival's plate, his line aimed at a rival's plate, dishes landed on his. */
     quest(o: { time?: number; plate?: { who: "student" | "bellhop" | "nurse"; kinds: FoodKind[] }; aim?: "student" | "bellhop" | "nurse"; eat?: FoodKind[] }): void;
-    /** Runs the round's clock out: its tally is next. */
+    /** Runs the round's clock out (the gate's: the rest of the tray as misses): its tally is next. */
     questSkip(): void;
+    /** The gate's round: the crosshair pinned on a city (null sweeps again), a tag put on a city, the hazards off. */
+    fares(o: { pin?: CityCode | null; tag?: { city: CityCode; kind?: TagKind }; calm?: boolean }): void;
   };
 };
 declare global {

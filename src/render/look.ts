@@ -1,6 +1,6 @@
 import { Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
-import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, LECTURES, SAMPLE_LINES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
+import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, GATE_GLOATS, GATE_INSULTS, GATE_PISSED, LECTURES, SAMPLE_LINES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import type { TauntTarget } from "../game/taunts";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
 import { HEAD_SCALE, LAND_T, STEP } from "../sim/constants";
@@ -37,7 +37,7 @@ import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
 import { createLighting, multiplyTint, type Light } from "./lighting";
-import { drawCrate, loadProducts, Objects } from "./objects";
+import { drawCrate, loadProducts, Objects, productTexture } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
 import { HATTED, type CastRole } from "../sim/cast";
@@ -63,6 +63,13 @@ import { HUNGRY, createHungry, land, stepHungry, type Hungry } from "../sim/ques
 import { sharpPlayer } from "../sim/quests/hungry/drive";
 import { FOODS, type FoodKind } from "../sim/quests/hungry/food";
 import { SEATS, TABLE, onScreen, screenDeg, sub, type RivalId } from "../sim/quests/hungry/table";
+import { GATE_ID, GateView } from "./quests/gate-scene";
+import { gateLayout } from "./quests/gate-layout";
+import { FARES, addTag, aimOf, createFares, skipFares, stepFares, type Fares } from "../sim/quests/fares/fares";
+import { masherPlayer, sharpPlayer as sharpFares, type Player as FaresPlayer } from "../sim/quests/fares/drive";
+import { cityAt, type CityCode, type TagKind } from "../sim/quests/fares/board";
+import type { FaresEvent } from "../sim/quests/fares/events";
+import type { QuestId } from "../sim/quests/quest";
 
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
@@ -86,6 +93,12 @@ const SMUG_T = 0.6;
 /** How far ahead of the towel hand the sweat spray starts. */
 const SPRAY_AHEAD = 24;
 const STEAM_EVERY = 0.08;
+/** Out of the shuttle door (R5 §8): the Coke Zero in his hand 3 s, nuts spilling 2 s, the can drawn this tall. */
+const WALK_CAN = 3;
+const WALK_NUTS = 2;
+const WALK_CAN_H = 46;
+/** A finger held this long on the canvas at the gate steadies his hand (R5 §3). */
+const POINTER_STEADY_MS = 200;
 const SWEAT_EVERY = 0.25;
 const STEAM_HEAT = HEAT.steam;
 const SWEAT_HEAT = HEAT.sweat;
@@ -228,9 +241,22 @@ export async function startLook(
       }));
   // On the start screen the side quest is a tap away: it loads right behind the lobby. Straight into play it waits for
   // the shift's venues (or the BUFFET door), so a phone's start fetches no more than it did before the banquet.
-  if (opts.title) void loadBanquet();
+  // The gate behind the AIRPORT SHUTTLE door and its card (R5) loads the same way, after the banquet.
+  const gate = new GateView(render, scene, registry, !!opts.noart);
+  let gateLoaded = false;
+  let gateLoad: Promise<void> | null = null;
+  const loadGate = () =>
+    (gateLoad ??= gate
+      .load()
+      .catch((err) => console.warn("gate:", err))
+      .then(() => {
+        gateLoaded = true;
+      }));
+  if (opts.title) void loadBanquet().then(() => (stopped ? undefined : loadGate()));
   // The rest of the shift loads one venue after another while he plays.
-  void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve()).then(() => (stopped ? undefined : loadBanquet()));
+  void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve())
+    .then(() => (stopped ? undefined : loadBanquet()))
+    .then(() => (stopped ? undefined : loadGate()));
   const headPlate = registry.hammer.heads.neutral!;
 
   const vignette = new Sprite(vignetteTexture());
@@ -524,6 +550,10 @@ export async function startLook(
             ? `Gate +${e.score.toLocaleString("en-US")}${e.boxes ? ` · ${e.boxes} ${e.boxes === 1 ? "box" : "boxes"} of #15 blades` : ""}${e.cans ? ` · +${e.cans} cans` : ""}${e.lives ? " · extra life" : ""}`
             : `Banquet +${e.score.toLocaleString("en-US")}${e.doggy ? " · doggy bag packed" : ""}${e.flop ? " · belly-flop" : ""}`;
         noteT = NOTE_T * 2;
+        if (e.quest === "fares") {
+          walkOut.can = e.cans > 0 ? WALK_CAN : 0;
+          walkOut.nuts = e.grade !== "C GROUP" ? WALK_NUTS : 0;
+        }
         break;
       case "pickup":
         objects.pop(e.kind, e.x, e.y);
@@ -824,9 +854,26 @@ export async function startLook(
     }
   };
 
-  /** The banquet is up: its card, its round, its tally, or a break in its round. */
-  const inBanquet = () => game.quest?.id === "hungry" && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
-  let banqueting = false;
+  /** A side quest is up: its card, its round, its tally, or a break in its round. */
+  const inQuest = () => !!game.quest && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
+  const inBanquet = () => inQuest() && game.quest?.id === "hungry";
+  const inGate = () => inQuest() && game.quest?.id === "fares";
+  /** Which quest's view is up in place of the shift's. */
+  let questShown: QuestId | null = null;
+  /** Which of his gate lines comes next, by mood (R5 §7). */
+  const gateLines = { calm: 0, gloat: 0, pissed: 0 };
+  /** The camera's push-in while a scalpel flies (R5 §3), 0 to 1. */
+  let gatePush = 0;
+  let gateSteamT = 0;
+  /** Out of the shuttle door: the Coke Zero in his hand and the nuts spilling from his pockets, seconds left (R5 §8). */
+  const walkOut = { can: 0, nuts: 0 };
+  let nutsT = 0;
+  const walkCan = new Sprite(Texture.EMPTY);
+  walkCan.anchor.set(0.5, 0.6);
+  walkCan.visible = false;
+  scene.layers.play.addChild(walkCan);
+  /** Fingers on the canvas during a Fare Darts round, and when each went down (R5 §3). */
+  const pointers = new Map<number, number>();
   /** Which of his banquet lectures comes next. */
   let banquetLectures = 0;
   /** The box of blades's lines said in this venue (R5 §9): each once a venue. */
@@ -835,45 +882,54 @@ export async function startLook(
   let shownQuest: Hungry | null = null;
   let questDives = 0;
 
-  /** The banquet's view in place of the shift's, or back: the shift's venue, people and props hidden while it shows. */
-  const showBanquetView = (on: boolean) => {
-    for (const [id, v] of views) {
-      v.venue.setVisible(!on && id === shown);
-      v.backdrop.setVisible(!on && id === shown);
+  /** A quest's view in place of the shift's, or back (null): the shift's venue, people and props hidden while it shows. */
+  const showQuestView = (id: QuestId | null) => {
+    const on = id !== null;
+    for (const [vid, v] of views) {
+      v.venue.setVisible(!on && vid === shown);
+      v.backdrop.setVisible(!on && vid === shown);
     }
     if (!on && shown) lighting.setGroup(shown);
     character.container.visible = cast.container.visible = props.container.visible = flyers.container.visible = pigView.container.visible = !on;
     objects.setVisible(!on);
-    banquet.setVisible(on);
+    banquet.setVisible(id === "hungry");
+    gate.setVisible(id === "fares");
     if (on) {
       shieldGlow.clear();
       smear.clear();
-      lighting.setGroup("banquet");
+      walkCan.visible = false;
+      lighting.setGroup(id === "hungry" ? "banquet" : "gate");
       scene.camera.bounds = null;
       scene.camera.target = null;
     }
   };
-  const enterBanquet = () => {
+  const enterQuest = (id: QuestId) => {
     speech.clear();
     bubbles.clear();
-    showBanquetView(true);
-    banqueting = true;
+    showQuestView(id);
+    questShown = id;
   };
-  /** Out of the banquet: the shift's level shown again where he stands. */
-  const leaveBanquet = (x: number, y: number) => {
+  /** Out of a quest: the shift's level shown again where he stands. */
+  const leaveQuest = (x: number, y: number) => {
     speech.clear();
     bubbles.clear();
-    showBanquetView(false);
+    showQuestView(null);
     showLevel(game.level, x, y);
-    banqueting = false;
+    questShown = null;
   };
 
-  /** The CSS px the HUD's top bar and the touch pad or the hint take off the screen: the banquet is framed between them. */
-  const insets = () => {
+  /**
+   * The CSS px the HUD's top bar and the touch pad or the hint take off the screen: the banquet is framed between them.
+   * The gate (`gate`) on an upright phone keeps under the HUD's panel and above the hint, which both span the screen there.
+   */
+  const insets = (gate = false) => {
+    const upright = gate && scene.width < scene.height;
     const bar = document.querySelector(".next-hud__bar-top")?.getBoundingClientRect();
+    const side = upright ? document.querySelector(".next-hud__panel")?.getBoundingClientRect() : undefined;
     const pad = document.querySelector(".next-touch")?.getBoundingClientRect();
     const hint = document.querySelector(".next-hud__hint")?.getBoundingClientRect();
-    return { top: bar ? bar.bottom + 8 : 64, bottom: pad ? scene.height - pad.top + 8 : hint ? scene.height - hint.top + 8 : 44 };
+    const low = upright && pad && hint ? Math.min(pad.top, hint.top) : pad ? pad.top : hint?.top;
+    return { top: Math.max(bar ? bar.bottom + 8 : 64, side ? side.bottom + 8 : 0), bottom: low !== undefined ? scene.height - low + 8 : 44 };
   };
 
   /** The banquet's events as words, bubbles, speech and particles, every word through the face-safe layout. */
@@ -974,7 +1030,7 @@ export async function startLook(
   const banquetTick = (dt: number, simDt: number) => {
     const q = game.quest;
     if (q?.id !== "hungry") return;
-    if (!banqueting) enterBanquet();
+    if (questShown !== "hungry") enterQuest("hungry");
     // His dives this round, for the checks: a new round counts from nothing.
     if (q !== shownQuest) {
       shownQuest = q;
@@ -1010,6 +1066,7 @@ export async function startLook(
       window.__next.faceScreen = faceOnScreen;
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
       window.__next.quest = {
+        id: "hungry",
         time: q.time,
         score: Math.max(0, Math.round(q.score.plate + q.score.bonus)),
         eaten: q.score.eaten,
@@ -1025,6 +1082,131 @@ export async function startLook(
     }
   };
 
+  /** The gate's events as words, bubbles, speech and the crowd's beats, every word through the face-safe layout (R5 §7). */
+  const showGate = (e: GameEvent) => {
+    const face = gate.face();
+    const view = scene.view();
+    switch (e.type) {
+      case "fdStick": {
+        const p = gate.toWorld(e.at);
+        particles.emit("debris", p.x, p.y, 4);
+        if (e.outcome === "book" && e.booking) {
+          particles.emit("glint", p.x, p.y, 8);
+          words.say(`+${e.points.toLocaleString("en-US")}`, p.x, p.y - 80, e.points >= 300, face, view);
+          if (e.booking.companion) words.say("COMPANION PASS", p.x, p.y - 160, true, face, view);
+        } else if (e.outcome === "stop") words.say("CANCELLED", p.x, p.y - 80, true, face, view);
+        else words.say("MISS", p.x, p.y - 80, false, face, view);
+        break;
+      }
+      case "fdPreferred": {
+        const r = gate.boardOnScreen();
+        particles.emit("gold", r.x + r.w / 2, r.y + r.h / 2, 30);
+        words.say("A-LIST PREFERRED!", r.x + r.w / 2, r.y + r.h / 2, true, face, view);
+        break;
+      }
+      case "fdThink":
+        bubbles.think(e.text, e.seconds);
+        break;
+      case "fdSay":
+        speech.say(GATE_ID[e.who], e.text, e.seconds);
+        break;
+      case "fdInsult": {
+        const lines = e.mood === "gloat" ? GATE_GLOATS : e.mood === "pissed" ? GATE_PISSED : GATE_INSULTS;
+        bubbles.think(lines[gateLines[e.mood]++ % lines.length].text, FARES.mouth.bubble);
+        break;
+      }
+      case "fdCrowd":
+        for (const t of e.who) gate.react(t, e.kind);
+        break;
+      case "fdMood":
+        gate.mood(e.mood, e.seconds);
+        break;
+      default:
+        break;
+    }
+  };
+  const isFares = (e: GameEvent): e is FaresEvent => e.type.startsWith("fd");
+
+  /** A frame of the gate: the round drawn, framed between the bars, its words and the HUD. */
+  const gateTick = (dt: number, simDt: number) => {
+    const q = game.quest;
+    if (q?.id !== "fares") return;
+    if (questShown !== "fares") enterQuest("fares");
+    stepped.length = 0;
+    const l = gateLayout(scene.width, scene.height, insets(true));
+    gate.layout(l);
+    for (const e of pending) if (isFares(e)) gate.event(e);
+    gate.sync(q, simDt, time);
+    for (const e of pending) showGate(e);
+    pending.length = 0;
+    gatePush += ((q.shot?.phase === "flight" ? 1 : 0) - gatePush) * Math.min(1, simDt * 14);
+    Object.assign(scene.camera, { x: l.camera.x, y: l.camera.y, zoom: l.camera.zoom * (1 + 0.04 * gatePush) });
+    scene.update(dt);
+    lighting.update(dt);
+    const face = gate.face();
+    // Pissed after a miss: the heat's steam puffing from the top of his head, for the look only.
+    gateSteamT = gate.steaming() ? gateSteamT + simDt : 0;
+    if (gateSteamT >= STEAM_EVERY / 2) {
+      gateSteamT = 0;
+      const c = gate.crown();
+      particles.emit("steam", c.x + (Math.random() - 0.5) * 40, c.y, 2);
+    }
+    faceOnScreen = screenRect(face);
+    const view = scene.view();
+    words.update(simDt, face, view);
+    bubbles.update(simDt, { crown: gate.crown(), face, facing: 1, view });
+    speech.update(simDt, (id) => gate.crownOf(id), face, view);
+    particles.update(simDt, face);
+    sound.music(game.mode === "quest" ? game.level.music : null);
+    afterFrame(simDt, false);
+    vignette.width = scene.width;
+    vignette.height = scene.height;
+    if (window.__next) {
+      window.__next.run = runProbe();
+      window.__next.starts = starts;
+      window.__next.drawing = app.stage.visible;
+      window.__next.faceScreen = faceOnScreen;
+      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.quest = {
+        id: "fares",
+        time: q.time,
+        score: q.score,
+        thrown: q.thrown,
+        stuck: q.stuck,
+        booked: q.bookings.length,
+        position: q.position,
+        streak: q.streak,
+        steady: q.steady,
+        preferred: q.preferred,
+        aim: scene.toScreen(gate.toWorld(aimOf(q))),
+        tags: gate.tagsInWorld().map((t) => ({ city: t.city, kind: t.kind, rect: screenRect(t.rect) })),
+        result: q.result,
+        frame: screenRect(gate.boardOnScreen()),
+      };
+    }
+  };
+
+  /** A finger on the canvas during a Fare Darts round: its touch throws; one held a moment steadies the next (R5 §3). */
+  const onPointer = (e: PointerEvent) => {
+    if (e.type === "pointerdown") {
+      if (game.quest?.id !== "fares" || game.mode !== "quest") return;
+      sound.unlock();
+      pointers.set(e.pointerId, performance.now());
+      touchTapped.add("jump");
+    } else pointers.delete(e.pointerId);
+  };
+  /** A finger held on the canvas 0.2 s or more, with no scalpel in the air: Run held. */
+  const pointerSteady = () => {
+    const q = game.quest;
+    if (q?.id !== "fares" || game.mode !== "quest" || q.shot) return false;
+    const now = performance.now();
+    for (const at of pointers.values()) if (now - at >= POINTER_STEADY_MS) return true;
+    return false;
+  };
+  app.canvas.addEventListener("pointerdown", onPointer);
+  window.addEventListener("pointerup", onPointer);
+  window.addEventListener("pointercancel", onPointer);
+
   /** Just the actions the keys and the pad hold this instant: what Continue must not see pressed on the step after it. */
   const heldNow = () => inputFrom(down, touchDown, prevHeld).held;
 
@@ -1032,10 +1214,11 @@ export async function startLook(
     // Under the opaque start screen nothing needs drawing: the canvas rests until a start is chosen.
     app.stage.visible = game.mode !== "title";
     // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
-    const holding = !views.has(game.level.id) || (inBanquet() && !banquetLoaded);
+    const holding = !views.has(game.level.id) || (inBanquet() && !banquetLoaded) || (inGate() && !gateLoaded);
     if (holding) {
       void prepare(game.level);
       if (inBanquet()) void loadBanquet();
+      if (inGate()) void loadGate();
     }
     // A break stops everything that runs on game time; the camera and the screen still draw.
     const dt = game.mode === "pause" || holding ? 0 : Math.min(t.deltaMS / 1000, 0.1);
@@ -1043,7 +1226,9 @@ export async function startLook(
     // Hit-stop and slow motion: the sim and everything it drives run on the clock's seconds,
     // and a hit freezes the world on the step it lands.
     const { simDt, steps } = runFrame(clock, frame, dt, () => {
-      const input = inputFrom(keys, touchTapped.size ? new Set([...touchDown, ...touchTapped]) : touchDown, prevHeld);
+      const touch = touchTapped.size || pointers.size ? new Set([...touchDown, ...touchTapped]) : touchDown;
+      if (pointerSteady()) touch.add("run");
+      const input = inputFrom(keys, touch, prevHeld);
       prevHeld = input.held;
       prev = cur;
       game.step(input);
@@ -1063,7 +1248,11 @@ export async function startLook(
       banquetTick(dt, simDt);
       return;
     }
-    if (banqueting) leaveBanquet(world.hero.x, world.hero.y);
+    if (inGate()) {
+      gateTick(dt, simDt);
+      return;
+    }
+    if (questShown) leaveQuest(world.hero.x, world.hero.y);
     const alpha = Math.min(1, frame.acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
@@ -1125,6 +1314,23 @@ export async function startLook(
     };
     for (const e of pending) show(e, at);
     pending.length = 0;
+    // Out of the shuttle door: a Coke Zero in his free hand, nuts spilling from his pockets (R5 §8).
+    walkOut.can = Math.max(0, walkOut.can - simDt);
+    walkOut.nuts = Math.max(0, walkOut.nuts - simDt);
+    const can = walkOut.can > 0 ? productTexture("can") : null;
+    walkCan.visible = !!can;
+    if (can) {
+      walkCan.texture = can;
+      walkCan.scale.set(WALK_CAN_H / can.height);
+      walkCan.position.set(at.hand.x, at.hand.y);
+      walkCan.zIndex = y + 0.1;
+    }
+    nutsT = walkOut.nuts > 0 ? nutsT + simDt : 0;
+    if (nutsT >= 0.08) {
+      nutsT = 0;
+      const hip = { x: x + solved.joints.hipNear.x, y: drawY + solved.joints.hipNear.y };
+      particles.emit("nuts", hip.x + h.facing * 10, hip.y, 2);
+    }
 
     if (h.state !== lastState) {
       if (h.state === "land") particles.emit("dust", x, floorY, 10);
@@ -1229,7 +1435,7 @@ export async function startLook(
       window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
-      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, clip };
+      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, clip, walkOut: { ...walkOut } };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.carrying = objects.carrying;
@@ -1263,7 +1469,7 @@ export async function startLook(
       };
       window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
       // The cast's painted figures alive: the pig's own figure, kept while the gift shop is loaded, and the banquet's diners are not.
-      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live - (pigView.kind === "painted" ? 1 : 0) - banquet.paintedCount(), tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
+      window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live - (pigView.kind === "painted" ? 1 : 0) - banquet.paintedCount() - gate.paintedCount(), tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
       window.__next.cast = {
         people: Object.fromEntries(cur.cast.filter((n) => n.alive).map((n) => [n.id, { person: n.person, recolor: n.recolor }])),
         targets: cur.targets.map((t) => ({ id: t.id, load: t.load })),
@@ -1321,7 +1527,7 @@ export async function startLook(
       await loadBanquet();
       const cam = scene.camera;
       const saved = { w: scene.width, h: scene.height, x: cam.x, y: cam.y, zoom: cam.zoom, target: cam.target, bounds: cam.bounds, shake: { ...cam.shake }, stage: app.stage.visible };
-      showBanquetView(true);
+      showQuestView("hungry");
       app.stage.visible = true;
       scene.width = 1920;
       scene.height = 1080;
@@ -1337,7 +1543,7 @@ export async function startLook(
       scene.height = saved.h;
       Object.assign(cam, { x: saved.x, y: saved.y, zoom: saved.zoom, target: saved.target, bounds: saved.bounds, shake: saved.shake });
       app.stage.visible = saved.stage;
-      if (!banqueting) showBanquetView(false);
+      if (questShown !== "hungry") showQuestView(questShown);
       scene.fit();
       return out;
     };
@@ -1383,7 +1589,87 @@ export async function startLook(
         return snapshotOf(app, board, 5 * cell, rows * cell, 1);
       },
     };
-    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id), () => game.level, banquetShots);
+    /** The gate at `q` as the round left it, 1920 by 1080, as a PNG data URL (R5): shown and framed for one picture, then put back. */
+    const shootGate = async (q: Fares, steam = false): Promise<string> => {
+      await loadGate();
+      const cam = scene.camera;
+      const saved = { w: scene.width, h: scene.height, x: cam.x, y: cam.y, zoom: cam.zoom, target: cam.target, bounds: cam.bounds, shake: { ...cam.shake }, stage: app.stage.visible };
+      showQuestView("fares");
+      app.stage.visible = true;
+      scene.width = 1920;
+      scene.height = 1080;
+      const l = gateLayout(1920, 1080, { top: 0, bottom: 0 });
+      gate.layout(l);
+      gate.sync(q, 0, q.time);
+      if (steam) {
+        const c = gate.crown();
+        for (let i = 0; i < 8; i++) {
+          particles.emit("steam", c.x + (i % 3) * 14 - 14, c.y, 1);
+          particles.update(0.05, gate.face());
+        }
+      }
+      Object.assign(cam, { x: l.camera.x, y: l.camera.y, zoom: l.camera.zoom, shake: { x: 0, y: 0, rot: 0 } });
+      scene.fit();
+      const target = RenderTexture.create({ width: 1920, height: 1080, resolution: 1 });
+      app.renderer.render({ container: app.stage, target });
+      const out = await app.renderer.extract.base64({ target, format: "png" });
+      target.destroy(true);
+      scene.width = saved.w;
+      scene.height = saved.h;
+      Object.assign(cam, { x: saved.x, y: saved.y, zoom: saved.zoom, target: saved.target, bounds: saved.bounds, shake: saved.shake });
+      app.stage.visible = saved.stage;
+      if (questShown !== "fares") showQuestView(questShown);
+      scene.fit();
+      return out;
+    };
+    /** A practice round under `player`, its events fed to the gate as they come (the board's sticks, the crowd, his face), run until `until` or its end. */
+    const gateUntil = async (player: FaresPlayer, until: (q: Fares) => boolean, seed = 7): Promise<Fares> => {
+      await loadGate();
+      gate.layout(gateLayout(1920, 1080, { top: 0, bottom: 0 }));
+      const q = createFares(seed, { practice: true });
+      let acc = 0;
+      let n = 0;
+      while (!q.result) {
+        stepFares(q, player(q), STEP);
+        acc += STEP;
+        for (const e of q.events) {
+          gate.event(e);
+          if (e.type === "fdCrowd") for (const t of e.who) gate.react(t, e.kind);
+          if (e.type === "fdMood") gate.mood(e.mood, e.seconds);
+        }
+        const done = until(q);
+        if (done || ++n % 6 === 0) {
+          gate.sync(q, acc, q.time);
+          acc = 0;
+        }
+        if (done) break;
+      }
+      return q;
+    };
+    /** Since the last event of a kind, on the round's clock: for the boards' moments. */
+    const since = (test: (e: Fares["events"][number]) => boolean) => {
+      let at = -Infinity;
+      return (q: Fares) => {
+        if (q.events.some(test)) at = q.time;
+        return q.time - at;
+      };
+    };
+    const gateShots = {
+      /** The round at four moments (R5 Task 10): the opening, a scalpel in flight, a streak with the crowd oohing, a miss with the steam. */
+      async moments(): Promise<string[]> {
+        const ooh = since((e) => e.type === "fdCrowd" && e.kind === "ooh");
+        const missed = since((e) => e.type === "fdStick" && e.outcome !== "book");
+        return [
+          await shootGate(await gateUntil(sharpFares(), (q) => q.time >= 2.4)),
+          await shootGate(await gateUntil(sharpFares(), (q) => q.thrown >= 2 && q.shot?.phase === "flight" && q.shot.t >= 0.09)),
+          await shootGate(await gateUntil(sharpFares(), (q) => q.streak >= FARES.streak && ooh(q) >= 0.3 && ooh(q) < 0.5)),
+          await shootGate(await gateUntil(masherPlayer, (q) => q.stuck >= 2 && missed(q) >= 0.35), true),
+        ];
+      },
+      /** The start screen's picture: a streak, tags up, the next scalpel cocked. */
+      thumb: async () => shootGate(await gateUntil(sharpFares(), (q) => q.streak >= FARES.streak && q.tags.length >= 3 && q.shot?.phase === "windup" && q.shot.t >= 0.12)),
+    };
+    window.__nextBoard = createBoards(render, scene, registry, particles, placeHero, (id) => showForBoard(id ?? game.level.id), () => game.level, banquetShots, gateShots);
   }
   if (opts.dev && window.__next)
     window.__next.dev = {
@@ -1454,9 +1740,19 @@ export async function startLook(
         if (o.aim) Object.assign(q.hammer, { aim: screenDeg(1, sub(SEATS[o.aim].plate, SEATS.hammer.plate)), lock: o.aim });
         for (const k of o.eat ?? []) land(q, "hammer", k);
       },
-      /** Runs the round's clock out: its tally is next. */
+      /** Runs the round's clock out (the gate's: the rest of the tray as misses): its tally is next. */
       questSkip() {
-        if (game.quest?.id === "hungry" && !game.quest.result) game.quest.time = HUNGRY.round - STEP / 2;
+        const q = game.quest;
+        if (q?.id === "hungry" && !q.result) q.time = HUNGRY.round - STEP / 2;
+        if (q?.id === "fares") skipFares(q);
+      },
+      /** The gate's round: the crosshair pinned on a city (null lets it sweep again), a tag put on a city, the hazards off. */
+      fares(o: { pin?: CityCode | null; tag?: { city: CityCode; kind?: TagKind }; calm?: boolean }) {
+        const q = game.quest;
+        if (q?.id !== "fares") return;
+        if (o.calm) q.hazards = false;
+        if (o.tag) addTag(q, o.tag.city, o.tag.kind ?? "fare");
+        if (o.pin !== undefined) q.pin = o.pin === null ? null : cityAt(o.pin);
       },
     };
   const look: Look = {
@@ -1472,6 +1768,10 @@ export async function startLook(
       cast.destroy();
       pigView.destroy();
       banquet.destroy();
+      gate.destroy();
+      app.canvas.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("pointerup", onPointer);
+      window.removeEventListener("pointercancel", onPointer);
       for (const v of views.values()) v.venue.destroy();
       if (window.__next) delete window.__next.dev;
       scene.destroy();

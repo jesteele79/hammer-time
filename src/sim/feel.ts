@@ -54,6 +54,9 @@ export function feelOf(e: GameEvent): Feel | null {
       return { hitstop: 0.04, trauma: 0.55 };
     case "hhSlap":
       return { hitstop: 0.04, trauma: 0.2 };
+    // A scalpel sticking in the board (R5 §3): the board shakes, the screen a little.
+    case "fdStick":
+      return { hitstop: 0, trauma: 0.15 };
     default:
       return null;
   }
