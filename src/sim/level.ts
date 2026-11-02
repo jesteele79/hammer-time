@@ -117,7 +117,8 @@ export type LevelLight = { x: number; y: number; radius: number; intensity: numb
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
-export type LevelId = "lobby" | "stash" | "restaurant" | "campus" | "arena";
+/** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
