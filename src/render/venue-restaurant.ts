@@ -1,6 +1,7 @@
 import type { Graphics } from "pixi.js";
 import type { Furniture, LevelFloor, LevelPass, LevelPlatform } from "../sim/level";
 import { FLOOR, INK, THIN } from "./ink";
+import { shadeFace } from "./floor-face";
 import { PALETTE, shadowOf, tones } from "./palette";
 
 /** The restaurant's materials: the dining room's wood, the kitchen's quarry tile, the dock's concrete, the line's steel. */
@@ -26,7 +27,19 @@ function slab(g: Graphics, f: LevelFloor, color: string, bottom: number) {
   g.poly([f.x0, f.y0 - FLOOR.back, f.x1, f.y1 - FLOOR.back, f.x1, f.y1 + FLOOR.top, f.x0, f.y0 + FLOOR.top]).fill(t.highlight);
   g.poly([f.x0, f.y0 + FLOOR.top, f.x1, f.y1 + FLOOR.top, f.x1, bottom, f.x0, bottom]).fill(t.base);
   g.poly([f.x0, f.y0 + FLOOR.top, f.x1, f.y1 + FLOOR.top, f.x1, f.y1 + FLOOR.top + 10, f.x0, f.y0 + FLOOR.top + 10]).fill(t.shadow);
+  faceGrain(g, f, color, bottom);
+  shadeFace(g, f.x0, f.x1, f.y0 + FLOOR.top, f.y1 + FLOOR.top, bottom);
   g.poly([f.x0, f.y0 - FLOOR.back, f.x1, f.y1 - FLOOR.back, f.x1, bottom, f.x0, bottom]).stroke(INK);
+}
+
+/** The face's material down its depth: the wood's boards on end, the quarry tile's joints. */
+function faceGrain(g: Graphics, f: LevelFloor, color: string, bottom: number) {
+  const line = { width: 2, color: shadowOf(color), alpha: 0.55 };
+  if (f.kind === "wood") for (let x = f.x0 + 46; x < f.x1; x += 46) g.moveTo(x, f.y0 + FLOOR.top + 10).lineTo(x, bottom).stroke(line);
+  if (f.kind === "quarry") {
+    for (let x = f.x0 + 100; x < f.x1; x += 100) g.moveTo(x, f.y0 + FLOOR.top + 10).lineTo(x, bottom).stroke(line);
+    for (let y = f.y0 + FLOOR.top + 100; y < bottom; y += 100) g.moveTo(f.x0, y).lineTo(f.x1, y).stroke(line);
+  }
 }
 
 /** A steel counter's body from its top down to the floor: legs, an undershelf of stock pots, the top's edge. */
@@ -62,6 +75,7 @@ export function restaurantFloor(g: Graphics, f: LevelFloor): boolean {
       const t = tones(C.concrete);
       g.poly([f.x0, f.y0, f.x1, f.y1, f.x1, FLOOR.depth, f.x0, FLOOR.depth]).fill(t.base);
       g.poly([f.x0, f.y0 - FLOOR.back, f.x1, f.y1 - FLOOR.back, f.x1, f.y1 + 8, f.x0, f.y0 + 8]).fill(t.highlight);
+      shadeFace(g, f.x0, f.x1, f.y0 + 8, f.y1 + 8, FLOOR.depth);
       g.moveTo(f.x0, f.y0 + 4).lineTo(f.x1, f.y1 + 4).stroke({ width: 10, color: C.hazard });
       g.poly([f.x0, f.y0 - FLOOR.back, f.x1, f.y1 - FLOOR.back, f.x1, FLOOR.depth, f.x0, FLOOR.depth]).stroke(INK);
       return true;

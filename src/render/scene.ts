@@ -21,6 +21,19 @@ export const PARALLAX: Record<LayerName, number> = {
 export const HERO_SCREEN_FRACTION = 0.315;
 /** A phone in portrait shows the world smaller (spec §5.2). */
 export const PORTRAIT_ZOOM = 0.75;
+/**
+ * Where the walking line rests on a screen wider than tall: 78 percent of the way down (story spec §15), so what is under
+ * it is the floor's own front face, never the dark under the level.
+ */
+export const FLOOR_LINE = 0.78;
+
+/**
+ * The camera's rest focus (its centre's world y) for feet at feetY: the walking line at FLOOR_LINE of the view's height
+ * in landscape; in portrait his chest at the centre, as built.
+ */
+export function floorFocus(viewH: number, scale: number, feetY: number, portrait: boolean): number {
+  return portrait ? feetY - HERO_HEIGHT * 0.55 : feetY - ((FLOOR_LINE - 0.5) * viewH) / scale;
+}
 /** The look-ahead never pushes him past this fraction of the half-width. */
 const LOOK_AHEAD_MAX_FRACTION = 0.35;
 const SPRING_X = 7;
@@ -49,6 +62,8 @@ export type Camera = {
   facing: 1 | -1;
   moving: boolean;
   falling: boolean;
+  /** He stands on something: the focus settles on his floor; in the air the dead zone holds it. */
+  grounded: boolean;
   lookAhead: number;
   trauma: number;
   bounds: Rect | null;
@@ -100,6 +115,7 @@ export function createScene(render: RenderApp): Scene {
     facing: 1,
     moving: false,
     falling: false,
+    grounded: true,
     lookAhead: 0,
     trauma: 0,
     bounds: null,
@@ -117,6 +133,8 @@ export function createScene(render: RenderApp): Scene {
     return seed / 2147483647 - 0.5;
   };
 
+  /** The scale at the camera's zoom without a zoom kick: a kick never moves the focus. */
+  const restScale = () => (HERO_SCREEN_FRACTION * scene.height * camera.zoom * (scene.width < scene.height ? PORTRAIT_ZOOM : 1)) / HERO_HEIGHT;
   const scene: Scene = {
     layers,
     camera,
@@ -138,10 +156,12 @@ export function createScene(render: RenderApp): Scene {
         c.lookAhead += (want - c.lookAhead) * ease(c.moving ? 1 / LOOK_IN : 1 / LOOK_OUT, dt);
         const wantX = c.target.x + c.lookAhead;
         c.x += (wantX - c.x) * ease(SPRING_X, dt);
-        // The chest sits at the screen center; the focus moves only past the dead zone.
-        const chest = c.target.y - HERO_HEIGHT * 0.55;
-        if (chest < c.focusY - DEAD_ZONE_Y) c.focusY = chest + DEAD_ZONE_Y;
-        else if (chest > c.focusY + DEAD_ZONE_Y) c.focusY = chest - DEAD_ZONE_Y;
+        // On a floor the focus settles where the walking line rests (the chest at the centre on a phone upright); in the
+        // air it moves only past the dead zone.
+        const rest = floorFocus(scene.height, restScale(), c.target.y, scene.width < scene.height);
+        if (c.grounded) c.focusY = rest;
+        else if (rest < c.focusY - DEAD_ZONE_Y) c.focusY = rest + DEAD_ZONE_Y;
+        else if (rest > c.focusY + DEAD_ZONE_Y) c.focusY = rest - DEAD_ZONE_Y;
         c.y += (c.focusY - c.y) * ease(c.falling ? SPRING_Y_FALLING : SPRING_Y, dt);
       }
       if (scene.reducedMotion) {

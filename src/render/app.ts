@@ -1,4 +1,4 @@
-import { Application, RendererType, UPDATE_PRIORITY, type Ticker } from "pixi.js";
+import { Application, Rectangle, RendererType, UPDATE_PRIORITY, type Ticker } from "pixi.js";
 import type { GameEvent } from "../sim/events";
 import type { FoodKind } from "../sim/quests/hungry/food";
 import type { CityCode, TagKind } from "../sim/quests/fares/board";
@@ -30,6 +30,8 @@ export type NextProbe = {
   fps: number;
   /** Distinct coarse colors in a 1/20-scale read of the stage: the "is anything drawn" probe. */
   sample: () => number;
+  /** The color drawn at a screen point (CSS px), as [r, g, b]: what shows under the floor, for the checks. */
+  pixel?: (x: number, y: number) => [number, number, number];
   /** Runs begun from the start screen on this page: a start chosen while it loaded begins once. */
   starts?: number;
   /** The canvas draws: false while the start screen covers it. */
@@ -64,6 +66,8 @@ export type NextProbe = {
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
   heroScreenX?: number;
+  /** His feet on the screen, CSS px from the top. */
+  heroScreenY?: number;
   /** How many staffers on screen show the prize they carry over their heads. */
   carrying?: number;
   /** Globs of snot stuck to the cast and the pig, and snot splats on the floor. */
@@ -197,6 +201,10 @@ export async function createRenderApp(
       for (let i = 0; i < pixels.length; i += 4)
         seen.add((pixels[i] >> 4) * 4096 + (pixels[i + 1] >> 4) * 256 + (pixels[i + 2] >> 4));
       return seen.size;
+    },
+    pixel: (x, y) => {
+      const { pixels } = app.renderer.extract.pixels({ target: app.stage, frame: new Rectangle(Math.round(x), Math.round(y), 1, 1), resolution: 1 });
+      return [pixels[0], pixels[1], pixels[2]];
     },
   };
   const out: RenderApp = {

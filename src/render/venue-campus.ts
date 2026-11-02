@@ -2,6 +2,7 @@ import type { Graphics } from "pixi.js";
 import type { Furniture, LevelFloor, LevelPlatform } from "../sim/level";
 import type { FloorSegment } from "../sim/types";
 import { FLOOR, INK, THIN } from "./ink";
+import { platformShadow, shadeFace } from "./floor-face";
 import { PALETTE, shadowOf, tones } from "./palette";
 
 /** The campus's materials: the quad's brick, the commons' terrazzo, the library's limestone, the conveyor's steel and rubber. */
@@ -14,6 +15,11 @@ function slab(g: Graphics, f: LevelFloor, color: string, bottom: number) {
   g.poly([f.x0, f.y0 - FLOOR.back, f.x1, f.y1 - FLOOR.back, f.x1, f.y1 + FLOOR.top, f.x0, f.y0 + FLOOR.top]).fill(t.highlight);
   g.poly([f.x0, f.y0 + FLOOR.top, f.x1, f.y1 + FLOOR.top, f.x1, bottom, f.x0, bottom]).fill(t.base);
   g.poly([f.x0, f.y0 + FLOOR.top, f.x1, f.y1 + FLOOR.top, f.x1, f.y1 + FLOOR.top + 10, f.x0, f.y0 + FLOOR.top + 10]).fill(t.shadow);
+  // The terrazzo's specks run on down its face.
+  if (f.kind === "terrazzo")
+    for (let y = f.y0 + FLOOR.top + 30; y < bottom; y += 34)
+      for (let x = f.x0 + 20 + ((y * 13) % 41); x < f.x1; x += 61) g.circle(x, y + ((x * 7) % 19), 3).fill({ color: shadowOf(color), alpha: 0.8 });
+  shadeFace(g, f.x0, f.x1, f.y0 + FLOOR.top, f.y1 + FLOOR.top, bottom);
   g.poly([f.x0, f.y0 - FLOOR.back, f.x1, f.y1 - FLOOR.back, f.x1, bottom, f.x0, bottom]).stroke(INK);
 }
 
@@ -164,6 +170,7 @@ export function campusPlatform(g: Graphics, p: LevelPlatform): boolean {
       g.rect(p.x0, p.y + 44, w, 40).fill({ color: PALETTE.outline, alpha: 0.25 });
       g.rect(p.x0, p.y, w, 44).fill(wood.base).stroke(INK);
       g.rect(p.x0, p.y, w, 12).fill(wood.highlight);
+      platformShadow(g, p.x0, p.x1, p.y + 12);
       g.rect(p.x0, p.y - 110, w, 110).fill({ color: "#a9c7cf", alpha: 0.25 });
       g.roundRect(p.x0, p.y - 116, w, 12, 5).fill(steel.highlight).stroke(THIN);
       for (let x = p.x0 + 20; x <= p.x1 - 20; x += 200) g.rect(x - 3, p.y - 110, 6, 110).fill(steel.base);
@@ -173,6 +180,7 @@ export function campusPlatform(g: Graphics, p: LevelPlatform): boolean {
       // A stone plinth beside the steps with a planter on it.
       const stone = tones(C.stone);
       g.rect(p.x0, p.y, w, 60).fill(stone.base).stroke(INK);
+      platformShadow(g, p.x0, p.x1, p.y + 12);
       g.rect(p.x0 - 8, p.y - 6, w + 16, 18).fill(stone.highlight).stroke(THIN);
       g.rect(p.x0 + 20, p.y + 60, w - 40, 120).fill(stone.shadow).stroke(THIN);
       return true;

@@ -4,6 +4,7 @@ import { pitsOf, type CheckpointSpec, type DoorSpec, type Furniture, type Level,
 import type { FloorSegment, Pass, Point } from "../sim/types";
 import { SCENERY_Z } from "./backdrop";
 import { FLOOR, INK, THIN } from "./ink";
+import { platformShadow, shadeFace } from "./floor-face";
 import { campusFloor, campusFurniture, campusPlatform, drawBeltTrays } from "./venue-campus";
 import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
 import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
@@ -207,18 +208,22 @@ function drawFloor(g: Graphics, f: LevelFloor, level: Level) {
   g.poly([x0, f.y0 - FLOOR.back, x1, f.y1 - FLOOR.back, x1, f.y1 + FLOOR.top, x0, f.y0 + FLOOR.top]).fill(top);
   g.poly([x0, f.y0 + FLOOR.top, x1, f.y1 + FLOOR.top, x1, f.y1 + FLOOR.top + 10, x0, f.y0 + FLOOR.top + 10]).fill(face.shadow);
   g.poly([x0, f.y0 + 16, x1, f.y1 + 16, x1, f.y1 + 20, x0, f.y0 + 20]).fill({ color: "#ffffff", alpha: 0.4 });
-  g.poly([x0, f.y0 - FLOOR.back, x1, f.y1 - FLOOR.back, x1, f.y1 + FLOOR.depth, x0, f.y0 + FLOOR.depth]).stroke(INK);
   if (f.kind === "tile") {
+    // Grout down the whole face, and the courses across it.
     for (let x = x0 + 120; x < x1; x += 120) g.moveTo(x, f.y0 + FLOOR.top + 10).lineTo(x, f.y0 + FLOOR.depth).stroke({ width: 2, color: face.shadow });
-    return;
-  }
-  for (let x = x0 + 160; x < x1 - 320; x += 420) {
-    const y = f.y0 + FLOOR.top + 30;
-    g.moveTo(x, y)
-      .quadraticCurveTo(x + 90, y + 40, x + 200, y + 20)
-      .quadraticCurveTo(x + 260, y + 10, x + 320, y + 55)
-      .stroke({ width: 3, color: face.shadow, cap: "round" });
-  }
+    for (let y = f.y0 + FLOOR.top + 120; y < f.y0 + FLOOR.depth; y += 110) g.moveTo(x0, y).lineTo(x1, y).stroke({ width: 2, color: face.shadow, alpha: 0.7 });
+  } else
+    // The marble's veins, fainter the deeper they run down its face.
+    for (const [dy, alpha] of [[30, 1], [150, 0.6], [280, 0.35]] as const)
+      for (let x = x0 + 160 + dy * 1.7; x < x1 - 320; x += 420) {
+        const y = f.y0 + FLOOR.top + dy;
+        g.moveTo(x, y)
+          .quadraticCurveTo(x + 90, y + 40, x + 200, y + 20)
+          .quadraticCurveTo(x + 260, y + 10, x + 320, y + 55)
+          .stroke({ width: 3, color: face.shadow, alpha, cap: "round" });
+      }
+  shadeFace(g, x0, x1, f.y0 + FLOOR.top, f.y1 + FLOOR.top, f.y0 + FLOOR.depth);
+  g.poly([x0, f.y0 - FLOOR.back, x1, f.y1 - FLOOR.back, x1, f.y1 + FLOOR.depth, x0, f.y0 + FLOOR.depth]).stroke(INK);
 }
 
 /** The grand staircase: a marble stringer, treads with a red runner and brass rods, and a balustrade. */
@@ -308,6 +313,7 @@ function drawPlatform(g: Graphics, p: LevelPlatform) {
       g.rect(p.x0, p.y, w, -p.y).fill(marble.base);
       g.rect(p.x0, p.y, w, 18).fill(PALETTE.marbleTop);
       g.rect(p.x0 + w - 40, p.y + 18, 40, -p.y - 18).fill(marble.shadow);
+      platformShadow(g, p.x0, p.x1, p.y + 18);
       g.rect(p.x0, p.y, w, -p.y).stroke(INK);
       // A newel post at the foot of the stairs.
       g.rect(p.x0 + 14, p.y - BALCONY.post, 26, BALCONY.post).fill(brass.base);
@@ -327,6 +333,7 @@ function drawPlatform(g: Graphics, p: LevelPlatform) {
       g.rect(p.x0, p.y, w, BALCONY.slab).fill(marble.base);
       g.rect(p.x0, p.y, w, 14).fill(PALETTE.marbleTop);
       g.rect(p.x0, p.y + 30, w, 14).fill(marble.shadow);
+      platformShadow(g, p.x0, p.x1, p.y + 14);
       g.rect(p.x0, p.y, w, BALCONY.slab).stroke(INK);
       for (let x = p.x0 + 20; x <= p.x1 - 20; x += 70) {
         g.rect(x - 4, p.y - 100, 8, 100).fill(brass.base);

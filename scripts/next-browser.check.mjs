@@ -186,6 +186,22 @@ try {
     verdict.fit[`${w}x${hgt}`] = frac;
     assert.ok(frac >= 0.3 && frac <= 0.33, `hero height fraction at ${w}x${hgt}: ${frac}`);
   }
+  // The floor's edge where the dark band was (story spec §15): standing still on the lobby's floor the walking line sits
+  // at 78 percent of the screen, and what shows near the bottom under him is the floor's own face, never the ground.
+  for (const [w, hgt] of [
+    [1920, 1080],
+    [1280, 800],
+  ]) {
+    await page.setViewportSize({ width: w, height: hgt });
+    await page.waitForTimeout(1500);
+    const r = await page.evaluate(() => ({ x: window.__next.heroScreenX, y: window.__next.heroScreenY, h: innerHeight, ground: window.__next.hero.onGround }));
+    assert.ok(r.ground, `${w}x${hgt}: standing on the floor`);
+    assert.ok(Math.abs(r.y / r.h - 0.78) <= 0.04, `${w}x${hgt}: the walking line at ${(r.y / r.h).toFixed(3)} of the height`);
+    const px = await page.evaluate(([x, y]) => window.__next.pixel(x, y), [r.x, r.h * 0.97]);
+    const ground = Math.abs(px[0] - 0x1d) < 8 && Math.abs(px[1] - 0x17) < 8 && Math.abs(px[2] - 0x14) < 8;
+    assert.ok(!ground && px.some((c) => c > 40), `${w}x${hgt}: the floor's face under him, not the dark: ${px}`);
+    await page.screenshot({ path: resolve(out, `next-floor-${w}x${hgt}.png`) });
+  }
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.waitForTimeout(400);
   await hudFits("1280x800");

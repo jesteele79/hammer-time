@@ -1,6 +1,7 @@
 import type { Graphics } from "pixi.js";
 import type { Furniture, LevelFloor, LevelPlatform } from "../sim/level";
 import { FLOOR, INK, THIN } from "./ink";
+import { shadeFace } from "./floor-face";
 import { shadowOf, tones } from "./palette";
 
 const CARPET = tones("#5d6470");
@@ -15,6 +16,7 @@ export function giftshopFloor(g: Graphics, f: LevelFloor): boolean {
   g.rect(f.x0, f.y0, w, FLOOR.depth).fill(CARPET.base);
   for (let x = f.x0; x < f.x1; x += 48) g.rect(x, f.y0 + 6, 2, FLOOR.depth - 12).fill({ color: CARPET.shadow, alpha: 0.35 });
   g.rect(f.x0, f.y0, w, 8).fill(CARPET.highlight);
+  shadeFace(g, f.x0, f.x1, f.y0 + 8, f.y0 + 8, f.y0 + FLOOR.depth);
   g.moveTo(f.x0, f.y0).lineTo(f.x1, f.y0).stroke(INK);
   return true;
 }

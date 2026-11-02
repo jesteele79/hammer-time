@@ -51,7 +51,7 @@ import { PIG_HEIGHT, PigView } from "./pig";
 import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
-import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM, createScene } from "./scene";
+import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM, createScene, floorFocus } from "./scene";
 import { createSound, heard, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
@@ -831,8 +831,10 @@ export async function startLook(
   /** Puts the camera on him at once: after a door, a respawn or a teleport. */
   function snapCamera(x: number, y: number) {
     scene.camera.x = x;
-    // His chest at the screen's centre, as at the start; the dead zone takes over from there.
-    scene.camera.focusY = scene.camera.y = y - HERO_HEIGHT * 0.55;
+    // The walking line where it rests (his chest at the centre on a phone upright), as the camera settles it.
+    const portrait = scene.width < scene.height;
+    const scale = (HERO_SCREEN_FRACTION * scene.height * scene.camera.zoom * (portrait ? PORTRAIT_ZOOM : 1)) / HERO_HEIGHT;
+    scene.camera.focusY = scene.camera.y = floorFocus(scene.height, scale, y, portrait);
   }
 
   /** The level he is in now: its venue, backdrop, lamps, bounds and camera. */
@@ -848,10 +850,10 @@ export async function startLook(
     objects.clear();
     shownPickups = game.pickups;
     views.get(level.id)?.venue.setPunched(game.run.punched);
-    snapCamera(x, y);
     // The zoom lands with him: no easing across a door.
     const zone = level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
     scene.camera.zoom = zone?.zoom ?? 1;
+    snapCamera(x, y);
   }
 
   /** The run for the checks: its mode, where he is, the shift's numbers and every event type counted since the page loaded. */
@@ -1548,6 +1550,7 @@ export async function startLook(
       cam.facing = h.facing;
       cam.moving = !fighting && Math.abs(h.vx) > 40;
       cam.falling = h.vy > 900;
+      cam.grounded = h.onGround;
     }
     titleShown = !!home;
     scene.update(dt);
@@ -1576,6 +1579,7 @@ export async function startLook(
       window.__next.carrying = objects.carrying;
       window.__next.goo = { globs: cast.globs + pigView.globCount, splats: props.splats };
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
+      window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();
       window.__next.faceScreen = faceOnScreen;
       window.__next.art = {

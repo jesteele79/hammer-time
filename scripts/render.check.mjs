@@ -826,8 +826,8 @@ import { CAMPUS } from "../src/sim/levels/campus.ts";
 test("the campus's flights and landings stand on the ground; the deck's stair, with the commons floor under it, is open", () => {
   const floors = CAMPUS.floor;
   assert.deepEqual(floors.filter((f) => f.kind === "steps" && openUnder(f, floors)).map((f) => f.x0), [10400]);
-  // A flight between two landings reaches the ground like the landings either side of it, not 120 under its foot.
-  for (const f of floors.filter((f) => (f.kind === "steps" || f.kind === "stone") && !openUnder(f, floors))) assert.equal(floorBottom(f), 120, `${f.kind} at ${f.x0}`);
+  // A flight between two landings reaches the ground like the landings either side of it, not a face's depth under its foot.
+  for (const f of floors.filter((f) => (f.kind === "steps" || f.kind === "stone") && !openUnder(f, floors))) assert.equal(floorBottom(f), FLOOR.depth, `${f.kind} at ${f.x0}`);
 });
 
 import { layWalls, wallsFor } from "../src/render/backdrop.ts";
@@ -1351,4 +1351,20 @@ test("each side quest plays its own song: the banquet's speeds up for the frenzy
   assert.deepEqual(questMusic(q), { theme: "gate", hurry: false });
   q.streak = 3;
   assert.deepEqual(questMusic(q), { theme: "gate", hurry: true });
+});
+
+import { floorFocus, FLOOR_LINE } from "../src/render/scene.ts";
+import { FLOOR } from "../src/render/ink.ts";
+
+test("the camera's rest focus puts the walking line at 78 percent of the view in landscape, the chest at centre in portrait", () => {
+  const scale = (0.315 * 1080) / 340;
+  const focus = floorFocus(1080, scale, 0, false);
+  assert.ok(Math.abs(((0 - focus) * scale) / 1080 + 0.5 - FLOOR_LINE) < 1e-6);
+  assert.equal(floorFocus(844, scale, 0, true), -340 * 0.55);
+  assert.equal(FLOOR.depth, 420);
+  // The front face reaches past the bottom of any landscape view: no ground shows under a floor.
+  for (const [w, h] of [[1920, 1080], [1280, 800], [2560, 1080], [844, 390]]) {
+    const s = (0.315 * h) / 340;
+    assert.ok((1 - FLOOR_LINE) * h / s < FLOOR.depth, `${w}x${h}: the face covers the band`);
+  }
 });

@@ -26,7 +26,7 @@ import type { RenderApp } from "./app";
 import { createCharacter } from "./character";
 import { drawScalpel, scalpelInFist } from "./quests/gate-board";
 import { crateLogo, drawCrate, pickupView } from "./objects";
-import type { Scene } from "./scene";
+import { HERO_SCREEN_FRACTION, floorFocus, type Scene } from "./scene";
 import { label } from "./text";
 import { TOWEL_OUT } from "./towel";
 import { coilPose, divePose } from "../sim/rig/dive";
@@ -596,7 +596,8 @@ export function createBoards(
       particles.emit("dust", f.x - 40, y, 12);
       particles.update(0.12);
       scene.camera.x = f.cx;
-      scene.camera.y = f.cy ?? y - 187;
+      // Framed as the game frames him standing: the walking line at 78 percent of the picture, unless the frame says.
+      scene.camera.y = f.cy ?? floorFocus(1080, (HERO_SCREEN_FRACTION * 1080 * (f.zoom ?? 1)) / HERO_HEIGHT, y, false);
       scene.camera.zoom = f.zoom ?? 1;
       scene.fit();
       const target = RenderTexture.create({ width: 1920, height: 1080, resolution });
