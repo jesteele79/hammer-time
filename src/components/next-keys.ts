@@ -13,6 +13,37 @@ export const KEYS: [string, string][] = [
   ["P", "break"],
 ];
 
+/** The touch pad's words for the break card while the pad shows: the buttons as the pad labels them. */
+export const TOUCH_KEYS: [string, string][] = [
+  ["← →", "move"],
+  ["Run", "run"],
+  ["Jump", "jump"],
+  ["↓", "duck, doors"],
+  ["Hammer", "swing"],
+  ["Snot", "snot"],
+  ["Lecture", "lecture"],
+  ["Towel", "towel"],
+  ["Super", "smash"],
+  ["Box", "box of blades"],
+];
+
+/** The pad at the banquet: the arrows hop and aim, Jump dives (R4 §3). */
+export const BANQUET_TOUCH_KEYS: [string, string][] = [
+  ["← →", "tap: next plate, hold: aim"],
+  ["Jump", "grab, hold to reach"],
+  ["Lecture", "lecture the table"],
+  ["Hammer", "bonk the table"],
+  ["↓", "duck"],
+];
+
+/** The pad at the gate: a tap on the scene or any action button throws (R5 §3). */
+export const GATE_TOUCH_KEYS: [string, string][] = [
+  ["Jump", "throw a scalpel (or tap the scene)"],
+  ["Run", "steady your hand (or hold a finger)"],
+  ["Towel", "towel off: steady again"],
+  ["Lecture", "mouth off"],
+];
+
 /** The banquet's keys, for its break card (R4 §3; the plates and the lecture since 2026-10-18). */
 export const BANQUET_KEYS: [string, string][] = [
   ["← →", "tap: next plate, hold: aim"],

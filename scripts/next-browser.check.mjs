@@ -72,10 +72,20 @@ const pauseWorks = async (name) => {
   await page.waitForSelector(".next-veil__card", { timeout: 2000 });
   const r = await page.evaluate(() => {
     const b = document.querySelector(".next-veil__card").getBoundingClientRect();
-    return { card: { x: b.x, y: b.y, w: b.width, h: b.height }, face: window.__next.faceScreen, mode: window.__next.run.mode, title: document.querySelector(".next-veil__title").textContent };
+    return {
+      card: { x: b.x, y: b.y, w: b.width, h: b.height },
+      face: window.__next.faceScreen,
+      mode: window.__next.run.mode,
+      title: document.querySelector(".next-veil__title").textContent,
+      keys: [...document.querySelectorAll(".next-veil__keys kbd")].map((k) => k.textContent),
+      touch: matchMedia("(pointer: coarse), (max-width: 899px)").matches,
+    };
   });
   assert.equal(r.mode, "pause");
   assert.equal(r.title, "On break");
+  // With the pad showing, the break card names the pad's buttons, not the keyboard's.
+  if (r.touch) assert.ok(r.keys.includes("Jump") && !r.keys.includes("Space"), `${name}: the pad's words on the break card ${JSON.stringify(r.keys)}`);
+  else assert.ok(r.keys.includes("Space"), `${name}: the keyboard's keys on the break card ${JSON.stringify(r.keys)}`);
   assert.ok(!hitBox(r.card, r.face), `${name}: the break card covers his face ${JSON.stringify(r)}`);
   await page.screenshot({ path: resolve(out, `veil-pause-${name}.png`) });
   await page.click("text=Back to work");

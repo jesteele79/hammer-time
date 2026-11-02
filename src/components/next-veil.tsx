@@ -7,7 +7,7 @@ import { FARES, groupOf } from "@/sim/quests/fares/fares";
 
 /** COMPED's line, as the cards write it. */
 const GOAL = GRADES[0][0].toLocaleString("en-US");
-import { BANQUET_KEYS, GATE_KEYS, KEYS } from "./next-keys";
+import { BANQUET_KEYS, BANQUET_TOUCH_KEYS, GATE_KEYS, GATE_TOUCH_KEYS, KEYS, TOUCH_KEYS } from "./next-keys";
 
 /** A printed pass's class, as the board names it (R5 §4, §6). */
 const CLASS_NAME: Record<FareClass | Exclude<TagKind, "fare">, string> = {
@@ -39,6 +39,8 @@ export type VeilInfo = {
   faresBest: number;
   /** The side quest's best as it stood when its round's card showed: what the tally's score must beat. */
   bestBefore: number;
+  /** The touch pad is showing: the break card names the pad's buttons, not the keyboard's. */
+  touch: boolean;
 };
 
 function Lives({ n, portrait }: { n: number; portrait: string | null }) {
@@ -127,7 +129,18 @@ export function NextVeil({
         <section className="next-veil__card" role="dialog" aria-label="On break">
           <h2 className="next-veil__title">On break</h2>
           <p className="next-veil__keys">
-            {(info.quest?.id === "fares" ? GATE_KEYS : info.quest ? BANQUET_KEYS : KEYS).map(([key, what]) => (
+            {(info.quest?.id === "fares"
+              ? info.touch
+                ? GATE_TOUCH_KEYS
+                : GATE_KEYS
+              : info.quest
+                ? info.touch
+                  ? BANQUET_TOUCH_KEYS
+                  : BANQUET_KEYS
+                : info.touch
+                  ? TOUCH_KEYS
+                  : KEYS
+            ).map(([key, what]) => (
               <span key={key} className="next-hud__key">
                 <kbd>{key}</kbd>
                 {what}

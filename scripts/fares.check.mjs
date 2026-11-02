@@ -837,3 +837,20 @@ test("the scripted person and the sharp hand towel off once their steady hand is
     assert.ok(towels > 0, "they used a towel");
   }
 });
+
+test("the miss lines come on every miss, not once a round", () => {
+  const q = createFares(5, { tags: false, hazards: false, mouth: false });
+  const misses = () => of(q.events, "fdThink").filter((e) => /demo unit|Denver/.test(e.text)).length;
+  let seen = 0;
+  for (let k = 0; k < 4; k++) {
+    q.pin = { x: 20, y: 20 };
+    q.events = [];
+    stepFares(q, input({}, { jump: true }), STEP);
+    for (let i = 0; i < Math.round((FARES.windup + FARES.flight + 0.1) / STEP); i++) {
+      stepFares(q, input(), STEP);
+      seen += misses();
+      q.events = [];
+    }
+  }
+  assert.ok(seen >= 3, `a miss line on (nearly) every miss, saw ${seen}`);
+});

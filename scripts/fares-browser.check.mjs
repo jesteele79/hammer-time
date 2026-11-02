@@ -128,6 +128,14 @@ try {
   await page.waitForTimeout(500);
   assert.ok((await quest(page)).steady >= s0 - 0.01, "the steady hand stops draining on a blur");
   await page.keyboard.up("Shift");
+  // Only the primary button throws: a right or a middle click on the scene throws nothing.
+  await page.waitForTimeout(1300);
+  const clicks = await events(page, "fdThrow");
+  const canvas = await page.locator(".next-stage canvas").first().boundingBox();
+  await page.mouse.click(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2, { button: "right" });
+  await page.mouse.click(canvas.x + canvas.width / 2, canvas.y + canvas.height / 2, { button: "middle" });
+  await page.waitForTimeout(600);
+  assert.equal(await events(page, "fdThrow"), clicks, "a right or a middle click threw nothing");
   for (const [w, h] of [[1280, 800], [390, 844], [844, 390]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.waitForTimeout(500);
@@ -228,6 +236,19 @@ try {
   await page.waitForTimeout(300);
   await shot(page, "fares-box-bonk.png");
   assert.match(await page.locator(".next-hud__boxes").innerText(), /2/, "one box gone");
+  // A key first pressed during a break and still held on the way back is held, not pressed: no jump.
+  await page.evaluate(() => window.__next.dev.teleport(15000, 0));
+  await page.waitForTimeout(800);
+  const jumpsBefore = await events(page, "jump");
+  await page.keyboard.press("p");
+  await waitMode(page, "pause");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(100);
+  await page.keyboard.press("p");
+  await waitMode(page, "play");
+  await page.waitForTimeout(200);
+  assert.equal(await events(page, "jump"), jumpsBefore, "Space pressed during the break did not jump on the way back");
+  await page.keyboard.up("Space");
   // The link: straight into the gate's practice.
   await page.goto(`${base}?quest=fares`);
   await page.waitForFunction(() => ["questCard", "quest"].includes(window.__next?.run?.mode), null, { timeout: 30000 });

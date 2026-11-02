@@ -281,6 +281,9 @@ export async function startLook(
     if (game.mode === "pause") {
       sound.stopVoice();
       bubbles.cut();
+    } else {
+      // Back to work: a key first pressed during the break and still held is held, not pressed, on the first step back.
+      prevHeld = { ...prevHeld, ...heldNow() };
     }
     for (const e of game.events) feel(e);
   };
@@ -324,11 +327,15 @@ export async function startLook(
   // The touch pad's buttons, held and tapped, the same way as the keys.
   const touchDown = new Set<Action>();
   const touchTapped = new Set<Action>();
+  /** Fingers on the canvas during a Fare Darts round, and when each went down (R5 §3). */
+  const pointers = new Map<number, number>();
   const onBlur = () => {
     down.clear();
     tapped.clear();
     touchDown.clear();
     touchTapped.clear();
+    // A release that never reaches the window must not leave the steady hand draining.
+    pointers.clear();
   };
   /** Taps and touches end at a break or a new run: none of them fires on the far side of it. */
   const forgetPresses = () => {
@@ -870,8 +877,6 @@ export async function startLook(
   walkCan.anchor.set(0.5, 0.6);
   walkCan.visible = false;
   scene.layers.play.addChild(walkCan);
-  /** Fingers on the canvas during a Fare Darts round, and when each went down (R5 §3). */
-  const pointers = new Map<number, number>();
   /** Which of his banquet lectures comes next. */
   let banquetLectures = 0;
   /** The box of blades's lines said in this venue (R5 §9): each once a venue. */
@@ -1139,6 +1144,8 @@ export async function startLook(
     const q = game.quest;
     if (q?.id !== "fares") return;
     if (questShown !== "fares") enterQuest("fares");
+    // The round is over: no finger still on the canvas steadies the next one.
+    if (q.result) pointers.clear();
     stepped.length = 0;
     const l = gateLayout(scene.width, scene.height, insets(true));
     gate.layout(l);
@@ -1199,7 +1206,8 @@ export async function startLook(
   /** A finger on the canvas during a Fare Darts round: its touch throws; one held a moment steadies the next (R5 §3). */
   const onPointer = (e: PointerEvent) => {
     if (e.type === "pointerdown") {
-      if (game.quest?.id !== "fares" || game.mode !== "quest") return;
+      // The primary button (a touch or a left click) throws; a right or middle click does nothing.
+      if (game.quest?.id !== "fares" || game.mode !== "quest" || e.button !== 0) return;
       sound.unlock();
       pointers.set(e.pointerId, performance.now());
       touchTapped.add("jump");

@@ -224,9 +224,12 @@ export const gradeOf = (booked: number, preferred: boolean): FaresGrade =>
 /** Any action key throws: Space, F, H or Q (and their twins). */
 export const throwPressed = (input: Input) => input.pressed.jump || input.pressed.fire || input.pressed.hammer || input.pressed.super;
 
-function think(q: Fares, text: string, seconds = 1.8) {
-  if (q.said.has(text)) return;
-  q.said.add(text);
+/** Most of his thoughts come once a round; the miss lines (`every`) come on every miss, as the design gives them. */
+function think(q: Fares, text: string, seconds = 1.8, every = false) {
+  if (!every) {
+    if (q.said.has(text)) return;
+    q.said.add(text);
+  }
   q.events.push({ type: "fdThink", text, seconds });
 }
 
@@ -359,8 +362,8 @@ function miss(q: Fares, s: Shot) {
     q.cancelled++;
     say(q, "agent", "Sir, that flight is cancelled.", 1.8);
   } else if (s.outcome === "agent") say(q, "agent", "Sir, you can't do that here.", 1.8);
-  else if (s.outcome === "cloud") think(q, "Denver. Of course.");
-  else think(q, "That's a $400 demo unit.");
+  else if (s.outcome === "cloud") think(q, "Denver. Of course.", 1.8, true);
+  else think(q, "That's a $400 demo unit.", 1.8, true);
   // A miss makes him pissed: the crowd laughs and he doubles down, the first insult at one who laughed.
   q.events.push({ type: "fdMood", mood: "angry", seconds: FARES.mouth.angry });
   if (!q.mouth) return;

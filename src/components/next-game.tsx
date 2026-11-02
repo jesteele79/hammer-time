@@ -259,6 +259,7 @@ export function NextGame({
     banquetBest,
     faresBest,
     bestBefore,
+    touch,
   };
   // Practice's tally always offers the start screen (it was opened from there, or from its link straight in).
   const titleBack = title || (!!hud?.quest && !hud.quest.door);

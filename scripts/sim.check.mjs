@@ -289,3 +289,9 @@ test("touch buttons and keys make one input: either holds an action, and a press
   const c = inputFrom(new Set(["Space"]), new Set(), { ...b.held, jump: false });
   assert.ok(c.pressed.jump, "a key after the touch let go presses again");
 });
+
+test("a key already held when play resumes is held, not pressed", () => {
+  const down = new Set(["Space"]);
+  const i = inputFrom(down, new Set(), { ...NONE, jump: true });
+  assert.deepEqual([i.held.jump, i.pressed.jump], [true, false]);
+});

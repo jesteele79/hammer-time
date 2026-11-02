@@ -172,6 +172,8 @@ const moveCells = (move: MoveKind, row: number, frames: number): Cell[] =>
     expression: "neutral",
     headScale: 0.26,
     move,
+    // The throw is the gate's: a scalpel in his fist, never the mallet, on every board that draws it.
+    scalpel: move === "throw",
   }));
 
 /**
@@ -791,7 +793,7 @@ export function createBoards(
           return gate!.thumb();
         case "gate-throw": {
           // The gate's throw with the scalpel in his fist, and the box's lob, ten frames each, half again as large as the moves.
-          const cells = [...moveCells("throw", 0, MOVE_FRAMES).map((c) => ({ ...c, scalpel: true })), ...moveCells("lob", 1, MOVE_FRAMES)];
+          const cells = [...moveCells("throw", 0, MOVE_FRAMES), ...moveCells("lob", 1, MOVE_FRAMES)];
           const heads = Array.from({ length: MOVE_FRAMES }, (_, i) => `u = ${(i / MOVE_FRAMES).toFixed(2)}`);
           return sheet(MOVE_FRAMES, 2, cells, ["throw", "lob"], heads, MOVE_SCALE * 1.5);
         }
