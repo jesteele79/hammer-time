@@ -92,3 +92,115 @@ test("playing a built stop past unbuilt ones skips them: done with no best, the 
 test("the run counts the staff he bonked, from nothing", () => {
   assert.equal(createRun(1).bonked, 0);
 });
+
+import { createGame } from "../src/sim/game.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+
+const knockOut = (g) => { g.world.hero.patience = 1; g.world.hit(g.world.hero.x + 100); };
+const shift = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
+const journeyGame = (start = 0, opts = {}) => {
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT, CAMPUS, GIFTSHOP] }, 11, { cast: false, title: true });
+  g.newRun(11, start, { shift, journey: true, ...opts });
+  return g;
+};
+const exit = (g) => {
+  g.world.hero.x = g.level.doors.find((d) => d.kind === "exit").x - 100;
+  if (g.world.pig) g.world.pig.state = "defeated";
+  return until(g, (x) => x.mode !== "play" && x.mode !== "walkoff" && x.mode !== "tally", 20, { right: true });
+};
+test("a journey run takes a snapshot at the card, holds in story after a level, and carries on", () => {
+  const g = journeyGame(0);
+  assert.deepEqual([g.mode, g.journey, g.snapshot.run.score, g.snapshot.carry.boxes], ["card", true, 0, 0]);
+  play(g);
+  g.run.score = 4000; g.world.hero.boxes = 3; g.run.spent.push("buffet");
+  const evs = exit(g);
+  const done = evs.find((e) => e.type === "levelDone");
+  assert.equal(g.mode, "story");
+  assert.deepEqual([done.id, done.last, done.score > 4000, g.levelScore()], ["lobby", false, true, done.score]);
+  g.continueStory();
+  assert.deepEqual([g.mode, g.level.id, g.snapshot.run.score, g.snapshot.carry.boxes, g.snapshot.run.spent], ["card", "restaurant", g.run.score, 3, ["buffet"]]);
+});
+test("three lives or more at every card; Try again restores the snapshot exactly", () => {
+  const g = journeyGame(1, { snapshot: { run: { ...createRun(11), score: 7000, cans: 30, lives: 5, spent: ["shuttle"] }, carry: { charge: 8, patience: 2, hot: true, doggy: 1, flop: true, boxes: 4 } } });
+  assert.deepEqual([g.level.id, g.run.score, g.run.lives, g.world.hero.boxes, g.world.hero.doggy, g.run.spent], ["restaurant", 7000, 5, 4, 1, ["shuttle"]]);
+  play(g);
+  g.run.score = 9999; g.world.hero.boxes = 0;
+  const taken = g.pickups[0]; taken.taken = true;
+  g.run.lives = 1; knockOut(g); until(g, (x) => x.mode === "over");
+  g.newRun(11, g.venue, { snapshot: g.snapshot });
+  assert.deepEqual([g.mode, g.run.score, g.run.lives, g.world.hero.boxes, g.pickups.every((p) => !p.taken)], ["card", 7000, 5, 4, true]);
+  assert.deepEqual([g.journey, g.level.id], [true, "restaurant"], "Try again stays in the journey's shift");
+  const low = journeyGame(0, { snapshot: { run: { ...createRun(11), lives: 1 }, carry: { charge: 0, patience: 2, hot: false, doggy: 0, flop: false, boxes: 0 } } });
+  assert.equal(low.run.lives, 3);
+});
+test("the last level of the shift ends in story then clear; a one-level shift is a replay", () => {
+  const g = journeyGame(0, { shift: [GIFTSHOP] });
+  play(g);
+  const evs = exit(g);
+  assert.deepEqual([g.mode, evs.find((e) => e.type === "levelDone").last], ["story", true]);
+  g.continueStory();
+  assert.equal(g.mode, "clear");
+});
+test("a hold before the first level shows its cards first", () => {
+  const g = journeyGame(0, { hold: true });
+  assert.equal(g.mode, "story");
+  for (let i = 0; i < 10; i++) g.step(input({}, { jump: true }));
+  assert.equal(g.mode, "story");
+  g.continueStory();
+  assert.equal(g.mode, "card");
+  play(g);
+  g.step(input({ jump: true }));
+  assert.equal(of(g.events, "jump").length, 0, "a key held through Continue is held, not pressed");
+});
+test("a plain new run is today's whole shift, never the journey's", () => {
+  const g = journeyGame(2);
+  g.newRun(5, 0);
+  assert.deepEqual([g.journey, g.shift.map((l) => l.id), g.level.id, g.snapshot], [false, ["lobby", "restaurant", "campus", "arena"], "lobby", null]);
+  play(g);
+  exit(g);
+  assert.equal(g.mode, "card", "Work the whole shift goes on to the next venue's card, no story hold");
+});
+test("a level's layout is its own in a journey, wherever the run started", () => {
+  const whole = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT, CAMPUS, GIFTSHOP] }, 11, { cast: false, title: true });
+  whole.newRun(11, 2);
+  const fromCampus = journeyGame(0, { shift: [CAMPUS, GIFTSHOP] });
+  assert.deepEqual(fromCampus.pickups.map((p) => [p.kind, p.x, p.y]), whole.pickups.map((p) => [p.kind, p.x, p.y]));
+});
+test("staff bonked are counted on the run, once each", () => {
+  const none = { count: 0, bucees: 0, nuts: 0 };
+  const one = { ...LOBBY, cast: [{ id: "o", person: "office-1", x: 2930, y: 0 }], carts: [], crates: [], checkpoints: [], rewards: none };
+  const g = createGame({ lobby: one, stash: STASH }, 3);
+  play(g);
+  const evs = [];
+  for (let k = 0; k < 8 && !evs.some((e) => e.type === "castHit" && e.down); k++) {
+    const n = g.world.cast[0];
+    Object.assign(g.world.hero, { x: n.x - 230, y: 0, vx: 0, facing: 1 });
+    g.step(input({ hammer: true }, { hammer: true }));
+    evs.push(...g.events, ...stepsG(g, 0.6));
+  }
+  assert.ok(evs.some((e) => e.type === "castHit" && e.down), "knocked out for good");
+  assert.equal(g.run.bonked, 1);
+  stepsG(g, 2);
+  assert.equal(g.run.bonked, 1, "counted once");
+});
+
+import { skipFares } from "../src/sim/quests/fares/fares.ts";
+
+test("a gate door is walked into like an exit: Fare Darts as the set piece, its tally pays in and ends the level", () => {
+  const gated = { ...LOBBY, doors: [...LOBBY.doors.filter((d) => d.kind !== "exit"), { id: "b7", kind: "gate", x: 3100, y: 0, label: "GATE B7" }] };
+  const g = createGame({ lobby: gated, stash: STASH }, 11, { cast: false, title: true });
+  g.newRun(11, 0, { shift: [gated, RESTAURANT], journey: true });
+  play(g);
+  Object.assign(g.world.hero, { x: 3090, y: 0, vx: 0, vy: 0, onGround: true, move: null });
+  g.step(input());
+  assert.deepEqual([g.mode, g.quest?.id, g.questDoor?.id], ["questCard", "fares", "b7"]);
+  until(g, (x) => x.mode === "quest", 3);
+  skipFares(g.quest);
+  until(g, (x) => x.mode === "questTally", 2);
+  const before = g.run.score;
+  const result = g.quest.result;
+  g.finishQuest();
+  assert.deepEqual([g.mode, g.quest, g.run.score >= before + result.score], ["tally", null, true]);
+  const evs = until(g, (x) => x.mode === "story", 12);
+  assert.ok(evs.some((e) => e.type === "levelDone" && e.id === "lobby" && !e.last));
+});

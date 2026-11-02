@@ -67,6 +67,13 @@ export type GameEvent =
   /** The tally counted another whole second of the clock into points. */
   | { type: "tallyTick"; seconds: number }
   | { type: "clear" }
+  /**
+   * A journey level is over (its tally counted): `score` what he scored inside it, `bonked` the staff bonked since its
+   * card, `last` when no level follows it in this run. The game holds in `story` for the shell's cards.
+   */
+  | { type: "levelDone"; id: LevelId; score: number; bonked: number; last: boolean }
+  /** Hammer's thought, written, never spoken: the home screen's insults, a level's marks. */
+  | { type: "think"; text: string; seconds: number }
   /** He stepped onto a flat-top or into the walk-in. */
   | { type: "heatZone"; kind: "flattop" | "freezer"; x: number; y: number }
   /** A swinging door swung: banged open by its server's rush or slammed by the mallet (`hard`), or pushed through. */

@@ -21,10 +21,18 @@ import { createWorld, type World } from "./world";
 import { createHungry, stepHungry, type HungryResult } from "./quests/hungry/hungry";
 import { createFares, stepFares, type FaresResult } from "./quests/fares/fares";
 import type { Quest, QuestId } from "./quests/quest";
+import type { Carry, Snapshot } from "./journey";
 
-export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title" | "questCard" | "quest" | "questTally";
+/** `story`: the game holds between levels (or before the first) while the shell shows the story's cards; nothing steps. */
+export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title" | "questCard" | "quest" | "questTally" | "story";
 /** The lobby and its stash, and the venues after the lobby in the shift's order (R3 §2). */
 export type Levels = { lobby: Level; stash: Level; venues?: Level[] };
+/**
+ * A run of the journey (story Phase 1): `shift` the levels it plays (the stop's to the end of its act), `journey` its rules
+ * (three lives a card, the snapshot, the story hold after each level), `snapshot` the run to restore (Try again, or the
+ * save), `hold` to begin in `story` for the cards before the first level.
+ */
+export type RunOptions = { shift?: Level[]; journey?: boolean; snapshot?: Snapshot | null; hold?: boolean };
 
 export type Game = {
   levels: Levels;
@@ -47,7 +55,19 @@ export type Game = {
   /** This step's events: the world's and the game's. */
   events: GameEvent[];
   step(input: Input): void;
-  newRun(seed: number, start?: number): void;
+  /**
+   * A fresh run from a card. With no options it is today's whole shift (Work the whole shift); with options it is the
+   * journey's: a Try again (a snapshot alone) keeps the shift and the journey's rules it was in.
+   */
+  newRun(seed: number, start?: number, opts?: RunOptions): void;
+  /** A journey run: three lives a card, the snapshot at every card, the story hold after every level. */
+  journey: boolean;
+  /** The run and what he carried as they stood at this level's card (a journey run only). */
+  snapshot: Snapshot | null;
+  /** On from the story hold: to the level's card, or after a level to the next one's (or `clear` after the last). */
+  continueStory(): void;
+  /** What he has scored inside this level: the run's score less its score at the card. */
+  levelScore(): number;
   togglePause(): void;
   /** Back to the start screen: the game holds, nothing steps, until a new run is chosen. */
   toTitle(): void;
@@ -82,10 +102,11 @@ const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x 
  */
 /** `cast: false` runs the lobby with nobody in it (the older browser checks); `title` holds it on the start screen. */
 export function createGame(levels: Levels, seed: number, opts: { cast?: boolean; start?: number; title?: boolean } = {}): Game {
-  const shift = [levels.lobby, ...(levels.venues ?? [])];
-  const clampStart = (s: number | undefined) => Math.min(shift.length - 1, Math.max(0, Math.floor(s ?? 0)));
+  /** Today's whole shift: the lobby and the venues after it. */
+  const wholeShift = [levels.lobby, ...(levels.venues ?? [])];
+  const clampStart = (s: number | undefined, length = wholeShift.length) => Math.min(length - 1, Math.max(0, Math.floor(s ?? 0)));
   const start = clampStart(opts.start);
-  const world = createWorld(stageOf(shift[start]), shift[start].spawn, { patience: RUN.patience });
+  const world = createWorld(stageOf(wholeShift[start]), wholeShift[start].spawn, { patience: RUN.patience });
   let timedOut = false;
   /** Down must come up between doors, so arriving with it held never sends him straight back. */
   let armed = true;
@@ -100,13 +121,19 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let swingMove: Move | null = null;
   const swingHit = new Set<string>();
   let bellRung = false;
+  /** The story hold: before a level's card (its cards first) or after its tally. */
+  let storyAt: "before" | "after" = "after";
+  let scoreAtCard = 0;
+  let bonkedAtCard = 0;
+  /** The cast counted as bonked in this layout of the level: each person once, however many ways they went. */
+  const bonkedIds = new Set<number>();
 
   const game: Game = {
     levels,
-    shift,
+    shift: wholeShift,
     venue: start,
     start,
-    level: shift[start],
+    level: wholeShift[start],
     world,
     run: createRun(seed),
     pickups: [],
@@ -123,6 +150,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     questDoor: null,
     newQuest,
     finishQuest,
+    journey: false,
+    snapshot: null,
+    continueStory,
+    levelScore: () => game.run.score - scoreAtCard,
   };
 
   function setMode(mode: GameMode, ev: GameEvent[], seconds = 0) {
@@ -147,10 +178,13 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   /** The venue he is in as the run laid it out, him at its last punch clock with a full clock: the shipped respawn. */
   function begin(carry: HeroOptions, ev: GameEvent[]) {
-    const level = shift[game.venue];
+    const level = game.shift[game.venue];
     game.level = level;
     game.crates = cratesOf(level);
-    game.pickups = seedRewards(level, game.run.seed + game.venue * VENUE_SEED);
+    // A level's layout is its own wherever the run began: seeded by its place in the whole shift (SAT after it).
+    const place = wholeShift.indexOf(level);
+    game.pickups = seedRewards(level, game.run.seed + (place >= 0 ? place : wholeShift.length) * VENUE_SEED);
+    bonkedIds.clear();
     const k = level.checkpoints.find((c) => c.id === game.run.checkpoint);
     const at = k ?? level.spawn;
     Object.assign(world.hero, createHero(at, carry));
@@ -180,13 +214,47 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     setMode("card", ev, RUN.cardT);
   }
 
-  function newRun(s: number, from = game.start) {
-    game.start = game.venue = clampStart(from);
+  /** At a journey level's card: three lives or more (plan decision 3), and the snapshot Try again restores. */
+  function atCard() {
+    scoreAtCard = game.run.score;
+    bonkedAtCard = game.run.bonked;
+    if (!game.journey) {
+      game.snapshot = null;
+      return;
+    }
+    game.run.lives = Math.max(RUN.lives, game.run.lives);
+    const h = world.hero;
+    const carry: Carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy, flop: h.flop, boxes: h.boxes };
+    game.snapshot = structuredClone({ run: game.run, carry });
+  }
+
+  function newRun(s: number, from?: number, opts?: RunOptions) {
+    const snap = opts?.snapshot ?? null;
+    game.shift = opts?.shift ?? (snap ? game.shift : wholeShift);
+    game.journey = opts?.journey ?? (!!snap && game.journey);
+    game.start = game.venue = clampStart(from ?? game.start, game.shift.length);
     game.quest = null;
     game.questDoor = null;
-    game.run = createRun(s);
+    // A snapshot is the run at a card: no punch clock of the level before it counts here.
+    game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, punched: [] } : createRun(s);
     stashStock = null;
-    begin({ charge: 0, patience: RUN.patience }, (game.events = []));
+    begin(snap ? { ...snap.carry } : { charge: 0, patience: RUN.patience }, (game.events = []));
+    atCard();
+    if (opts?.hold) {
+      storyAt = "before";
+      setMode("story", game.events);
+    }
+  }
+
+  function continueStory() {
+    if (game.mode !== "story") return;
+    const ev: GameEvent[] = (game.events = []);
+    if (storyAt === "before") setMode("card", ev, RUN.cardT);
+    else if (game.venue < game.shift.length - 1) nextVenue(ev);
+    else {
+      ev.push({ type: "clear" });
+      setMode("clear", ev);
+    }
   }
 
   function toTitle() {
@@ -259,6 +327,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const ev: GameEvent[] = (game.events = []);
     if (q.id === "fares") payFares(q.result, ev);
     else payHungry(q.result, ev);
+    // The gate's round is the level's set piece (spec §6.3): its tally pays in as the shuttle's does and ends the level.
+    if (d.kind === "gate") {
+      game.quest = null;
+      game.questDoor = null;
+      game.door = null;
+      setMode("tally", ev, RUN.clearHold);
+      return;
+    }
     const h = world.hero;
     h.move = null;
     h.crouch = false;
@@ -411,6 +487,17 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       setMode("walkoff", ev, RUN.walkoffT);
       return true;
     }
+    // A gate is walked into like an exit and opens Fare Darts as the level's set piece, the level frozen behind it.
+    const gate = standing
+      ? game.level.doors.find((d) => d.kind === "gate" && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
+      : undefined;
+    if (gate) {
+      exitDoor = gate;
+      world.hits = [];
+      ev.push({ type: "door", kind: gate.kind, id: gate.id });
+      openQuest(createFares((game.run.seed ^ Math.imul(Math.round(gate.x), 7919)) >>> 0), gate, ev);
+      return true;
+    }
     const d = game.door;
     // Not on the way past one in a slide or a flop: ↓ held through it is for the slide.
     if (!d || !armed || !input.held.down || !h.onGround || h.move || h.slideT > 0) return false;
@@ -485,7 +572,13 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     game.modeT -= STEP;
     if (game.modeT <= 1e-9) {
-      if (game.venue < shift.length - 1) nextVenue(ev);
+      if (game.journey) {
+        // The journey holds after every level for the story's cards; the shell continues it.
+        const last = game.venue >= game.shift.length - 1;
+        storyAt = "after";
+        setMode("story", ev);
+        ev.push({ type: "levelDone", id: game.level.id, score: game.levelScore(), bonked: game.run.bonked - bonkedAtCard, last });
+      } else if (game.venue < game.shift.length - 1) nextVenue(ev);
       else {
         ev.push({ type: "clear" });
         setMode("clear", ev);
@@ -501,7 +594,18 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.run.checkpoint = null;
     game.run.punched = [];
     begin(carry, ev);
+    atCard();
     ev.push({ type: "venue", id: game.level.id });
+  }
+
+  /** Everyone knocked out for good, run off or sent down a pit this step counts once on the run (plan decision 4). */
+  function countBonked(list: GameEvent[]) {
+    for (const e of list) {
+      const out = (e.type === "castHit" && e.down) || e.type === "castFlee" || e.type === "castFell";
+      if (!out || bonkedIds.has(e.id)) continue;
+      bonkedIds.add(e.id);
+      game.run.bonked++;
+    }
   }
 
   /** Staff knocked out for good drop what they carried where the hit found them (owner, 2026-10-18: a fight to earn it). */
@@ -569,6 +673,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       }
     };
     score(world.events);
+    countBonked(world.events);
     dropCarried(world.events, ev);
     // Waking the pig hands him the pepper and a moment's grace (its punch clock stands at the way in).
     if (world.events.some((e) => e.type === "pigWake")) {
@@ -589,6 +694,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       const bowled: GameEvent[] = [];
       shieldBowl(bowled);
       score(bowled);
+      countBonked(bowled);
       ev.push(...bowled);
       dropCarried(bowled, ev);
     }
