@@ -1,5 +1,7 @@
 import { isNewBest, type HudPayload } from "@/render/hud";
 import type { GameMode } from "@/sim/game";
+import { actTotal, type Journey } from "@/sim/journey";
+import { ACTS, stopOf, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
 import { FOODS } from "@/sim/quests/hungry/food";
 import { GRADES, HUNGRY } from "@/sim/quests/hungry/hungry";
 import type { FareClass, TagKind } from "@/sim/quests/fares/board";
@@ -18,6 +20,10 @@ const CLASS_NAME: Record<FareClass | Exclude<TagKind, "fare">, string> = {
   fee: "BAG FEE",
 };
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const pad6 = (n: number) => String(Math.max(0, Math.round(n))).padStart(6, "0");
+
+/** What is being played: the journey's stops, a finished stop again, Work the whole shift, or pig practice. */
+export type RunKind = "journey" | "replay" | "shift" | "practice";
 
 export type VeilInfo = {
   venue: string;
@@ -41,7 +47,91 @@ export type VeilInfo = {
   bestBefore: number;
   /** The touch pad is showing: the break card names the pad's buttons, not the keyboard's. */
   touch: boolean;
+  how: RunKind;
+  journey: Journey | null;
+  /** The stop being played in a journey or a replay. */
+  stop: StoryStop | null;
+  /** The story's cards to show now, in order: the first is up. */
+  cards: StoryCard[];
+  /** A replay's exit card: the stop, what it scored and its best. */
+  clocked: { id: StoryId; score: number; best: number } | null;
 };
+
+/**
+ * A story card in the shell's slate and gold (story spec §6.1, §6.3, §7): the email laid out like a phone's mail, a
+ * caption, a phone's notification with his thought, an act's end with its total. Its Continue has the focus, so Enter
+ * or Space presses it.
+ */
+function StoryCardView({ card, info, place, onContinue }: { card: StoryCard; info: VeilInfo; place: "top" | "bottom" | "right"; onContinue: () => void }) {
+  const go = (
+    <button type="button" className="next-veil__button" onClick={onContinue} autoFocus>
+      Continue
+    </button>
+  );
+  if (card.kind === "email")
+    return (
+      <div className="next-veil next-veil--story" data-place={place}>
+        <section className="next-veil__card next-veil__mail" role="dialog" aria-label="Your transition">
+          <dl className="next-veil__mailhead">
+            <div>
+              <dt>From</dt>
+              <dd>Basel office</dd>
+            </div>
+            <div>
+              <dt>To</dt>
+              <dd>Hammer</dd>
+            </div>
+            <div>
+              <dt>Subject</dt>
+              <dd>Your transition</dd>
+            </div>
+          </dl>
+          <p className="next-veil__mailbody">Training is moving to video. Please come to Basel on the 14th to discuss your transition. Safe travels.</p>
+          <p className="next-veil__thought">Transition.</p>
+          {go}
+        </section>
+      </div>
+    );
+  if (card.kind === "caption")
+    return (
+      <div className="next-veil next-veil--story" data-place={place}>
+        <section className="next-veil__card next-veil__caption" role="dialog" aria-label={card.text}>
+          <h2 className="next-veil__title">{card.text}</h2>
+          {go}
+        </section>
+      </div>
+    );
+  if (card.kind === "phone")
+    return (
+      <div className="next-veil next-veil--story" data-place={place}>
+        <section className="next-veil__card next-veil__phone" role="dialog" aria-label={card.app}>
+          <p className="next-veil__eyebrow">{card.app}</p>
+          <p className="next-veil__notice">{card.text}</p>
+          <p className="next-veil__thought">{card.thought}</p>
+          {go}
+        </section>
+      </div>
+    );
+  const act = ACTS[card.act];
+  return (
+    <div className="next-veil next-veil--story" data-place={place}>
+      <section className="next-veil__card next-veil__act" role="dialog" aria-label={`${act.title} complete`}>
+        <h2 className="next-veil__title">{`${act.title} · complete`}</h2>
+        <dl className="next-veil__scores">
+          <div>
+            <dt>Score</dt>
+            <dd>{pad6(info.score)}</dd>
+          </div>
+          <div>
+            <dt>Act total</dt>
+            <dd>{pad6(info.journey ? actTotal(info.journey, card.act) : 0)}</dd>
+          </div>
+        </dl>
+        {go}
+      </section>
+    </div>
+  );
+}
 
 function Lives({ n, portrait }: { n: number; portrait: string | null }) {
   return (
@@ -91,7 +181,10 @@ export function NextVeil({
   onResume,
   onNewRun,
   onTitle,
+  onJourney,
   onContinue,
+  onStory,
+  onReplay,
   onQuestAgain,
 }: {
   mode: GameMode | null;
@@ -102,27 +195,77 @@ export function NextVeil({
   onNewRun: () => void;
   /** Back to the start screen, when there is one. */
   onTitle?: () => void;
+  /** A journey's or a replay's way home: the start screen with the strip. */
+  onJourney?: () => void;
   /** The BUFFET door's tally: back to the lobby. */
   onContinue?: () => void;
+  /** A story card's Continue. */
+  onStory?: () => void;
+  /** A replay's exit card: the stop again. */
+  onReplay?: () => void;
   /** Practice's tally: another round. */
   onQuestAgain?: () => void;
 }) {
+  const storied = info.how === "journey" || info.how === "replay";
   const toTitle = onTitle && (
     <button type="button" className="next-veil__button next-veil__button--quiet" onClick={onTitle}>
       Start screen
     </button>
   );
-  if (mode === "card")
+  const toJourney = (
+    <button type="button" className="next-veil__button next-veil__button--quiet" onClick={onJourney}>
+      Journey
+    </button>
+  );
+  if (mode === "story" && info.cards.length)
+    return <StoryCardView key={`${info.cards.length}-${info.cards[0].kind}`} card={info.cards[0]} info={info} place={place} onContinue={() => onStory?.()} />;
+  if (mode === "story" && info.clocked) {
+    const s = stopOf(info.clocked.id);
+    return (
+      <div className="next-veil" data-place={place}>
+        <section className="next-veil__card" role="dialog" aria-label="Clocked out">
+          <p className="next-veil__eyebrow">{`${s.code} · ${s.name}`}</p>
+          <h2 className="next-veil__title">Clocked out</h2>
+          <dl className="next-veil__scores">
+            <div>
+              <dt>Score</dt>
+              <dd>{pad6(info.clocked.score)}</dd>
+            </div>
+            <div>
+              <dt>{info.clocked.score >= info.clocked.best && info.clocked.score > 0 ? "New best" : "Best"}</dt>
+              <dd>{pad6(info.clocked.best)}</dd>
+            </div>
+          </dl>
+          <button type="button" className="next-veil__button" onClick={onReplay} autoFocus>
+            Play again
+          </button>
+          {toJourney}
+        </section>
+      </div>
+    );
+  }
+  if (mode === "card") {
+    // In a journey the first stop of the hotel's shift starts it, and a replay starts its own; the rest go on.
+    const line = info.back
+      ? "Back from your break"
+      : storied
+        ? info.how === "replay" || info.world === "1-1"
+          ? "Your shift starts here"
+          : "Your shift goes on"
+        : info.first
+          ? "Your shift starts here"
+          : "Your shift goes on";
     return (
       <div className="next-veil next-veil--card" data-place={place}>
         <section className="next-veil__card" aria-live="polite">
           <p className="next-veil__eyebrow">World {info.world}</p>
           <h2 className="next-veil__title">{info.venue}</h2>
-          <p className="next-veil__line">{info.back ? "Back from your break" : info.first ? "Your shift starts here" : "Your shift goes on"}</p>
+          <p className="next-veil__line">{line}</p>
           <Lives n={info.lives} portrait={info.portrait} />
         </section>
       </div>
     );
+  }
   if (mode === "pause")
     return (
       <div className="next-veil" data-place={place}>
@@ -317,11 +460,12 @@ export function NextVeil({
         <section className="next-veil__card" role="dialog" aria-label="Hammer down">
           <h2 className="next-veil__title">Hammer down</h2>
           <p className="next-veil__line">Absolute bullshit.</p>
-          <Scores info={info} />
+          {/* A journey's level is retried from its card: its score so far, no best to beat here. */}
+          <Scores info={storied ? { ...info, practice: true } : info} />
           <button type="button" className="next-veil__button" onClick={onNewRun}>
             Try again
           </button>
-          {toTitle}
+          {storied ? toJourney : toTitle}
         </section>
       </div>
     );

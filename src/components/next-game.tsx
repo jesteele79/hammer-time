@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Quality } from "@/render/app";
 import type { HudPayload } from "@/render/hud";
-import type { Look } from "@/render/look";
+import type { LevelDone, Look } from "@/render/look";
 import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
+import type { LevelId } from "@/sim/level";
 import type { QuestId } from "@/sim/quests/quest";
+import { JOURNEY_KEY, finishLevel, newJourney, parseJourney, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
+import { STOP_LEVELS } from "@/sim/levels";
+import { RUN } from "@/sim/run";
+import { STORY, builtStops, isStoryId, nextOf, stopOf, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
 import { NextHud } from "./next-hud";
 import { NextStart, type Start } from "./next-start";
 import { NextTouch } from "./next-touch";
-import { NextVeil } from "./next-veil";
+import { NextVeil, type RunKind } from "./next-veil";
 
-/** Where the rebuild keeps its best score, apart from the shipped game's. */
+/** Where the rebuild keeps its best score, apart from the shipped game's: Work the whole shift's (story spec §4.4). */
 const BEST_KEY = "hammer-time-best-next";
 /** Hungry Hungry Hammer's best, door rounds and practice alike (R4 §1, decision 6). */
 const BANQUET_BEST_KEY = "hammer-time-best-banquet";
@@ -19,6 +24,10 @@ export const FARES_BEST_KEY = "hammer-time-best-fares";
 const QUALITY_KEY = "hammer-time-quality";
 const QUALITIES: readonly Quality[] = ["ultra", "high", "medium", "low"];
 const TOUCH_QUERY = "(pointer: coarse), (max-width: 899px)";
+/** The stops that can be played, in story order. */
+const BUILT = builtStops(STOP_LEVELS);
+/** What he carries into a run saved without it (plan decision 2: a save without `carry` reads as none). */
+const NO_CARRY: Carry = { charge: 0, patience: RUN.patience, hot: false, doggy: 0, flop: false, boxes: 0 };
 
 const readNumber = (key: string) => {
   try {
@@ -42,6 +51,21 @@ const writeNumber = (key: string, n: number) => {
     // Private windows refuse storage; the best lasts the session.
   }
 };
+/** The journey as this browser keeps it; a private window or a broken save gives a new one. */
+const readJourney = (): Journey => {
+  try {
+    return parseJourney(localStorage.getItem(JOURNEY_KEY));
+  } catch {
+    return newJourney();
+  }
+};
+/** `&journey=all`: every built stop finished, for the page only (spec §4.7). */
+const openJourney = (): Journey => ({ ...newJourney(), done: [...BUILT], next: nextOf(BUILT[BUILT.length - 1]) ?? BUILT[BUILT.length - 1] });
+/** The stop Clock in plays: the journey's next, or the first built stop after it while it is not built (Phase 1a's SAT). */
+const playableNext = (j: Journey): StoryId | null => {
+  const from = STORY.findIndex((s) => s.id === j.next);
+  return STORY.slice(Math.max(0, from)).find((s) => BUILT.includes(s.id))?.id ?? null;
+};
 
 /** True while the media query matches: the touch pad shows on phones and touch screens. */
 function useMedia(query: string) {
@@ -63,9 +87,10 @@ export function NextGame({
   board = false,
   dev = false,
   nocast = false,
-  start,
+  level,
   title = false,
   quest,
+  journeyAll = false,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
@@ -74,12 +99,14 @@ export function NextGame({
   dev?: boolean;
   /** A lobby with nobody in it: the older checks' switch. */
   nocast?: boolean;
-  /** Start the shift at a later venue (`&venue=`). */
-  start?: "restaurant" | "campus" | "arena";
+  /** Straight into play at this level of the whole shift (`&level=`, the old `&venue=`). */
+  level?: LevelId;
   /** On the start screen first; the game loads behind it. */
   title?: boolean;
   /** Straight into a side quest's practice once the game is ready (`/?quest=hungry` or `/?quest=fares`, R4 §8, R5 §11). */
   quest?: QuestId;
+  /** Every built stop open for this page, nothing saved (`&journey=all`, spec §4.7). */
+  journeyAll?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -96,21 +123,52 @@ export function NextGame({
   const [muted, setMuted] = useState(false);
   const [place, setPlace] = useState<"top" | "bottom" | "right">("bottom");
   const [ready, setReady] = useState(false);
-  const [pending, setPending] = useState<Start | null>(null);
+  // A start chosen before the game was ready: it begins once it is, and only once.
+  const [pending, setPending] = useState<(() => void) | null>(null);
   // A practice round asked for before the game was ready: by a Side quests card, or by the page's own link.
   const [pendingQuest, setPendingQuest] = useState<QuestId | null>(quest ?? null);
-  const [practice, setPractice] = useState(start === "arena");
   const [quality, setQualityState] = useState<Quality | null>(null);
   // The page is live once mounted: until then the server-drawn start screen's buttons are disabled, since a tap would be lost.
   const [live, setLive] = useState(false);
-  // Read by the callbacks and by the look once it is up: what was chosen before it was ready still reaches it.
-  const practiceRef = useRef(practice);
-  const mutedRef = useRef(false);
+  /** What is being played: a journey's stops, a finished stop again, today's whole shift, or pig practice. */
+  const [how, setHowState] = useState<RunKind>(level === "arena" ? "practice" : "shift");
+  const howRef = useRef(how);
+  const setHow = (h: RunKind) => {
+    howRef.current = h;
+    setHowState(h);
+  };
+  const [journey, setJourney] = useState<Journey>(newJourney);
+  const journeyRef = useRef(journey);
+  /** The stop being played in a journey or a replay, and the story's cards showing now. */
+  const [stop, setStop] = useState<StoryStop | null>(null);
+  const [cards, setCards] = useState<StoryCard[]>([]);
+  /** The cards show before the stop's card (the email) or after its tally. */
+  const storyAt = useRef<"before" | "after">("after");
+  /** The level just finished was the run's last: after its cards the run is over. */
+  const lastLevel = useRef(false);
+  /** A replay's exit card: the stop, what it scored and its best now. */
+  const [clocked, setClocked] = useState<{ id: StoryId; score: number; best: number } | null>(null);
   const qualityChosen = useRef<{ q: Quality | null } | null>(null);
+  const mutedRef = useRef(false);
   const touch = useMedia(TOUCH_QUERY);
-  const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear" || mode === "questCard" || mode === "questTally";
+  const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear" || mode === "questCard" || mode === "questTally" || mode === "story";
   // A side quest's card, its tally, or a break in its round.
   const atQuest = mode === "questCard" || mode === "questTally" || (mode === "pause" && !!hud?.quest);
+
+  /** The journey kept: in this browser, unless the page opened every stop for itself. */
+  const writeJourney = useCallback(
+    (j: Journey) => {
+      journeyRef.current = j;
+      setJourney(j);
+      if (journeyAll) return;
+      try {
+        localStorage.setItem(JOURNEY_KEY, serializeJourney(j));
+      } catch {
+        // Private windows refuse storage; the journey lasts the page.
+      }
+    },
+    [journeyAll],
+  );
 
   // While a card shows, keep it in the half of the screen away from his face (he may lie low after a fall); at a side
   // quest on a screen wider than tall, the right half, his face being at the table's left end or the gate's left.
@@ -133,7 +191,10 @@ export function NextGame({
     setBanquetBest(readNumber(BANQUET_BEST_KEY));
     setFaresBest(readNumber(FARES_BEST_KEY));
     setQualityState(readQuality());
-  }, []);
+    const j = journeyAll ? openJourney() : readJourney();
+    journeyRef.current = j;
+    setJourney(j);
+  }, [journeyAll]);
 
   const onHud = useCallback((h: HudPayload) => {
     hudNow.current = h;
@@ -145,8 +206,8 @@ export function NextGame({
       // The shift's first card; a card after a venue's tally says the shift goes on.
       setFirst(lastMode.current === null || lastMode.current === "clear" || lastMode.current === "over" || lastMode.current === "title");
     }
-    // Pig practice keeps no best (R3 §2).
-    if ((m === "over" || m === "clear") && !practiceRef.current) {
+    // Only Work the whole shift keeps today's best (story spec §4.4); pig practice keeps none (R3 §2).
+    if ((m === "over" || m === "clear") && howRef.current === "shift") {
       const score = hudNow.current?.score ?? 0;
       setBest((b) => {
         if (score <= b) return b;
@@ -154,9 +215,59 @@ export function NextGame({
         return score;
       });
     }
+    if (m === "title") {
+      setCards([]);
+      setClocked(null);
+    }
     lastMode.current = m;
     setMode(m);
   }, []);
+
+  /** A journey level's card is up: the snapshot just taken is what Try again and tomorrow's Clock in start from. */
+  const onCard = useCallback(
+    (id: LevelId, snapshot: Snapshot | null) => {
+      const j = journeyRef.current;
+      if (howRef.current !== "journey" || !snapshot || id !== j.next) return;
+      writeJourney({ ...j, run: snapshot.run, carry: snapshot.carry });
+    },
+    [writeJourney],
+  );
+
+  /** The run is over after its last level's cards: on to the next act's first stop if it is built, else home. */
+  const endOfRun = useCallback(() => {
+    const j = journeyRef.current;
+    if (howRef.current === "journey" && BUILT.includes(j.next) && j.next !== stop?.id) {
+      beginStopRef.current(j.next, "journey");
+      return;
+    }
+    look.current?.toTitle();
+  }, [stop]);
+  const endOfRunRef = useRef(endOfRun);
+  endOfRunRef.current = endOfRun;
+
+  /** A journey level's tally is counted: its best and the journey moved on, then its cards (or straight on). */
+  const onLevelDone = useCallback(
+    (e: LevelDone) => {
+      if (!isStoryId(e.id)) return;
+      const id = e.id;
+      const replay = howRef.current === "replay";
+      const done = finishLevel(journeyRef.current, id, e.score, replay ? null : e.snapshot);
+      const j = { ...done, bonked: done.bonked + e.bonked };
+      writeJourney(j);
+      storyAt.current = "after";
+      lastLevel.current = e.last;
+      if (replay) {
+        setClocked({ id, score: e.score, best: j.best[id] ?? e.score });
+        return;
+      }
+      const after = stopOf(id).after ?? [];
+      if (after.length) setCards(after);
+      // The look is mid-step: the game moves on once this frame is done.
+      else if (!e.last) setTimeout(() => look.current?.continueStory(), 0);
+      else setTimeout(() => endOfRunRef.current(), 0);
+    },
+    [writeJourney],
+  );
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
@@ -169,7 +280,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, start, title, onHud, onMode });
+      const started = await startLook(render, { noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard });
       if (cancelled) {
         started.stop();
         return render.destroy();
@@ -188,12 +299,12 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, start, title, onHud, onMode]);
+  }, [forceWebgl, noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard]);
 
   // A start chosen while the game still loaded begins once it is ready, and only once.
   useEffect(() => {
     if (ready && pending) {
-      look.current?.start(pending.at);
+      pending();
       setPending(null);
     }
   }, [ready, pending]);
@@ -225,15 +336,57 @@ export function NextGame({
     });
   }, [mode, questResult, questId]);
 
+  /** Now if the game is ready, else as soon as it is. */
+  const whenReady = (go: () => void) => {
+    if (look.current) go();
+    else setPending(() => go);
+  };
   const playQuest = (id: QuestId) => {
     if (look.current) look.current.newQuest(id);
     else setPendingQuest(id);
   };
+  /** A stop of the journey (its next, from the save's snapshot) or a finished one again (fresh). */
+  const beginStop = (id: StoryId, kind: "journey" | "replay") => {
+    const j = journeyRef.current;
+    const s = stopOf(id);
+    // The cards before a stop (the email) show the first time it is played, before any snapshot of it is saved.
+    const hold = kind === "journey" && !!s.before?.length && !j.run;
+    setHow(kind);
+    setStop(s);
+    setClocked(null);
+    setCards(hold ? (s.before ?? []) : []);
+    storyAt.current = hold ? "before" : "after";
+    lastLevel.current = false;
+    const snapshot = kind === "journey" && j.run ? { run: j.run, carry: j.carry ?? NO_CARRY } : null;
+    whenReady(() => look.current?.startJourney(id, kind, snapshot, hold));
+  };
+  const beginStopRef = useRef(beginStop);
+  beginStopRef.current = beginStop;
+  /** Clock in: the journey's next stop, passing any not built yet. */
+  const beginJourney = () => {
+    let j = journeyRef.current;
+    const id = playableNext(j);
+    if (!id) return;
+    if (id !== j.next) {
+      j = skipTo(j, id);
+      writeJourney(j);
+    }
+    beginStop(id, "journey");
+  };
   const begin = (s: Start) => {
-    practiceRef.current = s.id === "arena";
-    setPractice(s.id === "arena");
-    if (look.current) look.current.start(s.at);
-    else setPending(s);
+    // The whole shift's card is the journey's Clock in until the strip takes its place; a finished place replays.
+    if (s.id === "lobby") return beginJourney();
+    if (journeyRef.current.done.includes(s.id)) return beginStop(s.id, "replay");
+    setHow(s.id === "arena" ? "practice" : "shift");
+    whenReady(() => look.current?.start(s.at));
+  };
+  /** Continue on a story card: the next card, or the game moves on. */
+  const continueStory = () => {
+    const rest = cards.slice(1);
+    setCards(rest);
+    if (rest.length) return;
+    if (storyAt.current === "before" || !lastLevel.current) look.current?.continueStory();
+    else endOfRun();
   };
   const toggleMute = () => {
     setMuted((m) => {
@@ -244,7 +397,7 @@ export function NextGame({
   };
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
   const onTitle = mode === "title" || (title && mode === null);
-  const veiled = mode === "pause" || mode === "over" || mode === "clear" || mode === "questTally";
+  const veiled = mode === "pause" || mode === "over" || mode === "clear" || mode === "questTally" || mode === "story";
   const info = {
     venue: hud?.venue ?? "Hotel lobby",
     world: hud?.world ?? "1-1",
@@ -254,12 +407,17 @@ export function NextGame({
     portrait: hud?.portrait ?? null,
     back,
     first,
-    practice,
+    practice: how === "practice",
     quest: hud?.quest ?? null,
     banquetBest,
     faresBest,
     bestBefore,
     touch,
+    how,
+    journey,
+    stop,
+    cards,
+    clocked,
   };
   // Practice's tally always offers the start screen (it was opened from there, or from its link straight in).
   const titleBack = title || (!!hud?.quest && !hud.quest.door);
@@ -307,9 +465,12 @@ export function NextGame({
             info={info}
             place={place}
             onResume={() => look.current?.togglePause()}
-            onNewRun={() => look.current?.newRun()}
+            onNewRun={() => (how === "journey" || how === "replay" ? look.current?.tryAgain() : look.current?.newRun())}
             onTitle={titleBack ? () => look.current?.toTitle() : undefined}
+            onJourney={() => look.current?.toTitle()}
             onContinue={() => look.current?.finishQuest()}
+            onStory={continueStory}
+            onReplay={() => clocked && beginStop(clocked.id, "replay")}
             onQuestAgain={() => look.current?.newQuest(hud?.quest?.id)}
           />
         </>

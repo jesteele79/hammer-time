@@ -27,6 +27,9 @@ import { STASH } from "../sim/levels/stash";
 import { RESTAURANT } from "../sim/levels/restaurant";
 import { CAMPUS } from "../sim/levels/campus";
 import { GIFTSHOP } from "../sim/levels/giftshop";
+import { STOP_LEVELS } from "../sim/levels";
+import type { Carry, Snapshot } from "../sim/journey";
+import { shiftFrom, type StoryId } from "../sim/story";
 import { PIG_ID } from "../sim/pig";
 import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
@@ -136,7 +139,19 @@ export type Look = {
   newQuest(id?: QuestId): void;
   /** Continue on the BUFFET door's tally: back in the lobby with what he ate (R4 §7). */
   finishQuest(): void;
+  /**
+   * A journey run from a stop to the end of its act (`journey`, from the save's snapshot or fresh), or that stop alone,
+   * fresh (`replay`); `hold` begins on the story's cards before it.
+   */
+  startJourney(id: StoryId, how: "journey" | "replay", snapshot: Snapshot | null, hold: boolean): void;
+  /** On from the story's cards: to the level's card, or to the next level's. */
+  continueStory(): void;
+  /** Hammer down's Try again: the level's card as it stood (a journey's snapshot), or a fresh shift. */
+  tryAgain(): void;
 };
+
+/** A level of a journey run is over: what he scored in it, the staff he bonked, the run as it stands now. */
+export type LevelDone = { id: LevelId; score: number; bonked: number; last: boolean; snapshot: Snapshot };
 
 /** Where things are this frame, in world px, for the effects. */
 type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point };
@@ -148,14 +163,28 @@ type Frame = { face: Rect; view: Rect; facing: 1 | -1; hand: Point; crown: Point
  */
 export async function startLook(
   render: RenderApp,
-  opts: { noart?: boolean; board?: boolean; dev?: boolean; nocast?: boolean; start?: LevelId; title?: boolean; onHud?: (hud: HudPayload) => void; onMode?: (mode: GameMode) => void } = {},
+  opts: {
+    noart?: boolean;
+    board?: boolean;
+    dev?: boolean;
+    nocast?: boolean;
+    /** Straight into play at this level of the whole shift (`&level=`, the old `&venue=`). */
+    level?: LevelId;
+    title?: boolean;
+    onHud?: (hud: HudPayload) => void;
+    onMode?: (mode: GameMode) => void;
+    /** A journey level's tally is counted: the shell finishes it in the save and shows the story's cards. */
+    onLevelDone?: (e: LevelDone) => void;
+    /** A journey level's card is up, with the snapshot just taken: the shell saves it. */
+    onCard?: (id: LevelId, snapshot: Snapshot | null) => void;
+  } = {},
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
   const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1) }, newSeed(), {
     cast: !opts.nocast,
     title: !!opts.title,
-    start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.start)),
+    start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.level)),
   });
   const world = game.world;
   const clock = createClock();
@@ -290,7 +319,8 @@ export async function startLook(
   const onKey = (e: KeyboardEvent) => {
     // On the start screen the keys are the page's: Space and Enter press its buttons, the arrows move through its list. A
     // key held from the shift and let go here is let go, so the next shift does not start with it down.
-    if (game.mode === "title") {
+    // The story's cards between levels are the page's too: Enter or Space presses their focused Continue.
+    if (game.mode === "title" || game.mode === "story") {
       if (e.type === "keyup") down.delete(e.code);
       return;
     }
@@ -446,6 +476,7 @@ export async function startLook(
   /** Time and the camera answer each event at once; its look waits for this frame's pose. */
   const feel = (e: GameEvent) => {
     counts[e.type] = (counts[e.type] ?? 0) + 1;
+    if (e.type === "levelDone") opts.onLevelDone?.({ id: e.id, score: e.score, bonked: e.bonked, last: e.last, snapshot: snapshotNow() });
     if (heard(e, scene.view())) sound.play(e);
     const f = feelOf(e);
     if (f) {
@@ -1228,6 +1259,20 @@ export async function startLook(
   /** Just the actions the keys and the pad hold this instant: what Continue must not see pressed on the step after it. */
   const heldNow = () => inputFrom(down, touchDown, prevHeld).held;
 
+  /** The run and what he carries, as they stand: a level's exit hands this on to the next card. */
+  function snapshotNow(): Snapshot {
+    const h = world.hero;
+    const carry: Carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy, flop: h.flop, boxes: h.boxes };
+    return structuredClone({ run: game.run, carry });
+  }
+  /** After the shell moved the game on (a new run, a story card's Continue): its events felt, a new level's card saved. */
+  const settled = () => {
+    prev = cur = world.snapshot();
+    if (game.events.some((e) => e.type === "venue")) clearActors();
+    for (const e of game.events) feel(e);
+    if (game.mode === "card" && game.journey) opts.onCard?.(game.level.id, game.snapshot);
+  };
+
   const tick = (t: Ticker) => {
     // Under the opaque start screen nothing needs drawing: the canvas rests until a start is chosen.
     app.stage.visible = game.mode !== "title";
@@ -1851,6 +1896,32 @@ export async function startLook(
       game.finishQuest();
       prev = cur = world.snapshot();
       for (const e of game.events) feel(e);
+    },
+    startJourney(id, how, snapshot, hold) {
+      const level = STOP_LEVELS.get(id);
+      if (!level) return;
+      starts++;
+      forgetPresses();
+      prevHeld = { ...prevHeld, ...heldNow() };
+      const shift = how === "replay" ? [level] : shiftFrom(id, STOP_LEVELS);
+      game.newRun(newSeed(), 0, { shift, journey: true, snapshot: how === "replay" ? null : snapshot, hold });
+      clearActors();
+      settled();
+    },
+    continueStory() {
+      // A key held through a card's Continue is held, not pressed, on the next level's first step.
+      forgetPresses();
+      prevHeld = { ...prevHeld, ...heldNow() };
+      game.continueStory();
+      settled();
+    },
+    tryAgain() {
+      forgetPresses();
+      prevHeld = { ...prevHeld, ...heldNow() };
+      if (game.journey && game.snapshot) game.newRun(newSeed(), game.venue, { snapshot: game.snapshot });
+      else game.newRun(newSeed());
+      clearActors();
+      settled();
     },
   };
   return look;
