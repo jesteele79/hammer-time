@@ -106,6 +106,12 @@ export function skipTo(j: Journey, id: StoryId): Journey {
   return { ...j, next: id, done: inOrder([...j.done, ...STORY.slice(from, to).map((s) => s.id)]) };
 }
 
+/** The stop Clock in plays: the journey's next, or the first built stop after it while it is not built (Phase 1a's SAT). */
+export function playableNext(j: Journey, built: readonly StoryId[]): StoryId | null {
+  const from = ORDER.get(j.next)!;
+  return STORY.slice(from).find((s) => built.includes(s.id))?.id ?? null;
+}
+
 export function stopState(j: Journey, id: StoryId): "done" | "next" | "locked" {
   if (j.done.includes(id)) return "done";
   return id === j.next ? "next" : "locked";

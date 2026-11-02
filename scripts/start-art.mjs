@@ -1,6 +1,6 @@
 // Renders the start screen's pictures from the game itself and stores them in public/start/ (committed): the key art (the
-// lobby with Hammer and the pig), a picture of each place a shift can start, and the banquet's and the gate's for the Side
-// quests cards.
+// lobby with Hammer and the pig), a picture of each built stop of the journey for its strip (story spec §5.2), and the
+// banquet's and the gate's for the Side quests cards.
 // The owner's art/incoming/brand/key-art.png replaces the rendered key art when it exists. Run it after the art changes,
 // against the dev server.
 // Usage: BROWSER_SMOKE_CHANNEL=chrome node scripts/start-art.mjs [http://127.0.0.1:8090/] [key-art,starts,banquet,gate]
@@ -30,6 +30,7 @@ try {
   };
   const owner = "art/incoming/brand/key-art.png";
   if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await shot("lobby", "keyart"), 1600, "key-art.webp");
+  // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
   if (want("starts")) for (const venue of ["lobby", "restaurant", "campus", "arena"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).
   for (const [name, url, kind] of [

@@ -1,7 +1,9 @@
 // The start screen at `/?next=1&title=1`: it fits a laptop, a phone upright and a phone on its side without scrolling or
-// anything off the screen; each start begins where it says (pig practice at the gift shop), "Start screen" comes back to
-// it, the quality choice is kept, a start chosen while the game still loads begins once, and the side quest chosen while
-// it loads opens the banquet on the same page with no errors.
+// anything off the screen; the journey strip runs along the bottom (finished, next and locked stops under their acts),
+// the wheel and the arrows move it, Clock in starts the next stop (once, even when chosen while the game still loads), a
+// finished stop replays to its own exit card, Act 1's header offers Work the whole shift once Act 1 is finished, a double
+// click starts a stop once, "Start screen" and Journey come back to it, the quality choice is kept, and the side quests
+// open on the same page with no errors.
 // Usage: BROWSER_SMOKE_CHANNEL=chrome node scripts/next-start.check.mjs [http://127.0.0.1:8090/]
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
@@ -18,51 +20,83 @@ const errors = [];
 const fits = async (page, w, h) => {
   const r = await page.evaluate(() => {
     const doc = document.scrollingElement;
-    const boxes = [...document.querySelectorAll(".next-start button, .next-start a, .next-start select, .next-start h1")].map((e) => e.getBoundingClientRect());
-    // Clock in clear of the cards: a start screen too tall for the phone squeezes the hero until its button rides over them.
+    // The strip scrolls inside itself: its stops may sit past its edges, the strip itself may not.
+    const boxes = [...document.querySelectorAll(".next-start button, .next-start a, .next-start select, .next-start h1, .next-strip")]
+      .filter((e) => !e.closest(".next-strip") || e.classList.contains("next-strip"))
+      .map((e) => e.getBoundingClientRect());
+    // Clock in clear of the strip: a start screen too tall for the phone squeezes the hero until its button rides over it.
     const go = document.querySelector(".next-start__go").getBoundingClientRect();
-    const over = [...document.querySelectorAll(".next-start__venue, .next-start__quest")].map((e) => e.getBoundingClientRect()).filter((b) => go.left < b.right && go.right > b.left && go.top < b.bottom && go.bottom > b.top).length;
+    const over = [...document.querySelectorAll(".next-strip, .next-start__quest")].map((e) => e.getBoundingClientRect()).filter((b) => go.left < b.right && go.right > b.left && go.top < b.bottom && go.bottom > b.top).length;
     return { sw: doc.scrollWidth, sh: doc.scrollHeight, out: boxes.filter((b) => b.left < 0 || b.top < 0 || b.right > innerWidth + 0.5 || b.bottom > innerHeight + 0.5).length, over };
   });
   assert.ok(r.sw <= w && r.sh <= h, `${w}x${h}: no scrolling (${r.sw}x${r.sh})`);
   assert.equal(r.out, 0, `${w}x${h}: everything on the screen`);
-  assert.equal(r.over, 0, `${w}x${h}: Clock in over a card`);
+  assert.equal(r.over, 0, `${w}x${h}: Clock in over the strip`);
 };
+const stops = (page) => page.locator(".next-strip__stop").evaluateAll((els) => els.map((e) => ({ code: e.querySelector(".next-strip__code")?.textContent, state: e.dataset.state, img: !!e.querySelector("img"), lock: !!e.querySelector(".next-strip__lock"), disabled: e.disabled })));
+const stop = (page, code) => page.locator(".next-strip__stop", { has: page.locator(".next-strip__code", { hasText: new RegExp(`^${code}$`) }) });
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.setDefaultTimeout(60000);
   page.on("pageerror", (e) => errors.push(e.message));
-  // Chosen at once, while the game still loads: it starts once it is ready, and only once.
   await page.goto(url);
-  await page.getByRole("button", { name: "Start at Restaurant" }).click();
+  await page.evaluate(() => localStorage.clear());
+  // Clocked in at once, while the game still loads: the next stop starts once it is ready, and only once.
+  await page.goto(url);
   await page.getByRole("button", { name: /Clock in|Getting Hammer ready/ }).click();
   await page.waitForFunction(() => window.__next?.run?.mode === "play");
-  assert.equal(await page.evaluate(() => window.__next.run.level), "restaurant");
-  assert.equal(await page.evaluate(() => window.__next.run.events.venue ?? 0), 0, "started there, not walked there");
+  assert.equal(await page.evaluate(() => window.__next.run.level), "lobby", "the first built stop");
   assert.equal(await page.evaluate(() => window.__next.starts), 1, "the start chosen while it loaded began once");
   for (const [w, h] of [[1280, 800], [390, 844], [844, 390]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.goto(url);
-    await page.waitForSelector(".next-start__venue");
+    await page.waitForSelector(".next-strip__stop");
     await page.waitForFunction(() => window.__next?.run?.mode === "title");
     await page.waitForTimeout(300);
     await fits(page, w, h);
     // The Side quests row holds both rounds (R5 §11), each card whole on the screen.
     assert.deepEqual(await page.locator(".next-start__quest").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label"))), ["Play Hungry Hungry Hammer", "Play Fare Darts"], `${w}x${h}: both side quests`);
+    // The next stop is on the screen, centered in the strip on arrival.
+    const next = await page.evaluate(() => {
+      const b = document.querySelector(".next-strip__stop[data-state='next']").getBoundingClientRect();
+      const n = document.querySelector(".next-strip").getBoundingClientRect();
+      return { left: b.left, right: b.right, nl: n.left, nr: n.right };
+    });
+    assert.ok(next.left >= next.nl - 1 && next.right <= next.nr + 1, `${w}x${h}: the next stop in view ${JSON.stringify(next)}`);
     await page.screenshot({ path: resolve(out, `start-${w}x${h}.png`) });
   }
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.run?.mode === "title");
   assert.equal(await page.evaluate(() => window.__next.drawing), false, "the canvas rests under the start screen");
-  // The start screen on its own: no HUD and no pad under it, the whole shift chosen; Enter on a place chooses it, Keys
-  // opens and closes the keys by mouse and keyboard, Sound turns over; none of them clocks in.
+  // The strip of a journey begun: fifteen stops under five headers; SAT before the first built stop, 1-1 next, the rest
+  // locked: no picture, a lock.
+  const s = await stops(page);
+  assert.equal(s.length, 15, "fifteen stops");
+  assert.deepEqual(await page.locator(".next-strip__act h3").allTextContents(), ["Prologue", "Act 1 · The Trip", "Act 2 · Status Crusade", "Act 3 · The Last Tour", "Epilogue"]);
+  assert.equal(s.find((x) => x.code === "1-1").state, "next", "1-1 is next");
+  assert.ok(s.find((x) => x.code === "1-1").img, "the next stop shows its picture");
+  for (const x of s.slice(2)) assert.deepEqual([x.state, x.img, x.lock, x.disabled], ["locked", false, true, true], `${x.code}: locked, no picture, a lock`);
+  assert.match(await page.locator(".next-start__eyebrow").innerText(), /Three acts\. Zero patience\./i);
+  assert.match(await page.locator(".next-start__tagline").innerText(), /Bonk the staff\. Dodge the paper\.\s*Get to Basel\./i);
+  assert.match(await page.locator(".next-start__best").innerText(), /Journey best/i);
+  // The wheel over the strip scrolls it sideways.
+  const box = await page.locator(".next-strip").boundingBox();
+  const left0 = await page.locator(".next-strip").evaluate((e) => e.scrollLeft);
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, 500);
+  await page.waitForTimeout(300);
+  const left1 = await page.locator(".next-strip").evaluate((e) => e.scrollLeft);
+  assert.ok(left1 > left0, `the wheel moves the strip: ${left0} to ${left1}`);
+  // The arrows move it while it has the focus.
+  await stop(page, "1-1").focus();
+  const left2 = await page.locator(".next-strip").evaluate((e) => e.scrollLeft);
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(400);
+  assert.notEqual(await page.locator(".next-strip").evaluate((e) => e.scrollLeft), left2, "the arrows move the strip");
+  // No HUD or pad under the start screen; Keys opens and closes by mouse and keyboard, Sound turns over; none clocks in.
   assert.equal(await page.locator(".next-hud, .next-touch").count(), 0, "no HUD or touch pad on the start screen");
-  const pressed = (name) => page.getByRole("button", { name: `Start at ${name}` }).getAttribute("aria-pressed");
-  assert.equal(await pressed("Hotel lobby"), "true", "the whole shift is chosen to begin with");
-  await page.getByRole("button", { name: "Start at Campus" }).focus();
-  await page.keyboard.press("Enter");
-  assert.deepEqual([await pressed("Campus"), await pressed("Hotel lobby")], ["true", "false"], "Enter on a place chooses it");
   const keysButton = page.getByRole("button", { name: "Keys" });
   await keysButton.click();
   assert.equal(await keysButton.getAttribute("aria-expanded"), "true");
@@ -79,7 +113,6 @@ try {
   await page.getByRole("button", { name: "Sound off" }).click();
   assert.ok(await page.getByRole("button", { name: "Sound on" }).isVisible(), "and back on");
   assert.equal(await page.evaluate(() => window.__next.run.mode), "title", "nothing clocked in");
-  await page.getByRole("button", { name: "Start at Hotel lobby" }).click();
   // The keyboard drives the start screen: the arrows move through the quality list, Space presses Clock in.
   await page.locator(".next-start__quality select").focus();
   await page.keyboard.press("ArrowDown");
@@ -89,26 +122,51 @@ try {
   await page.keyboard.press("Space");
   await page.waitForFunction(() => window.__next.run.mode === "card" || window.__next.run.mode === "play");
   assert.equal(await page.evaluate(() => window.__next.drawing), true);
-  for (const [name, level] of [["Hotel lobby", "lobby"], ["Campus", "campus"], ["The Pink Menace", "arena"]]) {
-    await page.goto(url);
-    await page.waitForFunction(() => window.__next?.run?.mode === "title");
-    await page.getByRole("button", { name: `Start at ${name}` }).click();
-    await page.getByRole("button", { name: "Clock in" }).click();
-    await page.waitForFunction(() => window.__next.run.mode === "play");
-    assert.equal(await page.evaluate(() => window.__next.run.level), level);
-    assert.deepEqual(await page.evaluate(() => [window.__next.run.lives, window.__next.run.patience, window.__next.run.hot]), [3, 2, false], `${name}: a fresh shift`);
-  }
-  // Pig practice ends on "Practice over", with no best kept, and "Start screen" goes back.
+
+  // Every built stop open for the page (`&journey=all`): finished, gold, their pictures, totals of nothing yet, and Act 1's
+  // header offers Work the whole shift.
+  const all = `${url}&journey=all`;
   await page.evaluate(() => localStorage.setItem("hammer-time-best-next", "0"));
+  await page.goto(all);
+  await page.waitForFunction(() => window.__next?.run?.mode === "title");
+  const open = await stops(page);
+  for (const code of ["1-1", "1-2", "1-3", "1-4"]) assert.deepEqual([open.find((x) => x.code === code).state, open.find((x) => x.code === code).img], ["done", true], `${code} finished`);
+  assert.equal(open.find((x) => x.code === "2-1").state, "next", "2-1 next");
+  assert.deepEqual(await page.locator(".next-strip__act b").allTextContents(), ["000000", "000000", "000000", "000000", "000000"], "no bests yet");
+  assert.equal(await page.getByRole("button", { name: "Clock in" }).count(), 0, "Clock in gives way to the notice");
+  assert.ok(await page.getByRole("button", { name: "Act 2 is coming" }).isDisabled(), "Act 2 is coming");
+  await page.getByRole("button", { name: /Work the whole shift/ }).click();
+  await page.waitForFunction(() => window.__next.run.mode === "card");
+  assert.match(await page.locator(".next-veil__card").textContent(), /Your shift starts here/);
+  assert.match(await page.locator(".next-hud__mode").textContent(), /World 1-1/);
+  await page.waitForFunction(() => window.__next.run.mode === "play");
+  assert.deepEqual(await page.evaluate(() => [window.__next.run.level, window.__next.run.lives, window.__next.run.patience, window.__next.run.hot]), ["lobby", 3, 2, false], "the whole shift, fresh");
+
+  // A double click on a finished stop starts it once, fresh.
+  await page.goto(all);
+  await page.waitForFunction(() => window.__next?.run?.mode === "title");
+  await stop(page, "1-3").dblclick();
+  await page.waitForFunction(() => window.__next.run.mode === "play");
+  assert.deepEqual(await page.evaluate(() => [window.__next.run.level, window.__next.starts, window.__next.run.score, window.__next.run.lives]), ["campus", 1, 0, 3], "1-3 once, fresh");
+
+  // A finished 1-4 replayed: chosen by a click, Clock in; the pig down, CLOCK OUT ends on its own exit card; Journey goes
+  // home; the whole shift's best is not touched.
+  await page.goto(all);
+  await page.waitForFunction(() => window.__next?.run?.mode === "title");
+  await stop(page, "1-4").click();
+  assert.equal(await stop(page, "1-4").getAttribute("aria-pressed"), "true", "a click chooses it");
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await page.waitForFunction(() => window.__next.run.mode === "play");
+  assert.equal(await page.evaluate(() => window.__next.run.level), "arena");
   await page.evaluate(() => window.__next.dev.pig({ state: "defeated" }));
   await page.evaluate(() => window.__next.dev.teleport(3950, 0));
   // The arrow stays held through the card and back to the start screen, and is let go there.
   await page.keyboard.down("ArrowRight");
-  await page.waitForFunction(() => window.__next.run.mode === "clear", null, { timeout: 20000 });
-  await page.getByRole("heading", { name: "Practice over" }).waitFor();
-  assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-next")), "0", "no best from practice");
-  await page.screenshot({ path: resolve(out, "start-practice-over.png") });
-  await page.getByRole("button", { name: "Start screen" }).click();
+  await page.getByRole("heading", { name: "Clocked out" }).waitFor({ timeout: 20000 });
+  assert.match(await page.locator(".next-veil__card").textContent(), /1-4/);
+  assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-next")), "0", "a replay keeps no whole-shift best");
+  await page.screenshot({ path: resolve(out, "start-replay-over.png") });
+  await page.getByRole("button", { name: "Journey" }).click();
   await page.waitForFunction(() => window.__next.run.mode === "title");
   await page.keyboard.up("ArrowRight");
   // The quality choice is kept on the device.
@@ -118,12 +176,13 @@ try {
   await page.locator(".next-start__quality select").selectOption("auto");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), null);
   await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 3000 });
-  // A key let go on the start screen is let go: the next shift does not set off walking on its own.
+  // A key let go on the start screen is let go: the next start does not set off walking on its own.
+  await stop(page, "1-2").click();
   await page.getByRole("button", { name: "Clock in" }).click();
   await page.waitForFunction(() => window.__next.run.mode === "play");
   const x0 = await page.evaluate(() => window.__next.hero.x);
   await page.waitForTimeout(1000);
-  assert.ok(Math.abs((await page.evaluate(() => window.__next.hero.x)) - x0) < 1, "he stands where the shift starts");
+  assert.ok(Math.abs((await page.evaluate(() => window.__next.hero.x)) - x0) < 1, "he stands where the stop starts");
   // The side quest, clicked while the game still loads: the banquet opens on this page once it is ready, and nothing errs.
   await page.goto(url);
   await page.getByRole("button", { name: "Play Hungry Hungry Hammer" }).click();
@@ -159,7 +218,7 @@ try {
   await page.goto(`${base}?dev=1&quest=fares`);
   await page.waitForFunction(() => window.__next?.run?.mode === "quest" && window.__next.quest?.id === "fares");
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
-  console.log("PASS: the start screen fits all three sizes, starts each place fresh, keeps practice out of the best, and leaves cleanly.");
+  console.log("PASS: the start screen fits all three sizes; the strip shows finished, next and locked stops under their acts and scrolls by wheel and arrows; Clock in starts once; a replay ends on Clocked out; Work the whole shift from Act 1's header; a double click starts once; the side quests open.");
 } finally {
   await browser.close();
 }

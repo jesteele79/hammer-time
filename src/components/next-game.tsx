@@ -6,12 +6,12 @@ import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
 import type { LevelId } from "@/sim/level";
 import type { QuestId } from "@/sim/quests/quest";
-import { JOURNEY_KEY, finishLevel, newJourney, parseJourney, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
+import { JOURNEY_KEY, finishLevel, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
 import { STOP_LEVELS } from "@/sim/levels";
 import { RUN } from "@/sim/run";
-import { STORY, builtStops, isStoryId, nextOf, stopOf, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
+import { builtStops, isStoryId, nextOf, stopOf, type ActId, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
 import { NextHud } from "./next-hud";
-import { NextStart, type Start } from "./next-start";
+import { NextStart } from "./next-start";
 import { NextTouch } from "./next-touch";
 import { NextVeil, type RunKind } from "./next-veil";
 
@@ -61,11 +61,6 @@ const readJourney = (): Journey => {
 };
 /** `&journey=all`: every built stop finished, for the page only (spec §4.7). */
 const openJourney = (): Journey => ({ ...newJourney(), done: [...BUILT], next: nextOf(BUILT[BUILT.length - 1]) ?? BUILT[BUILT.length - 1] });
-/** The stop Clock in plays: the journey's next, or the first built stop after it while it is not built (Phase 1a's SAT). */
-const playableNext = (j: Journey): StoryId | null => {
-  const from = STORY.findIndex((s) => s.id === j.next);
-  return STORY.slice(Math.max(0, from)).find((s) => BUILT.includes(s.id))?.id ?? null;
-};
 
 /** True while the media query matches: the touch pad shows on phones and touch screens. */
 function useMedia(query: string) {
@@ -365,7 +360,7 @@ export function NextGame({
   /** Clock in: the journey's next stop, passing any not built yet. */
   const beginJourney = () => {
     let j = journeyRef.current;
-    const id = playableNext(j);
+    const id = playableNext(j, BUILT);
     if (!id) return;
     if (id !== j.next) {
       j = skipTo(j, id);
@@ -373,12 +368,14 @@ export function NextGame({
     }
     beginStop(id, "journey");
   };
-  const begin = (s: Start) => {
-    // The whole shift's card is the journey's Clock in until the strip takes its place; a finished place replays.
-    if (s.id === "lobby") return beginJourney();
-    if (journeyRef.current.done.includes(s.id)) return beginStop(s.id, "replay");
-    setHow(s.id === "arena" ? "practice" : "shift");
-    whenReady(() => look.current?.start(s.at));
+  /** A stop on the strip: a finished one replays, the next plays the journey. */
+  const beginAt = (id: StoryId) => (journeyRef.current.done.includes(id) ? beginStop(id, "replay") : beginJourney());
+  /** An act's straight-through run: for Act 1, Work the whole shift, today's game with today's best (story spec §4.6). */
+  const beginStraight = (act: ActId) => {
+    if (act !== "act1") return;
+    setHow("shift");
+    setStop(null);
+    whenReady(() => look.current?.start(0));
   };
   /** Continue on a story card: the next card, or the game moves on. */
   const continueStory = () => {
@@ -439,7 +436,10 @@ export function NextGame({
             qualityChosen.current = { q };
             look.current?.setQuality(q);
           }}
-          onStart={begin}
+          journey={journey}
+          built={BUILT}
+          onStop={beginAt}
+          onStraight={beginStraight}
           onQuest={playQuest}
         />
       ) : (

@@ -166,10 +166,16 @@ try {
   await cardFits("act");
   await enter();
   await waitMode("title");
+  // The strip: 1-4 finished, 2-1 next and coming, Clock in gives way to "Act 2 is coming", Act 1's header totals its bests.
+  const strip = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, e.dataset.state])));
+  assert.deepEqual([strip["1-4"], strip["2-1"]], ["done", "next"], JSON.stringify(strip));
+  assert.ok(await page.getByRole("button", { name: "Act 2 is coming" }).isDisabled(), "Act 2 is coming");
+  assert.equal(await page.locator(".next-strip__act[data-act='act1'] > b").textContent(), String(total).padStart(6, "0"), "Act 1's total on its header");
+  assert.ok(await page.getByRole("button", { name: /Work the whole shift/ }).isVisible(), "Work the whole shift on Act 1's header");
 
   // 6. A replay of the finished 1-3: a fresh run, its own exit card, a best, and the journey untouched.
   const before = await save();
-  await page.getByRole("button", { name: "Start at Campus" }).click();
+  await page.locator(".next-strip__stop", { has: page.locator(".next-strip__code", { hasText: /^1-3$/ }) }).click();
   await page.getByRole("button", { name: "Clock in" }).click();
   await waitMode("card");
   r = await run();
@@ -180,7 +186,7 @@ try {
   await page.getByRole("heading", { name: "Clocked out" }).waitFor();
   text = await veil();
   assert.match(text, /1-3/);
-  assert.match(text, /Score[\s\S]*\d{6}[\s\S]*Best[\s\S]*\d{6}/);
+  assert.match(text, /Score[\s\S]*\d{6}[\s\S]*best[\s\S]*\d{6}/i);
   await cardFits("clocked-out");
   await page.getByRole("button", { name: "Journey" }).click();
   await waitMode("title");

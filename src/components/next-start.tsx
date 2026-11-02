@@ -1,16 +1,10 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Quality } from "@/render/app";
+import { journeyTotal, playableNext, type Journey } from "@/sim/journey";
 import type { QuestId } from "@/sim/quests/quest";
+import { ACTS, actOf, type ActId, type StoryId } from "@/sim/story";
 import { KEYS } from "./next-keys";
-
-/** Where a shift can start: the shift's venue index, its card's picture and words. The gift shop alone is pig practice. */
-export const STARTS = [
-  { at: 0, id: "lobby", code: "1-1", name: "Hotel lobby", detail: "The whole shift" },
-  { at: 1, id: "restaurant", code: "1-2", name: "Restaurant", detail: "Start at the restaurant" },
-  { at: 2, id: "campus", code: "1-3", name: "Campus", detail: "Start at the campus" },
-  { at: 3, id: "arena", code: "1-4", name: "The Pink Menace", detail: "Pig practice" },
-] as const;
-export type Start = (typeof STARTS)[number];
+import { NextStrip } from "./next-strip";
 
 const QUALITIES: { value: Quality | null; label: string }[] = [
   { value: null, label: "Auto" },
@@ -29,9 +23,9 @@ const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matche
 
 /**
  * The start screen (R3 §7) as a title sequence in the shell's slate and gold: the lobby fills the screen, the title is
- * hammered on, and where to start (the whole shift, the restaurant, the campus, or pig practice) runs along the bottom
- * with "Clock in", the best, mute, the keys, the quality, and the side quests (Hungry Hungry Hammer and Fare Darts,
- * played here as practice, R4 §8 and R5 §11).
+ * hammered on, and the journey runs along the bottom as a strip of stops (story spec §5.2) with "Clock in" (the next stop,
+ * or a finished one picked on the strip), the journey's best, mute, the keys, the quality, and the side quests (Hungry
+ * Hungry Hammer and Fare Darts, played here as practice, R4 §8 and R5 §11).
  * The game loads behind it: a start picked before it is ready begins as soon as it is, with no plunge, since the screen
  * must stay up until then. It is drawn at once; its buttons wait, disabled, until the page is live, so no tap is lost.
  */
@@ -45,7 +39,10 @@ export function NextStart({
   quality,
   onMute,
   onQuality,
-  onStart,
+  journey,
+  built,
+  onStop,
+  onStraight,
   onQuest,
 }: {
   /** The page's script is running: until then a tap would be lost. */
@@ -60,13 +57,24 @@ export function NextStart({
   quality: Quality | null;
   onMute: () => void;
   onQuality: (q: Quality | null) => void;
-  onStart: (s: Start) => void;
+  journey: Journey;
+  /** The stops that can be played, in story order. */
+  built: readonly StoryId[];
+  /** Start a stop: the next plays the journey, a finished one replays. */
+  onStop: (id: StoryId) => void;
+  /** An act's straight-through run from its header: for Act 1, Work the whole shift. */
+  onStraight: (act: ActId) => void;
   /** A Side quests card: a practice round of that quest, on this page. */
   onQuest: (id: QuestId) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const [full] = useState(() => !sequenced);
-  const [chosen, setChosen] = useState<Start>(STARTS[0]);
+  // A finished stop picked on the strip; otherwise Clock in plays the journey's next.
+  const [picked, setPicked] = useState<StoryId | null>(null);
+  const next = playableNext(journey, built) ?? journey.next;
+  const chosen = picked && journey.done.includes(picked) && built.includes(picked) ? picked : next;
+  // The next stop not built yet: its act is coming (plan decision 5).
+  const coming = !built.includes(chosen);
   const [keys, setKeys] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -104,16 +112,16 @@ export function NextStart({
     leaveTimer.current = window.setTimeout(go, LEAVE_MS);
   };
   const clockIn = () => {
-    if (waiting || leaving) return;
+    if (waiting || leaving || coming) return;
     setWaiting(!ready);
-    leave(() => onStart(chosen));
+    leave(() => onStop(chosen));
   };
   return (
     <div ref={root} className="next-start" data-sequence={full ? "full" : "short"} data-leaving={leaving || undefined} role="dialog" aria-label="Hammer Time">
       <header className="next-start__top">
         <span className="next-start__edition">A very personal hospitality problem</span>
         <span className="next-start__best">
-          Personal best <b>{pad(best)}</b>
+          Journey best <b>{pad(journeyTotal(journey))}</b>
         </span>
         <button type="button" className="next-start__tool" aria-pressed={muted} onClick={onMute} disabled={!live}>
           {muted ? "Sound off" : "Sound on"}
@@ -151,7 +159,7 @@ export function NextStart({
           <div className="next-start__shade" />
         </div>
         <div className="next-start__title">
-          <p className="next-start__eyebrow">Four venues. Zero patience.</p>
+          <p className="next-start__eyebrow">Three acts. Zero patience.</p>
           <h1>
             <span className="next-start__word">
               <span>Hammer</span>
@@ -161,35 +169,23 @@ export function NextStart({
             </span>
           </h1>
           <p className="next-start__tagline">
-            <span>Bonk the staff. Dodge the paper.</span> <span>Settle it with the pig.</span>
+            <span>Bonk the staff. Dodge the paper.</span> <span>Get to Basel.</span>
           </p>
-          <button type="button" className="next-start__go" onClick={clockIn} aria-busy={waiting} disabled={!live}>
-            {waiting ? "Getting Hammer ready…" : "Clock in"}
+          <button type="button" className="next-start__go" onClick={clockIn} aria-busy={waiting} disabled={!live || coming}>
+            {coming ? `${ACTS[actOf(chosen)].title.split(" · ")[0]} is coming` : waiting ? "Getting Hammer ready…" : "Clock in"}
           </button>
         </div>
       </section>
-      <nav className="next-start__venues" aria-label="Choose where to start">
-        {STARTS.map((s, i) => (
-          <button
-            key={s.id}
-            type="button"
-            className="next-start__venue"
-            style={{ ["--i" as string]: i } as CSSProperties}
-            aria-label={`Start at ${s.name}`}
-            aria-pressed={chosen.id === s.id}
-            onClick={() => setChosen(s)}
-            onDoubleClick={() => leave(() => onStart(s))}
-            disabled={!live}
-          >
-            <span className="next-start__shot">
-              <img src={`/start/${s.id}.webp`} alt="" draggable={false} />
-            </span>
-            <span className="next-start__code">{s.code}</span>
-            <b>{s.name}</b>
-            <small>{s.detail}</small>
-          </button>
-        ))}
-      </nav>
+      <NextStrip
+        journey={journey}
+        built={built}
+        best={best}
+        chosen={chosen}
+        live={live}
+        onChoose={(id) => setPicked(id)}
+        onStop={(id) => leave(() => onStop(id))}
+        onStraight={(act) => leave(() => onStraight(act))}
+      />
       <section className="next-start__quests" aria-label="Side quests">
         <span className="next-start__quests-k">Side quests</span>
         <button type="button" className="next-start__quest" aria-label="Play Hungry Hungry Hammer" onClick={() => leave(() => onQuest("hungry"))} disabled={!live}>

@@ -204,3 +204,13 @@ test("a gate door is walked into like an exit: Fare Darts as the set piece, its 
   const evs = until(g, (x) => x.mode === "story", 12);
   assert.ok(evs.some((e) => e.type === "levelDone" && e.id === "lobby" && !e.last));
 });
+
+import { playableNext } from "../src/sim/journey.ts";
+
+test("Clock in plays the next stop, or the first built one after it while it is not built; nothing past an act not built", () => {
+  const built = ["lobby", "restaurant", "campus", "arena"];
+  assert.equal(playableNext(newJourney(), built), "lobby");
+  assert.equal(playableNext(newJourney(), ["sat", ...built]), "sat");
+  assert.equal(playableNext({ ...newJourney(), next: "campus" }, built), "campus");
+  assert.equal(playableNext({ ...newJourney(), next: "lobby-night" }, built), null);
+});
