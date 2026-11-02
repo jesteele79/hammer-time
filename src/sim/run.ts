@@ -53,9 +53,11 @@ export type Run = {
   flopped: boolean;
   /** He has lobbed a box of #15 blades this shift: the hint stops teaching it. */
   lobbed: boolean;
+  /** Staff bonked this run: everyone knocked out for good, run off for good or sent down a pit (plan decision 4). */
+  bonked: number;
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0 });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);
