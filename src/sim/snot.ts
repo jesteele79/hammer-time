@@ -60,7 +60,7 @@ export function fireSnot(h: HeroState, w: { snot: Snot[]; nextSnot: number }, ev
 
 /** Flight, hits on carts (hot snot goes through one), and puddles where it lands. */
 export function stepSnot(
-  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[]; pig?: Pig | null },
+  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[]; pig?: Pig | null; still?: boolean },
   dt: number,
   events: GameEvent[],
 ): void {
@@ -71,7 +71,8 @@ export function stepSnot(
     b.y += b.vy * dt;
     b.life -= dt;
     const r = b.hot ? SNOT.hotR : SNOT.r;
-    for (const t of w.targets) {
+    // On the home screen it flies past everyone and every cart and lands on the floor: the scene stays as it is.
+    for (const t of w.still ? [] : w.targets) {
       if (b.life <= 0 || b.hit.includes(t.id)) continue;
       if (!sweptHeadHits(a, b, r, { x: t.x - t.w / 2, y: t.y - t.h, w: t.w, h: t.h })) continue;
       b.hit.push(t.id);
@@ -81,7 +82,7 @@ export function stepSnot(
       if (b.pierce > 0) b.pierce--;
       else b.life = 0;
     }
-    for (const n of w.cast) {
+    for (const n of w.still ? [] : w.cast) {
       if (b.life <= 0 || b.hit.includes(n.id) || !hittable(n)) continue;
       if (!sweptHeadHits(a, b, r, npcRect(n))) continue;
       b.hit.push(n.id);

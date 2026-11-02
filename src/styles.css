@@ -1050,6 +1050,18 @@ button:focus-visible {
     linear-gradient(to top, var(--hud-ink) calc(var(--floor) - 10px), rgb(13 17 24 / 0.7) calc(var(--floor) + 30px), rgb(13 17 24 / 0) calc(var(--floor) + 80px)),
     radial-gradient(ellipse 85% 80% at 60% 46%, rgb(0 0 0 / 0) 58%, rgb(0 0 0 / 0.5));
 }
+/* The scene live behind the screen (story spec §5.1): the key art, the first thing painted, fades away over the engine's
+   own lobby; the shade, the grain and the sweep stay over it, and the strip's side of the screen stays ink. */
+.next-start__art {
+  transition: opacity 0.6s ease-out;
+}
+.next-start[data-live],
+.next-start[data-live] .next-start__stage {
+  background: transparent;
+}
+.next-start[data-live] .next-start__art {
+  opacity: 0;
+}
 /* Film grain over the scene only, so the words stay crisp. */
 .next-start__stage::before {
   content: "";
@@ -1765,9 +1777,20 @@ button:focus-visible {
     align-self: start;
     /* What the title, Clock in, the starts and the side quest leave of the screen (they take about 62vw + 285px), so
        the cards never ride up over Clock in on a short phone; dvh, so a browser's address bar is counted. */
-    height: clamp(150px, min(78vw, 35vh, calc(100vh - 62vw - 285px)), 380px);
-    height: clamp(150px, min(78vw, 35dvh, calc(100dvh - 62vw - 285px)), 380px);
+    height: var(--stage-h);
     margin: -12px -16px 0;
+  }
+  .next-start {
+    --stage-h: clamp(150px, min(78vw, 35vh, calc(100vh - 62vw - 285px)), 380px);
+  }
+  @supports (height: 1dvh) {
+    .next-start {
+      --stage-h: clamp(150px, min(78vw, 35dvh, calc(100dvh - 62vw - 285px)), 380px);
+    }
+  }
+  /* Upright, the live scene shows only through the picture at the top; the rest of the screen stays ink. */
+  .next-start[data-live] {
+    background: linear-gradient(to bottom, transparent var(--stage-h), var(--hud-ink) var(--stage-h));
   }
   .next-start__art {
     object-position: 50% 62%;

@@ -27,6 +27,7 @@ const waitFor = async (pred, ms) => {
   }
   return run();
 };
+const mode = () => page.evaluate(() => window.__next.run.mode);
 const waitMode = (m, timeout = 30000) => page.waitForFunction((want) => window.__next?.run?.mode === want, m, { timeout });
 const tp = (x, y = 0) => page.evaluate(([a, b]) => window.__next.dev.teleport(a, b), [x, y]);
 const shot = (n) => page.screenshot({ path: resolve(out, n) });
@@ -79,6 +80,24 @@ try {
   await page.goto(home);
   await waitMode("title");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-journey")), null, "nothing saved before clocking in");
+
+  // 0. The home screen is Hammer, live: the key art gone within two seconds of the scene, an insult as his thought within
+  // twelve, the cast standing still, the frame rate held, never more than one bubble, and no more than eight in a minute.
+  const t0 = Date.now();
+  await page.waitForFunction(() => document.querySelector(".next-start[data-live]"), null, { timeout: 15000 });
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".next-start__art")).opacity === "0", null, { timeout: 2000 });
+  assert.equal(await page.evaluate(() => window.__next.drawing), true, "the scene draws under the start screen");
+  const acts0 = await page.evaluate(() => JSON.stringify(window.__next.cast.acts));
+  await page.waitForFunction(() => (window.__next.run.events.think ?? 0) >= 1, null, { timeout: 12000 });
+  await page.waitForFunction(() => !!window.__next.moves.bubble, null, { timeout: 2000 });
+  await shot("journey-home-insult.png");
+  const fps = await page.evaluate(() => window.__next.fps);
+  assert.ok(fps >= 55, `the home screen holds its frame rate: ${fps}`);
+  while (Date.now() - t0 < 60000) await page.waitForTimeout(1000);
+  const thinks = await page.evaluate(() => window.__next.run.events.think ?? 0);
+  assert.ok(thinks >= 6 && thinks <= 8, `about one insult every eight seconds: ${thinks} in a minute`);
+  assert.equal(await page.evaluate(() => JSON.stringify(window.__next.cast.acts)), acts0, "the cast stands still");
+  assert.equal(await mode(), "title", "nothing clocked in");
   await page.getByRole("button", { name: "Clock in" }).click();
   await waitMode("card");
   let text = await veil();

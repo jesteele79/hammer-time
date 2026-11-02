@@ -214,3 +214,70 @@ test("Clock in plays the next stop, or the first built one after it while it is 
   assert.equal(playableNext({ ...newJourney(), next: "campus" }, built), "campus");
   assert.equal(playableNext({ ...newJourney(), next: "lobby-night" }, built), null);
 });
+
+import { HOME_INSULTS } from "../src/game/lines.ts";
+import { shuffled } from "../src/sim/rewards.ts";
+
+test("the home screen's insults: twelve, the helmet line among them, each once a visit, every eight seconds or so", () => {
+  assert.equal(HOME_INSULTS.length, 12);
+  assert.equal(HOME_INSULTS[0], "Did you play football without a helmet growing up?");
+  assert.ok(HOME_INSULTS.includes("Absolute... no. I'll save it."));
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5, { cast: true, title: true });
+  const acts = g.world.cast.map((n) => n.act);
+  const where = g.world.cast.map((n) => n.x);
+  const thinks = [];
+  const snots = [];
+  for (let t = 0; t < 3600; t += STEP) {
+    g.titleStep();
+    thinks.push(...of(g.events, "think"));
+    snots.push(...of(g.events, "sniff"));
+  }
+  assert.equal(thinks.length, 12);
+  assert.deepEqual(new Set(thinks.map((e) => e.text)).size, 12);
+  assert.ok(thinks.every((e) => HOME_INSULTS.includes(e.text) && e.seconds === 3.2));
+  assert.ok(snots.length >= 55 && snots.length <= 61, `a snot rocket a minute, saw ${snots.length}`);
+  assert.deepEqual(g.world.cast.map((n) => n.act), acts, "the cast stands still");
+  assert.deepEqual(g.world.cast.map((n) => n.x), where, "nobody moves");
+  assert.ok(g.world.cast.every((n) => !n.noticed), "nobody notices him");
+  assert.ok(g.world.targets.every((t) => t.vx === 0), "no snot moves a cart");
+  assert.equal(g.mode, "title");
+  assert.ok(Math.abs(g.titleT - 3600) < 0.01);
+});
+test("the first insult comes within ten seconds and the eighth-second rhythm holds; a new visit shuffles them again", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5, { cast: false, title: true });
+  const at = [];
+  const first = [];
+  for (let t = 0; t < 100; t += STEP) {
+    g.titleStep();
+    for (const e of of(g.events, "think")) {
+      at.push(Math.round(t));
+      first.push(e.text);
+    }
+  }
+  assert.ok(at[0] <= 10 && at.every((a, i) => i === 0 || a - at[i - 1] >= 7), JSON.stringify(at));
+  g.newRun(6);
+  g.toTitle();
+  assert.equal(g.titleT, 0);
+  const again = [];
+  for (let t = 0; t < 100; t += STEP) {
+    g.titleStep();
+    again.push(...of(g.events, "think").map((e) => e.text));
+  }
+  assert.equal(again.length, 12, "the pool is full again on a new visit");
+  assert.notDeepEqual(again, first, "in a new order");
+});
+test("the lobby has a home spot by the desk, where he stands on the home screen facing right", () => {
+  assert.deepEqual(LOBBY.home, { x: 1100, cx: 1600 });
+  const g = createGame({ lobby: LOBBY, stash: STASH, venues: [RESTAURANT] }, 5, { cast: false, title: true });
+  assert.deepEqual([g.level.id, Math.round(g.world.hero.x), g.world.hero.facing], ["lobby", 1100, 1]);
+  g.newRun(5, 1);
+  play(g);
+  g.toTitle();
+  assert.deepEqual([g.mode, g.level.id, Math.round(g.world.hero.x), g.world.hero.facing, g.journey], ["title", "lobby", 1100, 1, false]);
+});
+test("shuffled is a seeded permutation", () => {
+  const pool = ["a", "b", "c", "d", "e", "f"];
+  assert.deepEqual(shuffled(pool, 3), shuffled(pool, 3));
+  assert.deepEqual([...shuffled(pool, 3)].sort(), pool);
+  assert.deepEqual(pool, ["a", "b", "c", "d", "e", "f"], "the pool itself untouched");
+});

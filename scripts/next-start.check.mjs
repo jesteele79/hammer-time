@@ -68,7 +68,7 @@ try {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.run?.mode === "title");
-  assert.equal(await page.evaluate(() => window.__next.drawing), false, "the canvas rests under the start screen");
+  assert.equal(await page.evaluate(() => window.__next.drawing), true, "the scene is live under the start screen");
   // The strip of a journey begun: fifteen stops under five headers; SAT before the first built stop, 1-1 next, the rest
   // locked: no picture, a lock.
   const s = await stops(page);

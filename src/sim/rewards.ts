@@ -28,6 +28,17 @@ export function seededRandom(seed: number): () => number {
   };
 }
 
+/** The pool in an order the seed picks (a seeded Fisher-Yates); the pool itself is left as it is. */
+export function shuffled<T>(pool: readonly T[], seed: number): T[] {
+  const out = [...pool];
+  const rng = seededRandom(seed);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 const inRoute = (a: Point, r: RewardRoute) => a.x >= r.x0 && a.x <= r.x1 && a.y >= r.y0 && a.y <= r.y1;
 
 /** No stretch this long between his start and the exit lies bare, whatever the seed (owner, 2026-10-18). */

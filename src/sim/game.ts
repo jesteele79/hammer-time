@@ -22,6 +22,8 @@ import { createHungry, stepHungry, type HungryResult } from "./quests/hungry/hun
 import { createFares, stepFares, type FaresResult } from "./quests/fares/fares";
 import type { Quest, QuestId } from "./quests/quest";
 import type { Carry, Snapshot } from "./journey";
+import { HOME_INSULTS } from "../game/lines";
+import { shuffled } from "./rewards";
 
 /** `story`: the game holds between levels (or before the first) while the shell shows the story's cards; nothing steps. */
 export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title" | "questCard" | "quest" | "questTally" | "story";
@@ -68,6 +70,14 @@ export type Game = {
   continueStory(): void;
   /** What he has scored inside this level: the run's score less its score at the card. */
   levelScore(): number;
+  /** Seconds on the home screen this visit. */
+  titleT: number;
+  /**
+   * A step of the home screen's scene (story spec §5.1): he stands at the home spot running his idle beats, the cast
+   * still, a snot rocket at 45 s and every minute after, an insult as his thought every eight seconds until the visit's
+   * twelve are spent.
+   */
+  titleStep(): void;
   togglePause(): void;
   /** Back to the start screen: the game holds, nothing steps, until a new run is chosen. */
   toTitle(): void;
@@ -91,6 +101,8 @@ const DOOR_REACH = 136;
 const SMASH_UP = 600;
 /** The shield's knock: the staff knockback (spec §9); a cart already flying faster than `flying` is left alone. */
 const SHIELD = { speed: 1100, lift: 600, flying: 300 } as const;
+/** The home screen's beats (story spec §5.1, plan decision 8): an insult every 8 s held 3.2 s; a snot rocket at 45 s, then every 60 s. */
+export const TITLE = { thinkEvery: 8, think: 3.2, snotAt: 45, snotEvery: 60 } as const;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 
@@ -127,6 +139,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let bonkedAtCard = 0;
   /** The cast counted as bonked in this layout of the level: each person once, however many ways they went. */
   const bonkedIds = new Set<number>();
+  /** This visit to the home screen: the insults still to come, in the visit's order, and when the next beats fall. */
+  let insults: string[] = [];
+  let visits = 0;
+  let nextThink: number = TITLE.thinkEvery;
+  let nextSnot: number = TITLE.snotAt;
 
   const game: Game = {
     levels,
@@ -154,6 +171,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     snapshot: null,
     continueStory,
     levelScore: () => game.run.score - scoreAtCard,
+    titleT: 0,
+    titleStep,
   };
 
   function setMode(mode: GameMode, ev: GameEvent[], seconds = 0) {
@@ -203,6 +222,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.puddles = [];
     world.hits = [];
     world.swing = [];
+    world.still = false;
     standAt(at);
     game.run.time = level.time;
     game.run.star = 0;
@@ -257,11 +277,56 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
   }
 
+  /** The level the home screen shows: the first of the whole shift with a home spot (the lobby by the desk). */
+  const homeLevel = () => wholeShift.find((l) => l.home) ?? wholeShift[0];
+
+  /** A visit to the home screen begins: him at the home spot facing in, the insults shuffled afresh, the beats from the top. */
+  function visitHome() {
+    const home = homeLevel().home;
+    if (home && game.level.home) {
+      standAt({ x: home.x, y: 0 });
+      world.hero.facing = 1;
+    }
+    world.still = true;
+    insults = shuffled(HOME_INSULTS, (game.run.seed + Math.imul(++visits, 7919)) >>> 0);
+    game.titleT = 0;
+    nextThink = TITLE.thinkEvery;
+    nextSnot = TITLE.snotAt;
+  }
+
   function toTitle() {
     game.quest = null;
     game.questDoor = null;
+    // The home screen's scene is laid out fresh: the lobby as a shift finds it, whatever was played last.
+    game.shift = wholeShift;
+    game.venue = game.start = wholeShift.indexOf(homeLevel());
+    game.journey = false;
+    game.snapshot = null;
+    game.run = createRun(game.run.seed);
+    stashStock = null;
+    begin({ charge: 0, patience: RUN.patience }, []);
     game.events = [];
     setMode("title", game.events);
+    visitHome();
+  }
+
+  function titleStep() {
+    if (game.mode !== "title") return;
+    const ev: GameEvent[] = (game.events = []);
+    world.still = true;
+    game.titleT += STEP;
+    const input = emptyInput();
+    if (game.titleT >= nextSnot - 1e-9) {
+      nextSnot += TITLE.snotEvery;
+      if (world.hero.sinus >= 1) input.held.fire = input.pressed.fire = true;
+    }
+    world.step(input);
+    ev.push(...world.events);
+    if (game.titleT >= nextThink - 1e-9) {
+      nextThink += TITLE.thinkEvery;
+      const text = insults.shift();
+      if (text) ev.push({ type: "think", text, seconds: TITLE.think });
+    }
   }
 
   /** A break, or back from one: the mode event goes into a fresh events list for the caller to drain. */
@@ -738,6 +803,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   begin({ charge: 0, patience: RUN.patience }, game.events);
   game.events = [];
   // On the start screen the game holds on the title until a start is chosen; the first venue is laid out behind it.
-  if (opts.title) game.mode = "title";
+  if (opts.title) {
+    game.mode = "title";
+    visitHome();
+  }
   return game;
 }

@@ -47,6 +47,8 @@ export type World = {
   zone: HeatZone | null;
   /** The gift shop's pig, or null. */
   pig: Pig | null;
+  /** The home screen's scene: the cast stands as it is and never notices him; his snot passes them and the carts by. */
+  still: boolean;
   /** A hit from something at `fromX`, applied at the start of the next step. */
   hit(fromX: number): void;
   step(input: Input): void;
@@ -74,6 +76,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     swingDoors: opts.swingDoors ?? [],
     zone: null,
     pig: opts.pig ?? null,
+    still: false,
     hit(fromX) {
       world.hits.push(fromX);
     },

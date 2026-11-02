@@ -155,6 +155,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   music: "day" | "cellar";
   /** The x before which the first hint teaches the snot and the ! crate. */
   hints?: { early: number };
+  /** The home screen's scene (story spec §5.1, plan decision 8): where he stands, and where the camera looks. */
+  home?: { x: number; cx: number };
   /** The lobby's people (R2b). */
   cast?: CastSpawn[];
 };

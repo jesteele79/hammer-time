@@ -230,6 +230,25 @@ export function pick<T>(list: readonly T[], seed: number): T {
   return list[(Math.abs(Math.floor(seed)) || 0) % list.length];
 }
 
+/**
+ * His insults on the home screen while the player dawdles (story spec §5.1): thoughts, never spoken, each once a visit,
+ * about every eight seconds. The helmet line is the owner's.
+ */
+export const HOME_INSULTS: readonly string[] = [
+  "Did you play football without a helmet growing up?",
+  "Any day now.",
+  "The button says Clock in. Read it.",
+  "I've trained surgeons faster than this.",
+  "I don't have all day. I have a schedule.",
+  "Trainee.",
+  "Is this your first day?",
+  "Were you going to do something, or just stand there?",
+  "I was here at seven.",
+  "Take notes. You'll need them.",
+  "This is the part where you click.",
+  "Absolute... no. I'll save it.",
+];
+
 /** His thought, now and then, as a box of blades bonks someone (R5 §9): each at most once a venue. */
 export const SAMPLE_LINES: Line[] = [think("Free sample."), think("Read the IFU."), think("You're welcome."), think("That's a sterile field, trainee.")];
 

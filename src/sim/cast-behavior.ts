@@ -33,6 +33,8 @@ import type { HeroState, Point, Rect, Stage, Target } from "./types";
 export type CastWorld = {
   stage: Stage;
   hero: HeroState;
+  /** The home screen's scene: nobody moves or notices him. */
+  still?: boolean;
   cast: Npc[];
   targets: Target[];
   missiles: Missile[];
@@ -601,6 +603,7 @@ function lectureOn(w: CastWorld, reach: Rect, events: GameEvent[]): void {
 
 /** One step of the cast, after Hammer and the carts have moved. */
 export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: boolean, events: GameEvent[]): void {
+  if (w.still) return;
   const lecture = events.find((e) => e.type === "lecture") as Extract<GameEvent, { type: "lecture" }> | undefined;
   if (lecture) lectureOn(w, lecture.reach, events);
   const burst = events.find((e) => e.type === "burst") as Extract<GameEvent, { type: "burst" }> | undefined;

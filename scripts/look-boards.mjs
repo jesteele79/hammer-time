@@ -124,6 +124,22 @@ try {
     save("box-bonk.png", `data:image/png;base64,${png.toString("base64")}`);
     count++;
   }
+  if (want("home")) {
+    // The home screen (story spec §5.1): the start screen over the live scene with an insult up, as the owner sees it, on
+    // a laptop and a phone both ways.
+    for (const [w, h] of [[1920, 1080], [390, 844], [844, 390]]) {
+      await page.setViewportSize({ width: w, height: h });
+      await page.goto(`${base}?dev=1`);
+      await page.waitForFunction(() => document.querySelector(".next-start[data-live]") && window.__next?.dev, null, { timeout: 60000 });
+      await page.waitForTimeout(1200);
+      await page.evaluate(() => window.__next.dev.event({ type: "think", text: "Did you play football without a helmet growing up?", seconds: 3 }));
+      await page.waitForTimeout(700);
+      const name = w === 1920 ? "home.png" : `home-${w}x${h}.png`;
+      save(name, `data:image/png;base64,${(await page.screenshot()).toString("base64")}`);
+      count++;
+    }
+    await page.setViewportSize({ width: 1920, height: 1080 });
+  }
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log(`PASS: ${count} boards rendered.`);
 } catch (err) {

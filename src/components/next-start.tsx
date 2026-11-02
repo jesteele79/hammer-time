@@ -32,6 +32,7 @@ const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matche
 export function NextStart({
   live,
   ready,
+  scene,
   best,
   banquetBest,
   faresBest,
@@ -48,6 +49,8 @@ export function NextStart({
   /** The page's script is running: until then a tap would be lost. */
   live: boolean;
   ready: boolean;
+  /** The engine's own scene runs behind the screen: the key art, the first paint, fades away (story spec §5.1). */
+  scene: boolean;
   best: number;
   /** Hungry Hungry Hammer's own best, door rounds and practice alike. */
   banquetBest: number;
@@ -117,7 +120,7 @@ export function NextStart({
     leave(() => onStop(chosen));
   };
   return (
-    <div ref={root} className="next-start" data-sequence={full ? "full" : "short"} data-leaving={leaving || undefined} role="dialog" aria-label="Hammer Time">
+    <div ref={root} className="next-start" data-sequence={full ? "full" : "short"} data-leaving={leaving || undefined} data-live={scene || undefined} role="dialog" aria-label="Hammer Time">
       <header className="next-start__top">
         <span className="next-start__edition">A very personal hospitality problem</span>
         <span className="next-start__best">

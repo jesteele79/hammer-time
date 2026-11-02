@@ -143,6 +143,9 @@ export function NextGame({
   const lastLevel = useRef(false);
   /** A replay's exit card: the stop, what it scored and its best now. */
   const [clocked, setClocked] = useState<{ id: StoryId; score: number; best: number } | null>(null);
+  /** The home screen's scene is drawn and running behind the start screen: the key art fades away. */
+  const [scene, setScene] = useState(false);
+  const onTitleScene = useCallback(() => setScene(true), []);
   const qualityChosen = useRef<{ q: Quality | null } | null>(null);
   const mutedRef = useRef(false);
   const touch = useMedia(TOUCH_QUERY);
@@ -213,7 +216,7 @@ export function NextGame({
     if (m === "title") {
       setCards([]);
       setClocked(null);
-    }
+    } else setScene(false);
     lastMode.current = m;
     setMode(m);
   }, []);
@@ -275,7 +278,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard });
+      const started = await startLook(render, { noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene });
       if (cancelled) {
         started.stop();
         return render.destroy();
@@ -294,7 +297,7 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard]);
+  }, [forceWebgl, noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene]);
 
   // A start chosen while the game still loaded begins once it is ready, and only once.
   useEffect(() => {
@@ -425,6 +428,7 @@ export function NextGame({
         <NextStart
           live={live}
           ready={ready}
+          scene={scene}
           best={best}
           banquetBest={banquetBest}
           faresBest={faresBest}

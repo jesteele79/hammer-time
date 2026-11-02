@@ -92,6 +92,8 @@ export const LOBBY: Level = {
     { id: "balcony", x0: 7493, x1: 10200, y0: -600, y1: -560 },
   ],
   music: "day",
+  // The home screen: by the desk, as the key art has him (story spec §5.1).
+  home: { x: 1100, cx: 1600 },
   hints: { early: 1500 },
   // The lobby's three walls in walking order; against them a palm by the doors, a floor lamp by the desk, a lamp on its
   // table under the mezzanine, the lilies in the shuttle bay and the rope line at the conference wing; in front, a potted

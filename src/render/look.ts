@@ -51,7 +51,7 @@ import { PIG_HEIGHT, PigView } from "./pig";
 import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
-import { createScene } from "./scene";
+import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM, createScene } from "./scene";
 import { createSound, heard, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
@@ -116,6 +116,12 @@ const STRIDE_UP = 60;
 const PRACTICE_HIT = 160;
 /** The watch is drawn while his wrist is up: these fractions of the watch check. */
 const WATCH_SHOWN = [0.15, 0.85] as const;
+/**
+ * The home screen's camera (story spec §5.1): he stands this far across the start screen's picture, this tall a share of
+ * its height, his feet this far down it, as the key art has him; the mouse leans the camera this many world px across and
+ * down; it eases at this rate.
+ */
+const TITLE_FRAME = { across: 0.34, tall: 0.44, feet: 0.83, leanX: 120, leanY: 40, ease: 4 } as const;
 /** The mallet's smear: the strike's display fractions it shows in, its trail, and its clearance from the face. */
 const SMEAR = { from: 0.36, to: 0.5, points: 6, trail: 0.06, width: 26, clear: 40 } as const;
 
@@ -177,6 +183,8 @@ export async function startLook(
     onLevelDone?: (e: LevelDone) => void;
     /** A journey level's card is up, with the snapshot just taken: the shell saves it. */
     onCard?: (id: LevelId, snapshot: Snapshot | null) => void;
+    /** The home screen's scene is drawn and running: the key art can fade away. */
+    onTitleScene?: () => void;
   } = {},
 ): Promise<Look> {
   const { app } = render;
@@ -555,6 +563,10 @@ export async function startLook(
         break;
       case "lectureStart":
         bubbles.think(LECTURES[lectures++ % LECTURES.length].text, 1.8);
+        break;
+      // His thought on the home screen: an insult, written, never spoken.
+      case "think":
+        bubbles.think(e.text, e.seconds);
         break;
       case "harrumph":
         bubbles.think(ASIDES.anyDayNow.text, 1.6);
@@ -1256,6 +1268,54 @@ export async function startLook(
   window.addEventListener("pointerup", onPointer);
   window.addEventListener("pointercancel", onPointer);
 
+  /** The mouse across and down the screen, -0.5 to 0.5: the home screen's camera leans with it. */
+  const lean = { x: 0, y: 0 };
+  const onLean = (e: PointerEvent) => {
+    lean.x = e.clientX / Math.max(1, innerWidth) - 0.5;
+    lean.y = e.clientY / Math.max(1, innerHeight) - 0.5;
+  };
+  window.addEventListener("pointermove", onLean, { passive: true });
+  /** The start screen's picture (its camera's box), CSS px, measured twice a second: the scene is framed inside it. */
+  let picture: Rect = { x: 0, y: 0, w: scene.width, h: scene.height };
+  let pictureT = Infinity;
+  let titleShown = false;
+  let titleSnap = true;
+  let titleFrames = 0;
+  const pictureRect = (dt: number): Rect => {
+    pictureT += dt;
+    if (pictureT >= 0.5) {
+      pictureT = 0;
+      const r = document.querySelector(".next-start__camera")?.getBoundingClientRect();
+      // The picture below the tools along the top, so his thoughts never tuck under them.
+      const tools = document.querySelector(".next-start__top")?.getBoundingClientRect();
+      const top = r ? Math.max(r.y, tools ? tools.bottom + 8 : r.y) : 0;
+      picture = r && r.width > 0 && r.bottom - top > 0 ? { x: r.x, y: top, w: r.width, h: r.bottom - top } : { x: 0, y: 0, w: scene.width, h: scene.height * 0.85 };
+    }
+    return picture;
+  };
+  /**
+   * The home screen's camera: him a third of the way across the picture at the key art's size, his feet low in it, the
+   * desk to his right (never past the level's look point, cx), leaning with the mouse; no look-ahead, no bounds.
+   */
+  const titleCamera = (home: { x: number; cx: number }, feetY: number, dt: number) => {
+    const cam = scene.camera;
+    if (titleSnap) pictureT = Infinity;
+    const r = pictureRect(dt);
+    const portrait = scene.width < scene.height ? PORTRAIT_ZOOM : 1;
+    const base = (HERO_SCREEN_FRACTION * scene.height * portrait) / HERO_HEIGHT;
+    const s = (TITLE_FRAME.tall * r.h) / HERO_HEIGHT;
+    cam.zoom = s / base;
+    cam.target = null;
+    cam.bounds = null;
+    const wantX = Math.min(home.cx, home.x - (r.x + r.w * TITLE_FRAME.across - scene.width / 2) / s) + lean.x * TITLE_FRAME.leanX;
+    const wantY = feetY - (r.y + r.h * TITLE_FRAME.feet - scene.height / 2) / s + lean.y * TITLE_FRAME.leanY;
+    const k = titleSnap ? 1 : 1 - Math.exp(-TITLE_FRAME.ease * dt);
+    cam.x += (wantX - cam.x) * k;
+    cam.y += (wantY - cam.y) * k;
+    cam.focusY = cam.y;
+    titleSnap = false;
+  };
+
   /** Just the actions the keys and the pad hold this instant: what Continue must not see pressed on the step after it. */
   const heldNow = () => inputFrom(down, touchDown, prevHeld).held;
 
@@ -1275,7 +1335,8 @@ export async function startLook(
 
   const tick = (t: Ticker) => {
     // Under the opaque start screen nothing needs drawing: the canvas rests until a start is chosen.
-    app.stage.visible = game.mode !== "title";
+    // The home screen is the scene itself, live behind the start screen.
+    app.stage.visible = true;
     // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
     const holding = !views.has(game.level.id) || (inBanquet() && !banquetLoaded) || (inGate() && !gateLoaded);
     if (holding) {
@@ -1294,7 +1355,8 @@ export async function startLook(
       const input = inputFrom(keys, touch, prevHeld);
       prevHeld = input.held;
       prev = cur;
-      game.step(input);
+      if (game.mode === "title") game.titleStep();
+      else game.step(input);
       cur = world.snapshot();
       for (const e of game.events) feel(e);
       // A door, a respawn or a new venue moves him: no sliding across the gap between frames.
@@ -1472,22 +1534,33 @@ export async function startLook(
     afterFrame(simDt, game.level.time > 0 && game.run.time < RUN.hurry);
 
     const cam = scene.camera;
-    const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
-    cam.zoom += ((zone?.zoom ?? 1) - cam.zoom) * Math.min(1, dt / ZOOM_EASE);
-    // In the fight the camera holds both fighters (the shipped boss camera); no look-ahead pulls it off them.
-    const pig = cur.pig;
-    const fighting = !!pig && pig.state !== "asleep" && pig.state !== "defeated";
-    cam.target = { x: fighting ? fightFrame(x, pig.x, scene.view().w * FRAME_REACH) : x, y };
-    cam.facing = h.facing;
-    cam.moving = !fighting && Math.abs(h.vx) > 40;
-    cam.falling = h.vy > 900;
+    const home = game.mode === "title" ? game.level.home : undefined;
+    if (home) titleCamera(home, y, dt);
+    else {
+      // Out of the home screen: the level's own bounds, zoom and camera again, put on him at once.
+      if (titleShown) showLevel(game.level, x, y);
+      const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
+      cam.zoom += ((zone?.zoom ?? 1) - cam.zoom) * Math.min(1, dt / ZOOM_EASE);
+      // In the fight the camera holds both fighters (the shipped boss camera); no look-ahead pulls it off them.
+      const pig = cur.pig;
+      const fighting = !!pig && pig.state !== "asleep" && pig.state !== "defeated";
+      cam.target = { x: fighting ? fightFrame(x, pig.x, scene.view().w * FRAME_REACH) : x, y };
+      cam.facing = h.facing;
+      cam.moving = !fighting && Math.abs(h.vx) > 40;
+      cam.falling = h.vy > 900;
+    }
+    titleShown = !!home;
     scene.update(dt);
+    // The home screen's scene drawn a couple of frames: the shell lets the key art go.
+    titleFrames = home && views.has(game.level.id) && shown === game.level.id ? titleFrames + 1 : 0;
+    if (titleFrames === 3) opts.onTitleScene?.();
     lighting.update(dt);
     views.get(game.level.id)?.venue.update(simDt);
     views.get(game.level.id)?.venue.setDoors(cur.doors);
     views.get(game.level.id)?.venue.setChained(game.level.doors.some((d) => d.locked) && cur.pig?.state !== "defeated");
     words.update(simDt, face, scene.view());
-    bubbles.update(simDt, { crown: at.crown, face, facing: h.facing, view: scene.view() });
+    // On the home screen the title stands behind him: his thoughts rise on his far side, over the scene, not under the words.
+    bubbles.update(simDt, { crown: at.crown, face, facing: game.mode === "title" ? (-h.facing as 1 | -1) : h.facing, view: scene.view() });
     speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : cast.crownOf(id)), face, scene.view());
     particles.update(simDt, face);
     vignette.width = scene.width;
@@ -1825,6 +1898,7 @@ export async function startLook(
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKey);
       window.removeEventListener("blur", onBlur);
+      window.removeEventListener("pointermove", onLean);
       sound.destroy();
       objects.destroy();
       cast.destroy();
@@ -1872,6 +1946,9 @@ export async function startLook(
     toTitle() {
       forgetPresses();
       game.toTitle();
+      prev = cur = world.snapshot();
+      clearActors();
+      titleSnap = true;
       for (const e of game.events) feel(e);
     },
     setQuality(q) {
