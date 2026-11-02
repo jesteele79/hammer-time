@@ -1,0 +1,134 @@
+HAMMER TIME — ART BATCH 10: SAN ANTONIO INTERNATIONAL (STORY PHASE 1, THE PROLOGUE)
+
+Eight files for the prologue level, SAT: three walls, one sheet of three standing pieces
+for the mid plane, one piece for the front, two new people and one sheet of objects. The game draws
+the floors, the rope lines, the X-ray belt, the scanner, the walkway, the bar, the gate
+seats and the podium itself (do not paint any of that into the walls). The design is
+docs/superpowers/specs/2026-11-02-hammer-time-story-design.md §6.2 and §16.
+The gate B7 paintings are a separate batch (batch 9, prompts in batch-r5-codex.txt).
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one
+shadow tone and one highlight tone, small white specular glints, saturated but natural
+colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same
+artist and same style as the reference images.
+
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens,
+  badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are
+  fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing
+  standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+
+------------------------------------------------------------------------------------------
+ITEMS 1 TO 3: THE WALLS (save to art/incoming/backdrops/)
+
+Attach: art/outgoing/references/hammer-profile.png (the style);
+art/incoming/backdrops/lobby-far-1.png and campus-far-1.png (the game's walls: finish,
+line weight, palette, the floor line's place).
+
+Each wall: seen straight on, landscape, the widest the tool offers. The ceiling band
+across the top; the wall's base one straight level line about three-quarters of the way
+down; plain floor below it to the bottom edge. The three walls stand side by side in the
+game in this order, so their floor lines, ceiling heights and light must match.
+
+1. sat-far-1.png — the curb and the check-in hall. Left third: the terminal's outside
+   wall under a wide concrete canopy, glass doors, a blue airline sign (blank), a yellow
+   curb line; a sunlit sky through the canopy's gap. Right two-thirds: the check-in hall
+   inside: a long wall of blue-and-white airline counters (blank screens above each),
+   a departures board high on the wall (blank), speckled cream terrazzo floor.
+2. sat-far-2.png — the security line. A wide hall: a plain grey-blue wall, a row of
+   blank blue signs on posts along its base, big recessed ceiling lights, a glimpse of
+   the X-ray machines' grey housings far back against the wall (small, no belt in front),
+   terrazzo floor. Cold fluorescent light.
+3. sat-far-3.png — the concourse and the gate. Left two-thirds: a concourse: a long
+   window band from about a sixth to three-fifths of the way down with the sunny apron,
+   a distant terminal and two blue airliners parked at jet bridges outside, dark mullions
+   evenly spaced; under the windows a plain warm grey wall; a bar's back wall at the left
+   with bottles on shelves (no labels) and a newsstand's shelves in the middle (bags and
+   cans with no labels). Right third: gate B7's wall: a blank gate sign on a post, the
+   jet bridge door, a window with a plane's nose outside. Terrazzo floor throughout.
+
+------------------------------------------------------------------------------------------
+ITEMS 4 AND 5: THE STANDING PIECES (save to art/incoming/backdrops/)
+
+Attach: lobby-mid.png and campus-mid.png (how a sheet of standing pieces is laid out:
+each object whole, upright, apart from the others, on flat green).
+
+On flat bright green (#00FF00), the objects in the order given from left to right, none
+touching another or the edge, no shadows. The game cuts them apart by the green (so one
+object must be one connected shape) and stands them in the scene at the mid plane
+(behind Hammer): furniture seen straight on at eye height. The game draws the moving
+walkway and the rope lines itself, so neither is on this sheet.
+
+4. sat-mid.png — ONE sheet, exactly THREE objects, left to right:
+   (a) the check-in island: a row of three self-service kiosks, blue, blank screens,
+       about counter height, joined on their right to the bag drop (a short grey
+       conveyor with a black belt and a blue hood, a blank scale readout) as one shape;
+   (b) the security machines: the X-ray machine (a grey housing with a dark tunnel
+       through it, a short belt in and out, grey bins stacked at its end) joined on its
+       right to the body scanner (a tall rounded arch, two glass panels, a yellow
+       footprint mat under it, no text) as one shape;
+   (c) the bar and the newsstand: a small airport bar (a dark wood counter with a brass
+       rail, four stools, a blank menu board) joined on its right to the newsstand (a
+       kiosk with magazine racks with blank covers, snack shelves with unlabeled bags
+       and cans, a blank sign on top) as one shape.
+5. sat-fore.png — ONE object: a square concourse column, cream, with a departures
+   screen mounted on it (black, blank) and a round clock above the screen (blank face,
+   no numbers). Tall: a column as high as the walls' ceiling band, on flat green. This
+   one stands in FRONT of Hammer, so nothing on it may be busy at eye height.
+
+------------------------------------------------------------------------------------------
+ITEMS 6 AND 7: THE PEOPLE (pose-locked like the cast; save to art/incoming/cast/)
+
+Attach: Image 1 art/incoming/hammer/body-affliction.png (the pose, camera, framing,
+canvas and drawing style to copy exactly); Image 2 art/outgoing/references/hammer-profile.png
+(the drawing style); Image 3 art/incoming/cast/bellhop-1.png and nurse.png (the pose and
+style done right).
+
+They are NOT the man in Image 1. Each has their own face, hair, build and clothes;
+nothing of the man may remain except the pose, the camera and the canvas.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips,
+  legs and both shoes point left; the torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from
+  vertical, elbows nearly straight, hands open, relaxed and EMPTY, the far arm and hand
+  visible just behind the near one, a clear triangular green gap between the near
+  forearm and the belly.
+- Both soles flat with the same small forward-back stagger as Image 1, the soles at the
+  same height in the frame as Image 1's; only the top of the head sits lower or higher.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait).
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No props,
+  nothing in the hands.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no
+  scenery, no texture, no gradient.
+
+6. skycap-1.png — the skycap: a man in his fifties, broad, a trim grey moustache, a red
+   Southwest-style coat with a blue collar, a red peaked cap WITH A FLAT VISOR (the cap
+   is part of him; it does not come off), grey trousers, black shoes, a blank name badge.
+   No cart, no luggage: the game draws his cart.
+7. tsa-1.png — a TSA officer: a man in his thirties, lean, close-cropped dark hair, no
+   hat, a royal blue uniform shirt with black shoulder tabs (blank), a black tie, black
+   trousers, black boots, blue nitrile gloves on both hands, a blank badge on the chest.
+   Nothing in the hands.
+
+------------------------------------------------------------------------------------------
+ITEM 8: THE SAT SHEET (save to art/incoming/props/sat-sheet.png)
+
+Attach: art/incoming/backdrops/lobby-mid.png (the finish); batch 9's gate-sheet.png if it
+exists (the same kind of sheet).
+
+Exactly SIX objects on flat bright green (#00FF00), in this order from left to right,
+each whole and upright, none touching another or the edge, no shadows, no text:
+   a. a chrome stanchion post with a short length of red rope hanging from its top ring
+      (one post, one rope end: the game repeats it);
+   b. a grey security bin, seen from the side, slightly tilted so its inside shows;
+   c. a single self-service kiosk, blue, blank screen, about counter height;
+   d. the airport shuttle van: a white van with a blue band, side view facing LEFT,
+      wheels down, blank sides;
+   e. a departures sign: a black screen on a thin post, blank;
+   f. a pretzel bag: a small snack bag, brown and yellow, no label.
