@@ -649,6 +649,7 @@ test("a painted head grows above its jaw and keeps its painted neck below it, th
     assert.ok(h.jaw && h.scale > 0, `${person}: the cut marks the jaw, and the plate knows its scale`);
     const [[ax, ay], [bx, by]] = h.jaw;
     const mid = [(ax + bx) / 2, (ay + by) / 2];
+    // Plates are stored at the painting's size now (BODY_SCALE): their coordinates carry floating error near 1e-6 px.
     // A point 5 plate px below the jaw line's middle, on the neck's side.
     let n = [-(by - ay), bx - ax];
     const len = Math.hypot(n[0], n[1]);
@@ -658,12 +659,12 @@ test("a painted head grows above its jaw and keeps its painted neck below it, th
     const verts = [h.crown.x, h.crown.y, h.neck.x, h.neck.y, ...neckPoint];
     const same = taperHead(verts, h, 1);
     [h.crown.x - h.neck.x, h.crown.y - h.neck.y, 0, 0, neckPoint[0] - h.neck.x, neckPoint[1] - h.neck.y].forEach((v, i) =>
-      assert.ok(Math.abs(same[i] - v) < 1e-6, `${person}: grown by 1 nothing moves (${i})`),
+      assert.ok(Math.abs(same[i] - v) < 1e-5, `${person}: grown by 1 nothing moves (${i})`),
     );
     const big = taperHead(verts, h, 1.5);
-    assert.ok(Math.abs(big[1] - 1.5 * (h.crown.y - h.neck.y)) < 1e-6, `${person}: the crown where a whole head 1.5 times as big would put it: ${big[1]}`);
+    assert.ok(Math.abs(big[1] - 1.5 * (h.crown.y - h.neck.y)) < 1e-5, `${person}: the crown where a whole head 1.5 times as big would put it: ${big[1]}`);
     assert.ok(Math.abs(big[2]) < 1e-9 && Math.abs(big[3]) < 1e-9, `${person}: the neck anchor stays`);
-    assert.ok(Math.abs(big[4] - (neckPoint[0] - h.neck.x)) < 1e-6 && Math.abs(big[5] - (neckPoint[1] - h.neck.y)) < 1e-6, `${person}: the neck below the jaw stays as painted`);
+    assert.ok(Math.abs(big[4] - (neckPoint[0] - h.neck.x)) < 1e-5 && Math.abs(big[5] - (neckPoint[1] - h.neck.y)) < 1e-5, `${person}: the neck below the jaw stays as painted`);
   }
 });
 
@@ -693,7 +694,7 @@ test("the hat in flight is as wide as the hat on his head, grown with the head a
   const h = rig.head.hat;
   const ends = taperHead([h.x - h.width / 2, h.y, h.x + h.width / 2, h.y], rig.head, g);
   const onHead = Math.hypot(ends[2] - ends[0], ends[3] - ends[1]) * own * (height / HERO_HEIGHT);
-  assert.ok(Math.abs(hatWorldWidth(rig, share, height) - onHead) < 1e-6, `${hatWorldWidth(rig, share, height)} against ${onHead}`);
+  assert.ok(Math.abs(hatWorldWidth(rig, share, height) - onHead) < 1e-5, `${hatWorldWidth(rig, share, height)} against ${onHead}`);
 });
 
 import { layerTexture } from "../src/render/skin.ts";
@@ -1367,4 +1368,14 @@ test("the camera's rest focus puts the walking line at 78 percent of the view in
     const s = (0.315 * h) / 340;
     assert.ok((1 - FLOOR_LINE) * h / s < FLOOR.depth, `${w}x${h}: the face covers the band`);
   }
+});
+
+import { TIERS, firstTier, isDesktopGpu } from "../src/render/quality.ts";
+
+test("Auto picks ultra on a desktop GPU holding 58 fps, high otherwise; the tiers differ", () => {
+  assert.deepEqual([firstTier("desktop", 60), firstTier("desktop", 50), firstTier("other", 60)], ["ultra", "high", "high"]);
+  assert.deepEqual(["NVIDIA GeForce RTX 4070 Laptop GPU", "ANGLE (AMD, Radeon RX 7600)", "Intel(R) Iris(R) Xe", "Apple M2", "Mali-G78", "nvidia lovelace", "Intel Arc A770"].map(isDesktopGpu), [true, true, false, false, false, true, true]);
+  assert.ok(TIERS.ultra.particles > TIERS.high.particles && TIERS.high.dpr > TIERS.medium.dpr && !TIERS.low.rim);
+  assert.deepEqual(TIERS.ultra, { dpr: 2, particles: 900, bloom: true, glows: true, rim: true });
+  assert.deepEqual(TIERS.medium, { dpr: 1, particles: 400, bloom: false, glows: true, rim: true });
 });

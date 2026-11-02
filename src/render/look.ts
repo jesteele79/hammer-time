@@ -35,6 +35,7 @@ import { heatZoneAt } from "../sim/hazards";
 import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
+import { TIERS } from "./quality";
 import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
@@ -185,6 +186,8 @@ export async function startLook(
     onCard?: (id: LevelId, snapshot: Snapshot | null) => void;
     /** The home screen's scene is drawn and running: the key art can fade away. */
     onTitleScene?: () => void;
+    /** The tier the game draws at now: Auto's pick, or a step down. */
+    onQuality?: (q: Quality) => void;
   } = {},
 ): Promise<Look> {
   const { app } = render;
@@ -205,7 +208,9 @@ export async function startLook(
   let registry = loaded;
   if (opts.noart) registry = stripped(registry);
   const reduced = scene.reducedMotion;
-  const particles = new Particles(scene.layers.fx, reduced ? 400 : 600, reduced);
+  /** The tier's particle count; under reduced motion never more than 400. */
+  const particleCount = (q: Quality) => (reduced ? Math.min(400, TIERS[q].particles) : TIERS[q].particles);
+  const particles = new Particles(scene.layers.fx, particleCount(render.quality), reduced);
   const words = new Words(scene.layers.fx);
   const smear = new Graphics();
   if (!reduced) smear.blendMode = "add";
@@ -223,6 +228,8 @@ export async function startLook(
   render.onQuality = (q) => {
     lighting.setQuality(q);
     cast.setQuality(q);
+    particles.setCount(particleCount(q));
+    opts.onQuality?.(q);
   };
   const flyers = new Flyers(scene.layers.play, particles, scene.ambient);
   const pigView = new PigView(scene.layers.play, particles);
@@ -970,7 +977,18 @@ export async function startLook(
    * The CSS px the HUD's top bar and the touch pad or the hint take off the screen: the banquet is framed between them.
    * The gate (`gate`) on an upright phone keeps under the HUD's panel and above the hint, which both span the screen there.
    */
+  const insetsCache = new Map<string, { at: number; v: { top: number; bottom: number } }>();
+  /** The HUD's layout read again only on a resize or every half second (a pad showing, a hint growing), not each frame. */
   const insets = (gate = false) => {
+    const key = `${gate}:${scene.width}x${scene.height}`;
+    const now = performance.now();
+    const hit = insetsCache.get(key);
+    if (hit && now - hit.at < 500) return hit.v;
+    const v = measureInsets(gate);
+    insetsCache.set(key, { at: now, v });
+    return v;
+  };
+  const measureInsets = (gate: boolean) => {
     const upright = gate && scene.width < scene.height;
     const bar = document.querySelector(".next-hud__bar-top")?.getBoundingClientRect();
     const side = upright ? document.querySelector(".next-hud__panel")?.getBoundingClientRect() : undefined;

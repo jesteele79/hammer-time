@@ -42,7 +42,8 @@ const FLY = 0.5;
 
 type TagView = { c: Container; face: Graphics; x: Graphics; w: number; h: number };
 type Flying = { c: Container; from: Point; t: number };
-type Stuck = { at: Point; t: number };
+/** A scalpel stuck in the board; `done` once it has stopped wobbling and is drawn for good on the settled layer. */
+type Stuck = { at: Point; t: number; done?: boolean };
 type Lost = { at: Point; t: number };
 
 /**
@@ -90,6 +91,10 @@ export class RouteBoard {
   private readonly cloud = new Graphics();
   private readonly cloudWord: BitmapText;
   private readonly marks = new Graphics();
+  /** The scalpels that have stopped wobbling: drawn once, not every frame. */
+  private readonly settled = new Graphics();
+  /** What the ladder was last drawn as: it is drawn again only when that changes. */
+  private ladderKey = "";
   private readonly aim = new Graphics();
   private readonly ladder = new Container({ label: "ladder" });
   private readonly ladderBack = new Graphics();
@@ -118,7 +123,7 @@ export class RouteBoard {
     // The cloud stays on the map, however it drifts.
     const cloudMask = new Graphics().rect(0, 0, MAP.w, MAP.h).fill(0xffffff);
     this.cloud.mask = cloudMask;
-    this.mapLayer.addChild(this.tagLayer, cloudMask, this.cloud, this.cloudWord, this.marks, this.aim);
+    this.mapLayer.addChild(this.tagLayer, cloudMask, this.cloud, this.cloudWord, this.settled, this.marks, this.aim);
     this.passWord = label("C60", "display", 26);
     this.passWord.anchor.set(0.5);
     this.passWord.tint = 0x1f2a5c;
@@ -147,7 +152,7 @@ export class RouteBoard {
     this.ladderRect = ladder;
     this.ladder.position.set(ladder.x - board.x, ladder.y - board.y);
     this.printer = printer;
-    this.drawLadder(false);
+    this.drawLadder(this.q?.preferred ?? false);
   }
 
   /** A map point in world px. */
@@ -216,6 +221,7 @@ export class RouteBoard {
     for (const f of this.flying) f.c.destroy({ children: true });
     this.flying = [];
     this.stuck = [];
+    this.settled.clear();
     this.lost = [];
     this.shownPosition = q.position;
     this.lastSteady = q.steady;
@@ -266,10 +272,13 @@ export class RouteBoard {
 
   /** The ladder: A, B and C each a third of the board's height, A at the top; gold while A-LIST PREFERRED. */
   private drawLadder(preferred: boolean) {
-    const g = this.ladderBack.clear();
     const { w, h } = this.ladderRect;
-    const third = h / 3;
     const pulse = preferred ? 0.5 + 0.5 * Math.sin(this.time * 8) : 0;
+    const key = `${w}x${h}:${preferred ? Math.round(pulse * 24) : "-"}`;
+    if (key === this.ladderKey) return;
+    this.ladderKey = key;
+    const g = this.ladderBack.clear();
+    const third = h / 3;
     const bands = [preferred ? GOLD : 0xffbf27, 0x8fb4e8, 0xd9d2c4];
     bands.forEach((c, i) => g.rect(0, i * third, w, third).fill(c));
     for (let i = 1; i < 12; i++) g.moveTo(w - 16, (i * h) / 12).lineTo(w, (i * h) / 12).stroke({ width: 2, color: INK, alpha: 0.6 });
@@ -385,12 +394,17 @@ export class RouteBoard {
   private drawMarks(dt: number) {
     const g = this.marks.clear();
     for (const s of this.stuck) {
+      if (s.done) continue;
       s.t += dt;
-      const w = s.t < WOBBLE ? Math.sin(s.t * 48) * 0.18 * (1 - s.t / WOBBLE) : 0;
+      // Still, it goes onto the settled layer for good; wobbling, it is drawn again each frame.
+      const still = s.t >= WOBBLE;
+      const w = still ? 0 : Math.sin(s.t * 48) * 0.18 * (1 - s.t / WOBBLE);
+      const to = still ? this.settled : g;
       // The handle stands out toward where it came from: up and to his side.
       const a = Math.atan2(-0.45, -1) + w;
-      g.circle(s.at.x, s.at.y, 5).fill({ color: 0x000000, alpha: 0.4 });
-      drawScalpel(g, { x: s.at.x + Math.cos(a) * 62, y: s.at.y + Math.sin(a) * 62 }, s.at, 8);
+      to.circle(s.at.x, s.at.y, 5).fill({ color: 0x000000, alpha: 0.4 });
+      drawScalpel(to, { x: s.at.x + Math.cos(a) * 62, y: s.at.y + Math.sin(a) * 62 }, s.at, 8);
+      if (still) s.done = true;
     }
     this.lost = this.lost.filter((l) => {
       l.t += dt;

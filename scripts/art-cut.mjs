@@ -1,6 +1,6 @@
 // Owner green-screen plates in, registered transparent parts out. Never edits the inputs.
 import sharp from "sharp";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const MARGIN = 8;
@@ -961,6 +961,26 @@ export function recolorLayer(rgba, mask, hex, mean) {
 /** Mesh cells in crop pixels, and the size layer textures are stored at (the game draws a body at about a quarter of its crop, twice that on a high-density screen). */
 export const MESH_CELL = 14;
 export const TEXTURE_SCALE = 0.5;
+/**
+ * His body layers and heads and the cast's, published at the painting's full size, so they stay crisp at 1920 by 1080
+ * (story spec §15); the props, hats, silhouettes and the pig's tufts stay at TEXTURE_SCALE.
+ */
+export const BODY_SCALE = 1;
+/** The first level's art (the lobby's walls, his body and faces, its people and the products) is kept under this many bytes. */
+export const FIRST_LEVEL_BUDGET = 20e6;
+/** Who works the lobby (src/sim/levels/lobby.ts): their paintings load with the first level. */
+const LOBBY_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
+
+/** The bytes of the first level's published art under `dir`: hammer/*, the lobby's people and hats, its walls and pieces, the products. */
+export function firstLevelBytes(dir) {
+  const sizeOf = (sub, keep) => (existsSync(join(dir, sub)) ? readdirSync(join(dir, sub)).filter(keep).reduce((t, f) => t + statSync(join(dir, sub, f)).size, 0) : 0);
+  return (
+    sizeOf("hammer", () => true) +
+    sizeOf("cast", (f) => LOBBY_PERSONS.some((p) => f.startsWith(`${p}-`)) || f.startsWith("bellhop-hat")) +
+    sizeOf("backdrops", (f) => f.startsWith("lobby-")) +
+    sizeOf("products", () => true)
+  );
+}
 /** The rim light's silhouettes are only an edge: half the textures' size. */
 const SIL_SCALE = TEXTURE_SCALE / 2;
 
@@ -1059,7 +1079,7 @@ export async function castRig(person, keyed, cuts, { silly = null, faces = {}, s
     const { bones, weights } = skinWeights(mesh.positions, rig, name);
     const file = `cast/${person}-${name}.png`;
     const sil = `cast/${person}-${name}-sil.png`;
-    images.set(file, await scaled(await paddedLayer(rgba, W, H, mesh), mesh.width, TEXTURE_SCALE));
+    images.set(file, await scaled(await paddedLayer(rgba, W, H, mesh), mesh.width, BODY_SCALE));
     images.set(sil, await scaled(await paddedLayer(whiteOf(rgba), W, H, mesh), mesh.width, SIL_SCALE));
     out.layers[name] = {
       file,
@@ -1074,8 +1094,9 @@ export async function castRig(person, keyed, cuts, { silly = null, faces = {}, s
       weights: [...weights].map((w) => Math.round(w * 1000) / 1000),
     };
   }
-  const head = await castHeadPlate(layers.head.rgba, W, H, rig.joints.neck, TEXTURE_SCALE);
-  const headSil = await castHeadPlate(whiteOf(layers.head.rgba), W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+  // The head's silhouette is drawn at the head's own scale (its rim copies the head sprite's), so it follows the head.
+  const head = await castHeadPlate(layers.head.rgba, W, H, rig.joints.neck, BODY_SCALE);
+  const headSil = await castHeadPlate(whiteOf(layers.head.rgba), W, H, rig.joints.neck, BODY_SCALE, head.box);
   let crownRow = 0;
   while (crownRow < H && !layers.head.rgba.subarray(crownRow * W * 4, (crownRow + 1) * W * 4).some((v, i) => i % 4 === 3 && v > 0)) crownRow++;
   const file = `cast/${person}-head.png`;
@@ -1093,15 +1114,15 @@ export async function castRig(person, keyed, cuts, { silly = null, faces = {}, s
     face: head.face,
     nose: head.nose,
     share: Math.round(share * 1000) / 1000,
-    scale: TEXTURE_SCALE,
-    ...(cuts.jaw ? { jaw: cuts.jaw.map(([x, y]) => [Math.round((x - head.box.x) * TEXTURE_SCALE), Math.round((y - head.box.y) * TEXTURE_SCALE)]) } : {}),
+    scale: BODY_SCALE,
+    ...(cuts.jaw ? { jaw: cuts.jaw.map(([x, y]) => [Math.round((x - head.box.x) * BODY_SCALE), Math.round((y - head.box.y) * BODY_SCALE)]) } : {}),
   };
   // The hat it wears (the bellhops' unless the cut names another): where its base sits on the head and how wide it is there, in the plate's px.
   if (cuts.hat)
     out.head.hat = {
-      x: Math.round((cuts.hat.x - head.box.x) * TEXTURE_SCALE),
-      y: Math.round((cuts.hat.y - head.box.y) * TEXTURE_SCALE),
-      width: Math.round(cuts.hat.width * TEXTURE_SCALE),
+      x: Math.round((cuts.hat.x - head.box.x) * BODY_SCALE),
+      y: Math.round((cuts.hat.y - head.box.y) * BODY_SCALE),
+      width: Math.round(cuts.hat.width * BODY_SCALE),
       name: cuts.hat.name ?? "bellhop",
     };
   // Recolors for a repeat wearing this painting: the garment's masks in every layer and the head, shaded off the painting's own mean.
@@ -1115,11 +1136,11 @@ export async function castRig(person, keyed, cuts, { silly = null, faces = {}, s
         const l = out.layers[name];
         const rgba = recolorLayer(layers[name].rgba, recolorMask(layers[name].rgba, W, H, spec, name), hex, mean);
         const file = `cast/${person}-${tag}-${name}.png`;
-        images.set(file, await scaled(await paddedLayer(rgba, W, H, { x0: l.x, y0: l.y, width: l.width, height: l.height }), l.width, TEXTURE_SCALE));
+        images.set(file, await scaled(await paddedLayer(rgba, W, H, { x0: l.x, y0: l.y, width: l.width, height: l.height }), l.width, BODY_SCALE));
         (l.recolors ??= {})[hex] = file;
       }
       const rgba = recolorLayer(layers.head.rgba, recolorMask(layers.head.rgba, W, H, spec, "head"), hex, mean);
-      const plate = await castHeadPlate(rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+      const plate = await castHeadPlate(rgba, W, H, rig.joints.neck, BODY_SCALE, head.box);
       const file = `cast/${person}-${tag}-head.png`;
       images.set(file, plate.png);
       (out.head.recolors ??= {})[hex] = file;
@@ -1138,7 +1159,7 @@ export async function castRig(person, keyed, cuts, { silly = null, faces = {}, s
       continue;
     }
     const { layers: edited } = await separateLayers(await alignOnto(keyed, edit, a), cuts);
-    const plate = await castHeadPlate(edited.head.rgba, W, H, rig.joints.neck, TEXTURE_SCALE, head.box);
+    const plate = await castHeadPlate(edited.head.rgba, W, H, rig.joints.neck, BODY_SCALE, head.box);
     const file = `cast/${person}-head-${name}.png`;
     images.set(file, plate.png);
     if (name === "silly") out.head.silly = file;

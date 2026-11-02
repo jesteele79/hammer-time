@@ -124,7 +124,7 @@ export class Particles {
 
   constructor(
     layer: Container,
-    readonly cap = 600,
+    private cap = 600,
     readonly reduced = false,
   ) {
     this.glow.blendMode = "add";
@@ -156,6 +156,12 @@ export class Particles {
 
   get alive() {
     return this.pool.length;
+  }
+
+  /** The quality tier's count: the oldest go first when it shrinks. */
+  setCount(n: number) {
+    this.cap = n;
+    if (this.pool.length > n) this.pool.splice(0, this.pool.length - n);
   }
 
   /** `keepOut` is his face: a particle that would touch it is gone, so nothing is ever drawn over it. */

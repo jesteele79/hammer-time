@@ -112,6 +112,9 @@ export function turnAbout(
   }
 }
 
+/** The bones' matrices, reused by every skinLayer call (it never runs inside another). */
+let bones = new Float64Array(0);
+
 /** World px per crop pixel for this solve. */
 export const bodyScale = (solved: Solved, rig: RigFile) => solved.scale * (NECK_REST_Y / rig.span);
 
@@ -127,7 +130,9 @@ export function skinLayer(out: Float32Array, layer: RigLayer, rig: RigFile, solv
   const f = solved.facing;
   const { x: sx, y: sy } = solved.squash;
   const nb = rig.bones.length;
-  const m = new Float64Array(nb * 6);
+  // One matrix row per bone, in a buffer kept between calls: a body skins its layers every frame.
+  if (bones.length < nb * 6) bones = new Float64Array(nb * 6);
+  const m = bones;
   for (let b = 0; b < nb; b++) {
     const [p, c] = rig.bones[b];
     // A bone a painted body's skeleton turned to Hammer's stance turns its paint by as much first.

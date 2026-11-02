@@ -4,7 +4,7 @@ import type { FoodKind } from "../sim/quests/hungry/food";
 import type { CityCode, TagKind } from "../sim/quests/fares/board";
 
 type ProbeRect = { x: number; y: number; w: number; h: number };
-import { refreshFrom, shouldStepDown } from "./quality";
+import { TIERS, firstTier, isDesktopGpu, refreshFrom, shouldStepDown } from "./quality";
 
 export type Quality = "ultra" | "high" | "medium" | "low";
 export type RenderApp = {
@@ -21,11 +21,13 @@ export type RenderApp = {
 };
 
 const ORDER: Quality[] = ["ultra", "high", "medium", "low"];
-const DPR: Record<Quality, number> = { ultra: 2, high: 2, medium: 1, low: 1 };
+const DPR: Record<Quality, number> = { ultra: TIERS.ultra.dpr, high: TIERS.high.dpr, medium: TIERS.medium.dpr, low: TIERS.low.dpr };
 
 export type NextProbe = {
   renderer: string;
   quality: Quality;
+  /** The video card's name as the browser reports it (WebGPU's adapter info, or WebGL's renderer string). */
+  gpu?: string;
   frameMs: number;
   fps: number;
   /** Distinct coarse colors in a 1/20-scale read of the stage: the "is anything drawn" probe. */
@@ -177,7 +179,8 @@ export async function createRenderApp(
   opts: { preference?: "webgpu" | "webgl" } = {},
 ): Promise<RenderApp> {
   const app = new Application();
-  let quality: Quality = readForcedQuality() ?? "ultra";
+  // Auto starts at high and makes its one pick once the governor has settled (plan decision 10).
+  let quality: Quality = readForcedQuality() ?? "high";
   await app.init({
     preference: opts.preference ?? "webgpu",
     antialias: true,
@@ -222,9 +225,10 @@ export async function createRenderApp(
     },
     auto() {
       settle = 2;
+      picked = false;
       acc = work = n = 0;
       intervals.length = 0;
-      out.setQuality("ultra");
+      out.setQuality("high");
     },
     destroy() {
       app.ticker.remove(begin);
@@ -240,8 +244,20 @@ export async function createRenderApp(
     n = 0,
     settle = 2,
     frameStart = 0,
-    refresh = Infinity;
+    refresh = Infinity,
+    picked = false;
   const intervals: number[] = [];
+  /** The card's name: WebGPU's adapter info, or WebGL's unmasked renderer string; empty when the browser hides it. */
+  const gpuName = (): string => {
+    const r = app.renderer as unknown as { gpu?: { adapter?: { info?: Record<string, string | undefined> } }; gl?: WebGL2RenderingContext };
+    const info = r.gpu?.adapter?.info;
+    if (info) return [info.vendor, info.architecture, info.device, info.description].filter(Boolean).join(" ");
+    const gl = r.gl;
+    const ext = gl?.getExtension("WEBGL_debug_renderer_info");
+    return gl && ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : "";
+  };
+  probe.gpu = gpuName();
+  const gpuClass = (): "desktop" | "other" => (isDesktopGpu(probe.gpu ?? "") ? "desktop" : "other");
   const begin = () => {
     frameStart = performance.now();
   };
@@ -254,8 +270,18 @@ export async function createRenderApp(
     out.frameMs = acc / n;
     out.fps = Math.round(1000 / out.frameMs);
     refresh = Math.min(refresh, refreshFrom(intervals));
-    if (settle > 0) settle--;
-    else if (
+    if (settle > 0) {
+      settle--;
+      // Settled: Auto's one pick, ultra on a desktop card that held its frame rate; the new tier then settles a window.
+      if (settle === 0 && !picked && !readForcedQuality()) {
+        picked = true;
+        const q = firstTier(gpuClass(), out.fps);
+        if (q !== quality) {
+          out.setQuality(q);
+          settle = 1;
+        }
+      }
+    } else if (
       !readForcedQuality() &&
       shouldStepDown({ workMs: work / n, intervalMs: out.frameMs, refreshMs: refresh })
     ) {

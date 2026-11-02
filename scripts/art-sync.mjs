@@ -34,6 +34,9 @@ import {
   scaled,
   MESH_CELL,
   TEXTURE_SCALE,
+  BODY_SCALE,
+  FIRST_LEVEL_BUDGET,
+  firstLevelBytes,
 } from "./art-cut.mjs";
 import { ink } from "./ink.mjs";
 
@@ -119,9 +122,9 @@ async function heads(registry) {
       reg = registerAligned(neutralReg, a, { width: keyed.width, height: keyed.height });
     }
     const outFile = `hammer/head-${name}.png`;
-    // Stored at the body's texture scale: the game draws a head well under half its painted size, even on a phone.
-    writeFileSync(join(OUT, outFile), await scaled(keyed.png, keyed.width, TEXTURE_SCALE));
-    registry.hammer.heads[name] = { file: outFile, ...reg, scale: TEXTURE_SCALE };
+    // Stored at the body's scale: at 1920 by 1080 the game draws his head close to its painted size (story spec §15).
+    writeFileSync(join(OUT, outFile), await scaled(keyed.png, keyed.width, BODY_SCALE));
+    registry.hammer.heads[name] = { file: outFile, ...reg, scale: BODY_SCALE };
     console.log(`head ${name}: ${reg.width}x${reg.height}, neck ${reg.neck.x},${reg.neck.y}, nose ${reg.nose.x},${reg.nose.y}`);
   }
   const tq = join(HAMMER_IN, "head-three-quarter.png");
@@ -179,7 +182,7 @@ async function bodies(registry) {
       const full = await paddedLayer(rgba, W, H, mesh);
       if (overlay) sheet.push(full);
       const outFile = `hammer/${costume}-${name}.png`;
-      const store = async (png, file) => writeFileSync(join(OUT, file), await scaled(png, mesh.width, TEXTURE_SCALE));
+      const store = async (png, file) => writeFileSync(join(OUT, file), await scaled(png, mesh.width, BODY_SCALE));
       await store(full, outFile);
       // Variants share the layer's mesh, so they cover the same rectangle.
       const variants = {};
@@ -510,3 +513,10 @@ await gate(registry);
 await products();
 writeFileSync(join(OUT, "registry.json"), JSON.stringify(await publish(registry), null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);
+// The first level's art stays under its budget (story spec §15): a phone's first start fetches all of it.
+const firstLevel = firstLevelBytes(OUT);
+console.log(`the first level's art: ${(firstLevel / 1e6).toFixed(1)} MB`);
+if (firstLevel > FIRST_LEVEL_BUDGET) {
+  console.error(`the first level's art is ${(firstLevel / 1e6).toFixed(1)} MB, over its ${FIRST_LEVEL_BUDGET / 1e6} MB budget`);
+  process.exit(1);
+}

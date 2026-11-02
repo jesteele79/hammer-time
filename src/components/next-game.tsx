@@ -146,6 +146,9 @@ export function NextGame({
   /** The home screen's scene is drawn and running behind the start screen: the key art fades away. */
   const [scene, setScene] = useState(false);
   const onTitleScene = useCallback(() => setScene(true), []);
+  /** The tier the game draws at now: Auto's pick shows beside Auto. */
+  const [liveQuality, setLiveQuality] = useState<Quality | null>(null);
+  const onQuality = useCallback((q: Quality) => setLiveQuality(q), []);
   const qualityChosen = useRef<{ q: Quality | null } | null>(null);
   const mutedRef = useRef(false);
   const touch = useMedia(TOUCH_QUERY);
@@ -278,7 +281,8 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene });
+      const started = await startLook(render, { noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
+      setLiveQuality(render.quality);
       if (cancelled) {
         started.stop();
         return render.destroy();
@@ -297,7 +301,7 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene]);
+  }, [forceWebgl, noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
 
   // A start chosen while the game still loaded begins once it is ready, and only once.
   useEffect(() => {
@@ -434,6 +438,7 @@ export function NextGame({
           faresBest={faresBest}
           muted={muted}
           quality={quality}
+          liveQuality={liveQuality}
           onMute={toggleMute}
           onQuality={(q) => {
             setQualityState(q);

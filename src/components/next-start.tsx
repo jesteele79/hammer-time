@@ -38,6 +38,7 @@ export function NextStart({
   faresBest,
   muted,
   quality,
+  liveQuality,
   onMute,
   onQuality,
   journey,
@@ -58,6 +59,8 @@ export function NextStart({
   faresBest: number;
   muted: boolean;
   quality: Quality | null;
+  /** The tier the game draws at now, shown beside Auto. */
+  liveQuality: Quality | null;
   onMute: () => void;
   onQuality: (q: Quality | null) => void;
   journey: Journey;
@@ -137,7 +140,7 @@ export function NextStart({
           <select value={quality ?? "auto"} onChange={(e) => onQuality(e.target.value === "auto" ? null : (e.target.value as Quality))} disabled={!live}>
             {QUALITIES.map((q) => (
               <option key={q.label} value={q.value ?? "auto"}>
-                {q.label}
+                {q.value === null && liveQuality ? `Auto · ${liveQuality[0].toUpperCase()}${liveQuality.slice(1)}` : q.label}
               </option>
             ))}
           </select>

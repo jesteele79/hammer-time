@@ -175,7 +175,8 @@ try {
   await page.waitForFunction(() => window.__next.quality === "low", null, { timeout: 3000 });
   await page.locator(".next-start__quality select").selectOption("auto");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), null);
-  await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 3000 });
+  // Auto starts at high and picks ultra once the governor has settled, on this laptop's card.
+  await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 8000 });
   // A key let go on the start screen is let go: the next start does not set off walking on its own.
   await stop(page, "1-2").click();
   await page.getByRole("button", { name: "Clock in" }).click();

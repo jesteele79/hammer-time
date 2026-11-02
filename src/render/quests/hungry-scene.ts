@@ -58,7 +58,12 @@ export class BanquetView {
   private readonly marks = new Graphics();
   private readonly dishes = new Container({ label: "dishes" });
   private readonly plates = new Graphics();
+  private platesDrawn = false;
   private readonly stacks = new Container({ label: "stacks" });
+  /** Each eater's stack: four sprites made once, shown as the plate fills. */
+  private readonly stackSprites = new Map<string, Sprite[]>();
+  /** The dishes flying home: sprites made as needed and kept, the spare ones hidden. */
+  private readonly flying: Sprite[] = [];
   private readonly cases = new Graphics();
   private readonly chute = new Graphics();
   private readonly cart = new Graphics();
@@ -370,19 +375,36 @@ export class BanquetView {
     if (h.lock) ring(b.x, b.y, 96, 96 * TABLE.squash, 8, 0.7 + 0.3 * Math.sin(time * 7));
   }
 
-  /** Each plate, its stack's top few dishes on it. */
+  /** Each plate (drawn once: the seats never move), its stack's top few dishes on it from a pool of four sprites a plate. */
   private drawPlates(q: Hungry) {
-    const g = this.plates.clear();
-    this.stacks.removeChildren().forEach((c) => c.destroy());
-    for (const e of [q.hammer, ...RIVALS.map((id) => q.rivals[id])] as Eater[]) {
+    const eaters = [q.hammer, ...RIVALS.map((id) => q.rivals[id])] as Eater[];
+    if (!this.platesDrawn) {
+      this.platesDrawn = true;
+      for (const e of eaters) {
+        const c = onScreen(SEATS[e.id].plate);
+        this.plates.ellipse(c.x, c.y, 62, 62 * TABLE.squash).fill(0xffffff).stroke({ width: 5, color: PALETTE.outline });
+      }
+    }
+    for (const e of eaters) {
       const c = onScreen(SEATS[e.id].plate);
-      g.ellipse(c.x, c.y, 62, 62 * TABLE.squash).fill(0xffffff).stroke({ width: 5, color: PALETTE.outline });
-      e.plate.slice(-4).forEach((kind, i) => {
-        const s = new Sprite(this.foodTexture(kind));
-        s.anchor.set(0.5, 0.6);
+      let row = this.stackSprites.get(e.id);
+      if (!row) {
+        row = Array.from({ length: 4 }, () => {
+          const s = new Sprite(Texture.EMPTY);
+          s.anchor.set(0.5, 0.6);
+          this.stacks.addChild(s);
+          return s;
+        });
+        this.stackSprites.set(e.id, row);
+      }
+      const top = e.plate.slice(-4);
+      row.forEach((s, i) => {
+        const kind = top[i];
+        s.visible = kind !== undefined;
+        if (kind === undefined) return;
+        s.texture = this.foodTexture(kind);
         s.scale.set((FOODS[kind].r * 1.6) / s.texture.width);
         s.position.set(c.x, c.y - 10 - i * 12);
-        this.stacks.addChild(s);
       });
     }
   }
@@ -431,17 +453,24 @@ export class BanquetView {
 
   /** What is in the air: dishes flying home low over the cloth, and the paper. */
   private drawAir(q: Hungry) {
-    this.air.removeChildren().forEach((c) => c.destroy());
-    for (const f of q.flights) {
+    // A pool of sprites, one a dish in flight, the spare ones hidden.
+    q.flights.forEach((f, i) => {
+      let s = this.flying[i];
+      if (!s) {
+        s = new Sprite(Texture.EMPTY);
+        s.anchor.set(0.5, 0.6);
+        this.air.addChild(s);
+        this.flying.push(s);
+      }
       const k = Math.min(1, f.t / HUNGRY.fly);
       const a = onScreen(f.from);
       const b = onScreen(SEATS[f.to].plate);
-      const s = new Sprite(this.foodTexture(f.kind));
-      s.anchor.set(0.5, 0.6);
+      s.visible = true;
+      s.texture = this.foodTexture(f.kind);
       s.scale.set(drawWidth(f.kind, FOODS[f.kind].r) / s.texture.width);
       s.position.set(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k - 90 * Math.sin(Math.PI * k));
-      this.air.addChild(s);
-    }
+    });
+    for (let i = q.flights.length; i < this.flying.length; i++) this.flying[i].visible = false;
     const g = this.paper.clear();
     for (const p of q.planes) {
       if (p.wait > 0) continue;

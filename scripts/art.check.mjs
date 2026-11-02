@@ -755,13 +755,14 @@ test("a hat painting that cannot be cut is skipped with a warning: the other hat
   await assert.rejects(syncHats({ cast: { bodies: {}, hats: {} } }, { inDir, outDir, strict: true }), "a strict sync still stops on it");
 });
 
-test("Hammer's heads and props are stored at the body's texture scale, their plate pixels kept; the life icon is small", async () => {
+test("Hammer's heads are stored at the body's scale and his props at half, their plate pixels kept; the life icon is small", async () => {
   const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
-  const plates = [...Object.values(reg.hammer.heads), ...["mallet", "towel", "wristwatch"].map((n) => reg.hammer.props[n]).filter(Boolean)];
+  const heads = Object.values(reg.hammer.heads);
+  const plates = [...heads, ...["mallet", "towel", "wristwatch"].map((n) => reg.hammer.props[n]).filter(Boolean)];
   assert.ok(plates.length >= 7, `heads and props registered: ${plates.length}`);
   for (const p of plates) {
     const meta = await sharp(`public/art/${p.file}`).metadata();
-    assert.equal(p.scale, 0.5, `${p.file} records its scale`);
+    assert.equal(p.scale, heads.includes(p) ? BODY_SCALE : TEXTURE_SCALE, `${p.file} records its scale`);
     assert.ok(Math.abs(meta.width - p.width * p.scale) <= 1 && Math.abs(meta.height - p.height * p.scale) <= 1, `${p.file}: ${meta.width}x${meta.height} for a ${p.width}x${p.height} plate`);
   }
   const icon = await sharp(`public/art/${reg.hammer.portrait.file}`).metadata();
@@ -979,4 +980,25 @@ test("the gate sheet's seven pieces are named in the brief's order; six or eight
   assert.equal(named.box.width, 16);
   assert.throws(() => nameGatePieces([...Array(6).keys()].map(piece)), /6 pieces, not 7/);
   assert.throws(() => nameGatePieces([...Array(8).keys()].map(piece)), /8 pieces, not 7/);
+});
+
+import { BODY_SCALE, TEXTURE_SCALE, firstLevelBytes, FIRST_LEVEL_BUDGET } from "./art-cut.mjs";
+
+test("his body and heads and the cast's are published at the painting's full size; the first level's art stays under 20 MB", async () => {
+  assert.equal(BODY_SCALE, 1);
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  const rig = JSON.parse(readFileSync(`public/art/${reg.hammer.bodies.affliction.rig}`, "utf8"));
+  for (const [name, l] of Object.entries(rig.layers)) {
+    const m = await sharp(`public/art/${l.file}`).metadata();
+    assert.equal(m.width, Math.round(l.width * BODY_SCALE), `affliction ${name}: ${m.width} for a ${l.width} px crop`);
+  }
+  const neutral = reg.hammer.heads.neutral;
+  assert.equal(neutral.scale, BODY_SCALE);
+  assert.equal((await sharp(`public/art/${neutral.file}`).metadata()).width, Math.round(neutral.width * BODY_SCALE), "his neutral head");
+  const bellhop = JSON.parse(readFileSync(`public/art/${reg.cast.bodies["bellhop-1"].rig}`, "utf8"));
+  assert.equal(bellhop.head.scale, BODY_SCALE);
+  assert.equal((await sharp(`public/art/${bellhop.head.file}`).metadata()).width, bellhop.head.width, "the bellhop's head plate");
+  const bytes = firstLevelBytes("public/art");
+  assert.ok(bytes > 1e6 && bytes < FIRST_LEVEL_BUDGET, `the lobby's art: ${(bytes / 1e6).toFixed(1)} MB`);
+  assert.equal(FIRST_LEVEL_BUDGET, 20e6);
 });

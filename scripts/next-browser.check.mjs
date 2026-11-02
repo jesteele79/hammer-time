@@ -235,6 +235,23 @@ try {
   await pauseWorks("844x390");
   await page.waitForTimeout(600);
 
+  // The laptop look (story spec §15): at 1920 by 1080 on this laptop's card Auto has picked ultra within five seconds, and
+  // ultra holds 58 frames a second over the next five.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await booted(`${base}?next=1`);
+  await page.waitForTimeout(5000);
+  verdict.gpu = await page.evaluate(() => window.__next.gpu);
+  assert.equal(await page.evaluate(() => window.__next.quality), "ultra", `Auto picked ultra on ${verdict.gpu}`);
+  const rates = [];
+  for (let i = 0; i < 5; i++) {
+    await page.waitForTimeout(1000);
+    rates.push(await page.evaluate(() => window.__next.fps));
+  }
+  verdict.ultraFps = rates;
+  assert.ok(Math.min(...rates) >= 58, `ultra holds 58 fps at 1920x1080: ${rates}`);
+  assert.equal(await page.evaluate(() => window.__next.quality), "ultra", "and stays there");
+  await page.setViewportSize({ width: 1280, height: 800 });
+
   await booted(`${base}?next=1&nocast=1&gl=1`);
   verdict.fallback = await page.evaluate(() => window.__next.renderer);
   assert.equal(verdict.fallback, "webgl", "forced WebGL still boots");

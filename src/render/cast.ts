@@ -9,6 +9,7 @@ import { groundShift } from "../sim/rig/ground";
 import { HERO_HEIGHT, type JointName } from "../sim/rig/skeleton";
 import type { Point, Rect, Snapshot } from "../sim/types";
 import type { Quality } from "./app";
+import { TIERS } from "./quality";
 import { RIM, castHeadScale, hatWorldWidth, rimFor } from "./cast-art";
 import { loadCastArt, PaintedFigure, type CastArt, type Rim } from "./cast-body";
 import { GOO, addGlob, drawGlob, globPoint, stepGlob, stickGlob, type Glob } from "./goo";
@@ -510,7 +511,7 @@ export class Cast {
   }
 
   setQuality(q: Quality): void {
-    this.rimOn = q !== "low";
+    this.rimOn = TIERS[q].rim;
   }
 
   /** Whom each view draws, by cast id, for the checks. */

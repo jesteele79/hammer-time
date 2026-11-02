@@ -67,6 +67,8 @@ export class PigView {
   kind: "drawn" | "painted" = "drawn";
   private readonly body = new Container({ label: "pig-body" });
   private readonly standIn = new Graphics();
+  /** The face the drawn pig was last drawn with (undefined: not yet). */
+  private standInFace: PigFace | null | undefined = undefined;
   private readonly flash = whiteFlash();
   /** The tufts fly beside it and sort with it. */
   private readonly tuftLayer = new Container({ label: "pig-tufts" });
@@ -213,7 +215,11 @@ export class PigView {
     }
     const mid = -PIG_HEIGHT * 0.4;
     this.frame = null;
-    drawPigStandIn(this.standIn, face);
+    // Drawn again only when its face changes: the turn, squash and mirror are the container's.
+    if (face !== this.standInFace) {
+      this.standInFace = face;
+      drawPigStandIn(this.standIn, face);
+    }
     this.body.pivot.set(0, mid);
     this.body.position.set(0, mid * pose.squash.y);
     this.body.rotation = -pose.spin * DEG * facing;

@@ -1,6 +1,7 @@
 import { Sprite, Texture } from "pixi.js";
 import { AdvancedBloomFilter } from "pixi-filters";
 import type { Quality } from "./app";
+import { TIERS } from "./quality";
 import { PALETTE, dim } from "./palette";
 import type { Scene } from "./scene";
 
@@ -56,8 +57,8 @@ export function createLighting(scene: Scene, quality: Quality, lights: Light[], 
   let t = 0;
   const lighting: Lighting = {
     setQuality(q) {
-      layer.visible = q !== "low";
-      layer.filters = q === "ultra" || q === "high" ? [bloom] : [];
+      layer.visible = TIERS[q].glows;
+      layer.filters = TIERS[q].bloom ? [bloom] : [];
     },
     setGroup(group) {
       for (const lamp of lamps) lamp.sprite.visible = !lamp.light.group || lamp.light.group === group;
