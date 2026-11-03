@@ -90,11 +90,11 @@ export function satFloor(g: Graphics, f: LevelFloor): boolean {
     g.rect(f.x0, f.y0 - 4, f.x1 - f.x0, 14).fill(C.rubber).stroke(THIN);
     return true;
   }
-  // The moving walkway: a steel skirt to the floor's depth, the tread band, comb plates at both ends.
-  g.rect(f.x0, f.y0 + 6, f.x1 - f.x0, FLOOR.depth - 6).fill(steel.shadow);
-  g.rect(f.x0, f.y0 - FLOOR.back, f.x1 - f.x0, FLOOR.back + 6).fill("#3a3d42");
-  for (const x of [f.x0, f.x1 - 40]) g.rect(x, f.y0 - FLOOR.back - 2, 40, FLOOR.back + 8).fill(steel.highlight).stroke(THIN);
-  g.rect(f.x0, f.y0 - FLOOR.back, f.x1 - f.x0, FLOOR.depth + FLOOR.back).stroke(INK);
+  // The moving walkway: set into the concourse's terrazzo, its dark tread band with a steel edge and comb plates at both ends.
+  campusFloor(g, { ...f, kind: "terrazzo", belt: undefined });
+  g.rect(f.x0, f.y0 - FLOOR.back, f.x1 - f.x0, FLOOR.back + 8).fill("#3a3d42").stroke(THIN);
+  g.rect(f.x0, f.y0 + 8, f.x1 - f.x0, 6).fill(steel.base);
+  for (const x of [f.x0, f.x1 - 40]) g.rect(x, f.y0 - FLOOR.back - 2, 40, FLOOR.back + 10).fill(steel.highlight).stroke(THIN);
   return true;
 }
 

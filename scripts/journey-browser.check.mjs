@@ -62,6 +62,13 @@ const cardFits = async (name) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.waitForTimeout(300);
 };
+/** One scalpel at a city in the gate's round: a tag put there, the crosshair pinned on it, Space, the stick waited for. */
+const throwAt = async (city) => {
+  const stuck = await page.evaluate(() => window.__next.quest.stuck);
+  await page.evaluate((c) => window.__next.dev.fares({ tag: { city: c }, pin: c }), city);
+  await page.keyboard.press("Space");
+  await page.waitForFunction((s) => window.__next.quest.stuck > s, stuck, { timeout: 5000 });
+};
 /** Continue on a story card by the keyboard: its button has the focus, so Enter presses it. */
 const enter = async () => {
   await page.keyboard.press("Enter");
@@ -74,7 +81,7 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
 
-  // 1. A fresh journey: nothing saved yet; Clock in starts the first built stop (SAT is not built in Phase 1a) on its card.
+  // 1. A fresh journey: nothing saved yet; Clock in starts at the true start: the email, then SAT.
   await page.goto(home);
   await page.evaluate(() => localStorage.clear());
   await page.goto(home);
@@ -130,11 +137,46 @@ try {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.waitForTimeout(300);
   await page.getByRole("button", { name: "Clock in" }).click();
-  await waitMode("card");
+  await waitMode("story");
   let text = await veil();
+  for (const words of ["Basel office", "Your transition", "Training is moving to video.", "Transition."]) assert.ok(text.includes(words), `the email says ${words}: ${text}`);
+  assert.equal((await run()).level, "sat");
+  await cardFits("email");
+  await enter();
+  await waitMode("card");
+  text = await veil();
+  assert.match(text, /San Antonio International/);
+  assert.match(text, /Boarding in 7:00/);
+  let s = await save();
+  assert.deepEqual([s.next, s.done, !!s.run], ["sat", [], true], `the save at SAT's card: ${JSON.stringify(s)}`);
+  // SAT's gate: two bookings, the round's tally, the clock's, "Three hours later", 1-1's card with the boxes carried in.
+  await waitMode("play");
+  await tp(7650, 0);
+  await page.waitForTimeout(250);
+  await page.keyboard.down("ArrowRight");
+  await waitMode("questCard", 8000);
+  await page.keyboard.up("ArrowRight");
+  await waitMode("quest", 8000);
+  await page.evaluate(() => window.__next.dev.fares({ calm: true }));
+  for (let i = 0; i < 2; i++) await throwAt("AUS");
+  await page.evaluate(() => window.__next.dev.questSkip());
+  await waitMode("questTally", 8000);
+  const boxes = await page.evaluate(() => window.__next.quest.result.boxes);
+  assert.ok(boxes > 0, `the gate paid boxes: ${boxes}`);
+  await page.waitForTimeout(400);
+  await enter();
+  await waitMode("story", 20000);
+  assert.match(await veil(), /Three hours later. The hotel./);
+  s = await save();
+  assert.deepEqual([s.next, s.done, s.carry.boxes], ["lobby", ["sat"], boxes], `the save after SAT: ${JSON.stringify(s)}`);
+  assert.ok(s.best.sat > 0, "SAT's best");
+  await enter();
+  await waitMode("card");
+  text = await veil();
   assert.match(text, /Hotel lobby/);
   assert.match(text, /Your shift starts here/);
-  let s = await save();
+  assert.equal(await page.evaluate(() => window.__next.hero.boxes), boxes, "the gate's boxes carried into 1-1");
+  s = await save();
   assert.deepEqual([s.next, s.done, !!s.run], ["lobby", ["sat"], true], `the save at 1-1's card: ${JSON.stringify(s)}`);
 
   // 2. 1-1 to its exit: no cards after it, so the hold passes straight to 1-2's card; the save moves on.
@@ -249,9 +291,9 @@ try {
   await page.goto(home);
   await waitMode("title");
   await page.getByRole("button", { name: "Clock in" }).click();
-  await waitMode("card");
+  await waitMode("story");
   r = await run();
-  assert.deepEqual([r.level, r.score], ["lobby", 0], "a new journey from the first built stop");
+  assert.deepEqual([r.level, r.score], ["sat", 0], "a new journey from its true start, the email first");
 
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log("PASS: Clock in on a fresh journey, the cards between levels, the save at every card and exit and after a reload, Hammer down and Try again on the snapshot, Act 1's Bonvoy and act cards, a replay's Clocked out, a broken save; the cards fit three shapes clear of his face.");

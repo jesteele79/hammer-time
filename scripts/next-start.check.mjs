@@ -41,11 +41,12 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url);
   await page.evaluate(() => localStorage.clear());
-  // Clocked in at once, while the game still loads: the next stop starts once it is ready, and only once.
+  // Clocked in at once, while the game still loads: the next stop starts once it is ready, and only once: SAT, behind the
+  // email.
   await page.goto(url);
   await page.getByRole("button", { name: /Clock in|Getting Hammer ready/ }).click();
-  await page.waitForFunction(() => window.__next?.run?.mode === "play");
-  assert.equal(await page.evaluate(() => window.__next.run.level), "lobby", "the first built stop");
+  await page.waitForFunction(() => window.__next?.run?.mode === "story");
+  assert.equal(await page.evaluate(() => window.__next.run.level), "sat", "the journey's true start");
   assert.equal(await page.evaluate(() => window.__next.starts), 1, "the start chosen while it loaded began once");
   for (const [w, h] of [[1280, 800], [390, 844], [844, 390]]) {
     await page.setViewportSize({ width: w, height: h });
@@ -69,14 +70,14 @@ try {
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.run?.mode === "title");
   assert.equal(await page.evaluate(() => window.__next.drawing), true, "the scene is live under the start screen");
-  // The strip of a journey begun: fifteen stops under five headers; SAT before the first built stop, 1-1 next, the rest
-  // locked: no picture, a lock.
+  // The strip of a fresh journey: fifteen stops under five headers; SAT next with its picture, the rest locked: no
+  // picture, a lock.
   const s = await stops(page);
   assert.equal(s.length, 15, "fifteen stops");
   assert.deepEqual(await page.locator(".next-strip__act h3").allTextContents(), ["Prologue", "Act 1 · The Trip", "Act 2 · Status Crusade", "Act 3 · The Last Tour", "Epilogue"]);
-  assert.equal(s.find((x) => x.code === "1-1").state, "next", "1-1 is next");
-  assert.ok(s.find((x) => x.code === "1-1").img, "the next stop shows its picture");
-  for (const x of s.slice(2)) assert.deepEqual([x.state, x.img, x.lock, x.disabled], ["locked", false, true, true], `${x.code}: locked, no picture, a lock`);
+  assert.equal(s.find((x) => x.code === "SAT").state, "next", "SAT is next");
+  assert.ok(s.find((x) => x.code === "SAT").img, "the next stop shows its picture");
+  for (const x of s.slice(1)) assert.deepEqual([x.state, x.img, x.lock, x.disabled], ["locked", false, true, true], `${x.code}: locked, no picture, a lock`);
   assert.match(await page.locator(".next-start__eyebrow").innerText(), /Three acts\. Zero patience\./i);
   assert.match(await page.locator(".next-start__tagline").innerText(), /Bonk the staff\. Dodge the paper\.\s*Get to Basel\./i);
   assert.match(await page.locator(".next-start__best").innerText(), /Journey best/i);
@@ -89,7 +90,7 @@ try {
   const left1 = await page.locator(".next-strip").evaluate((e) => e.scrollLeft);
   assert.ok(left1 > left0, `the wheel moves the strip: ${left0} to ${left1}`);
   // The arrows move it while it has the focus.
-  await stop(page, "1-1").focus();
+  await stop(page, "SAT").focus();
   const left2 = await page.locator(".next-strip").evaluate((e) => e.scrollLeft);
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("ArrowRight");
@@ -120,7 +121,8 @@ try {
   await page.locator(".next-start__quality select").selectOption("auto");
   await page.getByRole("button", { name: "Clock in" }).focus();
   await page.keyboard.press("Space");
-  await page.waitForFunction(() => window.__next.run.mode === "card" || window.__next.run.mode === "play");
+  // SAT's email shows again: the first Clock in stopped at it, before any snapshot was saved.
+  await page.waitForFunction(() => ["story", "card", "play"].includes(window.__next.run.mode));
   assert.equal(await page.evaluate(() => window.__next.drawing), true);
 
   // Every built stop open for the page (`&journey=all`): finished, gold, their pictures, totals of nothing yet, and Act 1's
