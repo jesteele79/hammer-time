@@ -5,7 +5,7 @@ import { SWING_ACTIVE, moveU, type Move } from "./moves";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
 import { sweptHeadHits } from "./geometry";
-import { COFFEE, PLANE, type Missile } from "./missiles";
+import { COFFEE, PLANE, flies, type Missile } from "./missiles";
 import type { Puddle } from "./snot";
 import { knock } from "./targets";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
@@ -91,12 +91,12 @@ export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): 
   // A plane in the arc is swatted into confetti; a flung cup is batted down.
   for (const m of w.missiles) {
     if (m.life <= 0) continue;
-    const r = m.kind === "plane" ? PLANE.r : COFFEE.r;
+    const r = flies(m.kind) ? PLANE.r : COFFEE.r;
     const box = { x: m.x - r, y: m.y - r, w: 2 * r, h: 2 * r };
     for (let k = 1; k < path.length; k++)
       if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, box)) {
         m.life = 0;
-        events.push({ type: "swat", kind: m.kind, x: m.x, y: m.y, points: m.kind === "plane" ? POINTS.swat : 0 });
+        events.push({ type: "swat", kind: m.kind, x: m.x, y: m.y, points: flies(m.kind) ? POINTS.swat : 0 });
         break;
       }
   }

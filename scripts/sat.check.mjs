@@ -101,3 +101,23 @@ test("at the gate the hint says to walk in and board, not that it is closed", ()
   g.step(input());
   assert.equal(hintOf(g), "GATE B7 · walk in to board");
 });
+
+import { createCast } from "../src/sim/cast.ts";
+import { createCart } from "../src/sim/targets.ts";
+test("SAT's people: the skycap with his cart at the curb, two TSA agents in the line, the bartender on the bar", () => {
+  const targets = SAT.carts.map((x, i) => createCart(i + 1, x));
+  const cast = createCast(SAT, targets);
+  assert.deepEqual(cast.map((n) => [n.spawn, n.job, n.role]), [["skycap-curb", "skycap", "bellhop"], ["tsa-1", "tsa", "bellhop"], ["tsa-2", "tsa", "bellhop"], ["bartender", "bartender", "student"]]);
+  assert.deepEqual([cast[0].cart, cast[0].carry, cast[3].y, cast[3].carry, cast[2].recolor], [1, "nuts", -180, "can", "#2f3f63"]);
+});
+test("with its people in it the scripted player still walks SAT to gate B7", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 11, { title: true });
+  g.newRun(11, 0, { shift: [SAT, LOBBY], journey: true });
+  play(g);
+  let t = 0;
+  while (g.mode !== "questCard" && g.mode !== "over" && t < 240) {
+    g.step(g.mode === "play" ? drive(g.level, g.world.hero, "floor", g.world) : input());
+    t += STEP;
+  }
+  assert.equal(g.mode, "questCard", `at ${Math.round(g.world.hero.x)} with ${g.run.lives} lives`);
+});

@@ -103,7 +103,8 @@ export function hintOf(game: Game): string {
   // The cast's threats, in the shipped hint's order: paper, a runaway cart, students to lecture, puddles, staff to bonk.
   const w = game.world;
   const near = (x: number, r: number) => Math.abs(x - h.x) < r;
-  if (w.missiles.some((m) => near(m.x, 600))) return "Paper incoming · duck, jump or swat with H";
+  const missile = w.missiles.find((m) => near(m.x, 600));
+  if (missile) return `${missile.kind === "coaster" ? "Coaster" : "Paper"} incoming · duck, jump or swat with H`;
   if (w.targets.some((t) => near(t.x, 900) && Math.abs(t.vx) >= ROLLING && (h.x - t.x) * t.vx > 0)) return "Runaway cart · jump it, or bonk it back";
   const reach = lectureReach(h);
   if (h.lectureCd <= 0 && w.cast.some((n) => n.alive && n.role === "student" && n.act !== "schooled" && overlapsRect(reach, npcRect(n))))

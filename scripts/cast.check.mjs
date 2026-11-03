@@ -4,7 +4,7 @@ import { STEP } from "../src/sim/constants.ts";
 import { createWorld } from "../src/sim/world.ts";
 import { createCast, CAST, CAST_ID, hittable } from "../src/sim/cast.ts";
 import { attackers } from "../src/sim/cast-behavior.ts";
-import { launchPlane, stepMissiles, PLANE } from "../src/sim/missiles.ts";
+import { launchPlane, stepMissiles, flies, PLANE } from "../src/sim/missiles.ts";
 import { createCart } from "../src/sim/targets.ts";
 import { createGame } from "../src/sim/game.ts";
 import { LOBBY } from "../src/sim/levels/lobby.ts";
@@ -1072,4 +1072,52 @@ test("the travelers' ooh, laugh and clap move only the upper body over a seated 
     const end = castReaction(seated(0), kind, REACTION_SECONDS[kind]);
     assert.ok(Math.abs(end.rot.shoulderNear - seated(0).rot.shoulderNear) < 1e-6, `${kind} ends where it began`);
   }
+});
+
+test("a TSA agent shoves with his hands: a wind-up, then a hit if he stands close, no cart", () => {
+  const w = worldWith([{ id: "a", person: "tsa-1", x: 600, y: 0 }], { x: 380, y: 0 });
+  assert.deepEqual([w.cast[0].role, w.cast[0].job, w.cast[0].cart], ["bellhop", "tsa", null]);
+  const evs = steps(w, 3);
+  assert.ok(of(evs, "castWindup").length && of(evs, "castAttack").length, "a wind-up and a shove");
+  assert.ok(of(evs, "hurt").length, "the shove reaches him");
+});
+test("a TSA agent's shove misses a man out of arm's reach", () => {
+  const w = worldWith([{ id: "a", person: "tsa-1", x: 900, y: 0 }], { x: 380, y: 0 });
+  const evs = steps(w, 3);
+  assert.equal(of(evs, "hurt").length, 0);
+});
+test("the bartender throws coasters that fly like planes and flees snot like a student", () => {
+  const w = worldWith([{ id: "b", person: "bartender-1", x: 900, y: 0 }], { x: 300, y: 0 });
+  assert.deepEqual([w.cast[0].role, w.cast[0].job], ["student", "bartender"]);
+  const evs = steps(w, 4);
+  assert.ok(evs.some((e) => e.type === "missile" && e.kind === "coaster"), "a coaster thrown");
+  assert.ok(w.missiles.every((m) => m.kind === "coaster"));
+});
+test("a coaster is swatted like a plane and flies like one", () => {
+  const plane = launchPlane(1, { id: 1, x: 900, y: 0, h: 310, facing: -1 }, { x: 300, y: -180 });
+  const coaster = launchPlane(2, { id: 1, x: 900, y: 0, h: 310, facing: -1 }, { x: 300, y: -180 }, "coaster");
+  assert.deepEqual([coaster.kind, coaster.vx, coaster.vy, coaster.life], ["coaster", plane.vx, plane.vy, plane.life]);
+  assert.deepEqual([flies("plane"), flies("coaster"), flies("coffee"), flies("pan")], [true, true, false, false]);
+});
+test("a TSA agent waits for him to stand: no wind-up at a man sliding or crouched under the scanner", () => {
+  const w = worldWith([{ id: "a", person: "tsa-1", x: 600, y: 0 }], { x: 380, y: 0 });
+  w.hero.crouch = true;
+  const evs = steps(w, 1.5, { down: true });
+  assert.equal(of(evs, "castWindup").length, 0, "no wind-up while he is down low");
+  const up = steps(w, 2);
+  assert.ok(of(up, "castWindup").length, "he squares up once he stands");
+});
+test("a cart rolling away from him does not hurt him when he runs past it the same way", () => {
+  const w = worldWith([], { x: 450, y: 0 }, {}, [600]);
+  w.hero.vx = 780;
+  w.targets[0].vx = 300;
+  const evs = steps(w, 1, { right: true, run: true });
+  assert.ok(w.hero.x > w.targets[0].x + 100, "he got past it");
+  assert.equal(of(evs, "hurt").length, 0);
+});
+test("a cart rolling at him still hurts him", () => {
+  const w = worldWith([], { x: 900, y: 0 }, {}, [400]);
+  w.targets[0].vx = 600;
+  const evs = steps(w, 1.5);
+  assert.ok(of(evs, "hurt").length);
 });

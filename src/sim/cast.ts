@@ -35,18 +35,34 @@ export type CastJob = CastJobName;
 /** Who a person is: the painting's name less its number ("cook-1" is a cook). */
 export const jobOf = (p: CastPerson): CastJob => p.slice(0, -2) as CastJob;
 /** Which of the lobby's four fights each job fights (R3 §4). */
-export const ROLE_OF: Record<CastJob, CastRole> = { bellhop: "bellhop", server: "server", office: "office", student: "student", cook: "office", busser: "bellhop", lunch: "server", prof: "office" };
+export const ROLE_OF: Record<CastJob, CastRole> = {
+  bellhop: "bellhop",
+  server: "server",
+  office: "office",
+  student: "student",
+  cook: "office",
+  busser: "bellhop",
+  lunch: "server",
+  prof: "office",
+  // SAT: the skycap pushes his cart, the agents shove with their hands, the bartender throws coasters.
+  skycap: "bellhop",
+  tsa: "bellhop",
+  bartender: "student",
+};
+/** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
+export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1" };
 export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
 /** Who wears a hat that flies off at the first hit. */
-export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook"]);
+export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook", "skycap"]);
 
 /**
  * Each role's numbers (the R2b design §2): colliders, how far they notice him, wind-ups, attacks, rests, dazes, and the
- * hits it takes to put them out. World px and seconds. The owner made them tougher and pushier on 2026-10-15: two hits
+ * hits it takes to put them out (a bellhop with no cart, SAT's TSA agent, squares up within `reach` and shoves with his hands,
+ * holding the push for `follow`). World px and seconds. The owner made them tougher and pushier on 2026-10-15: two hits
  * for a server, an office worker or a student, three for a bellhop; shorter rests, a longer look, a fourth plane.
  */
 export const CAST = {
-  bellhop: { w: 100, h: 330, notice: 1100, windup: 0.7, windup2: 0.55, shove: 650, walk: 200, rest: 2, daze: 4, hits: 3, hold: 150 },
+  bellhop: { w: 100, h: 330, notice: 1100, windup: 0.7, windup2: 0.55, shove: 650, walk: 200, rest: 2, daze: 4, hits: 3, hold: 150, reach: 420, follow: 0.4 },
   server: { w: 90, h: 310, notice: 850, windup: 0.45, rush: 420, rushT: 2, rushPx: 1000, walk: 200, skid: 0.4, rest: 1, daze: 2.5, hits: 2 },
   office: { w: 95, h: 320, notice: 650, windup: 0.5, march: 160, chime: 400, leap: 500, leapUp: 600, rest: 1.2, daze: 2.5, hits: 2 },
   student: { w: 90, h: 310, notice: 1100, windup: 0.65, restMin: 2.5, restStep: 0.5, melee: 300, hop: 200, hopT: 0.35, duck: 0.5, schooled: 9, flee: 400, planes: 4, hits: 2 },

@@ -215,7 +215,8 @@ async function bodies(registry) {
 }
 
 const CAST_IN = "art/incoming/cast";
-const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent"];
+// The bartender borrows server-1's painting (PAINTING_OF); the skycap and the TSA agent are cut when theirs arrive.
+const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {

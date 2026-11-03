@@ -363,7 +363,9 @@ test("the cast and the missiles draw between the last two steps, matched by id",
 });
 
 test("every person has a look, taller or shorter than Hammer by the design, and a recolor changes only the top", () => {
-  assert.deepEqual(Object.keys(LOOKS).sort(), ["bellhop-1", "bellhop-2", "busser-1", "cook-1", "gate-agent", "lunch-1", "nurse", "office-1", "office-2", "prof-1", "server-1", "server-2", "student-1", "student-2"]);
+  assert.deepEqual(Object.keys(LOOKS).sort(), ["bartender-1", "bellhop-1", "bellhop-2", "busser-1", "cook-1", "gate-agent", "lunch-1", "nurse", "office-1", "office-2", "prof-1", "server-1", "server-2", "skycap-1", "student-1", "student-2", "tsa-1"]);
+  assert.deepEqual([LOOKS["skycap-1"].height, LOOKS["tsa-1"].height, LOOKS["bartender-1"].height], [330, 320, 310]);
+  assert.equal(PAINTING_OF["bartender-1"], "server-1");
   assert.deepEqual([LOOKS["bellhop-1"].height, LOOKS["server-2"].height, LOOKS["student-1"].height], [355, 360, 315]);
   const r = recolored(LOOKS["server-1"], "#7a1f2b");
   assert.equal(r.vest, "#7a1f2b");
@@ -538,7 +540,7 @@ import { existsSync } from "node:fs";
 import { castHeadScale, castSkeleton } from "../src/render/cast-art.ts";
 import { castRig, keyOut } from "./art-cut.mjs";
 import { castPose } from "../src/sim/rig/cast.ts";
-import { roleOf as castRoleOf } from "../src/sim/cast.ts";
+import { roleOf as castRoleOf, PAINTING_OF } from "../src/sim/cast.ts";
 import { HERO_HEIGHT } from "../src/sim/rig/skeleton.ts";
 
 /** Every cast person painted and cut: the checks below run on each, so each new cut is held to them. */

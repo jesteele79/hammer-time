@@ -652,14 +652,17 @@ test("each hatted person's cut names the hat it seats, and the sync registers ev
     if (existsSync(`${CAST_IN}/${name}-hat.png`)) assert.ok(reg.cast.hats[name]?.span > 0 && reg.cast.hats[name].pivot, `${name}'s hat`);
 });
 
-test("every recolor a level asks of a painting is in that painting's cut", () => {
-  for (const level of [LOBBY, RESTAURANT, CAMPUS])
+test("every recolor a level asks of a painting is in that painting's cut, a borrowed painting's too", () => {
+  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT])
     for (const s of level.cast ?? []) {
-      if (!s.recolor || !existsSync(`art/cuts/cast-${s.person}.json`)) continue;
-      const cuts = JSON.parse(readFileSync(`art/cuts/cast-${s.person}.json`, "utf8"));
-      assert.ok(cuts.recolors?.[s.recolor], `${level.id} ${s.id}: ${s.person} has no ${s.recolor} mask`);
+      const painting = PAINTING_OF[s.person] ?? s.person;
+      if (!s.recolor || !existsSync(`art/cuts/cast-${painting}.json`)) continue;
+      const cuts = JSON.parse(readFileSync(`art/cuts/cast-${painting}.json`, "utf8"));
+      assert.ok(cuts.recolors?.[s.recolor], `${level.id} ${s.id}: ${painting} has no ${s.recolor} mask`);
     }
 });
+import { SAT } from "../src/sim/levels/sat.ts";
+import { PAINTING_OF } from "../src/sim/cast.ts";
 
 test("a recolor region can name the layers it reaches: a garment painted in behind an arm is recolored on its own layer only", () => {
   const W = 20,

@@ -1,5 +1,5 @@
 import { Container, Graphics } from "pixi.js";
-import type { Missile } from "../sim/missiles";
+import { flies, type Missile } from "../sim/missiles";
 import type { Puddle, Snot } from "../sim/snot";
 import { SAMPLE, type Sample } from "../sim/samples";
 import type { Snapshot, Target } from "../sim/types";
@@ -204,7 +204,7 @@ export class Props {
     this.pool(this.missiles, s.missiles.length, 3);
     s.missiles.forEach((m, i) => {
       drawMissile(this.missiles[i], m);
-      if (trail && m.kind !== "plane") this.particles.emit("coffee", m.x, m.y, 1);
+      if (trail && !flies(m.kind)) this.particles.emit("coffee", m.x, m.y, 1);
     });
   }
 
@@ -291,9 +291,19 @@ export function drawSample(g: Graphics, b: Sample) {
   g.alpha = b.landed >= 0 ? Math.max(0, 1 - b.landed / SAMPLE.fade) : 1;
 }
 
-/** A paper plane, a folded dart pointing along its flight, or the office worker's cup tumbling. */
+/** A paper plane, a folded dart pointing along its flight; the bartender's coaster flipping; the office worker's cup tumbling. */
 export function drawMissile(g: Graphics, m: Missile) {
   g.clear();
+  if (m.kind === "coaster") {
+    // A cream card disc with the bar's red ring, flipping end over end as it flies (its wobble's phase turns it).
+    g.circle(0, 0, 22).fill("#f1e6c8").stroke({ width: 3, color: INK });
+    g.circle(0, 0, 14).stroke({ width: 4, color: "#b8282e" });
+    g.rect(-8, -2, 16, 4).fill("#b8282e");
+    g.position.set(m.x, m.y);
+    g.scale.set(0.3 + 0.7 * Math.abs(Math.cos(m.phase * 11)), 1);
+    g.rotation = m.phase * 4;
+    return;
+  }
   if (m.kind === "plane") {
     g.poly([-36, 0, 32, -5, 12, 6, 32, 9]).fill("#fbf7ee").stroke({ width: 3, color: INK, join: "round" });
     g.moveTo(-36, 0).lineTo(32, -5).stroke({ width: 2, color: "#b8b0a2" });

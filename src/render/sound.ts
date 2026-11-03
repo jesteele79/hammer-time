@@ -4,6 +4,7 @@ import { HUNGRY } from "../sim/quests/hungry/hungry";
 import type { Quest } from "../sim/quests/quest";
 import type { TauntId, TauntTarget } from "../game/taunts";
 import type { GameEvent } from "../sim/events";
+import { flies } from "../sim/missiles";
 
 type Cue = keyof AudioBus & string;
 
@@ -110,7 +111,7 @@ export function tauntFor(e: GameEvent): TauntTarget | null {
     case "castFlee":
       return "student";
     case "swat":
-      return e.kind === "plane" ? "student" : null;
+      return flies(e.kind) ? "student" : null;
     case "pigHit":
       return "pig";
     // A box of blades freezing someone bests them like a lecture: the student's pool or the staff's.
@@ -179,7 +180,7 @@ export function cuesFor(e: GameEvent): Cue[] {
     case "dishes":
       return ["shatter", "smash"];
     case "missileHit":
-      return e.kind === "plane" ? [] : ["splash"];
+      return flies(e.kind) ? [] : ["splash"];
     case "hhDump":
       // The bell for a wave, a tray or the cart; the frenzy's dishes and the specials drop without it.
       return e.count > 1 ? ["ding"] : [];

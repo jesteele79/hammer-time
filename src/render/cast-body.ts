@@ -1,5 +1,6 @@
 import { Assets, Container, Mesh, MeshGeometry, Sprite, Texture } from "pixi.js";
 import { ART_BASE, HEAD_PLATE_FACING, type Prop, type Registry } from "../art/registry";
+import { PAINTING_OF } from "../sim/cast";
 import type { CastPerson } from "../sim/level";
 import type { Solved } from "../sim/rig/fk";
 import type { Skeleton } from "../sim/rig/skeleton";
@@ -81,8 +82,8 @@ export function loadRigArt(registry: Registry, body: { rig: string } | undefined
   return load;
 }
 
-/** A person's painting, or null: the stand-in draws them. */
-export const loadCastArt = (registry: Registry, person: CastPerson) => loadRigArt(registry, registry.cast?.bodies[person], person);
+/** A person's painting (or the one they borrow), or null: the stand-in draws them. */
+export const loadCastArt = (registry: Registry, person: CastPerson) => loadRigArt(registry, registry.cast?.bodies[PAINTING_OF[person] ?? person], person);
 /** The pig's painting, cut like a cast body's (R3 §6.3). */
 export const loadPigArt = (registry: Registry) => loadRigArt(registry, registry.pig, "pig");
 

@@ -32,7 +32,8 @@ export type CastLook = {
   tie?: string;
   bottom: string;
   shoes: string;
-  gloves?: boolean;
+  /** White gloves, or gloves of this color (the TSA's blue). */
+  gloves?: boolean | string;
   glasses?: boolean;
   mustache?: boolean;
   earbuds?: boolean;
@@ -68,6 +69,10 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   "gate-agent": { height: 318, head: 0.22, build: 0.85, skin: "#c98f6b", hair: "#2a1d18", hairStyle: "curly", top: "#1f2f66", sleeves: "skin", bottom: "#8a8f98", shoes: "#1b1b1b", lanyard: true },
   // R4's nurse: the banquet's quickest rival, and the hospital's later (her stand-in is the fallback only).
   nurse: { height: 320, head: 0.22, build: 0.8, skin: "#e2b48f", hair: "#3b2a22", hairStyle: "bun", top: "#2a9d8f", sleeves: "skin", bottom: "#2a9d8f", shoes: "#f4f3ee", lanyard: true },
+  // SAT's people: the skycap's red coat and cap (the cap is his hat), the TSA's blue shirt and gloves, the bartender in the server's black and white.
+  "skycap-1": { height: 330, head: 0.22, build: 1.0, skin: "#9c6b4a", hair: "#1c1612", hairStyle: "short", top: "#b8282e", sleeves: "top", bottom: "#1c1d24", shoes: "#141414", mustache: true },
+  "tsa-1": { height: 320, head: 0.22, build: 1.05, skin: "#e2b48f", hair: "#3b2a22", hairStyle: "short", top: "#5b7fb8", sleeves: "top", bottom: "#141414", shoes: "#141414", gloves: "#3a6fd8", lanyard: true },
+  "bartender-1": { height: 310, head: 0.22, build: 0.9, skin: "#c9956a", hair: "#1c1612", hairStyle: "short", top: "#f4f3ee", sleeves: "skin", vest: "#1b1b1b", apron: true, bottom: "#1b1b1b", shoes: "#141414" },
 };
 
 /** A look with the uniform's top (the vest where there is one) in the recolor's hue. */
@@ -96,7 +101,7 @@ export function drawFigure(g: Graphics, s: Solved, look: CastLook, o: FigureOpts
   const bottom = tones(look.bottom);
   const far = (c: string) => (sil ? SIL : tones(c).shadow);
   const sleeve = look.sleeves === "top" ? look.top : look.skin;
-  const hand = look.gloves ? "#f4f3ee" : look.skin;
+  const hand = typeof look.gloves === "string" ? look.gloves : look.gloves ? "#f4f3ee" : look.skin;
 
   // Far limbs first, a shade darker.
   tube(g, j.shoulderFar, j.elbowFar, R.arm * b * k, far(look.top), sil);

@@ -8,6 +8,7 @@ import { PATIENCE_MAX } from "../sim/damage";
 import type { GameEvent } from "../sim/events";
 import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
+import { flies } from "../sim/missiles";
 import { KEY_BINDINGS, emptyInput, inputFrom, type Action } from "../sim/input";
 import { createGame, type GameMode } from "../sim/game";
 import { CHARGE_MAX, HEAT, moveU, type Move } from "../sim/moves";
@@ -735,10 +736,10 @@ export async function startLook(
         break;
       case "swat":
         particles.emit("paper", e.x, e.y, 14);
-        if (e.kind === "plane") words.say("SWAT!", e.x, e.y - 50, false, face, view);
+        if (flies(e.kind)) words.say("SWAT!", e.x, e.y - 50, false, face, view);
         break;
       case "missileHit":
-        if (e.kind !== "plane") particles.emit("coffee", e.x, e.y, 12);
+        if (!flies(e.kind)) particles.emit("coffee", e.x, e.y, 12);
         else particles.emit("paper", e.x, e.y, 4);
         break;
       case "castSplash":

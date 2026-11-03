@@ -90,6 +90,13 @@ export const SAT: Level = {
     { x: 5300, text: "Seven minutes. Plenty." },
     { x: 7000, text: "I have a schedule." },
   ],
+  // The skycap's cart is the curb's; the second agent waits at the scanner's way out; the bartender stands on his own bar.
+  cast: [
+    { id: "skycap-curb", person: "skycap-1", x: 900, y: 0, cart: 1000, carry: "nuts" },
+    { id: "tsa-1", person: "tsa-1", x: 3600, y: 0, x0: 3400, x1: 3900 },
+    { id: "tsa-2", person: "tsa-1", x: 5150, y: 0, recolor: "#2f3f63", size: 1.03 },
+    { id: "bartender", person: "bartender-1", x: 6300, y: -180, carry: "can" },
+  ],
   backdrop: {
     walls: ["sat-far-1", "sat-far-2", "sat-far-3"],
     mid: [

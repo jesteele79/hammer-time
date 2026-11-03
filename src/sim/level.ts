@@ -97,7 +97,10 @@ export type CastPerson =
   | "lunch-1"
   | "prof-1"
   | "nurse"
-  | "gate-agent";
+  | "gate-agent"
+  | "skycap-1"
+  | "tsa-1"
+  | "bartender-1";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).

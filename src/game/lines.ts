@@ -155,7 +155,7 @@ export const CAST_LINES = {
 } as const;
 
 
-export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof";
+export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -220,6 +220,30 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
     march: ["Pardon me. Were you enrolled?"],
     ambush: none,
     frozen: "Fascinating. Go on.",
+  },
+  // SAT's people (story spec §6.2).
+  skycap: {
+    notice: ["Checking bags, sir?", "Skycap, sir?"],
+    bump: ["Curbside only, sir."],
+    down: ["I don't do tips anyway.", "Not my cart."],
+    fall: "Baaags",
+    shove: ["Cart coming through!"],
+    warn: none, skid: none, march: none, ambush: none, frozen: null,
+  },
+  tsa: {
+    notice: ["Sir, step aside.", "Laptops out.", "Is this your bag?"],
+    bump: ["Sir. Sir."],
+    down: ["Supervisor!", "That's a violation."],
+    fall: "Supervisooor",
+    shove: ["Arms up, sir."],
+    warn: none, skid: none, march: none, ambush: none,
+    frozen: "Sir, I—",
+  },
+  bartender: {
+    notice: ["What'll it be?", "Last call was at noon.", "Happy hour's over."],
+    bump: none, down: none,
+    fall: "Taaab",
+    shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null,
   },
 };
 

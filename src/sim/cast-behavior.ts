@@ -25,7 +25,7 @@ import { GRAVITY_DOWN, STEP } from "./constants";
 import type { GameEvent } from "./events";
 import { bodyRect, overlapsRect } from "./geometry";
 import { BURST_R, flopRect, flopping } from "./hits";
-import { launchCoffee, launchPlane, type Missile } from "./missiles";
+import { flies, launchCoffee, launchPlane, type Missile } from "./missiles";
 import { floorAt, moveBody } from "./physics";
 import type { Puddle } from "./snot";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
@@ -184,9 +184,21 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
         cart.chain = 0;
       }
       attack(n, events, cart?.x, cart ? cart.y - cart.h / 2 : undefined);
-      setAct(n, "chase");
       say(n, pick(linesOf(n).shove, n.k + n.hits), events);
+      if (cart) {
+        setAct(n, "chase");
+        return;
+      }
+      // No cart: the push lands on a man within arm's reach on his floor (not in grace, not already down).
+      if (sameLevel(n, h) && Math.abs(h.x - n.x) <= c.hold + h.w && h.invuln <= 0 && h.move?.kind !== "tumble") w.hits.push(n.x);
+      n.rest = c.rest;
     }
+    return;
+  }
+  if (n.act === "attack") {
+    // The hands' push, held a beat.
+    n.vx = 0;
+    if (n.actT >= c.follow) setAct(n, "idle");
     return;
   }
   if (n.act === "chase") {
@@ -238,7 +250,14 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
     return;
   }
   n.vx = 0;
-  if (!cart) return;
+  if (!cart) {
+    // An agent with no cart walks his patrol and, up close, squares up to shove with his hands; he waits for a man sliding
+    // or crouched under the scanner to stand (the slide is the only way through it).
+    patrol(n, w, c.walk);
+    if (!n.noticed || n.rest > 0 || !sameLevel(n, h) || Math.abs(h.x - n.x) > c.reach || h.crouch || h.slideT > 0 || !ticketFree(w.cast)) return;
+    windup(n, w, events);
+    return;
+  }
   // A cart out of his hands (bonked away, or he was staggered chasing it) is fetched first, unless it is the
   // one he gave up on, still where it was.
   if (Math.abs(cart.x - n.x) > c.hold + 40) {
@@ -260,9 +279,10 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
   n.vx = 0;
   if (n.act === "windup") {
     if (n.actT >= c.windup) {
-      w.missiles.push(launchPlane(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }));
-      const m = w.missiles[w.missiles.length - 1];
-      events.push({ type: "missile", kind: "plane", x: m.x, y: m.y });
+      // The bartender's are coasters off the bar; they fly as the planes do.
+      const m = launchPlane(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }, n.job === "bartender" ? "coaster" : "plane");
+      w.missiles.push(m);
+      events.push({ type: "missile", kind: m.kind, x: m.x, y: m.y });
       attack(n, events);
       // The rest between throws counts from the throw.
       n.rest = c.restMin + ((n.k + n.hits) % 4) * c.restStep;
@@ -283,7 +303,7 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
     return;
   }
   // Planes in the air and planes being folded count together, so two wind-ups never take it past three.
-  const planes = w.missiles.filter((m) => m.kind === "plane").length + w.cast.filter((m) => m.role === "student" && m.act === "windup").length;
+  const planes = w.missiles.filter((m) => flies(m.kind)).length + w.cast.filter((m) => m.role === "student" && m.act === "windup").length;
   if (!n.noticed || n.rest > 0 || Math.abs(h.x - n.x) > c.notice || planes >= c.planes || !ticketFree(w.cast)) return;
   windup(n, w, events);
   say(n, CAST_LINES.student.heads, events);
@@ -558,9 +578,11 @@ function bowl(w: CastWorld, events: GameEvent[]): void {
     if (Math.abs(t.vx) < ROLLING) continue;
     const r = bodyRect(t);
     mover(t.x, t.vx, r, t, "cart", null);
-    // What hurts him is the stack of cases, not the brass arch: a full jump, timed late, clears a runaway.
+    // What hurts him is the stack of cases, not the brass arch: a full jump, timed late, clears a runaway. Only a cart
+    // closing on him hurts: one he overtakes running the same way is left behind.
     const hurt: Rect = { x: t.x - CART_HURT.w / 2, y: t.y - CART_HURT.h, w: CART_HURT.w, h: CART_HURT.h };
-    if ((h.x - t.x) * Math.sign(t.vx) > 0 && overlapsRect(hurt, bodyRect(h))) w.hits.push(t.x);
+    const closing = (t.vx - h.vx) * Math.sign(t.vx) > 0;
+    if ((h.x - t.x) * Math.sign(t.vx) > 0 && closing && overlapsRect(hurt, bodyRect(h))) w.hits.push(t.x);
   }
   for (const s of w.cast) {
     if (!s.alive || Math.abs(s.vx) < ROLLING) continue;
