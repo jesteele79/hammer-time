@@ -29,6 +29,7 @@ import {
   wallCrop,
   sheetPieces,
   nameGatePieces,
+  nameSatPieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -474,6 +475,25 @@ async function gate(registry) {
     });
 }
 
+const SAT_SHEET = "art/incoming/props/sat-sheet.png";
+
+/** SAT (story Phase 1): the sheet cut into its six named pieces; while it is not in, the airport's drawn stand-ins stand. */
+async function sat(registry) {
+  registry.sat = {};
+  if (!existsSync(SAT_SHEET)) return;
+  mkdirSync(join(OUT, "sat"), { recursive: true });
+  await tolerant("SAT sheet", strict, async () => {
+    const named = nameSatPieces(await sheetPieces(await keyOut(readFileSync(SAT_SHEET))));
+    registry.sat.pieces = {};
+    for (const [name, p] of Object.entries(named)) {
+      const file = `sat/${name}.png`;
+      writeFileSync(join(OUT, file), p.png);
+      registry.sat.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+    }
+    console.log(`SAT sheet: ${Object.keys(named).join(", ")}`);
+  });
+}
+
 async function publish(registry) {
   const pngs = [];
   const rigs = [];
@@ -511,6 +531,7 @@ await backdrops(registry);
 await walls(registry);
 await banquet(registry);
 await gate(registry);
+await sat(registry);
 await products();
 writeFileSync(join(OUT, "registry.json"), JSON.stringify(await publish(registry), null, 2) + "\n");
 console.log(`wrote ${OUT}/registry.json`);

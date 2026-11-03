@@ -161,6 +161,8 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     }
   }
   if (level.id === "stash") planes.far.addChild(blockWall(level.length));
+  // SAT's walls are still to be painted: a drawn terminal wall stands in until they are.
+  if (level.id === "sat" && !(walls && textures)) planes.far.addChild(terminalWall(level.length));
   const piece = async (name: string): Promise<Sprite | null> => {
     const p = registry.pieces?.[name];
     const texture = p ? (await loadAll([ART_BASE + p.file]))?.[0] : null;
@@ -223,6 +225,24 @@ function blockWall(length: number): Graphics {
   for (let x = -1200; x < w; x += 360) g.rect(x, 0, 3, 900).fill({ color: "#000000", alpha: 0.25 });
   g.rect(-1200, -980, w, 26).fill(tones("#8a8f93").base);
   g.rect(-1200, -980, w, 26).stroke({ width: MID_OUTLINE, color: PALETTE.outline, alpha: 0.75 });
+  return g;
+}
+
+/** The airport's stand-in wall in the far plane: a ceiling band, a cream wall, a window band onto a blue sky, a terrazzo floor. */
+function terminalWall(length: number): Graphics {
+  const g = new Graphics();
+  const w = length * PARALLAX.far + 2400;
+  const wall = tones("#d8d2c4");
+  const line = { width: MID_OUTLINE, color: PALETTE.outline, alpha: 0.75 };
+  g.rect(-1200, -1600, w, 1600).fill(wall.base);
+  g.rect(-1200, -1600, w, 320).fill(wall.shadow);
+  for (let x = -1200; x < w; x += 240) g.rect(x, -1290, 120, 14).fill({ color: "#fff6dc", alpha: 0.8 });
+  g.rect(-1200, -1050, w, 560).fill("#8fc3e8");
+  g.rect(-1200, -700, w, 210).fill("#b7d7ea");
+  for (let x = -1200; x < w; x += 300) g.rect(x, -1050, 16, 560).fill(tones("#9aa3ad").shadow);
+  g.rect(-1200, -1050, w, 560).stroke(line);
+  g.rect(-1200, 0, w, 900).fill(tones("#d6cfbf").shadow);
+  g.rect(-1200, -40, w, 40).fill(wall.shadow);
   return g;
 }
 

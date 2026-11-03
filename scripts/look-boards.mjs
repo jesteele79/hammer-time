@@ -67,7 +67,7 @@ try {
     count += 2;
     if ((await live()) !== before) throw new Error(`pig board figures left alive: ${(await live()) - before}`);
   }
-  for (const venue of ["restaurant", "campus", "arena"]) {
+  for (const venue of ["sat", "restaurant", "campus", "arena"]) {
     if (!want(venue)) continue;
     await page.goto(`${base}?next=1&board=1&venue=${venue}`);
     await page.waitForFunction((v) => window.__nextBoard && window.__next?.run?.level === v, venue, { timeout: 30000 });

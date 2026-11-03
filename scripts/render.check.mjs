@@ -1381,3 +1381,27 @@ test("Auto picks ultra on a desktop GPU holding 58 fps, high otherwise; the tier
   assert.deepEqual(TIERS.ultra, { dpr: 2, particles: 900, bloom: true, glows: true, rim: true });
   assert.deepEqual(TIERS.medium, { dpr: 1, particles: 400, bloom: false, glows: true, rim: true });
 });
+
+import { START_FRAMES, VENUE_FRAMES } from "../src/render/boards.ts";
+import { drawSatFurniture, beltBins, BIN } from "../src/render/venue-sat.ts";
+import { SAT } from "../src/sim/levels/sat.ts";
+test("SAT has its strip picture's frame and three look frames: the curb, the TSA line, the gate", () => {
+  assert.deepEqual(START_FRAMES.sat, { x: 5900, y: 0, cx: 6500, zoom: 0.92 });
+  assert.deepEqual(VENUE_FRAMES.sat.map((f) => f.x), [700, 4200, 7700]);
+});
+test("SAT's eight furniture kinds draw as stand-ins; another venue's are left to it", async () => {
+  const { Graphics } = await import("pixi.js");
+  for (const f of SAT.furniture.filter((f) => f.kind !== "bar")) assert.ok(drawSatFurniture(new Graphics(), f, null), f.kind);
+  assert.equal(drawSatFurniture(new Graphics(), { kind: "bar", x: 0, y: -180, w: 600, h: 180 }, null), false);
+  assert.equal(drawSatFurniture(new Graphics(), { kind: "desk", x: 0, y: -180, w: 600, h: 180 }, null), false);
+});
+test("the X-ray belt's bins ride at its speed and loop", () => {
+  const seg = SAT.floor.find((f) => f.belt === 220);
+  const a = beltBins(seg, 0);
+  const b = beltBins(seg, 0.1);
+  const c = beltBins(seg, BIN.gap / seg.belt);
+  assert.ok(a.length >= 3, `${a.length} bins`);
+  assert.ok(Math.abs(b[0].x - a[0].x - 22) < 1e-6, "22 px in a tenth of a second");
+  assert.deepEqual(c.map((p) => Math.round(p.x)), a.map((p) => Math.round(p.x)));
+  assert.ok(a.every((p) => p.x >= seg.x0 && p.x <= seg.x1 && p.y === seg.y0));
+});

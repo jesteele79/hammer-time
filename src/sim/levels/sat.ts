@@ -30,7 +30,7 @@ export const SAT: Level = {
     { x0: 6800, x1: 7200, y: -200, kind: "shelf" },
   ],
   solids: [],
-  passes: [{ x: 4750, y: -1000, w: 300, h: 780 }],
+  passes: [{ x: 4750, y: -1000, w: 300, h: 780, kind: "scanner" }],
   bounds: { x: -400, y: -1600, w: 8800, h: 2200 },
   crates: [
     { id: "pepper-curb", kind: "pepper", x: 500, y: -435 },
@@ -56,7 +56,7 @@ export const SAT: Level = {
     { kind: "walkway", x: 5600, y: -120, w: 800, h: 120 },
     { kind: "bar", x: 5900, y: -180, w: 600, h: 180 },
     { kind: "departures", x: 2500, y: -1000, w: 200, h: 1000 },
-    { kind: "seats", x: 7300, y: -140, w: 400, h: 140 },
+    { kind: "seats", x: 7220, y: -140, w: 400, h: 140 },
     { kind: "podium", x: 7700, y: -220, w: 200, h: 220 },
   ],
   carts: [1000],

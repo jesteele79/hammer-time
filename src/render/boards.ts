@@ -61,7 +61,13 @@ const MOVE_FRAMES = 10;
  * corridor and the exit.
  */
 /** Each venue's six frames: where he stands, where the camera looks and how wide. */
-const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }[]>> = {
+export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }[]>> = {
+  // SAT: the curb, the TSA line, the gate.
+  sat: [
+    { x: 700, y: 0, cx: 1200 },
+    { x: 4200, y: -120, cx: 4600, zoom: 0.92 },
+    { x: 7700, y: 0, cx: 7400 },
+  ],
   restaurant: [
     { x: 750, y: 0, cx: 1300 },
     { x: 4450, y: -180, cx: 4900 },
@@ -86,7 +92,8 @@ const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number;
 };
 
 /** Each start's picture on the start screen: where he stands and where the camera looks. */
-const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }>> = {
+export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }>> = {
+  sat: { x: 5900, y: 0, cx: 6500, zoom: 0.92 },
   lobby: { x: 1100, y: 0, cx: 1600 },
   restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },
   campus: { x: 7250, y: -120, cx: 8100, cy: -420, zoom: 0.88 },

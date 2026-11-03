@@ -8,6 +8,7 @@ import { platformShadow, shadeFace } from "./floor-face";
 import { campusFloor, campusFurniture, campusPlatform, drawBeltTrays } from "./venue-campus";
 import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
 import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
+import { drawSatBelt, drawSatDressing, drawSatFurniture, satFloor, type SatPieces } from "./venue-sat";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
 import { label } from "./text";
@@ -67,8 +68,8 @@ export function escalatorSteps(seg: FloorSegment, t: number): Point[] {
   return out;
 }
 
-/** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs. */
-export function drawVenue(scene: Scene, level: Level): VenueView {
+/** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs; SAT's sheet where it is in. */
+export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null): VenueView {
   const root = new Container();
   root.zIndex = SCENERY_Z;
   root.sortableChildren = false;
@@ -78,11 +79,18 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   root.addChild(back, mid, front);
 
   // Each venue's own kinds first; the lobby's drawing for the rest.
-  for (const f of level.furniture) if (!restaurantFurniture(back, f) && !campusFurniture(back, f) && !giftshopFurniture(back, f)) drawFurniture(back, f);
+  // The gate's podium stands in front of its door.
+  const over = new Graphics();
+  for (const f of level.furniture)
+    if (!drawSatFurniture(back, f, sat, over) && !restaurantFurniture(back, f) && !campusFurniture(back, f) && !giftshopFurniture(back, f)) drawFurniture(back, f);
+  // The scanner's pass is its furniture.
   for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
-  else drawPass(back, p, root);
+  else if (p.kind !== "scanner") drawPass(back, p, root);
   for (const p of level.platforms) if (!restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
-  for (const f of level.floor) if (!restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
+  const airport = level.id === "sat";
+  for (const f of level.floor)
+    if (!(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
+  if (airport) drawSatDressing(back, front, level, sat);
   drawPits(back, level);
   const doorG = new Graphics();
   root.addChild(doorG);
@@ -94,6 +102,7 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
 
   const doors = new Map<string, { glow: Graphics; thanks: Container | null }>();
   for (const d of level.doors) doors.set(d.id, drawDoor(root, d));
+  root.addChild(over);
   const clocks = new Map<string, Graphics>();
   for (const k of level.checkpoints) {
     const g = new Graphics();
@@ -127,8 +136,11 @@ export function drawVenue(scene: Scene, level: Level): VenueView {
   let doorKey: string | null = null;
   const redrawSteps = () => {
     steps.clear();
-    for (const seg of moving) if (seg.kind === "belt") drawBeltTrays(steps, seg, t);
-    else drawEscalatorSteps(steps, seg, t);
+    for (const seg of moving)
+      if (seg.kind === "belt") {
+        if (airport) drawSatBelt(steps, seg, t, sat);
+        else drawBeltTrays(steps, seg, t);
+      } else drawEscalatorSteps(steps, seg, t);
   };
   redrawSteps();
 

@@ -74,10 +74,15 @@ export type Registry = {
     plane?: { file: string; width: number; height: number };
     pieces?: Partial<Record<GatePiece, Piece>>;
   };
+  /** SAT (story Phase 1): its sheet's six pieces by name. Missing from an older sync, or while the sheet is not in. */
+  sat?: { pieces?: Partial<Record<SatPiece, Piece>> };
 };
 /** The gate sheet's pieces, left to right as painted (R5 §13); scripts/art-cut.mjs has the same list. */
 export const GATE_PIECES = ["podium", "kiosk", "seats", "cart", "stanchion", "scalpel", "box"] as const;
 export type GatePiece = (typeof GATE_PIECES)[number];
+/** The SAT sheet's pieces, left to right as painted (story Phase 1, Task 14); scripts/art-cut.mjs has the same list. */
+export const SAT_PIECES = ["stanchion", "bin", "kiosk", "van", "sign", "pretzel"] as const;
+export type SatPiece = (typeof SAT_PIECES)[number];
 
 export const ART_BASE = "/art/";
 /** The face box used when a plate has none registered (fractions of the plate). */

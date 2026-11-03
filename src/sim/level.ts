@@ -72,8 +72,8 @@ export type FurnitureKind =
   | "departures"
   | "seats"
   | "podium";
-/** A low ceiling to slide under: the lobby's service corridor, or the kitchen's heat-lamp gantry. */
-export type LevelPass = Pass & { kind?: "service" | "gantry" };
+/** A low ceiling to slide under: the lobby's service corridor, the kitchen's heat-lamp gantry, or SAT's body scanner. */
+export type LevelPass = Pass & { kind?: "service" | "gantry" | "scanner" };
 /** The kitchen's swinging door, and the spawn id of the server whose rush bangs it open. */
 export type SwingDoorSpec = { id: string; x: number; y: number; server: string };
 /** A venue's painted walls in walking order, and its standing pieces by name at the world x they stand beside (R3 §6). */

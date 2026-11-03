@@ -28,6 +28,7 @@ import { STASH } from "../sim/levels/stash";
 import { RESTAURANT } from "../sim/levels/restaurant";
 import { CAMPUS } from "../sim/levels/campus";
 import { GIFTSHOP } from "../sim/levels/giftshop";
+import { SAT } from "../sim/levels/sat";
 import { STOP_LEVELS } from "../sim/levels";
 import type { Carry, Snapshot } from "../sim/journey";
 import { shiftFrom, type StoryId } from "../sim/story";
@@ -60,6 +61,7 @@ import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
+import { loadSatPieces } from "./venue-sat";
 import { Words } from "./words";
 import { stepWalkOut, walkOutFrom, type WalkOut } from "./walk-out";
 import { BanquetView } from "./quests/hungry-scene";
@@ -79,7 +81,8 @@ import type { QuestId } from "../sim/quests/quest";
 
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
-const LEVELS = new Map<LevelId, Level>([...SHIFT, STASH].map((l) => [l.id, l]));
+/** SAT is the journey's first stop, never part of Work the whole shift. */
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
@@ -204,6 +207,8 @@ export async function startLook(
     title: !!opts.title,
     start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.level)),
   });
+  // SAT is no stop of the whole shift: `&level=sat` plays it as the journey does, Act 1 after it.
+  if (opts.level === "sat") game.newRun(newSeed(), 0, { shift: [SAT, ...SHIFT], journey: true });
   const world = game.world;
   const clock = createClock();
   scene.camera.bounds = game.level.bounds;
@@ -228,7 +233,7 @@ export async function startLook(
   if (!reduced) shieldGlow.blendMode = "add";
   scene.layers.play.addChild(shieldGlow);
   // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
-  const lighting = createLighting(scene, render.quality, [...[...SHIFT, STASH].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
+  const lighting = createLighting(scene, render.quality, [...[...LEVELS.values()].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
   const props = new Props(scene.layers.play, particles, scene.ambient);
   const cast = new Cast(scene.layers.play, scene.ambient, registry, particles);
   cast.setQuality(render.quality);
@@ -257,7 +262,7 @@ export async function startLook(
       p = (async () => {
         const backdrop = await loadBackdrop(scene, level, registry);
         if (stopped) return;
-        const venue = drawVenue(scene, level);
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null);
         venue.root.tint = multiplyTint(venue.root.tint, scene.ambient);
         venue.setVisible(false);
         backdrop.setVisible(false);

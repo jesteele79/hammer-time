@@ -1005,3 +1005,15 @@ test("his body and heads and the cast's are published at the painting's full siz
   assert.ok(bytes > 1e6 && bytes < FIRST_LEVEL_BUDGET, `the lobby's art: ${(bytes / 1e6).toFixed(1)} MB`);
   assert.equal(FIRST_LEVEL_BUDGET, 20e6);
 });
+
+test("the SAT sheet's six pieces are named in the brief's order; five or seven refuse", async () => {
+  const { nameSatPieces } = await import("./art-cut.mjs");
+  const { SAT_PIECES } = await import("../src/art/registry.ts");
+  const piece = (i) => ({ file: `p${i}.png`, width: 10 + i, height: 10, base: { x: 5, y: 9 } });
+  const named = nameSatPieces([...Array(6).keys()].map(piece));
+  assert.deepEqual(Object.keys(named), [...SAT_PIECES]);
+  assert.deepEqual(SAT_PIECES, ["stanchion", "bin", "kiosk", "van", "sign", "pretzel"]);
+  assert.equal(named.pretzel.width, 15);
+  assert.throws(() => nameSatPieces([...Array(5).keys()].map(piece)), /5 pieces, not 6/);
+  assert.throws(() => nameSatPieces([...Array(7).keys()].map(piece)), /7 pieces, not 6/);
+});

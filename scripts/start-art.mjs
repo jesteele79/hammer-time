@@ -45,7 +45,7 @@ try {
   };
   if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await titleFrame(), 1600, "key-art.webp");
   // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
-  if (want("starts")) for (const venue of ["lobby", "restaurant", "campus", "arena"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
+  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).
   for (const [name, url, kind] of [
     ["banquet", `${base}?next=1&board=1&quest=hungry`, "banquet-thumb"],
@@ -58,7 +58,7 @@ try {
     const thumb = await page.evaluate((k) => window.__nextBoard.render({ kind: k, resolution: 1 }), kind);
     await webp(Buffer.from(thumb.split(",").pop(), "base64"), 640, `${name}.webp`);
   }
-  console.log(`PASS: wrote public/start/: ${only ? only.join(", ") : "the key art, four pictures of where a shift starts and the side quests'"}.`);
+  console.log(`PASS: wrote public/start/: ${only ? only.join(", ") : "the key art, five pictures of where a stop starts and the side quests'"}.`);
 } finally {
   await browser.close();
 }
