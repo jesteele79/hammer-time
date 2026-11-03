@@ -1406,3 +1406,29 @@ test("the X-ray belt's bins ride at its speed and loop", () => {
   assert.deepEqual(c.map((p) => Math.round(p.x)), a.map((p) => Math.round(p.x)));
   assert.ok(a.every((p) => p.x >= seg.x0 && p.x <= seg.x1 && p.y === seg.y0));
 });
+
+import { padGlyphs } from "../src/components/next-keys.ts";
+import { mapPad } from "../src/render/gamepad.ts";
+test("with a controller the hint names its buttons in place of the keys", () => {
+  assert.equal(padGlyphs("H swings the mallet · hit them with the head"), "X swings the mallet · hit them with the head");
+  assert.equal(padGlyphs("Space jumps · over the cart, onto the kiosks"), "A jumps · over the cart, onto the kiosks");
+  assert.equal(padGlyphs("Shift runs · the bag belt moves under you"), "RB runs · the bag belt moves under you");
+  assert.equal(padGlyphs("F fires a snot rocket · the bartender runs from it"), "B fires a snot rocket · the bartender runs from it");
+  assert.equal(padGlyphs("Super smash ready · Q"), "Super smash ready · RT");
+  assert.equal(padGlyphs("Overheated · T to towel off"), "Overheated · LB to towel off");
+});
+test("the standard mapping: the buttons and the left stick to actions, past a dead zone", () => {
+  const up = () => Array.from({ length: 17 }, () => ({ pressed: false }));
+  const press = (...ids) => {
+    const b = up();
+    for (const i of ids) b[i].pressed = true;
+    return b;
+  };
+  assert.deepEqual([...mapPad(press(2), [0, 0]).held], ["hammer"]);
+  assert.deepEqual([...mapPad(press(0, 5), [0, 0]).held].sort(), ["jump", "run"]);
+  assert.deepEqual([...mapPad(up(), [-0.6, 0]).held], ["left"]);
+  assert.deepEqual([...mapPad(up(), [-0.2, 0]).held], []);
+  assert.deepEqual([...mapPad(up(), [0, 0.7]).held], ["down"]);
+  assert.deepEqual([...mapPad(press(15), [0, 0]).held], ["right"]);
+  assert.deepEqual([mapPad(press(9), [0, 0]).start, mapPad(up(), [0, 0]).start], [true, false]);
+});

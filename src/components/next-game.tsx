@@ -10,7 +10,9 @@ import { JOURNEY_KEY, finishLevel, newJourney, parseJourney, playableNext, seria
 import { STOP_LEVELS } from "@/sim/levels";
 import { RUN } from "@/sim/run";
 import { builtStops, isStoryId, nextOf, stopOf, type ActId, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
+import { DEFAULT_SOUND, SOUND_KEY, parseSound, type SoundSettings } from "@/game/sound-settings";
 import { NextHud } from "./next-hud";
+import { NextErase, NextSettings } from "./next-settings";
 import { NextStart } from "./next-start";
 import { NextTouch } from "./next-touch";
 import { NextVeil, type RunKind } from "./next-veil";
@@ -50,6 +52,26 @@ const writeNumber = (key: string, n: number) => {
   } catch {
     // Private windows refuse storage; the best lasts the session.
   }
+};
+/** The volumes and the mute as this browser keeps them. */
+const readSound = (): SoundSettings => {
+  try {
+    return parseSound(localStorage.getItem(SOUND_KEY));
+  } catch {
+    return { ...DEFAULT_SOUND };
+  }
+};
+const writeSound = (s: SoundSettings) => {
+  try {
+    localStorage.setItem(SOUND_KEY, JSON.stringify(s));
+  } catch {
+    // Private windows refuse storage; the volumes last the page.
+  }
+};
+/** The sound settings into the game: the sliders as shares, the mute on top. */
+const applySound = (l: Look, s: SoundSettings) => {
+  l.setVolumes(s.music / 100, s.effects / 100);
+  l.setMuted(s.muted);
 };
 /** The journey as this browser keeps it; a private window or a broken save gives a new one. */
 const readJourney = (): Journey => {
@@ -115,7 +137,12 @@ export function NextGame({
   const [banquetBest, setBanquetBest] = useState(0);
   const [faresBest, setFaresBest] = useState(0);
   const [bestBefore, setBestBefore] = useState(0);
-  const [muted, setMuted] = useState(false);
+  const [sound, setSoundState] = useState<SoundSettings>(DEFAULT_SOUND);
+  const soundRef = useRef<SoundSettings>(DEFAULT_SOUND);
+  const muted = sound.muted;
+  /** The Settings, and New game's question, are open over whatever shows. */
+  const [settings, setSettingsOpen] = useState(false);
+  const [erasing, setErasing] = useState(false);
   const [place, setPlace] = useState<"top" | "bottom" | "right">("bottom");
   const [ready, setReady] = useState(false);
   // A start chosen before the game was ready: it begins once it is, and only once.
@@ -150,7 +177,6 @@ export function NextGame({
   const [liveQuality, setLiveQuality] = useState<Quality | null>(null);
   const onQuality = useCallback((q: Quality) => setLiveQuality(q), []);
   const qualityChosen = useRef<{ q: Quality | null } | null>(null);
-  const mutedRef = useRef(false);
   const touch = useMedia(TOUCH_QUERY);
   const carded = mode === "card" || mode === "pause" || mode === "over" || mode === "clear" || mode === "questCard" || mode === "questTally" || mode === "story";
   // A side quest's card, its tally, or a break in its round.
@@ -192,6 +218,9 @@ export function NextGame({
     setBanquetBest(readNumber(BANQUET_BEST_KEY));
     setFaresBest(readNumber(FARES_BEST_KEY));
     setQualityState(readQuality());
+    const s = readSound();
+    soundRef.current = s;
+    setSoundState(s);
     const j = journeyAll ? openJourney() : readJourney();
     journeyRef.current = j;
     setJourney(j);
@@ -288,7 +317,7 @@ export function NextGame({
         return render.destroy();
       }
       look.current = started;
-      if (mutedRef.current) started.setMuted(true);
+      applySound(started, soundRef.current);
       if (qualityChosen.current) started.setQuality(qualityChosen.current.q);
       setReady(true);
       dispose = () => {
@@ -396,12 +425,27 @@ export function NextGame({
     if (storyAt.current === "before" || !lastLevel.current) look.current?.continueStory();
     else endOfRun();
   };
-  const toggleMute = () => {
-    setMuted((m) => {
-      mutedRef.current = !m;
-      look.current?.setMuted(!m);
-      return !m;
-    });
+  /** The volumes or the mute changed: kept on the device and heard at once. */
+  const setSound = (s: SoundSettings) => {
+    soundRef.current = s;
+    setSoundState(s);
+    writeSound(s);
+    if (look.current) applySound(look.current, s);
+  };
+  const toggleMute = () => setSound({ ...soundRef.current, muted: !soundRef.current.muted });
+  const chooseQuality = (q: Quality | null) => {
+    setQualityState(q);
+    qualityChosen.current = { q };
+    look.current?.setQuality(q);
+  };
+  const openSettings = (open: boolean) => {
+    setSettingsOpen(open);
+    look.current?.setMenu(open);
+  };
+  /** New game: the journey and its bests start over; the whole shift's and the side quests' bests stay. */
+  const eraseJourney = () => {
+    writeJourney(newJourney());
+    setErasing(false);
   };
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
   const onTitle = mode === "title" || (title && mode === null);
@@ -421,6 +465,7 @@ export function NextGame({
     faresBest,
     bestBefore,
     touch,
+    pad: !!hud?.pad,
     how,
     journey,
     stop,
@@ -440,15 +485,8 @@ export function NextGame({
           best={best}
           banquetBest={banquetBest}
           faresBest={faresBest}
-          muted={muted}
-          quality={quality}
-          liveQuality={liveQuality}
-          onMute={toggleMute}
-          onQuality={(q) => {
-            setQualityState(q);
-            qualityChosen.current = { q };
-            look.current?.setQuality(q);
-          }}
+          onSettings={() => openSettings(true)}
+          onNewGame={() => setErasing(true)}
           journey={journey}
           built={BUILT}
           onStop={beginAt}
@@ -485,9 +523,22 @@ export function NextGame({
             onStory={continueStory}
             onReplay={() => clocked && beginStop(clocked.id, "replay")}
             onQuestAgain={() => look.current?.newQuest(hud?.quest?.id)}
+            onSettings={() => openSettings(true)}
           />
         </>
       )}
+      {settings && (
+        <NextSettings
+          sound={sound}
+          onSound={setSound}
+          quality={quality}
+          liveQuality={liveQuality}
+          onQuality={chooseQuality}
+          pad={!!hud?.pad}
+          onClose={() => openSettings(false)}
+        />
+      )}
+      {erasing && <NextErase onErase={eraseJourney} onKeep={() => setErasing(false)} />}
     </>
   );
 }

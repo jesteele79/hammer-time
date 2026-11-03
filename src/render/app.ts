@@ -108,7 +108,7 @@ export type NextProbe = {
     feetGap: number;
   };
   /** Sound: whether a key has unlocked it, and every cue asked for since boot. */
-  sound?: { unlocked: boolean; played: Record<string, number> };
+  sound?: { unlocked: boolean; played: Record<string, number>; volumes?: { music: number; effects: number } };
   /** The run: its mode, level and numbers, and every event type counted since the page loaded. */
   run?: {
     mode: string;

@@ -55,6 +55,8 @@ export type HudPayload = {
   quest: BanquetHud | GateHud | null;
   /** Boxes of #15 blades he carries from the gate (R5 §9). */
   boxes: number;
+  /** A controller is connected: the hint and the break card name its buttons. */
+  pad: boolean;
 };
 export type BanquetHud = { id: "hungry"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
 /**
@@ -178,6 +180,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
     quest,
     boxes: h.boxes,
+    pad: false,
   };
 }
 
@@ -229,4 +232,5 @@ export const hudKey = (p: HudPayload) =>
     p.quest?.id === "hungry" ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
     p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.towels, p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",
     p.boxes,
+    p.pad,
   ].join("|");

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { HudPayload } from "@/render/hud";
 import { FARES } from "@/sim/quests/fares/fares";
+import { padGlyphs } from "./next-keys";
 
 /** The gate's tray, and the bookings in a row that make a streak (R5 §5, §12). */
 const TRAY = FARES.throws;
@@ -126,7 +127,8 @@ export function NextHud({
   // A mouse press must not leave a button focused: Space would then press it instead of jumping.
   const noFocus = (e: { preventDefault(): void }) => e.preventDefault();
   // On a touch screen the round's own hint teaches the pad and the scene (R5 §12).
-  const hint = (g && touch && GATE_TOUCH_HINTS[hud.hint]) || hud.hint;
+  // With a controller the hint names its buttons in place of the keys.
+  const hint = (g && touch && GATE_TOUCH_HINTS[hud.hint]) || (hud.pad ? padGlyphs(hud.hint) : hud.hint);
   return (
     <div className={touch ? "next-hud next-hud--touch" : "next-hud"}>
       <section className="next-hud__bar-top" aria-label="Run">

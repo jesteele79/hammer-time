@@ -88,6 +88,9 @@ export type Sound = {
   fanfare(): void;
   setHurry(on: boolean): void;
   setMuted(on: boolean): void;
+  /** The Settings' two sliders, 0 to 1 each: the music's and the effects'. */
+  setVolumes(music: number, effects: number): void;
+  readonly volumes: { music: number; effects: number };
   /** One of the owner's recordings, by name. */
   voice(id: TauntId): void;
   /** One of the five taunts for a besting, when the bus allows one (the shipped chance and gap); which one played, or null. */
@@ -267,6 +270,12 @@ export function createSound(): Sound {
     },
     setMuted(on) {
       bus.setMuted(on);
+    },
+    setVolumes(music, effects) {
+      bus.setVolumes(music, effects);
+    },
+    get volumes() {
+      return bus.volumes;
     },
     voice(id) {
       played[`voice:${id}`] = (played[`voice:${id}`] ?? 0) + 1;

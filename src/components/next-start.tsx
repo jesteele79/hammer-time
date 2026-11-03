@@ -1,17 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import type { Quality } from "@/render/app";
 import { journeyTotal, playableNext, type Journey } from "@/sim/journey";
 import type { QuestId } from "@/sim/quests/quest";
 import { ACTS, actOf, type ActId, type StoryId } from "@/sim/story";
-import { KEYS } from "./next-keys";
 import { NextStrip } from "./next-strip";
-
-const QUALITIES: { value: Quality | null; label: string }[] = [
-  { value: null, label: "Auto" },
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
-];
 
 const pad = (n: number) => String(n).padStart(6, "0");
 
@@ -24,7 +15,7 @@ const still = () => window.matchMedia("(prefers-reduced-motion: reduce)").matche
 /**
  * The start screen (R3 §7) as a title sequence in the shell's slate and gold: the lobby fills the screen, the title is
  * hammered on, and the journey runs along the bottom as a strip of stops (story spec §5.2) with "Clock in" (the next stop,
- * or a finished one picked on the strip), the journey's best, mute, the keys, the quality, and the side quests (Hungry
+ * or a finished one picked on the strip), the journey's best, the Settings, New game, and the side quests (Hungry
  * Hungry Hammer and Fare Darts, played here as practice, R4 §8 and R5 §11).
  * The game loads behind it: a start picked before it is ready begins as soon as it is, with no plunge, since the screen
  * must stay up until then. It is drawn at once; its buttons wait, disabled, until the page is live, so no tap is lost.
@@ -36,11 +27,8 @@ export function NextStart({
   best,
   banquetBest,
   faresBest,
-  muted,
-  quality,
-  liveQuality,
-  onMute,
-  onQuality,
+  onSettings,
+  onNewGame,
   journey,
   built,
   onStop,
@@ -57,12 +45,10 @@ export function NextStart({
   banquetBest: number;
   /** Fare Darts' own best, door rounds and practice alike. */
   faresBest: number;
-  muted: boolean;
-  quality: Quality | null;
-  /** The tier the game draws at now, shown beside Auto. */
-  liveQuality: Quality | null;
-  onMute: () => void;
-  onQuality: (q: Quality | null) => void;
+  /** The Settings: the volumes, the quality, the controller and the keys. */
+  onSettings: () => void;
+  /** New game: asks, then starts the journey over. */
+  onNewGame: () => void;
   journey: Journey;
   /** The stops that can be played, in story order. */
   built: readonly StoryId[];
@@ -81,7 +67,6 @@ export function NextStart({
   const chosen = picked && journey.done.includes(picked) && built.includes(picked) ? picked : next;
   // The next stop not built yet: its act is coming (plan decision 5).
   const coming = !built.includes(chosen);
-  const [keys, setKeys] = useState(false);
   const [waiting, setWaiting] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const leaveTimer = useRef(0);
@@ -129,33 +114,13 @@ export function NextStart({
         <span className="next-start__best">
           Journey best <b>{pad(journeyTotal(journey))}</b>
         </span>
-        <button type="button" className="next-start__tool" aria-pressed={muted} onClick={onMute} disabled={!live}>
-          {muted ? "Sound off" : "Sound on"}
+        <button type="button" className="next-start__tool" onClick={onSettings} disabled={!live}>
+          Settings
         </button>
-        <button type="button" className="next-start__tool" aria-expanded={keys} onClick={() => setKeys((k) => !k)} disabled={!live}>
-          Keys
+        <button type="button" className="next-start__tool" onClick={onNewGame} disabled={!live}>
+          New game
         </button>
-        <label className="next-start__tool next-start__quality">
-          Quality
-          <select value={quality ?? "auto"} onChange={(e) => onQuality(e.target.value === "auto" ? null : (e.target.value as Quality))} disabled={!live}>
-            {QUALITIES.map((q) => (
-              <option key={q.label} value={q.value ?? "auto"}>
-                {q.value === null && liveQuality ? `Auto · ${liveQuality[0].toUpperCase()}${liveQuality.slice(1)}` : q.label}
-              </option>
-            ))}
-          </select>
-        </label>
       </header>
-      {keys && (
-        <p className="next-start__keys">
-          {KEYS.map(([key, what]) => (
-            <span key={key} className="next-hud__key">
-              <kbd>{key}</kbd>
-              {what}
-            </span>
-          ))}
-        </p>
-      )}
       <section className="next-start__hero">
         <div className="next-start__stage" aria-hidden="true">
           <div className="next-start__camera">

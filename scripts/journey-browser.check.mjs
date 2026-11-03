@@ -171,7 +171,7 @@ try {
   await page.waitForTimeout(400);
   await enter();
   await waitMode("story", 20000);
-  assert.match(await veil(), /Three hours later. The hotel./);
+  assert.match(await veil(), /Three hours later\. The hotel\./);
   s = await save();
   assert.deepEqual([s.next, s.done, s.carry.boxes], ["lobby", ["sat"], boxes], `the save after SAT: ${JSON.stringify(s)}`);
   assert.ok(s.best.sat > 0, "SAT's best");
@@ -197,9 +197,12 @@ try {
   assert.equal(s.carry.hot, true, "the pepper is carried in the snapshot");
   const saved = s.run.score;
 
-  // 3. A reload: Clock in starts 1-2's card with the saved score.
+  // 3. A reload: Clock in starts 1-2's card with the saved score; the volumes are kept.
+  await page.evaluate(() => localStorage.setItem("hammer-time-sound", JSON.stringify({ music: 40, effects: 60, muted: false })));
   await page.goto(home);
   await waitMode("title");
+  await page.waitForFunction(() => window.__next.sound?.volumes?.music === 0.4, null, { timeout: 5000 });
+  assert.deepEqual(await page.evaluate(() => window.__next.sound.volumes), { music: 0.4, effects: 0.6 }, "the volumes kept across a reload");
   await page.getByRole("button", { name: "Clock in" }).click();
   await waitMode("card");
   r = await run();

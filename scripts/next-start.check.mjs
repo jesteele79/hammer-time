@@ -96,29 +96,39 @@ try {
   await page.keyboard.press("ArrowRight");
   await page.waitForTimeout(400);
   assert.notEqual(await page.locator(".next-strip").evaluate((e) => e.scrollLeft), left2, "the arrows move the strip");
-  // No HUD or pad under the start screen; Keys opens and closes by mouse and keyboard, Sound turns over; none clocks in.
+  // No HUD or pad under the start screen. Settings opens by mouse and keyboard: the sliders write hammer-time-sound, Sound
+  // off sets both to 0 and Sound on brings them back, the quality is inside it, the keys are listed, Escape and Done
+  // close it; none clocks in.
   assert.equal(await page.locator(".next-hud, .next-touch").count(), 0, "no HUD or touch pad on the start screen");
-  const keysButton = page.getByRole("button", { name: "Keys" });
-  await keysButton.click();
-  assert.equal(await keysButton.getAttribute("aria-expanded"), "true");
-  assert.ok(await page.locator(".next-start__keys").isVisible(), "the keys show");
-  await keysButton.click();
-  assert.equal(await keysButton.getAttribute("aria-expanded"), "false", "and close by mouse");
-  await keysButton.focus();
-  await page.keyboard.press("Enter");
-  assert.equal(await keysButton.getAttribute("aria-expanded"), "true", "and open by keyboard");
-  await page.keyboard.press("Enter");
-  assert.equal(await keysButton.getAttribute("aria-expanded"), "false");
-  await page.getByRole("button", { name: "Sound on" }).click();
-  assert.equal(await page.getByRole("button", { name: "Sound off" }).getAttribute("aria-pressed"), "true", "sound goes off");
-  await page.getByRole("button", { name: "Sound off" }).click();
-  assert.ok(await page.getByRole("button", { name: "Sound on" }).isVisible(), "and back on");
-  assert.equal(await page.evaluate(() => window.__next.run.mode), "title", "nothing clocked in");
-  // The keyboard drives the start screen: the arrows move through the quality list, Space presses Clock in.
-  await page.locator(".next-start__quality select").focus();
+  const soundSaved = () => page.evaluate(() => JSON.parse(localStorage.getItem("hammer-time-sound") ?? "null"));
+  await page.getByRole("button", { name: "Settings" }).click();
+  const settings = page.getByRole("dialog", { name: "Settings" });
+  await settings.waitFor();
+  assert.ok((await settings.locator(".next-hud__key").count()) >= 10, "the keys are listed");
+  assert.match(await settings.innerText(), /Controller: none/);
+  const music = settings.locator("input[type=range]").first();
+  await music.fill("0");
+  assert.deepEqual(await soundSaved(), { music: 0, effects: 80, muted: false }, "the music slider at 0");
+  await music.fill("100");
+  assert.equal((await soundSaved()).music, 100, "the music slider at 100");
+  await settings.getByRole("button", { name: "Sound off" }).click();
+  assert.deepEqual(await soundSaved(), { music: 0, effects: 0, muted: false }, "Sound off is both at 0");
+  await settings.getByRole("button", { name: "Sound on" }).click();
+  assert.deepEqual(await soundSaved(), { music: 80, effects: 80, muted: false }, "and Sound on brings both back");
+  // The keyboard drives it: the arrows move through the quality list.
+  await settings.locator(".next-settings__quality select").focus();
   await page.keyboard.press("ArrowDown");
-  assert.equal(await page.locator(".next-start__quality select").inputValue(), "high");
-  await page.locator(".next-start__quality select").selectOption("auto");
+  assert.equal(await settings.locator(".next-settings__quality select").inputValue(), "high");
+  await settings.locator(".next-settings__quality select").selectOption("auto");
+  await page.keyboard.press("Escape");
+  await settings.waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Settings" }).focus();
+  await page.keyboard.press("Enter");
+  await settings.waitFor();
+  await settings.getByRole("button", { name: "Done" }).click();
+  await settings.waitFor({ state: "detached" });
+  assert.equal(await page.evaluate(() => window.__next.run.mode), "title", "nothing clocked in");
+  // Space presses Clock in.
   await page.getByRole("button", { name: "Clock in" }).focus();
   await page.keyboard.press("Space");
   // SAT's email shows again: the first Clock in stopped at it, before any snapshot was saved.
@@ -172,11 +182,13 @@ try {
   await page.waitForFunction(() => window.__next.run.mode === "title");
   await page.keyboard.up("ArrowRight");
   // The quality choice is kept on the device.
-  await page.locator(".next-start__quality select").selectOption("low");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.locator(".next-settings__quality select").selectOption("low");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), "low");
   await page.waitForFunction(() => window.__next.quality === "low", null, { timeout: 3000 });
-  await page.locator(".next-start__quality select").selectOption("auto");
+  await page.locator(".next-settings__quality select").selectOption("auto");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-quality")), null);
+  await page.getByRole("button", { name: "Done" }).click();
   // Auto starts at high and picks ultra once the governor has settled, on this laptop's card.
   await page.waitForFunction(() => window.__next.quality === "ultra", null, { timeout: 8000 });
   // A key let go on the start screen is let go: the next start does not set off walking on its own.
@@ -217,6 +229,27 @@ try {
   assert.equal(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-fares"))), fares, "the gate's best kept");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-next")), "0", "the shift's best untouched");
   await page.screenshot({ path: resolve(out, "start-fares-tally.png") });
+  // New game asks first: Keep leaves the journey; Erase starts it over at SAT and leaves the side quests' bests alone.
+  await page.goto(url);
+  await page.evaluate(() => {
+    const j = JSON.parse(localStorage.getItem("hammer-time-journey") ?? "null") ?? {};
+    localStorage.setItem("hammer-time-journey", JSON.stringify({ ...j, v: 1, next: "restaurant", done: ["sat", "lobby"], best: { sat: 900, lobby: 4000 }, bonked: 3, run: null, carry: null, credits: false }));
+  });
+  await page.goto(url);
+  await page.waitForFunction(() => window.__next?.run?.mode === "title");
+  const faresBest = await page.evaluate(() => localStorage.getItem("hammer-time-best-fares"));
+  await page.getByRole("button", { name: "New game" }).click();
+  const ask = page.getByRole("dialog", { name: "New game" });
+  assert.match(await ask.innerText(), /Start over\?[\s\S]*The journey and its bests are erased\./i);
+  await ask.getByRole("button", { name: "Keep" }).click();
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("hammer-time-journey")).next), "restaurant", "Keep keeps the journey");
+  await page.getByRole("button", { name: "New game" }).click();
+  await ask.getByRole("button", { name: "Erase" }).click();
+  await ask.waitFor({ state: "detached" });
+  const fresh = await page.evaluate(() => JSON.parse(localStorage.getItem("hammer-time-journey")));
+  assert.deepEqual([fresh.next, fresh.done, fresh.best], ["sat", [], {}], "Erase starts the journey over");
+  assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-fares")), faresBest, "the gate's best untouched");
+  assert.equal((await stops(page)).find((x) => x.code === "SAT").state, "next", "SAT next on the strip");
   // /?quest=fares opens the practice round straight from the start screen (R5 §1, decision 16).
   await page.goto(`${base}?dev=1&quest=fares`);
   await page.waitForFunction(() => window.__next?.run?.mode === "quest" && window.__next.quest?.id === "fares");

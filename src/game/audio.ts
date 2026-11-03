@@ -12,6 +12,8 @@ export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "aren
 export type Theme = SongId;
 /** The music's level, and the share of it left under the cards (plan decision 12's quiet). */
 export const MUSIC = { level: 0.07, quiet: 0.4 } as const;
+/** The effects' level at full volume. */
+const EFFECTS_LEVEL = 0.14;
 
 /**
  * A side quest's song (owner, 2026-10-25: "some other bonkers music for this side quest and hungry hungry hammer"):
@@ -332,6 +334,9 @@ export class AudioBus {
   private musicOn = false;
   private theme: Theme = "lobby";
   private quiet = false;
+  /** The two sliders' shares, 0 to 1 (Task 17's Settings); the voices are the master's, untouched. */
+  private music = 1;
+  private effects = 1;
   private step = 0;
   private nextAt = 0;
   hurry = false;
@@ -429,7 +434,7 @@ export class AudioBus {
         this.musicGain = this.ctx.createGain();
         this.sfxGain = this.ctx.createGain();
         this.musicGain.gain.value = this.musicLevel;
-        this.sfxGain.gain.value = 0.14;
+        this.sfxGain.gain.value = this.effectsLevel;
         this.musicGain.connect(this.master);
         this.sfxGain.connect(this.master);
         this.master.connect(this.ctx.destination);
@@ -450,9 +455,25 @@ export class AudioBus {
     }
   }
 
-  /** The music bus's level now: quiet under the cards and the break. */
+  /** The music bus's level now: its slider's share, quiet under the cards and the break. */
   get musicLevel(): number {
-    return MUSIC.level * (this.quiet ? MUSIC.quiet : 1);
+    return MUSIC.level * this.music * (this.quiet ? MUSIC.quiet : 1);
+  }
+  /** The effects bus's level: its slider's share. */
+  get effectsLevel(): number {
+    return EFFECTS_LEVEL * this.effects;
+  }
+  get volumes(): { music: number; effects: number } {
+    return { music: this.music, effects: this.effects };
+  }
+
+  /** The Settings' two sliders, 0 to 1 each. */
+  setVolumes(music: number, effects: number) {
+    this.music = Math.min(1, Math.max(0, music));
+    this.effects = Math.min(1, Math.max(0, effects));
+    if (!this.ctx || !this.musicGain || !this.sfxGain) return;
+    this.musicGain.gain.setTargetAtTime(this.musicLevel, this.ctx.currentTime, 0.05);
+    this.sfxGain.gain.setTargetAtTime(this.effectsLevel, this.ctx.currentTime, 0.05);
   }
 
   startMusic(theme: Theme, quiet = false) {

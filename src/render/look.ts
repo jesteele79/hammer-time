@@ -62,6 +62,7 @@ import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { loadSatPieces } from "./venue-sat";
+import { NO_PAD, readPad, type Pad } from "./gamepad";
 import { Words } from "./words";
 import { stepWalkOut, walkOutFrom, type WalkOut } from "./walk-out";
 import { BanquetView } from "./quests/hungry-scene";
@@ -148,6 +149,10 @@ export type Look = {
   /** His face on the screen, in CSS px, as last drawn: the cards keep clear of it. */
   face(): Rect | null;
   setMuted(on: boolean): void;
+  /** The Settings' two sliders, 0 to 1 each. */
+  setVolumes(music: number, effects: number): void;
+  /** A menu is open over the game (the Settings): its keys are the page's, as on the home screen. */
+  setMenu(open: boolean): void;
   /** A shift from the start screen, at the shift's venue `at` (the gift shop is pig practice). */
   start(at: number): void;
   /** Back to the start screen. */
@@ -349,7 +354,7 @@ export async function startLook(
     // On the start screen the keys are the page's: Space and Enter press its buttons, the arrows move through its list. A
     // key held from the shift and let go here is let go, so the next shift does not start with it down.
     // The story's cards between levels are the page's too: Enter or Space presses their focused Continue.
-    if (game.mode === "title" || game.mode === "story") {
+    if (game.mode === "title" || game.mode === "story" || menu) {
       // The title tune waits for the first key or tap (plan decision 13).
       if (e.type === "keydown") sound.unlock();
       if (e.type === "keyup") down.delete(e.code);
@@ -409,6 +414,10 @@ export async function startLook(
   window.addEventListener("blur", onBlur);
 
   let prevHeld: Record<Action, boolean> = emptyInput().held;
+  /** The controller this frame, and whether its Start was down last frame (a press pauses on its edge). */
+  let pad: Pad = NO_PAD;
+  let padStart = false;
+  let menu = false;
   const frame = { acc: 0 };
   let prev = world.snapshot();
   let cur = prev;
@@ -920,7 +929,7 @@ export async function startLook(
     sound.tick();
     savedT = Math.max(0, savedT - simDt);
     noteT = Math.max(0, noteT - simDt);
-    const hud = hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null);
+    const hud = { ...hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null), pad: pad.connected };
     const key = hudKey(hud);
     if (key !== hudLast) {
       hudLast = key;
@@ -1149,7 +1158,7 @@ export async function startLook(
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.faceScreen = faceOnScreen;
-      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played }, volumes: sound.volumes };
       window.__next.quest = {
         id: "hungry",
         time: q.time,
@@ -1264,7 +1273,7 @@ export async function startLook(
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.faceScreen = faceOnScreen;
-      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played }, volumes: sound.volumes };
       window.__next.quest = {
         id: "fares",
         time: q.time,
@@ -1407,7 +1416,7 @@ export async function startLook(
   };
 
   /** Just the actions the keys and the pad hold this instant: what Continue must not see pressed on the step after it. */
-  const heldNow = () => inputFrom(down, touchDown, prevHeld).held;
+  const heldNow = () => inputFrom(down, pad.held.size ? new Set([...touchDown, ...pad.held]) : touchDown, prevHeld).held;
 
   /** The run and what he carries, as they stand: a level's exit hands this on to the next card. */
   function snapshotNow(): Snapshot {
@@ -1437,10 +1446,17 @@ export async function startLook(
     // A break stops everything that runs on game time; the camera and the screen still draw.
     const dt = game.mode === "pause" || holding ? 0 : Math.min(t.deltaMS / 1000, 0.1);
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
+    // The controller merges with the keys and the touch pad; its Start breaks and resumes like P.
+    pad = opts.board ? NO_PAD : readPad();
+    if (pad.start && !padStart && !menu && (game.mode === "play" || game.mode === "pause" || game.mode === "quest")) {
+      forgetPresses();
+      pause();
+    }
+    padStart = pad.start;
     // Hit-stop and slow motion: the sim and everything it drives run on the clock's seconds,
     // and a hit freezes the world on the step it lands.
     const { simDt, steps } = runFrame(clock, frame, dt, () => {
-      const touch = touchTapped.size || pointers.size ? new Set([...touchDown, ...touchTapped]) : touchDown;
+      const touch = touchTapped.size || pointers.size || pad.held.size ? new Set([...touchDown, ...touchTapped, ...pad.held]) : touchDown;
       if (pointerSteady()) touch.add("run");
       const input = inputFrom(keys, touch, prevHeld);
       prevHeld = input.held;
@@ -1697,7 +1713,7 @@ export async function startLook(
         bubble: bubbles.text,
         feetGap: planted.gap,
       };
-      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played } };
+      window.__next.sound = { unlocked: sound.unlocked, played: { ...sound.played }, volumes: sound.volumes };
       // The cast's painted figures alive: the pig's own figure, kept while the gift shop is loaded, and the banquet's diners are not.
       window.__next.castArt = { ...cast.artState(), live: PaintedFigure.live - (pigView.kind === "painted" ? 1 : 0) - banquet.paintedCount() - gate.paintedCount(), tints: { cast: cast.container.tint, flyers: flyers.container.tint }, drawn: cast.drawn(), carts: props.drawnCarts() };
       window.__next.cast = {
@@ -2034,6 +2050,12 @@ export async function startLook(
     setMuted(on) {
       sound.setMuted(on);
       if (on) bubbles.cut();
+    },
+    setVolumes(music, effects) {
+      sound.setVolumes(music, effects);
+    },
+    setMenu(open) {
+      menu = open;
     },
     start(at) {
       starts++;

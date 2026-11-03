@@ -13,6 +13,35 @@ export const KEYS: [string, string][] = [
   ["P", "break"],
 ];
 
+/** A controller's buttons in place of the keys a hint names (the standard mapping's glyphs). */
+export const PAD_GLYPHS: [RegExp, string][] = [
+  [/\bSpace\b/g, "A"],
+  [/\bH\b/g, "X"],
+  [/\bB lobs\b/g, "Y lobs"],
+  [/\bF\b/g, "B"],
+  [/\bShift\b/g, "RB"],
+  [/\bT\b/g, "LB"],
+  [/\bQ\b/g, "RT"],
+  [/\bE\b/g, "LT"],
+  [/\bP\b/g, "Start"],
+];
+/** A hint as a controller's player reads it. */
+export const padGlyphs = (hint: string): string => PAD_GLYPHS.reduce((s, [key, glyph]) => s.replace(key, glyph), hint);
+
+/** The controller's buttons, for the break card and the Settings while one is connected. */
+export const PAD_KEYS: [string, string][] = [
+  ["Stick, d-pad", "move, ↓ duck"],
+  ["RB", "run"],
+  ["A", "jump"],
+  ["X", "swing"],
+  ["B", "snot"],
+  ["LT", "lecture"],
+  ["LB", "towel"],
+  ["RT", "smash"],
+  ["Y", "box of blades"],
+  ["Start", "break"],
+];
+
 /** The touch pad's words for the break card while the pad shows: the buttons as the pad labels them. */
 export const TOUCH_KEYS: [string, string][] = [
   ["← →", "move"],

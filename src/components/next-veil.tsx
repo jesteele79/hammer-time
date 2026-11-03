@@ -9,7 +9,7 @@ import { FARES, groupOf } from "@/sim/quests/fares/fares";
 
 /** COMPED's line, as the cards write it. */
 const GOAL = GRADES[0][0].toLocaleString("en-US");
-import { BANQUET_KEYS, BANQUET_TOUCH_KEYS, GATE_KEYS, GATE_TOUCH_KEYS, KEYS, TOUCH_KEYS } from "./next-keys";
+import { BANQUET_KEYS, BANQUET_TOUCH_KEYS, GATE_KEYS, GATE_TOUCH_KEYS, KEYS, PAD_KEYS, TOUCH_KEYS } from "./next-keys";
 
 /** A printed pass's class, as the board names it (R5 §4, §6). */
 const CLASS_NAME: Record<FareClass | Exclude<TagKind, "fare">, string> = {
@@ -47,6 +47,8 @@ export type VeilInfo = {
   bestBefore: number;
   /** The touch pad is showing: the break card names the pad's buttons, not the keyboard's. */
   touch: boolean;
+  /** A controller is connected: the shift's break card names its buttons. */
+  pad: boolean;
   how: RunKind;
   journey: Journey | null;
   /** The stop being played in a journey or a replay. */
@@ -186,6 +188,7 @@ export function NextVeil({
   onStory,
   onReplay,
   onQuestAgain,
+  onSettings,
 }: {
   mode: GameMode | null;
   info: VeilInfo;
@@ -205,6 +208,8 @@ export function NextVeil({
   onReplay?: () => void;
   /** Practice's tally: another round. */
   onQuestAgain?: () => void;
+  /** The break card's Settings. */
+  onSettings?: () => void;
 }) {
   const storied = info.how === "journey" || info.how === "replay";
   const toTitle = onTitle && (
@@ -284,7 +289,9 @@ export function NextVeil({
                   : BANQUET_KEYS
                 : info.touch
                   ? TOUCH_KEYS
-                  : KEYS
+                  : info.pad
+                    ? PAD_KEYS
+                    : KEYS
             ).map(([key, what]) => (
               <span key={key} className="next-hud__key">
                 <kbd>{key}</kbd>
@@ -295,6 +302,11 @@ export function NextVeil({
           <button type="button" className="next-veil__button" onClick={onResume}>
             Back to work
           </button>
+          {onSettings && (
+            <button type="button" className="next-veil__button next-veil__button--quiet" onClick={onSettings}>
+              Settings
+            </button>
+          )}
         </section>
       </div>
     );

@@ -41,3 +41,21 @@ test("quiet music is 0.4 of its level, and back up when the cards go", () => {
   bus.setQuiet(false);
   assert.ok(Math.abs(bus.musicLevel - 0.07) < 1e-9, `${bus.musicLevel}`);
 });
+
+import { SOUND_KEY, parseSound } from "../src/game/sound-settings.ts";
+test("two volumes: the music's and the effects', each a share of its level, the quiet on top", () => {
+  const bus = new AudioBus();
+  bus.setVolumes(0.5, 1);
+  assert.deepEqual(bus.volumes, { music: 0.5, effects: 1 });
+  assert.ok(Math.abs(bus.musicLevel - 0.035) < 1e-9, `${bus.musicLevel}`);
+  assert.ok(Math.abs(bus.effectsLevel - 0.14) < 1e-9, `${bus.effectsLevel}`);
+  bus.setQuiet(true);
+  assert.ok(Math.abs(bus.musicLevel - 0.035 * 0.4) < 1e-9, `${bus.musicLevel}`);
+});
+test("the sound settings: kept as hammer-time-sound, 80 and 80 unmuted at first, garbage read as that, out of range clamped", () => {
+  assert.equal(SOUND_KEY, "hammer-time-sound");
+  assert.deepEqual(parseSound(null), { music: 80, effects: 80, muted: false });
+  assert.deepEqual(parseSound("{bad"), { music: 80, effects: 80, muted: false });
+  assert.deepEqual(parseSound(JSON.stringify({ music: 30, effects: 0, muted: true })), { music: 30, effects: 0, muted: true });
+  assert.deepEqual(parseSound(JSON.stringify({ music: 300, effects: -5, muted: "yes" })), { music: 100, effects: 0, muted: false });
+});
