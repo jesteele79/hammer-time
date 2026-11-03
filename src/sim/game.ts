@@ -7,7 +7,7 @@ import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
-import { PICKUP_SIZE, stageOf, type DoorSpec, type Level } from "./level";
+import { PICKUP_SIZE, stageOf, type DoorSpec, type Lesson, type Level } from "./level";
 import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
@@ -103,6 +103,13 @@ const SMASH_UP = 600;
 const SHIELD = { speed: 1100, lift: 600, flying: 300 } as const;
 /** The home screen's beats (story spec §5.1, plan decision 8): an insult every 8 s held 3.2 s; a snot rocket at 45 s, then every 60 s. */
 export const TITLE = { thinkEvery: 8, think: 3.2, snotAt: 45, snotEvery: 60 } as const;
+/**
+ * A level's thoughts (SAT's marks): held 3 s, said when a step carries him over the mark going right and he is still
+ * within `reach` of it, so walking by says it and a jump far past it (a teleport) does not save it up for later.
+ */
+export const THINK = { seconds: 3, reach: 160 } as const;
+/** The moves the world's events teach: a lesson stops once he has done its move (story spec §6.2). */
+const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", slide: "slide", swing: "swing", sniff: "snot", wipeStart: "wipe" };
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 
@@ -144,6 +151,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let visits = 0;
   let nextThink: number = TITLE.thinkEvery;
   let nextSnot: number = TITLE.snotAt;
+  /** The thoughts said this run, by level and mark: each once, a life lost or not. */
+  const thought = new Set<string>();
+  /** Where he stood at the end of the last step: a thought's mark is passed going right from here. */
+  let thinkFrom = 0;
 
   const game: Game = {
     levels,
@@ -224,6 +235,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.swing = [];
     world.still = false;
     standAt(at);
+    thinkFrom = world.hero.x;
     game.run.time = level.time;
     game.run.star = 0;
     timedOut = false;
@@ -255,6 +267,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.start = game.venue = clampStart(from ?? game.start, game.shift.length);
     game.quest = null;
     game.questDoor = null;
+    thought.clear();
     // A snapshot is the run at a card: no punch clock of the level before it counts here.
     game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, punched: [] } : createRun(s);
     stashStock = null;
@@ -528,6 +541,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     h.slideT = 0;
     h.h = HERO_H;
     standAt(at);
+    thinkFrom = h.x;
   }
 
   /**
@@ -728,6 +742,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     ev.push(...world.events);
     if (world.events.some((e) => e.type === "flop")) run.flopped = true;
     if (world.events.some((e) => e.type === "sampleThrow")) run.lobbed = true;
+    learn(input, ev);
+    for (const [i, t] of (game.level.thoughts ?? []).entries()) {
+      const key = `${game.level.id}:${i}`;
+      if (thought.has(key) || thinkFrom > t.x || h.x <= t.x || h.x - t.x >= THINK.reach) continue;
+      thought.add(key);
+      ev.push({ type: "think", text: t.text, seconds: THINK.seconds });
+    }
+    thinkFrom = h.x;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {
@@ -776,6 +798,22 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "fell" });
       die(ev);
     } else if (h.move?.kind === "tumble" && moveU(h.move) >= RUN.lieAt) die(ev);
+  }
+
+  /** The moves he did this step that he had not done this run. */
+  function learn(input: Input, ev: GameEvent[]) {
+    const h = world.hero;
+    const learned = game.run.learned;
+    const did = (move: Lesson) => {
+      if (learned.includes(move)) return;
+      learned.push(move);
+      ev.push({ type: "lesson", move });
+    };
+    for (const e of world.events) {
+      const move = LEARNED_BY[e.type];
+      if (move) did(move);
+    }
+    if (input.held.run && Math.abs(h.vx) > 0) did("run");
   }
 
   function step(input: Input) {

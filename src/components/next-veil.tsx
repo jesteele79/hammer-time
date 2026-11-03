@@ -248,7 +248,9 @@ export function NextVeil({
     // In a journey the first stop of the hotel's shift starts it, and a replay starts its own; the rest go on.
     const line = info.back
       ? "Back from your break"
-      : storied
+      : info.world === "SAT"
+        ? "Boarding in 7:00"
+        : storied
         ? info.how === "replay" || info.world === "1-1"
           ? "Your shift starts here"
           : "Your shift goes on"

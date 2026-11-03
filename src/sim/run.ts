@@ -1,4 +1,5 @@
 import type { GameEvent } from "./events";
+import type { Lesson } from "./level";
 
 /**
  * The shipped game's run numbers: lives, the patience a run starts with, what each
@@ -55,9 +56,11 @@ export type Run = {
   lobbed: boolean;
   /** Staff bonked this run: everyone knocked out for good, run off for good or sent down a pit (plan decision 4). */
   bonked: number;
+  /** The moves he has done this run: their lessons stop teaching them. */
+  learned: Lesson[];
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0 });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [] });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);

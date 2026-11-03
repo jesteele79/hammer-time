@@ -4,7 +4,7 @@ import type { HungryEvent } from "./quests/hungry/events";
 import type { FaresEvent } from "./quests/fares/events";
 import type { QuestId } from "./quests/quest";
 import type { MissileKind } from "./missiles";
-import type { CrateKind, DoorKind, LevelId } from "./level";
+import type { CrateKind, DoorKind, Lesson, LevelId } from "./level";
 import type { PickupKind } from "./rewards";
 import type { Rect } from "./types";
 
@@ -74,6 +74,8 @@ export type GameEvent =
   | { type: "levelDone"; id: LevelId; score: number; bonked: number; last: boolean }
   /** Hammer's thought, written, never spoken: the home screen's insults, a level's marks. */
   | { type: "think"; text: string; seconds: number }
+  /** He did a move for the first time this run: its lesson stops teaching it. */
+  | { type: "lesson"; move: Lesson }
   /** He stepped onto a flat-top or into the walk-in. */
   | { type: "heatZone"; kind: "flattop" | "freezer"; x: number; y: number }
   /** A swinging door swung: banged open by its server's rush or slammed by the mallet (`hard`), or pushed through. */

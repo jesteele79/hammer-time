@@ -63,7 +63,15 @@ export type FurnitureKind =
   | "lampPost"
   | "sneeze"
   | "slot"
-  | "spotlight";
+  | "spotlight"
+  | "van"
+  | "stanchion"
+  | "xray"
+  | "scanner"
+  | "walkway"
+  | "departures"
+  | "seats"
+  | "podium";
 /** A low ceiling to slide under: the lobby's service corridor, or the kitchen's heat-lamp gantry. */
 export type LevelPass = Pass & { kind?: "service" | "gantry" };
 /** The kitchen's swinging door, and the spawn id of the server whose rush bangs it open. */
@@ -115,6 +123,12 @@ export type CastSpawn = {
 };
 export type CarriedKind = "can" | "nuts" | "bucees";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
+/** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
+export type Lesson = "jump" | "run" | "slide" | "swing" | "snot" | "wipe";
+/** A stretch where the hint teaches a move until he has done it. */
+export type LessonSpec = { x0: number; x1: number; move: Lesson; text: string };
+/** His thought at a mark, once a layout of the level, as he walks past it. */
+export type ThoughtSpec = { x: number; text: string };
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
@@ -152,11 +166,15 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   /** How many pickups the seeding places, and how many of them are Buc-ee's and nuts (those only up on platforms). */
   rewards: { count: number; bucees: number; nuts: number };
   routes: RewardRoute[];
-  music: "day" | "cellar";
+  music: "day" | "cellar" | "sat";
   /** The x before which the first hint teaches the snot and the ! crate. */
   hints?: { early: number };
   /** The home screen's scene (story spec §5.1, plan decision 8): where he stands, and where the camera looks. */
   home?: { x: number; cx: number };
+  /** The moves taught along the level, in order (SAT, the prologue). */
+  lessons?: LessonSpec[];
+  /** His thoughts at their marks. */
+  thoughts?: ThoughtSpec[];
   /** The lobby's people (R2b). */
   cast?: CastSpawn[];
 };

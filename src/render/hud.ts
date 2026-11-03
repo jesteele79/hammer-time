@@ -85,6 +85,7 @@ export function hintOf(game: Game): string {
     if (d.kind === "stash") return `↓ ${d.label} · the stash`;
     if (d.kind === "return") return "↓ at the cart · back to the lobby";
     if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
+    if (d.kind === "gate") return `${d.label} · walk in to board`;
     if (d.kind === "quest") return game.run.spent.includes(d.id) ? `${d.label} · thank you, come again` : `↓ ${d.label} · ${QUEST_NAMES[d.quest ?? "hungry"]}`;
     return `${d.label} · ${d.opens ?? "closed"}`;
   }
@@ -116,6 +117,8 @@ export function hintOf(game: Game): string {
   if (h.flop && !game.run.flopped) return FLOP_HINT;
   if (h.boxes > 0 && !game.run.lobbed) return BOX_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
+  const lesson = game.level.lessons?.find((l) => h.x >= l.x0 && h.x < l.x1 && !game.run.learned.includes(l.move));
+  if (lesson) return lesson.text;
   if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";
   // A prize to fight for, once the threats, his own state and the first lesson have had their say.
   const carrier = w.cast.find((n) => n.alive && n.carry && !n.out && near(n.x, CARRY_HINT.x) && Math.abs(n.y - h.y) < CARRY_HINT.y);

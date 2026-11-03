@@ -7,7 +7,8 @@ import {
   type TauntTarget,
 } from "./taunts";
 
-export type Theme = "day" | "cellar" | "banquet" | "gate";
+/** SAT plays the day tune until its own is composed (story Phase 1, Task 16). */
+export type Theme = "day" | "cellar" | "sat" | "banquet" | "gate";
 
 const DAY = [392, 392, 349, 330, 294, 330, 349, 392, 440, 392, 349, 330, 294, 262, 294, 330];
 const DAY_BASS = [196, 147, 175, 131];
