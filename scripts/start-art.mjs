@@ -29,7 +29,21 @@ try {
     return Buffer.from(data.split(",").pop(), "base64");
   };
   const owner = "art/incoming/brand/key-art.png";
-  if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await shot("lobby", "keyart"), 1600, "key-art.webp");
+  // The key art is the home screen's first paint (story spec §5.1): the live scene's own frame at 1920 by 1080, taken with
+  // the start screen hidden and cropped to its picture, so the engine's lobby fades in over the same picture.
+  const titleFrame = async () => {
+    await page.goto(`${base}?dev=1`);
+    await page.waitForFunction(() => document.querySelector(".next-start[data-live]"), null, { timeout: 60000 });
+    await page.waitForTimeout(1200);
+    const r = await page.evaluate(() => {
+      const b = document.querySelector(".next-start__camera").getBoundingClientRect();
+      return { x: Math.round(b.x), y: Math.round(b.y), width: Math.round(b.width), height: Math.round(b.height) };
+    });
+    await page.addStyleTag({ content: ".next-start { visibility: hidden !important; }" });
+    await page.waitForTimeout(200);
+    return page.screenshot({ clip: r });
+  };
+  if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await titleFrame(), 1600, "key-art.webp");
   // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
   if (want("starts")) for (const venue of ["lobby", "restaurant", "campus", "arena"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).

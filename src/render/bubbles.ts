@@ -177,6 +177,12 @@ export class Bubbles {
     return this.caption.text;
   }
 
+  /** The box drawn last, world units, while a bubble shows. */
+  get box(): Rect | null {
+    return this.root.visible ? this.drawn : null;
+  }
+  private drawn: Rect | null = null;
+
   think(text: string, seconds: number): void {
     if (this.caption.think(text, seconds)) this.show();
   }
@@ -209,6 +215,7 @@ export class Bubbles {
     if (!this.caption.text) return;
     const size = { w: this.words.width + 2 * TEXT.padX, h: this.words.height + 2 * TEXT.padY };
     const { box, puffs } = bubbleLayout(size, at.crown, at.facing, at.face, at.view);
+    this.drawn = box;
     const g = this.shape.clear();
     if (this.caption.spoken) {
       g.roundRect(box.x, box.y, box.w, box.h, 14).fill(PAPER).stroke({ width: 4, color: INK });

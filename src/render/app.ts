@@ -28,6 +28,8 @@ export type NextProbe = {
   quality: Quality;
   /** The video card's name as the browser reports it (WebGPU's adapter info, or WebGL's renderer string). */
   gpu?: string;
+  /** Whether that card counts as a desktop card, the one class Auto may put on ultra. */
+  gpuClass?: "desktop" | "other";
   frameMs: number;
   fps: number;
   /** Distinct coarse colors in a 1/20-scale read of the stage: the "is anything drawn" probe. */
@@ -78,6 +80,8 @@ export type NextProbe = {
   headTintChain?: number;
   /** His face box on screen, CSS px: nothing in the shell may cover it. */
   faceScreen?: { x: number; y: number; w: number; h: number };
+  /** His thought bubble's box on screen, CSS px, while one shows. */
+  bubbleScreen?: { x: number; y: number; w: number; h: number } | null;
   /** `products`: how many of the three pickups have their real pictures. */
   art?: { heads: number; bodies: number; products?: number };
   /** The move layer, set by the look scene: `events` counts every event type seen since boot. */
@@ -258,6 +262,7 @@ export async function createRenderApp(
   };
   probe.gpu = gpuName();
   const gpuClass = (): "desktop" | "other" => (isDesktopGpu(probe.gpu ?? "") ? "desktop" : "other");
+  probe.gpuClass = gpuClass();
   const begin = () => {
     frameStart = performance.now();
   };

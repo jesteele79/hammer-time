@@ -98,6 +98,37 @@ try {
   assert.ok(thinks >= 6 && thinks <= 8, `about one insult every eight seconds: ${thinks} in a minute`);
   assert.equal(await page.evaluate(() => JSON.stringify(window.__next.cast.acts)), acts0, "the cast stands still");
   assert.equal(await mode(), "title", "nothing clocked in");
+  // His face and his thought clear of every piece of the menu, on a laptop, a small laptop and a phone both ways up.
+  for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844], [844, 390]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(1200);
+    // Measured in the same instant a thought shows: one caught at the end of its three seconds is gone a moment later.
+    const handle = await page.waitForFunction(() => {
+      if (!window.__next.bubbleScreen) return null;
+      const shown = (el) => el.getBoundingClientRect().width > 0 && getComputedStyle(el).visibility !== "hidden" && getComputedStyle(el).opacity !== "0";
+      // The title's lines by their text: the eyebrow's box runs the full width of a phone on its side.
+      const extent = (el) => {
+        if (!el.matches(".next-start__eyebrow, .next-start__word, .next-start__tagline")) return el.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return range.getBoundingClientRect();
+      };
+      const blocks = [...document.querySelectorAll(".next-start__top > *, .next-start__eyebrow, .next-start__word, .next-start__tagline, .next-start__go, .next-strip, .next-start__quests")]
+        .filter(shown)
+        .map((el) => { const b = extent(el); return { cls: el.className, x: b.x, y: b.y, w: b.width, h: b.height }; });
+      return { face: window.__next.faceScreen, bubble: window.__next.bubbleScreen, blocks, vw: innerWidth, vh: innerHeight };
+    }, null, { timeout: 9000, polling: 50 });
+    const r = await handle.jsonValue();
+    await shot(`journey-home-${w}x${h}.png`);
+    const inside = (b) => b.x >= -0.5 && b.y >= -0.5 && b.x + b.w <= r.vw + 0.5 && b.y + b.h <= r.vh + 0.5;
+    assert.ok(inside(r.face) && inside(r.bubble), `at ${w}x${h} his face and his thought on the screen ${JSON.stringify({ face: r.face, bubble: r.bubble })}`);
+    for (const b of r.blocks) {
+      assert.ok(!hit(r.face, b), `at ${w}x${h} ${b.cls} covers his face ${JSON.stringify({ face: r.face, block: b })}`);
+      assert.ok(!hit(r.bubble, b), `at ${w}x${h} ${b.cls} covers his thought ${JSON.stringify({ bubble: r.bubble, block: b })}`);
+    }
+  }
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.waitForTimeout(300);
   await page.getByRole("button", { name: "Clock in" }).click();
   await waitMode("card");
   let text = await veil();

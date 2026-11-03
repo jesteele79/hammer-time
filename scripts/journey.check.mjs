@@ -281,3 +281,14 @@ test("shuffled is a seeded permutation", () => {
   assert.deepEqual([...shuffled(pool, 3)].sort(), pool);
   assert.deepEqual(pool, ["a", "b", "c", "d", "e", "f"], "the pool itself untouched");
 });
+
+test("on the home screen his idle beats run, but his harrumph's line is the pool's: no harrumph every eight seconds", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5, { cast: false, title: true });
+  const evs = [];
+  for (let t = 0; t < 200; t += STEP) {
+    g.titleStep();
+    evs.push(...g.events);
+  }
+  assert.ok(of(evs, "watch").length >= 10 && of(evs, "tap").length >= 10, "the watch and the foot tap keep coming");
+  assert.equal(of(evs, "harrumph").length, 0, "no harrumph to cut across the insults or repeat once they are spent");
+});

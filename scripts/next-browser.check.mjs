@@ -235,21 +235,26 @@ try {
   await pauseWorks("844x390");
   await page.waitForTimeout(600);
 
-  // The laptop look (story spec §15): at 1920 by 1080 on this laptop's card Auto has picked ultra within five seconds, and
-  // ultra holds 58 frames a second over the next five.
+  // The laptop look (story spec §15): at 1920 by 1080 on a desktop card Auto has picked ultra within five seconds, and
+  // ultra holds 58 frames a second over the next five; on any other card Auto never picks ultra.
   await page.setViewportSize({ width: 1920, height: 1080 });
   await booted(`${base}?next=1`);
   await page.waitForTimeout(5000);
-  verdict.gpu = await page.evaluate(() => window.__next.gpu);
-  assert.equal(await page.evaluate(() => window.__next.quality), "ultra", `Auto picked ultra on ${verdict.gpu}`);
-  const rates = [];
-  for (let i = 0; i < 5; i++) {
-    await page.waitForTimeout(1000);
-    rates.push(await page.evaluate(() => window.__next.fps));
+  verdict.gpu = await page.evaluate(() => `${window.__next.gpu} (${window.__next.gpuClass})`);
+  const desktopCard = (await page.evaluate(() => window.__next.gpuClass)) === "desktop";
+  if (desktopCard) {
+    assert.equal(await page.evaluate(() => window.__next.quality), "ultra", `Auto picked ultra on ${verdict.gpu}`);
+    const rates = [];
+    for (let i = 0; i < 5; i++) {
+      await page.waitForTimeout(1000);
+      rates.push(await page.evaluate(() => window.__next.fps));
+    }
+    verdict.ultraFps = rates;
+    assert.ok(Math.min(...rates) >= 58, `ultra holds 58 fps at 1920x1080: ${rates}`);
+    assert.equal(await page.evaluate(() => window.__next.quality), "ultra", "and stays there");
+  } else {
+    assert.notEqual(await page.evaluate(() => window.__next.quality), "ultra", `Auto keeps ultra for a desktop card, not ${verdict.gpu}`);
   }
-  verdict.ultraFps = rates;
-  assert.ok(Math.min(...rates) >= 58, `ultra holds 58 fps at 1920x1080: ${rates}`);
-  assert.equal(await page.evaluate(() => window.__next.quality), "ultra", "and stays there");
   await page.setViewportSize({ width: 1280, height: 800 });
 
   await booted(`${base}?next=1&nocast=1&gl=1`);

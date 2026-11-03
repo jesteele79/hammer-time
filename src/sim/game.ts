@@ -321,7 +321,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       if (world.hero.sinus >= 1) input.held.fire = input.pressed.fire = true;
     }
     world.step(input);
-    ev.push(...world.events);
+    // His thoughts here are the insults; the harrumph's "Any day now." would cut across them every eight seconds.
+    for (const e of world.events) if (e.type !== "harrumph") ev.push(e);
     if (game.titleT >= nextThink - 1e-9) {
       nextThink += TITLE.thinkEvery;
       const text = insults.shift();

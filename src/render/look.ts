@@ -123,6 +123,12 @@ const WATCH_SHOWN = [0.15, 0.85] as const;
  * down; it eases at this rate.
  */
 const TITLE_FRAME = { across: 0.34, tall: 0.44, feet: 0.83, leanX: 120, leanY: 40, ease: 4 } as const;
+/**
+ * A screen whose free picture is shorter than `short` of the whole (a phone on its side, the menu filling it): he peeks
+ * over the menu instead, his crown this far down the free band, the menu's top this share of his height below his
+ * crown, this far across the band, no lean.
+ */
+const TITLE_PEEK = { short: 0.45, below: 0.1, shown: 0.5, across: 0.15 } as const;
 /** The mallet's smear: the strike's display fractions it shows in, its trail, and its clearance from the face. */
 const SMEAR = { from: 0.36, to: 0.5, points: 6, trail: 0.06, width: 26, clear: 40 } as const;
 
@@ -1295,40 +1301,88 @@ export async function startLook(
     lean.y = e.clientY / Math.max(1, innerHeight) - 0.5;
   };
   window.addEventListener("pointermove", onLean, { passive: true });
-  /** The start screen's picture (its camera's box), CSS px, measured twice a second: the scene is framed inside it. */
-  let picture: Rect = { x: 0, y: 0, w: scene.width, h: scene.height };
+  /**
+   * The start screen's picture, CSS px, measured twice a second: `frame` is its camera's box below the tools along the
+   * top, the scene framed inside it; `free` is the part no piece of the menu covers, where his thoughts go.
+   */
+  const whole = (): Rect => ({ x: 0, y: 0, w: scene.width, h: scene.height * 0.85 });
+  let picture = { frame: whole(), free: whole() };
   let pictureT = Infinity;
   let titleShown = false;
   let titleSnap = true;
   let titleFrames = 0;
-  const pictureRect = (dt: number): Rect => {
+  const measurePicture = () => {
+    const r = document.querySelector(".next-start__camera")?.getBoundingClientRect();
+    const tools = document.querySelector(".next-start__top")?.getBoundingClientRect();
+    const top = r ? Math.max(r.y, tools ? tools.bottom + 8 : r.y) : 0;
+    if (!r || r.width <= 0 || r.bottom - top <= 0) return { frame: whole(), free: whole() };
+    const frame = { x: r.x, y: top, w: r.width, h: r.bottom - top };
+    // The title's lines by the text on them: the eyebrow's box runs the full width of a phone on its side.
+    const text = (el: Element) => {
+      if (el instanceof HTMLButtonElement) return el.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect();
+    };
+    const seen = (sel: string, of = (el: Element) => el.getBoundingClientRect()) =>
+      [...document.querySelectorAll(sel)].map(of).filter((b) => b.width > 0 && b.height > 0);
+    // Above the strip and the side quests; then beside the title or above it, whichever leaves more room.
+    let left = frame.x;
+    let bottom = frame.y + frame.h;
+    for (const b of seen(".next-strip, .next-start__quests")) if (b.top > top) bottom = Math.min(bottom, b.top - 8);
+    const title = seen(".next-start__eyebrow, .next-start__word, .next-start__tagline, .next-start__go", text);
+    if (title.length) {
+      const right = Math.max(...title.map((b) => b.right)) + 12;
+      const above = Math.min(bottom, Math.min(...title.map((b) => b.top)) - 8);
+      if ((frame.x + frame.w - right) * (bottom - top) >= frame.w * (above - top)) left = right;
+      else bottom = above;
+    }
+    const free = { x: left, y: top, w: frame.x + frame.w - left, h: bottom - top };
+    return { frame, free: free.w > 0 && free.h > 0 ? free : frame };
+  };
+  const pictureRect = (dt: number) => {
     pictureT += dt;
     if (pictureT >= 0.5) {
       pictureT = 0;
-      const r = document.querySelector(".next-start__camera")?.getBoundingClientRect();
-      // The picture below the tools along the top, so his thoughts never tuck under them.
-      const tools = document.querySelector(".next-start__top")?.getBoundingClientRect();
-      const top = r ? Math.max(r.y, tools ? tools.bottom + 8 : r.y) : 0;
-      picture = r && r.width > 0 && r.bottom - top > 0 ? { x: r.x, y: top, w: r.width, h: r.bottom - top } : { x: 0, y: 0, w: scene.width, h: scene.height * 0.85 };
+      picture = measurePicture();
     }
     return picture;
   };
+  /** The free picture in the world, for keeping his thoughts inside it. */
+  const titleView = (): Rect => {
+    const { free } = picture;
+    const cam = scene.camera;
+    return {
+      x: cam.x + cam.shake.x + (free.x - scene.width / 2) / scene.scale,
+      y: cam.y + cam.shake.y + (free.y - scene.height / 2) / scene.scale,
+      w: free.w / scene.scale,
+      h: free.h / scene.scale,
+    };
+  };
   /**
    * The home screen's camera: him a third of the way across the picture at the key art's size, his feet low in it, the
-   * desk to his right (never past the level's look point, cx), leaning with the mouse; no look-ahead, no bounds.
+   * desk to his right (never past the level's look point, cx), leaning with the mouse; no look-ahead, no bounds. On a
+   * screen the menu fills, he peeks over it from the free band instead.
    */
   const titleCamera = (home: { x: number; cx: number }, feetY: number, dt: number) => {
     const cam = scene.camera;
     if (titleSnap) pictureT = Infinity;
-    const r = pictureRect(dt);
+    const { frame, free } = pictureRect(dt);
+    const peek = free.h < TITLE_PEEK.short * frame.h;
+    const crown = free.y + free.h * TITLE_PEEK.below;
+    const tall = peek ? (free.y + free.h - crown) / TITLE_PEEK.shown : TITLE_FRAME.tall * frame.h;
+    const at = peek
+      ? { x: free.x + free.w * TITLE_PEEK.across, y: crown + tall }
+      : { x: frame.x + frame.w * TITLE_FRAME.across, y: frame.y + frame.h * TITLE_FRAME.feet };
+    const leaning = peek ? 0 : 1;
     const portrait = scene.width < scene.height ? PORTRAIT_ZOOM : 1;
     const base = (HERO_SCREEN_FRACTION * scene.height * portrait) / HERO_HEIGHT;
-    const s = (TITLE_FRAME.tall * r.h) / HERO_HEIGHT;
+    const s = tall / HERO_HEIGHT;
     cam.zoom = s / base;
     cam.target = null;
     cam.bounds = null;
-    const wantX = Math.min(home.cx, home.x - (r.x + r.w * TITLE_FRAME.across - scene.width / 2) / s) + lean.x * TITLE_FRAME.leanX;
-    const wantY = feetY - (r.y + r.h * TITLE_FRAME.feet - scene.height / 2) / s + lean.y * TITLE_FRAME.leanY;
+    const wantX = Math.min(home.cx, home.x - (at.x - scene.width / 2) / s) + leaning * lean.x * TITLE_FRAME.leanX;
+    const wantY = feetY - (at.y - scene.height / 2) / s + leaning * lean.y * TITLE_FRAME.leanY;
     const k = titleSnap ? 1 : 1 - Math.exp(-TITLE_FRAME.ease * dt);
     cam.x += (wantX - cam.x) * k;
     cam.y += (wantY - cam.y) * k;
@@ -1581,7 +1635,8 @@ export async function startLook(
     views.get(game.level.id)?.venue.setChained(game.level.doors.some((d) => d.locked) && cur.pig?.state !== "defeated");
     words.update(simDt, face, scene.view());
     // On the home screen the title stands behind him: his thoughts rise on his far side, over the scene, not under the words.
-    bubbles.update(simDt, { crown: at.crown, face, facing: game.mode === "title" ? (-h.facing as 1 | -1) : h.facing, view: scene.view() });
+    const titled = game.mode === "title" && !!game.level.home;
+    bubbles.update(simDt, { crown: at.crown, face, facing: titled ? (-h.facing as 1 | -1) : h.facing, view: titled ? titleView() : scene.view() });
     speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : cast.crownOf(id)), face, scene.view());
     particles.update(simDt, face);
     vignette.width = scene.width;
@@ -1600,6 +1655,7 @@ export async function startLook(
       window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();
       window.__next.faceScreen = faceOnScreen;
+      window.__next.bubbleScreen = bubbles.box && screenRect(bubbles.box);
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,
         bodies: Object.keys(registry.hammer.bodies).length,

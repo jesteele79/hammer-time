@@ -246,6 +246,31 @@ version is migrated, never thrown away.
 `&journey=all` opens every stop for the page without saving; `/?quest=hungry`
 and `/?quest=fares` stay. The owner never needs these.
 
+### As built (Phase 1a, 2026-11-02)
+
+- The story is a table (`src/sim/story.ts`), the save a pure module
+  (`src/sim/journey.ts`): `hammer-time-journey` holds `next`, `done`, `best`,
+  `bonked`, the snapshot as `run` and `carry` (the six things on him), and
+  `credits`. It is read field by field: a later version, a hand edit or an
+  unknown stop keep what makes sense, and a run saved before a newer run field
+  existed is kept with that field fresh.
+- The prologue flows into Act 1 (the run is fresh at SAT and carries through
+  1-4); Acts 2 and 3 start clean. A level starts with three lives or more:
+  lives earned carry within an act.
+- Phase 1a has no SAT: Clock in plays the first built stop at or after `next`,
+  and the stops passed on the way (SAT) are marked finished with no best, so a
+  1a journey is not sent back to the airport when SAT arrives.
+- Try again restores the level's card exactly, the same layout included: a
+  level's pickups are seeded by its place in the whole shift, wherever a run
+  began.
+- Lifetime staff bonked counts each cast member once a layout, however they
+  went (knocked out, run off, down a pit), in journeys and replays; Work the
+  whole shift's count joins in Phase 1b with the Service Record.
+- `&level=` starts that level of the whole shift as `&venue=` did; `&journey=`
+  ("all" or "1") opens every built stop for the page and saves nothing. The
+  pig's "Practice over" is gone from the home screen with the four cards; the
+  old `&venue=arena` link alone still starts it, for the pig's check.
+
 ## 5. The home screen and the journey strip
 
 ### 5.1 Hammer, live
@@ -301,6 +326,31 @@ wheel moving it, the open stop centered on arrival.
 controller, the keys, quality. **New game** beside it (§4.5). The eyebrow,
 tagline and edition lines stay but speak for the whole journey ("Three acts.
 Zero patience." "Bonk the staff. Dodge the paper. Get to Basel.").
+
+### As built (Phase 1a, 2026-11-02)
+
+- The live scene is the lobby by the desk (`LOBBY.home = { x: 1100, cx: 1600 }`):
+  Hammer by the bellhop's luggage cart, the desk behind. The camera frames him
+  by the key art's composition, a third of the way across the start screen's
+  picture (below its tools) at 0.44 of its height, his feet 83 percent down,
+  never looking past `cx`, with no level bounds (an upright phone shows him in
+  its top band, the rest of the screen ink). The key art is now that scene's own
+  first frame, so the fade is seamless.
+- On the home screen the world is still: the cast never moves or notices him,
+  and his snot rocket (45 s, then every 60 s) passes people and carts and lands
+  on the floor. His thoughts rise on his far side, kept inside the part of the
+  picture no piece of the menu covers (beside the title or above it, above the
+  strip); his harrumph's "Any day now." is dropped there, so the insults are his
+  only thoughts. Where that free part is under 45 percent of the picture's
+  height (a phone on its side) he peeks over the strip from the band right of
+  Clock in, the strip across his middle.
+- The strip lights the stop Clock in will play as next; a stop not built yet
+  shows its name and "Coming" when it is finished, next or before the next, and
+  stops past the next are locked (code and padlock). A click picks a finished
+  stop; a double click starts a stop once. Work the whole shift appears on Act
+  1's header once Act 1 is finished, with today's best.
+- Settings, New game and the Service Record are Phase 1b's; the 1a tools are
+  sound, the keys and the quality (which shows Auto's pick, "Auto · Ultra").
 
 ## 6. The prologue: SAT
 
@@ -387,6 +437,22 @@ Two things change:
 The R8 flavor that belongs here: the bellhop's rolling cart (built), food
 plates on counters (expansion §10, "Are you going to finish that?") land in
 1-2 and 1-3 as four to six plates a venue in the last phase, not before.
+
+### As built (Phase 1a, 2026-11-02)
+
+- The journey's cards are in the shell's slate and gold, their Continue focused
+  so Enter or Space presses it; a key held through any of them is never a press
+  in the next level. 1-1 has no card after it, so the game goes straight on to
+  1-2's card ("Your shift goes on").
+- After the pig: the Marriott Bonvoy notification with "Reviewed." as his
+  thought, then "Act 1 · The Trip · complete" with the run's score and the act's
+  total (the sum of its stops' bests, read as "its best"). With 2-1 not built
+  its Continue goes home, where the strip shows 2-1 coming and Clock in reads
+  "Act 2 is coming" (plan decision 5).
+- A journey's venue card reads "Your shift starts here" at 1-1 and in a
+  replay, "Your shift goes on" elsewhere; Hammer down shows the run's score and
+  Try again and Journey. A replay ends on "Clocked out" with the level's score
+  and best, Play again and Journey.
 
 ## 8. Act 2: Status Crusade
 
@@ -998,7 +1064,32 @@ keys** (the table as built), **quality** (Auto, High, Medium, Low; Auto picks
   `art/outgoing/batch-r5-codex.txt`) are made in Phase 1 and cut in by the R6
   handoff's steps.
 
-## 16. The art plan (what each phase asks Codex and Blender for)
+### As built (Phase 1a, 2026-11-02)
+
+- **The tiers** (`TIERS`): ultra a density up to 2, 900 particles, bloom, glows
+  and rim; high 1.5 and 600; medium 1 and 400, no bloom; low 300, no glows, no
+  rim. Auto starts at high and, after two settled seconds, picks ultra once when
+  the browser names a desktop-class card (NVIDIA, GeForce, RTX, Radeon, AMD or
+  Arc) that held 58 fps; the new tier settles a second before the governor
+  judges it. On this laptop the headless checks run on the AMD Radeon 780M
+  (counted as desktop class by that rule) at 120 fps at ultra, 1920 by 1080.
+- **Crisp at 1080p:** his body layers and heads and the cast's (head plates and
+  their silhouettes included) are published at the painting's size; props,
+  hats, layer silhouettes and tufts stay at half. The first level's art is
+  7.3 MB of its 20 MB budget.
+- **The floor's edge:** standing on a floor the camera settles the walking line
+  at 78 percent (in the air the dead zone holds); every floor's face runs 420 px
+  in its material, darkening by a quarter toward the bottom, with a 40 px
+  contact shadow under the line and 16 px under the slab platforms. The look
+  boards frame him the same way.
+- **The cheap minors** landed in Task 1 (the miss lines on every miss, only the
+  primary button throwing at the gate, the gate's fingers let go on a blur and
+  at the round's end, no press on the first step back from a break, the pad's
+  own words on the break card, the scalpel on every board's throw, the nurse
+  comment's place); the per-frame items in Task 9 (the banquet's plates drawn
+  once with pooled stacks and flights, the HUD's insets measured on a resize or
+  twice a second, the gate's settled scalpels and ladder drawn on change, the
+  drawn pig on a face change, `skinLayer`'s matrices reused). (what each phase asks Codex and Blender for)
 
 Every painting follows `art/outgoing/`'s standing rules: the inked cartoon
 style of `art/incoming/cast/bellhop-1.png`, the cast pose-locked to
