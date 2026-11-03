@@ -417,6 +417,31 @@ The lobby's AIRPORT SHUTTLE door is untouched: once a level (per §4.3's spent
 doors), it opens the same round as a side quest, and the start screen's Side
 quests card plays it as practice.
 
+### As built (Phase 1b, 2026-11-02)
+
+- SAT is `src/sim/levels/sat.ts` as the plan wrote it, with these changes: the
+  second TSA agent stands at 5,150, just past the scanner (inside it he was
+  taller than its opening); an agent with no cart squares up within 420 px and
+  waits for Hammer to stand before shoving, so the slide under the scanner is
+  never punished; the bartender wears server-1 as painted (it already has the
+  white shirt and black apron), with no recolor.
+- The lessons teach each move in its stretch until he has done it once
+  (`Level.lessons`, `Run.learned`); the thoughts fire once a run as he passes
+  a mark going right and is still within 160 px of it (a teleport far past a
+  mark says nothing). The gate's hint reads "GATE B7 · walk in to board".
+- A runaway cart hurts him only while closing on him: one he overtakes running
+  the same way is left behind (the curb's cart rolled the length of the hall
+  and hurt him from behind). This holds in every level.
+- Drawn in code until the paintings are synced: the van, the rope line, the
+  X-ray with its bins riding the belt and the hall's terrazzo under it, the
+  scanner's low opening, the walkway set into the terrazzo, the departures
+  column, the seats, and the podium in front of the gate's door, against a
+  drawn terminal wall with a window band. The SAT sheet's six pieces replace
+  their stand-ins once `props/sat-sheet.png` is synced.
+- The journey starts at SAT: a fresh Clock in opens on the email, then SAT's
+  card. A Phase 1a journey that passed SAT keeps it finished with no best; it
+  replays from the strip, and New game plays it in order.
+
 ## 7. Act 1 as a chapter
 
 The lobby, the restaurant, the campus and the gift shop play exactly as built,
@@ -1013,6 +1038,20 @@ slide, the cart's rattle, the seatbelt chime, the bagpipe's drone, the drum
 corps' hit, the mace's whistle, the ring light's hum, the screen's crack, the
 drone's buzz. The crowd never speaks aloud.
 
+### As built (Phase 1b, 2026-11-02)
+
+- Phase 1's nine songs are `SONGS` (the procedural day tune is gone). Each one,
+  rendered through the game's own bus, sits within 6 dB of the banquet's
+  loudness (the title tune is the quietest, 4.8 dB under).
+- What plays is `musicFor(mode, level, quest)`: the title tune on the home
+  screen; the level's song at 0.4 under its card, the story's cards, the
+  walk-off, the tally, a break and Shift over, and full in play and while he
+  goes down; a round's song the same way; silence on Hammer down under four
+  falling notes on a muted trombone (1.2 s, `hammerDown`, named apart from the
+  wind-up's sting); the fanfare as an act's card comes up.
+- A key or a tap on the home screen or a card unlocks sound, so the title tune
+  starts at the first one.
+
 ## 14. Settings and the controller
 
 Settings, from the home screen and the break card: **music volume** and
@@ -1024,6 +1063,21 @@ trigger the super smash, the left trigger the lecture, Start pauses; a
 connected pad shows its glyphs in the hint line in place of the keys), **the
 keys** (the table as built), **quality** (Auto, High, Medium, Low; Auto picks
 **ultra** on a desktop GPU, §15), and reduced motion following the system.
+
+### As built (Phase 1b, 2026-11-02)
+
+- Settings is a card over whatever shows: the two sliders, Sound off and Sound
+  on, the quality (moved here from the home screen's top bar, which now holds
+  the Service Record, Settings and New game), the controller's line, the keys
+  (the pad's buttons while one is connected) and the reduced-motion note.
+  While it is open the game ignores the keys (Escape closes it and leaves a
+  break as it was). The HUD's speaker button stays the one mute; the mute is
+  kept with the volumes.
+- The controller is read once a frame and merged with the keys and the touch
+  pad; Start breaks on its press. Its mapping is tested; no controller was on
+  hand to try on hardware.
+- New game asks first, Keep focused; Erase starts the journey over and keeps
+  the lifetime staff bonked and every other best.
 
 ## 15. The laptop look pass and the 1.0 polish
 
@@ -1089,7 +1143,17 @@ keys** (the table as built), **quality** (Auto, High, Medium, Low; Auto picks
   comment's place); the per-frame items in Task 9 (the banquet's plates drawn
   once with pooled stacks and flights, the HUD's insets measured on a resize or
   twice a second, the gate's settled scalpels and ladder drawn on change, the
-  drawn pig on a face change, `skinLayer`'s matrices reused). (what each phase asks Codex and Blender for)
+  drawn pig on a face change, `skinLayer`'s matrices reused).
+
+### As built (Phase 1b, 2026-11-02)
+
+- The Service Record (`next-record.tsx`): the journey's total, each act's, staff
+  bonked (lifetime), Work the whole shift's best and the two side quests'.
+  Staff bonked is counted once each (`bonkedCount`): a level's tally adds its
+  own, Hammer down and Shift over add what the run bonked since it was last
+  counted, a run's start counts from where it stands. The game reports each
+  frame's numbers before a change of mode, so the count at Hammer down is exact.
+- SAT at 1920 by 1080 holds 120 fps at ultra on the dev box's Radeon 780M. (what each phase asks Codex and Blender for)
 
 Every painting follows `art/outgoing/`'s standing rules: the inked cartoon
 style of `art/incoming/cast/bellhop-1.png`, the cast pose-locked to
@@ -1106,6 +1170,16 @@ hold the paste-ready prompts.
 - **Phase 3:** the cabin's Blender set; `cast/purser.png`, `cast/attendant.png`; Paris (`backdrops/paris-far-1..3.png`, mid and fore pieces, `cast/concierge.png`, `cast/parisian.png`, `cast/garcon.png`, `props/french-sheet.png`, `backdrops/brasserie.png`); the train (the station hall and a carriage from Blender renders painted over, `backdrops/station.png`, `backdrops/train-far-1..3.png`, `cast/conductor.png`, `props/train-sheet.png`).
 - **Phase 4:** Basel (the bridge and the Marktplatz from Blender renders painted over, `backdrops/basel-far-1..4.png`, `cast/piper.png`, `cast/drummer.png`, `cast/drill.png`, `cast/drum-major.png`, `props/basel-sheet.png`); the office (`backdrops/lab-far-1..3.png`, `cast/tech.png`, `cast/resident.png`, `cast/admin.png`, `props/lab-sheet.png`, the scrubs costume layer `hammer/body-scrubs.png`); the training room (`backdrops/training-room.png`, `cast/replacement.png`, `props/training-sheet.png`: the ring light, the lectern, the drone, the tablet, the selfie stick, the screen).
 - **Phase 5:** the epilogue's backdrops (the airport's hall from a Blender render, SAT at dusk, the highway sign, the Buc-ee's booth, the credits' training room); `art/incoming/brand/key-art.png` if the owner wants a painted first frame.
+
+### As built (Phase 1b, 2026-11-02)
+
+- None of SAT's or the gate's paintings exist yet. The prompts are in
+  `art/outgoing/batch-story-phase1-codex.txt` (SAT) and
+  `art/outgoing/batch-r5-codex.txt` (the gate). The code expects
+  `cast/skycap-1.png` and `cast/tsa-1.png` (the sync's names),
+  `props/sat-sheet.png` (six pieces in the order stanchion, bin, kiosk, van,
+  sign, pretzel), and the walls and the mid and fore pieces under the names in
+  `sat.ts`'s backdrop, each needing its cut in `art/cuts/` when it arrives.
 
 ## 17. How the old plans fold in
 

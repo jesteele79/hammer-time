@@ -4,14 +4,17 @@ Hammer Time is a 2D hotel platformer, and since story Phase 1 one story in
 three acts from San Antonio to Basel (the design is
 `docs/superpowers/specs/2026-11-02-hammer-time-story-design.md`). Hammer, in
 his Affliction shirt with a mallet in his fist, works against the clock through
-the stops of his journey: Act 1 is the hotel's lobby, restaurant, campus and
-gift shop, through bellhops, servers, office workers, cooks, professors and
-students who come at him, to the Pink Menace, the gift shop's giant plush pig.
+the stops of his journey: the prologue is San Antonio's airport, from the curb
+through the TSA line to Fare Darts at gate B7, and Act 1 is the hotel's lobby,
+restaurant, campus and gift shop, through bellhops, servers, office workers,
+cooks, professors and students who come at him, to the Pink Menace, the gift
+shop's giant plush pig.
 He fights with the mallet, his snot, a lecture and the super smash, keeps cool
 with the towel and Coke Zero, and can slip through the lobby's BUFFET door into
 Hungry Hungry Hammer and its AIRPORT SHUTTLE door into Fare Darts. The journey
 is saved in the browser; the home screen is Hammer himself, live in the lobby,
-insulting you while you dawdle.
+insulting you while you dawdle. Every place has its own song, and Settings hold
+the two volumes, the quality and a controller.
 
 ```powershell
 npm install
@@ -27,14 +30,15 @@ The game is a modern renderer over a fixed-step sim (the design is
 phases R0 to R4 over the first game, which is gone since R4. `/` opens it on
 its start screen; `/?next=1` goes straight into Work the whole shift (the
 checks use it), `/?next=1&level=<id>` starts at a level of the whole shift
-(the old `&venue=` stays its alias), `&journey=all` opens every built stop of
+(the old `&venue=` stays its alias; `&level=sat` plays the airport as the
+journey does, Act 1 after it), `&journey=all` opens every built stop of
 the journey for the page without saving, `/?quest=hungry` opens Hungry Hungry
 Hammer's practice and `/?quest=fares` Fare Darts', and an old `/?classic=1`
 link opens the start screen. It is a PixiJS 8
 scene on WebGPU (WebGL 2 when WebGPU is missing, or with `&gl=1`) playing
 the shift (the lobby, the restaurant, the campus and the gift shop) under the keyboard (arrows or WASD, Space
 or Z to jump, Shift to run, Down to crouch and, at speed, slide, P or Escape
-for a break) or the touch pad. `&noart=1` runs the art fallback path;
+for a break), the touch pad or a controller. `&noart=1` runs the art fallback path;
 `&board=1` exposes the look-board renderer; `&dev=1` adds a practice hit on G
 and a teleport, a hit and a full smash on `window.__next.dev`, for the checks.
 
@@ -177,6 +181,41 @@ running move is never restarted.
 Comic words, thoughts and captions are placed off his face every frame, and
 particles that reach his face are dropped. Sound is the shipped game's effects
 and music through its `AudioBus`, silent until the first key or tap.
+
+## SAT (the prologue)
+
+San Antonio International (`src/sim/levels/sat.ts`) is the journey's first
+stop and its tutorial: 8,000 px and seven minutes on the boarding clock, its
+card saying "Boarding in 7:00".
+
+- **The curb:** the Southwest sign, the shuttle van, the skycap behind his
+  luggage cart (a bellhop in a red coat and cap with a bag of nuts to win off
+  him; his cart rolls when bonked) and the first ! crate.
+- **The check-in hall:** two kiosks to jump onto, a Coke Zero crate over one,
+  the BAG FEE sign ("Bags used to fly FREE.") and a delivery case.
+- **The TSA line:** the rope zig-zag, a ramp up onto the X-ray belt, which
+  carries him through the machine, and the body scanner, a low pass that only
+  a slide gets under. Two TSA agents shove with their hands up close ("Arms
+  up, sir."); they wait for him to stand up rather than shove him mid-slide.
+  NO LIQUIDS hangs over the scanner.
+- **The concourse:** its punch clock, the moving walkway, the bar, where the
+  bartender throws coasters that fly and are swatted like paper planes, and
+  the newsstand with a Buc-ee's crate over its shelf.
+- **Gate B7:** four seats from behind and the podium in front of the gate.
+  Walking into it opens Fare Darts as the level's set piece; its tally ends the
+  level: "Three hours later. The hotel.", then 1-1's card, with the boxes of
+  #15 blades it paid carried in.
+
+The hint line teaches the moves in the stretch where each is needed, each until
+he has done it once: Space jumps, Shift runs, ↓ while running slides, H swings,
+F fires a snot rocket, T towels off. His thoughts come once as he passes their
+marks ("Pre-check. I AM pre-check.", "Take your shoes off? These are loafers.",
+"It's Coke Zero. It's not a liquid. It's a lifestyle.", "Seven minutes.
+Plenty."). Until its paintings are synced (`art/incoming/backdrops/sat-*.png`,
+`cast/skycap-1.png`, `cast/tsa-1.png`, `props/sat-sheet.png`), the airport is
+drawn in code (`src/render/venue-sat.ts`) against a drawn terminal wall, the
+skycap and the agents are stand-ins, and the bartender wears the restaurant
+server's painting, which already has his white shirt and black apron.
 
 ## The lobby (1-1)
 
@@ -718,9 +757,7 @@ not built yet says what it is and that it is coming. A click picks a finished
 stop for Clock in (it replays); a double click starts a stop. Once Act 1 is
 finished its header offers Work the whole shift with today's best; with Act 2
 not built yet Clock in then reads "Act 2 is coming". The top bar holds the
-journey's best, sound, the keys and the quality (Auto starts at high and picks
-ultra on a real video card that holds 58 frames a second, showing "Auto ·
-Ultra"; High, Medium and Low are kept on the device), and the Side quests row
+journey's best, the Service Record, Settings and New game, and the Side quests row
 under the strip plays Hungry Hungry Hammer and Fare Darts as practice on the same
 page, each with its own best.
 
@@ -741,9 +778,10 @@ built stop, the side quests') after the art changes, and
 The story (`src/sim/story.ts`) is fifteen stops in order: SAT (the prologue),
 1-1 to 1-4 (Act 1, The Trip: the hotel's four venues as built), 2-1 to 2-4
 (Act 2, Status Crusade) and 3-1 to 3-6 (Act 3, The Last Tour), with the cards
-that come before and after them. Phase 1a builds Act 1's four; SAT comes in
-Phase 1b, and until then Clock in starts at 1-1 and SAT is marked finished with
-no best once it is passed.
+that come before and after them. SAT and Act 1's four are built: a fresh
+journey's Clock in opens on the email from the Basel office, then SAT. A
+journey begun before SAT was built has it finished with no best; it replays
+from the strip, and New game plays it in order.
 
 - **The save** (`src/sim/journey.ts`, `hammer-time-journey` in this browser):
   the next open stop, the finished ones, each stop's best, lifetime staff
@@ -765,14 +803,52 @@ no best once it is passed.
   next level): "Your shift goes on" between 1-1 and 1-4; after the pig, the
   Marriott Bonvoy notification "Your status has been reviewed." with his
   thought "Reviewed.", then "Act 1 · The Trip · complete" with the run's score
-  and the act's total; with Act 2 not built yet Continue goes home. Before SAT
-  (Phase 1b) the email from the Basel office.
+  and the act's total, to a brass fanfare; with Act 2 not built yet Continue
+  goes home. Before SAT the email from the Basel office ("Transition."), once
+  a journey; after its gate "Three hours later. The hotel."
 - **A replay** of a finished stop starts fresh (three lives, no carries), can
   set a new best, never moves the journey, and ends on its own "Clocked out"
   card with Play again and Journey.
 - **Work the whole shift** is today's game, today's cards and today's best
   (`hammer-time-best-next`), untouched: from Act 1's header once Act 1 is
   finished, or `/?next=1`.
+
+## Music
+
+Every place has its own song on the game's synth (`src/game/audio.ts`,
+`SONGS`, all in the side quests' form): the title tune on the home screen (a
+brass fanfare, then a swagger), SAT's "Pre-Check" (terminal muzak with the
+boarding chime every eight bars), the lobby's muzak, the restaurant's bossa,
+the campus's lo-fi, the gift shop's boss theme, the stash's cellar tune, and
+the two side quests' as built. What plays follows the mode (`musicFor` in
+`src/render/sound.ts`): the level's song quiet under its cards, the tallies
+and the break and full in play, a round's song the same way, silence under
+four falling notes when Hammer goes down, and a brass fanfare as an act's card
+comes up. Browsers hold sound back until a key or a tap, so the title tune
+starts at the first one.
+
+## Settings, the controller and the Service Record
+
+Settings (`src/components/next-settings.tsx`), from the home screen's top bar
+and the break card: the music's and the effects' volumes (0 to 100, kept on the
+device as `hammer-time-sound`; Sound off puts both at 0, Sound on brings back
+80 and 80), the quality (Auto starts at high and picks ultra on a real video
+card that holds 58 frames a second, showing "Auto · Ultra"; High, Medium and
+Low are kept on the device), the controller, the keys, and reduced motion as
+the system has it. Escape or Done closes it. The HUD's speaker button is the
+one mute, kept with the volumes.
+
+A controller with the standard mapping (`src/render/gamepad.ts`) plays
+alongside the keys: the stick and the d-pad move, A jumps, X swings, B snots, Y
+lobs a box, RB runs, LB towels, RT smashes, LT lectures, Start breaks. While
+one is connected the hint line and the break card name its buttons.
+
+New game asks first ("Start over? The journey and its bests are erased.", with
+Keep focused) and keeps the whole shift's and the side quests' bests and the
+lifetime staff bonked. The Service Record (`src/components/next-record.tsx`)
+shows the journey's total and each act's, the staff bonked in every way of
+playing (each counted once: a level's tally adds its own, Hammer down and Shift
+over the rest), Work the whole shift's best and the two side quests'.
 
 ## Validation
 
@@ -799,6 +875,9 @@ node scripts/next-start.check.mjs http://127.0.0.1:8090/
 node scripts/hungry-browser.check.mjs http://127.0.0.1:8090/
 node scripts/flop-browser.check.mjs http://127.0.0.1:8090/
 node scripts/fares-browser.check.mjs http://127.0.0.1:8090/
+node scripts/journey-browser.check.mjs http://127.0.0.1:8090/
+node scripts/voice-browser.check.mjs http://127.0.0.1:8090/
+node scripts/sat-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
