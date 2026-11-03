@@ -29,6 +29,7 @@ export function NextStart({
   faresBest,
   onSettings,
   onNewGame,
+  onRecord,
   journey,
   built,
   onStop,
@@ -49,6 +50,8 @@ export function NextStart({
   onSettings: () => void;
   /** New game: asks, then starts the journey over. */
   onNewGame: () => void;
+  /** The Service Record: the totals, the lifetime staff bonked, the bests. */
+  onRecord: () => void;
   journey: Journey;
   /** The stops that can be played, in story order. */
   built: readonly StoryId[];
@@ -114,6 +117,9 @@ export function NextStart({
         <span className="next-start__best">
           Journey best <b>{pad(journeyTotal(journey))}</b>
         </span>
+        <button type="button" className="next-start__tool" onClick={onRecord} disabled={!live}>
+          Service Record
+        </button>
         <button type="button" className="next-start__tool" onClick={onSettings} disabled={!live}>
           Settings
         </button>

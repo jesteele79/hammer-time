@@ -233,11 +233,24 @@ try {
   await page.goto(url);
   await page.evaluate(() => {
     const j = JSON.parse(localStorage.getItem("hammer-time-journey") ?? "null") ?? {};
-    localStorage.setItem("hammer-time-journey", JSON.stringify({ ...j, v: 1, next: "restaurant", done: ["sat", "lobby"], best: { sat: 900, lobby: 4000 }, bonked: 3, run: null, carry: null, credits: false }));
+    localStorage.setItem("hammer-time-journey", JSON.stringify({ ...j, v: 1, next: "restaurant", done: ["sat", "lobby"], best: { sat: 900, lobby: 4000 }, bonked: 7, run: null, carry: null, credits: false }));
   });
   await page.goto(url);
   await page.waitForFunction(() => window.__next?.run?.mode === "title");
   const faresBest = await page.evaluate(() => localStorage.getItem("hammer-time-best-fares"));
+  // The Service Record: the journey's total and each act's, the lifetime staff bonked, the bests.
+  const record = async () => {
+    await page.getByRole("button", { name: "Service Record" }).click();
+    const card = page.getByRole("dialog", { name: "Service Record" });
+    const text = await card.innerText();
+    await page.keyboard.press("Escape");
+    await card.waitFor({ state: "detached" });
+    return text;
+  };
+  let seen = await record();
+  for (const words of ["Journey total", "Prologue", "Act 1 · The Trip", "Staff bonked", "Whole shift best", "Hungry Hungry Hammer best", "Fare Darts best"]) assert.ok(seen.toLowerCase().includes(words.toLowerCase()), `the record names ${words}: ${seen}`);
+  assert.ok(/Staff bonked\s*7/i.test(seen), `seven staff bonked: ${seen}`);
+  assert.ok(seen.includes("004900"), `the journey's total, 900 and 4,000: ${seen}`);
   await page.getByRole("button", { name: "New game" }).click();
   const ask = page.getByRole("dialog", { name: "New game" });
   assert.match(await ask.innerText(), /Start over\?[\s\S]*The journey and its bests are erased\./i);
@@ -250,6 +263,8 @@ try {
   assert.deepEqual([fresh.next, fresh.done, fresh.best], ["sat", [], {}], "Erase starts the journey over");
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-fares")), faresBest, "the gate's best untouched");
   assert.equal((await stops(page)).find((x) => x.code === "SAT").state, "next", "SAT next on the strip");
+  seen = await record();
+  assert.ok(/Staff bonked\s*7/i.test(seen) && /Journey total\s*000000/i.test(seen), `a new journey keeps the lifetime staff bonked: ${seen}`);
   // /?quest=fares opens the practice round straight from the start screen (R5 §1, decision 16).
   await page.goto(`${base}?dev=1&quest=fares`);
   await page.waitForFunction(() => window.__next?.run?.mode === "quest" && window.__next.quest?.id === "fares");

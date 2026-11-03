@@ -1432,3 +1432,16 @@ test("the standard mapping: the buttons and the left stick to actions, past a de
   assert.deepEqual([...mapPad(press(15), [0, 0]).held], ["right"]);
   assert.deepEqual([mapPad(press(9), [0, 0]).start, mapPad(up(), [0, 0]).start], [true, false]);
 });
+
+import { createGame as createGameR18 } from "../src/sim/game.ts";
+import { hudOf as hudOfR18, hudKey as hudKeyR18 } from "../src/render/hud.ts";
+import { LOBBY as LOBBY_R18 } from "../src/sim/levels/lobby.ts";
+import { STASH as STASH_R18 } from "../src/sim/levels/stash.ts";
+test("the HUD carries the run's staff bonked, and a bonk changes it", () => {
+  const g = createGameR18({ lobby: LOBBY_R18, stash: STASH_R18 }, 3, { cast: false });
+  const a = hudOfR18(g, null);
+  g.run.bonked = 4;
+  const b = hudOfR18(g, null);
+  assert.deepEqual([a.bonked, b.bonked], [0, 4]);
+  assert.notEqual(hudKeyR18(a), hudKeyR18(b));
+});

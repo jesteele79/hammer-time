@@ -119,3 +119,14 @@ export function stopState(j: Journey, id: StoryId): "done" | "next" | "locked" {
 
 export const actTotal = (j: Journey, act: ActId): number => STORY.filter((s) => s.act === act).reduce((t, s) => t + (j.best[s.id] ?? 0), 0);
 export const journeyTotal = (j: Journey): number => STORY.reduce((t, s) => t + (j.best[s.id] ?? 0), 0);
+
+/**
+ * Lifetime staff bonked (plan decision 4), counted from the run as it goes: what a moment adds to the journey's count and
+ * how much of the run is counted after it. A run's start (a fresh one, a saved one, Try again's) counts from where it
+ * stands, its bonks counted when they happened; a level's tally adds its own; Hammer down and Shift over add the rest.
+ */
+export function bonkedCount(counted: number, run: number, at: "start" | "levelDone" | "over" | "clear", level = 0): { add: number; counted: number } {
+  if (at === "start") return { add: 0, counted: run };
+  if (at === "levelDone") return { add: level, counted: counted + level };
+  return { add: Math.max(0, run - counted), counted: Math.max(counted, run) };
+}

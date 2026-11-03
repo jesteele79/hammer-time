@@ -292,3 +292,24 @@ test("on the home screen his idle beats run, but his harrumph's line is the pool
   assert.ok(of(evs, "watch").length >= 10 && of(evs, "tap").length >= 10, "the watch and the foot tap keep coming");
   assert.equal(of(evs, "harrumph").length, 0, "no harrumph to cut across the insults or repeat once they are spent");
 });
+
+import { bonkedCount } from "../src/sim/journey.ts";
+test("lifetime staff bonked counts each bonk once, across levels, Hammer down, Try again and the whole shift", () => {
+  // A journey: a level's tally adds its own; Hammer down adds what was bonked since; Try again counts from the card.
+  let c = bonkedCount(0, 0, "start");
+  let r = bonkedCount(c.counted, 4, "levelDone", 4);
+  assert.deepEqual([r.add, r.counted], [4, 4]);
+  r = bonkedCount(r.counted, 6, "over");
+  assert.deepEqual([r.add, r.counted], [2, 6]);
+  c = bonkedCount(r.counted, 4, "start");
+  assert.equal(c.counted, 4, "Try again restores the card's run: its bonks already counted");
+  r = bonkedCount(c.counted, 7, "levelDone", 3);
+  assert.deepEqual([r.add, r.counted], [3, 7]);
+  // The whole shift: nothing per venue, all of it at Shift over; a saved run's earlier bonks are not counted again.
+  c = bonkedCount(r.counted, 0, "start");
+  r = bonkedCount(c.counted, 9, "clear");
+  assert.deepEqual([r.add, r.counted], [9, 9]);
+  c = bonkedCount(r.counted, 12, "start");
+  r = bonkedCount(c.counted, 12, "over");
+  assert.equal(r.add, 0, "a resumed run's bonks were counted when they happened");
+});

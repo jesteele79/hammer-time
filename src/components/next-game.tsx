@@ -6,13 +6,14 @@ import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
 import type { LevelId } from "@/sim/level";
 import type { QuestId } from "@/sim/quests/quest";
-import { JOURNEY_KEY, finishLevel, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
+import { JOURNEY_KEY, bonkedCount, finishLevel, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
 import { STOP_LEVELS } from "@/sim/levels";
 import { RUN } from "@/sim/run";
 import { builtStops, isStoryId, nextOf, stopOf, type ActId, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
 import { DEFAULT_SOUND, SOUND_KEY, parseSound, type SoundSettings } from "@/game/sound-settings";
 import { NextHud } from "./next-hud";
 import { NextErase, NextSettings } from "./next-settings";
+import { NextRecord } from "./next-record";
 import { NextStart } from "./next-start";
 import { NextTouch } from "./next-touch";
 import { NextVeil, type RunKind } from "./next-veil";
@@ -143,6 +144,9 @@ export function NextGame({
   /** The Settings, and New game's question, are open over whatever shows. */
   const [settings, setSettingsOpen] = useState(false);
   const [erasing, setErasing] = useState(false);
+  const [record, setRecord] = useState(false);
+  /** How much of this run's staff bonked the lifetime count has had (plan decision 4). */
+  const counted = useRef(0);
   const [place, setPlace] = useState<"top" | "bottom" | "right">("bottom");
   const [ready, setReady] = useState(false);
   // A start chosen before the game was ready: it begins once it is, and only once.
@@ -231,6 +235,15 @@ export function NextGame({
     setHud(h);
   }, []);
   const onMode = useCallback((m: GameMode) => {
+    // Lifetime staff bonked: a run's start counts from where it stands; Hammer down and Shift over add the rest.
+    const run = hudNow.current?.bonked ?? 0;
+    const from = lastMode.current;
+    if (from === null || from === "title" || ((from === "over" || from === "clear") && m === "card")) counted.current = bonkedCount(counted.current, run, "start").counted;
+    if (m === "over" || m === "clear") {
+      const c = bonkedCount(counted.current, run, m);
+      counted.current = c.counted;
+      if (c.add) writeJourney({ ...journeyRef.current, bonked: journeyRef.current.bonked + c.add });
+    }
     if (m === "card") {
       setBack(lastMode.current === "dying");
       // The shift's first card; a card after a venue's tally says the shift goes on.
@@ -251,7 +264,7 @@ export function NextGame({
     } else setScene(false);
     lastMode.current = m;
     setMode(m);
-  }, []);
+  }, [writeJourney]);
 
   /** A journey level's card is up: the snapshot just taken is what Try again and tomorrow's Clock in start from. */
   const onCard = useCallback(
@@ -281,6 +294,7 @@ export function NextGame({
       if (!isStoryId(e.id)) return;
       const id = e.id;
       const replay = howRef.current === "replay";
+      counted.current = bonkedCount(counted.current, 0, "levelDone", e.bonked).counted;
       const done = finishLevel(journeyRef.current, id, e.score, replay ? null : e.snapshot);
       const j = { ...done, bonked: done.bonked + e.bonked };
       writeJourney(j);
@@ -442,9 +456,9 @@ export function NextGame({
     setSettingsOpen(open);
     look.current?.setMenu(open);
   };
-  /** New game: the journey and its bests start over; the whole shift's and the side quests' bests stay. */
+  /** New game: the journey and its bests start over; the lifetime staff bonked, the whole shift's and the side quests' bests stay. */
   const eraseJourney = () => {
-    writeJourney(newJourney());
+    writeJourney({ ...newJourney(), bonked: journeyRef.current.bonked });
     setErasing(false);
   };
   const press = useCallback((a: Action, down: boolean) => look.current?.press(a, down), []);
@@ -487,6 +501,7 @@ export function NextGame({
           faresBest={faresBest}
           onSettings={() => openSettings(true)}
           onNewGame={() => setErasing(true)}
+          onRecord={() => setRecord(true)}
           journey={journey}
           built={BUILT}
           onStop={beginAt}
@@ -539,6 +554,7 @@ export function NextGame({
         />
       )}
       {erasing && <NextErase onErase={eraseJourney} onKeep={() => setErasing(false)} />}
+      {record && <NextRecord journey={journey} best={best} banquetBest={banquetBest} faresBest={faresBest} onClose={() => setRecord(false)} />}
     </>
   );
 }

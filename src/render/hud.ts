@@ -57,6 +57,8 @@ export type HudPayload = {
   boxes: number;
   /** A controller is connected: the hint and the break card name its buttons. */
   pad: boolean;
+  /** Staff bonked this run: the shell adds them to the lifetime count (plan decision 4). */
+  bonked: number;
 };
 export type BanquetHud = { id: "hungry"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
 /**
@@ -181,6 +183,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     quest,
     boxes: h.boxes,
     pad: false,
+    bonked: game.run.bonked,
   };
 }
 
@@ -233,4 +236,5 @@ export const hudKey = (p: HudPayload) =>
     p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.towels, p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",
     p.boxes,
     p.pad,
+    p.bonked,
   ].join("|");

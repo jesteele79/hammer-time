@@ -1051,6 +1051,30 @@ button:focus-visible {
   font-size: 13px;
   color: var(--hud-dim);
 }
+/* The Service Record's lines: what on the left, the number on the right in the HUD's display figures. */
+.next-record {
+  margin: 14px 0 0;
+}
+.next-record__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px;
+  border-bottom: 1px solid rgb(233 184 102 / 0.18);
+  font-size: 15px;
+}
+.next-record__row dt {
+  color: var(--hud-dim);
+  text-align: left;
+}
+.next-record__row dd {
+  margin: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
 .next-settings__keys {
   display: flex;
   flex-wrap: wrap;

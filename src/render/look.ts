@@ -921,19 +921,20 @@ export async function startLook(
 
   /** The tail of every frame, the shift's and the banquet's: the mode's notice, the hurry, the notes' clocks and the HUD. */
   const afterFrame = (simDt: number, hurry: boolean) => {
-    if (game.mode !== lastMode) {
-      lastMode = game.mode;
-      opts.onMode?.(game.mode);
-    }
     sound.setHurry(hurry);
     sound.tick();
     savedT = Math.max(0, savedT - simDt);
     noteT = Math.max(0, noteT - simDt);
+    // The HUD before the mode: the shell reads this frame's numbers (the score, the staff bonked) when the mode changes.
     const hud = { ...hudOf(game, portrait, savedT > 0, noteT > 0 ? note : null), pad: pad.connected };
     const key = hudKey(hud);
     if (key !== hudLast) {
       hudLast = key;
       opts.onHud?.(hud);
+    }
+    if (game.mode !== lastMode) {
+      lastMode = game.mode;
+      opts.onMode?.(game.mode);
     }
   };
 
