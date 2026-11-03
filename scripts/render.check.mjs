@@ -1445,3 +1445,34 @@ test("the HUD carries the run's staff bonked, and a bonk changes it", () => {
   assert.deepEqual([a.bonked, b.bonked], [0, 4]);
   assert.notEqual(hudKeyR18(a), hudKeyR18(b));
 });
+test("the HUD tells each run apart: a new run, Try again's included, has a new id", () => {
+  const g = createGameR18({ lobby: LOBBY_R18, stash: STASH_R18 }, 3, { cast: false });
+  const a = hudOfR18(g, null);
+  g.newRun(9);
+  const b = hudOfR18(g, null);
+  assert.notEqual(a.run, b.run);
+  assert.notEqual(hudKeyR18(a), hudKeyR18(b));
+});
+
+import { touchHint } from "../src/components/next-keys.ts";
+test("on a touch screen the hints name the pad's buttons, SAT's lessons first", () => {
+  assert.equal(touchHint("Space jumps · over the cart, onto the kiosks"), "Jump · over the cart, onto the kiosks");
+  assert.equal(touchHint("Shift runs · the bag belt moves under you"), "Hold Run · the bag belt moves under you");
+  const keys = /\b(Space|Shift|[HFTEQB])\b/;
+  for (const l of SAT.lessons) assert.doesNotMatch(touchHint(l.text), keys, l.text);
+  for (const h of [
+    "Paper incoming · duck, jump or swat with H",
+    "Coaster incoming · duck, jump or swat with H",
+    "E lectures them · schooled students stop throwing paper",
+    "H swings the mallet · hit them with the head",
+    "Too hot to run · T to towel off",
+    "Overheated · T to towel off",
+    "Super smash ready · Q",
+    "Mixed nuts · Super Smash ready · Q",
+    "F snot rocket · jump into the ! crate for hot pepper",
+    "Hot snot pierces · nuts charge Q super smash",
+    "Boxes of #15 blades · B lobs one · it freezes staff",
+  ])
+    assert.doesNotMatch(touchHint(h), keys, h);
+  assert.equal(touchHint("GATE B7 · walk in to board"), "GATE B7 · walk in to board");
+});

@@ -313,3 +313,15 @@ test("lifetime staff bonked counts each bonk once, across levels, Hammer down, T
   r = bonkedCount(c.counted, 12, "over");
   assert.equal(r.add, 0, "a resumed run's bonks were counted when they happened");
 });
+
+test("every run is told apart for the lifetime count: a fresh run, a replay and Try again each have a new id", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 5, { cast: false });
+  const ids = [g.runs];
+  g.newRun(6);
+  ids.push(g.runs);
+  g.newRun(7, 0, { shift: [LOBBY], journey: true });
+  ids.push(g.runs);
+  g.newRun(8, 0, { snapshot: g.snapshot });
+  ids.push(g.runs);
+  assert.equal(new Set(ids).size, 4, `ids ${ids}`);
+});

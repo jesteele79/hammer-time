@@ -59,6 +59,8 @@ export type HudPayload = {
   pad: boolean;
   /** Staff bonked this run: the shell adds them to the lifetime count (plan decision 4). */
   bonked: number;
+  /** The run's id (`Game.runs`): a new one means a new run began, its bonks counted from where it stands. */
+  run: number;
 };
 export type BanquetHud = { id: "hungry"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
 /**
@@ -184,6 +186,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     boxes: h.boxes,
     pad: false,
     bonked: game.run.bonked,
+    run: game.runs,
   };
 }
 
@@ -237,4 +240,5 @@ export const hudKey = (p: HudPayload) =>
     p.boxes,
     p.pad,
     p.bonked,
+    p.run,
   ].join("|");

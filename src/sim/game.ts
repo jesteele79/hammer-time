@@ -72,6 +72,8 @@ export type Game = {
   levelScore(): number;
   /** Seconds on the home screen this visit. */
   titleT: number;
+  /** Which run this is: a new id at every `newRun`, Try again's and a replay's included (the lifetime staff bonked count tells runs apart by it). */
+  runs: number;
   /**
    * A step of the home screen's scene (story spec §5.1): he stands at the home spot running his idle beats, the cast
    * still, a snot rocket at 45 s and every minute after, an insult as his thought every eight seconds until the visit's
@@ -183,6 +185,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     continueStory,
     levelScore: () => game.run.score - scoreAtCard,
     titleT: 0,
+    runs: 0,
     titleStep,
   };
 
@@ -268,6 +271,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.quest = null;
     game.questDoor = null;
     thought.clear();
+    game.runs++;
     // A snapshot is the run at a card: no punch clock of the level before it counts here.
     game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, punched: [] } : createRun(s);
     stashStock = null;

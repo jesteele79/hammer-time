@@ -34,7 +34,6 @@ import type { Carry, Snapshot } from "../sim/journey";
 import { shiftFrom, type StoryId } from "../sim/story";
 import { PIG_ID } from "../sim/pig";
 import { heatZoneAt } from "../sim/hazards";
-import { RUN } from "../sim/run";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
 import { TIERS } from "./quality";
@@ -55,7 +54,7 @@ import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM, createScene, floorFocus } from "./scene";
-import { createSound, heard, musicFor, questMusic, tauntFor } from "./sound";
+import { createSound, heard, hurryFor, musicFor, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
@@ -1639,7 +1638,7 @@ export async function startLook(
     // The title tune on the home screen; the level's song (the stash has its own), quiet under its cards; a repeat changes nothing.
     const levelMusic = musicFor(game.mode, game.level.music, game.quest ? questMusic(game.quest).theme : null);
     sound.music(levelMusic.theme, levelMusic.quiet);
-    afterFrame(simDt, game.level.time > 0 && game.run.time < RUN.hurry);
+    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time));
 
     const cam = scene.camera;
     const home = game.mode === "title" ? game.level.home : undefined;
@@ -1956,6 +1955,10 @@ export async function startLook(
       /** Boxes of #15 blades in his pockets (R5), for the checks. */
       boxes(n = 3) {
         world.hero.boxes = n;
+      },
+      /** Staff bonked added to the run, as if knocked out for good: the lifetime count's check. */
+      bonked(n: number) {
+        game.run.bonked += n;
       },
       flop(on = true) {
         world.hero.flop = on;

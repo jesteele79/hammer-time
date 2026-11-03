@@ -759,6 +759,9 @@ export class AudioBus {
   private tickSong(s: Song, bus: GainNode) {
     if (!this.ctx) return;
     const step = s.step * (this.hurry ? 0.78 : 1);
+    // Back from a hidden tab or the mute, the audio clock ran on without the frames: pick up from now, not with every
+    // missed note at once.
+    if (this.nextAt < this.ctx.currentTime) this.nextAt = this.ctx.currentTime + 0.05;
     while (this.nextAt < this.ctx.currentTime + 0.28) {
       const i = this.step % s.lead.length;
       const t = this.nextAt;

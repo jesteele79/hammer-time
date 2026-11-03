@@ -1,5 +1,6 @@
 import { AudioBus, type SongId, type Theme } from "../game/audio";
 import type { GameMode } from "../sim/game";
+import { RUN } from "../sim/run";
 import { FARES } from "../sim/quests/fares/fares";
 import { HUNGRY } from "../sim/quests/hungry/hungry";
 import type { Quest } from "../sim/quests/quest";
@@ -226,6 +227,14 @@ export function musicFor(mode: GameMode, level: SongId, quest: SongId | null): {
   if (mode === "over") return { theme: null, quiet: false };
   if (quest && (mode === "questCard" || mode === "questTally" || mode === "quest" || mode === "pause")) return { theme: quest, quiet: mode !== "quest" };
   return { theme: level, quiet: mode !== "play" && mode !== "dying" };
+}
+
+/**
+ * The clock's hurry (the music a fifth faster) while he plays with under `RUN.hurry` seconds left: never under the tally,
+ * whose drain runs the clock down, nor the cards after it.
+ */
+export function hurryFor(mode: GameMode, levelTime: number, timeLeft: number): boolean {
+  return (mode === "play" || mode === "dying") && levelTime > 0 && timeLeft < RUN.hurry;
 }
 
 /** The shipped game's sound effects for the rebuild's events. Silent until the first key unlocks it. */

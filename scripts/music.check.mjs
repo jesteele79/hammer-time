@@ -59,3 +59,32 @@ test("the sound settings: kept as hammer-time-sound, 80 and 80 unmuted at first,
   assert.deepEqual(parseSound(JSON.stringify({ music: 30, effects: 0, muted: true })), { music: 30, effects: 0, muted: true });
   assert.deepEqual(parseSound(JSON.stringify({ music: 300, effects: -5, muted: "yes" })), { music: 100, effects: 0, muted: false });
 });
+
+import { hurryFor } from "../src/render/sound.ts";
+test("the clock's hurry speeds the music only in play, never under the tally or the cards", () => {
+  assert.equal(hurryFor("play", 420, 60), true);
+  assert.equal(hurryFor("play", 420, 200), false);
+  assert.equal(hurryFor("play", 0, 0), false, "no clock, no hurry");
+  for (const mode of ["tally", "story", "card", "walkoff", "clear", "pause"]) assert.equal(hurryFor(mode, 420, 30), false, mode);
+});
+test("back after a hidden tab (or the mute) the song picks up where the clock is, not with every missed note at once", () => {
+  let notes = 0;
+  const node = () => new Proxy(function () {}, { get: (_, k) => (k === "then" ? undefined : node()), apply: () => node(), set: () => true });
+  const ctx = {
+    currentTime: 0,
+    sampleRate: 8000,
+    createOscillator: () => (notes++, node()),
+    createGain: node,
+    createBiquadFilter: node,
+    createBufferSource: node,
+    createBuffer: (_c, len) => ({ getChannelData: () => new Float32Array(len) }),
+  };
+  const bus = new AudioBus();
+  Object.assign(bus, { ctx, master: node(), musicGain: node(), sfxGain: node(), musicOn: true, theme: "lobby", step: 0, nextAt: 0.05 });
+  bus.tick();
+  const first = notes;
+  assert.ok(first > 0, "the song plays");
+  ctx.currentTime = 600;
+  bus.tick();
+  assert.ok(notes - first < 20, `${notes - first} notes at once after ten minutes away`);
+});

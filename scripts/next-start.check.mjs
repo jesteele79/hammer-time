@@ -251,6 +251,33 @@ try {
   for (const words of ["Journey total", "Prologue", "Act 1 · The Trip", "Staff bonked", "Whole shift best", "Hungry Hungry Hammer best", "Fare Darts best"]) assert.ok(seen.toLowerCase().includes(words.toLowerCase()), `the record names ${words}: ${seen}`);
   assert.ok(/Staff bonked\s*7/i.test(seen), `seven staff bonked: ${seen}`);
   assert.ok(seen.includes("004900"), `the journey's total, 900 and 4,000: ${seen}`);
+  // Every bonk counted once through a replay of 1-1 (six), its Clocked out, Play again, and Hammer down (three more).
+  const savedBonked = () => page.evaluate(() => JSON.parse(localStorage.getItem("hammer-time-journey")).bonked);
+  await stop(page, "1-1").click();
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await page.waitForFunction(() => window.__next.run.mode === "play");
+  await page.evaluate(() => window.__next.dev.bonked(6));
+  await page.evaluate(() => window.__next.dev.teleport(15800, 0));
+  await page.keyboard.down("ArrowRight");
+  await page.getByRole("heading", { name: "Clocked out" }).waitFor({ timeout: 20000 });
+  await page.keyboard.up("ArrowRight");
+  assert.equal(await savedBonked(), 13, "the replay's six counted at its tally");
+  await page.getByRole("button", { name: "Play again" }).click();
+  await page.waitForFunction(() => window.__next.run.mode === "play");
+  await page.evaluate(() => window.__next.dev.bonked(3));
+  for (let i = 0; i < 3; i++) {
+    await page.waitForFunction(() => window.__next.run.mode === "play", null, { timeout: 8000 });
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => {
+      window.__next.dev.patience(1);
+      window.__next.dev.hit();
+    });
+    await page.waitForFunction(() => window.__next.run.mode === "dying" || window.__next.run.mode === "over", null, { timeout: 8000 });
+  }
+  await page.waitForFunction(() => window.__next.run.mode === "over", null, { timeout: 8000 });
+  assert.equal(await savedBonked(), 16, "Hammer down in the second replay adds its three");
+  await page.getByRole("button", { name: "Journey" }).click();
+  await page.waitForFunction(() => window.__next.run.mode === "title");
   await page.getByRole("button", { name: "New game" }).click();
   const ask = page.getByRole("dialog", { name: "New game" });
   assert.match(await ask.innerText(), /Start over\?[\s\S]*The journey and its bests are erased\./i);
@@ -264,7 +291,7 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem("hammer-time-best-fares")), faresBest, "the gate's best untouched");
   assert.equal((await stops(page)).find((x) => x.code === "SAT").state, "next", "SAT next on the strip");
   seen = await record();
-  assert.ok(/Staff bonked\s*7/i.test(seen) && /Journey total\s*000000/i.test(seen), `a new journey keeps the lifetime staff bonked: ${seen}`);
+  assert.ok(/Staff bonked\s*16/i.test(seen) && /Journey total\s*000000/i.test(seen), `a new journey keeps the lifetime staff bonked: ${seen}`);
   // /?quest=fares opens the practice round straight from the start screen (R5 §1, decision 16).
   await page.goto(`${base}?dev=1&quest=fares`);
   await page.waitForFunction(() => window.__next?.run?.mode === "quest" && window.__next.quest?.id === "fares");

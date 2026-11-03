@@ -28,6 +28,25 @@ export const PAD_GLYPHS: [RegExp, string][] = [
 /** A hint as a controller's player reads it. */
 export const padGlyphs = (hint: string): string => PAD_GLYPHS.reduce((s, [key, glyph]) => s.replace(key, glyph), hint);
 
+/** The touch pad's buttons in place of the keys a hint names: SAT's lessons and the shift's hints, longest phrase first. */
+const TOUCH_WORDS: [string, string][] = [
+  ["Space jumps", "Jump"],
+  ["Shift runs", "Hold Run"],
+  ["H swings the mallet", "Hammer"],
+  ["F fires a snot rocket", "Snot"],
+  ["T towels off", "Towel"],
+  ["swat with H", "swat with Hammer"],
+  ["E lectures them", "Lecture them"],
+  ["T to towel off", "Towel off"],
+  ["Super smash ready · Q", "Super smash ready · tap Super"],
+  ["Super Smash ready · Q", "Super Smash ready · tap Super"],
+  ["nuts charge Q super smash", "nuts charge the Super smash"],
+  ["F snot rocket", "Snot rocket"],
+  ["B lobs one", "Box lobs one"],
+];
+/** A hint as a touch player reads it, the pad's buttons named. */
+export const touchHint = (hint: string): string => TOUCH_WORDS.reduce((s, [keys, words]) => s.replaceAll(keys, words), hint);
+
 /** The controller's buttons, for the break card and the Settings while one is connected. */
 export const PAD_KEYS: [string, string][] = [
   ["Stick, d-pad", "move, ↓ duck"],

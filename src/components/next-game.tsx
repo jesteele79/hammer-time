@@ -231,14 +231,14 @@ export function NextGame({
   }, [journeyAll]);
 
   const onHud = useCallback((h: HudPayload) => {
+    // A new run (fresh, a replay, Try again's) counts its staff bonked from where it stands.
+    if (h.run !== hudNow.current?.run) counted.current = bonkedCount(counted.current, h.bonked, "start").counted;
     hudNow.current = h;
     setHud(h);
   }, []);
   const onMode = useCallback((m: GameMode) => {
-    // Lifetime staff bonked: a run's start counts from where it stands; Hammer down and Shift over add the rest.
+    // Lifetime staff bonked: Hammer down and Shift over add what the run bonked since it was last counted.
     const run = hudNow.current?.bonked ?? 0;
-    const from = lastMode.current;
-    if (from === null || from === "title" || ((from === "over" || from === "clear") && m === "card")) counted.current = bonkedCount(counted.current, run, "start").counted;
     if (m === "over" || m === "clear") {
       const c = bonkedCount(counted.current, run, m);
       counted.current = c.counted;
