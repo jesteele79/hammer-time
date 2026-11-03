@@ -1332,14 +1332,15 @@ import { createHungry, HUNGRY as HUNGRY_ROUND } from "../src/sim/quests/hungry/h
 import { createFares } from "../src/sim/quests/fares/fares.ts";
 
 // The side quests' own music (owner, 2026-10-25: "some other bonkers music for this side quest and hungry hungry hammer").
-test("the side quests' songs: whole bars of sixteenths, notes in range, drum lines a bar long, the gags inside the song", () => {
-  assert.deepEqual(Object.keys(SONGS).sort(), ["banquet", "gate"]);
+test("every song: whole bars of sixteenths, notes in range, drum lines a bar long, the gags inside the song; the side quests' fast", () => {
+  assert.deepEqual(Object.keys(SONGS).sort(), ["arena", "banquet", "campus", "cellar", "gate", "lobby", "restaurant", "sat", "title"]);
+  for (const name of ["banquet", "gate"]) assert.ok(SONGS[name].step <= 0.12, `${name}: a side quest's quick sixteenth`);
   for (const [name, s] of Object.entries(SONGS)) {
     assert.ok(s.lead.length > 0 && s.lead.length % 16 === 0, `${name}: whole bars`);
     assert.equal(s.bass.length, s.lead.length, `${name}: the bass as long as the lead`);
     for (const n of [...s.lead, ...s.bass]) assert.ok(n === 0 || (n >= 28 && n <= 100), `${name}: note ${n}`);
     for (const line of [s.kick, s.snare, s.hat]) assert.equal(line.length, 16, `${name}: a drum line a bar long`);
-    assert.ok(s.step >= 0.07 && s.step <= 0.12, `${name}: a sixteenth of ${s.step} s`);
+    assert.ok(s.step >= 0.07 && s.step <= 0.24, `${name}: a sixteenth of ${s.step} s`);
     for (const at of Object.keys(s.gags)) assert.ok(Number(at) >= 0 && Number(at) < s.lead.length, `${name}: a gag on step ${at}`);
     if (s.double) assert.ok(s.double.from >= 0 && s.double.to <= s.lead.length && s.double.from < s.double.to, `${name}: the doubling inside the song`);
   }

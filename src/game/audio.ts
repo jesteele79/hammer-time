@@ -7,13 +7,11 @@ import {
   type TauntTarget,
 } from "./taunts";
 
-/** SAT plays the day tune until its own is composed (story Phase 1, Task 16). */
-export type Theme = "day" | "cellar" | "sat" | "banquet" | "gate";
-
-const DAY = [392, 392, 349, 330, 294, 330, 349, 392, 440, 392, 349, 330, 294, 262, 294, 330];
-const DAY_BASS = [196, 147, 175, 131];
-const CELLAR = [220, 196, 174, 196, 165, 146, 174, 196, 220, 247, 220, 196, 174, 165, 146, 174];
-const CELLAR_BASS = [110, 87, 98, 82];
+/** Every place's song (story spec §13): the home screen's, each level's, the stash's and the two side quests'. */
+export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate";
+export type Theme = SongId;
+/** The music's level, and the share of it left under the cards (plan decision 12's quiet). */
+export const MUSIC = { level: 0.07, quiet: 0.4 } as const;
 
 /**
  * A side quest's song (owner, 2026-10-25: "some other bonkers music for this side quest and hungry hungry hammer"):
@@ -41,7 +39,229 @@ const bars = (...b: number[][]) => b.flat();
 const bossa = (root: number, fifth: number) => [root, 0, 0, 0, 0, 0, fifth, 0, fifth, 0, 0, 0, 0, 0, root, 0];
 const midi = (n: number) => 440 * 2 ** ((n - 69) / 12);
 
-export const SONGS: Record<"banquet" | "gate", Song> = {
+export const SONGS: Record<SongId, Song> = {
+  // The home screen's title tune (story spec §13): four bars of brass fanfare, the lead doubled a fifth below on a
+  // sawtooth, landing on the title's jolt; then a slow swagger, a blues strut in C over a walking bass.
+  title: {
+    step: 0.16,
+    lead: bars(
+      [67, 0, 0, 67, 72, 0, 0, 0, 76, 0, 0, 0, 79, 0, 0, 0],
+      [0, 0, 0, 0, 76, 0, 79, 0, 84, 0, 0, 0, 0, 0, 0, 0],
+      [81, 0, 0, 81, 79, 0, 0, 0, 77, 0, 76, 0, 74, 0, 0, 0],
+      [72, 0, 0, 0, 0, 0, 0, 0, 79, 0, 0, 0, 84, 0, 0, 0],
+      [0, 0, 72, 0, 0, 75, 76, 0, 0, 0, 79, 0, 0, 0, 76, 0],
+      [0, 0, 72, 0, 0, 75, 76, 0, 0, 0, 74, 0, 72, 0, 0, 0],
+      [0, 0, 77, 0, 0, 80, 81, 0, 0, 0, 79, 0, 0, 0, 77, 0],
+      [0, 0, 76, 0, 0, 0, 74, 0, 0, 0, 72, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "sawtooth",
+    leadLen: 2,
+    double: { from: 0, to: 64, shift: -7, wave: "sawtooth" },
+    bass: bars(
+      [48, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+      [48, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 48, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+      [48, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 36, 0, 0, 0],
+      [36, 0, 0, 0, 40, 0, 0, 0, 43, 0, 0, 0, 45, 0, 0, 0],
+      [36, 0, 0, 0, 40, 0, 0, 0, 43, 0, 0, 0, 46, 0, 0, 0],
+      [41, 0, 0, 0, 45, 0, 0, 0, 48, 0, 0, 0, 46, 0, 0, 0],
+      [43, 0, 0, 0, 41, 0, 0, 0, 40, 0, 0, 0, 38, 0, 0, 0],
+    ),
+    bassWave: "triangle",
+    bassLen: 3.5,
+    kick: "x.......x.......",
+    snare: "....x.......x..x",
+    hat: "x...x...x...x...",
+    gags: {},
+  },
+  // SAT's "Pre-Check": terminal muzak, a soft sine lead over Bb major's slow changes, the boarding chime every eight
+  // bars.
+  sat: {
+    step: 0.15,
+    lead: bars(
+      [74, 0, 0, 0, 72, 0, 70, 0, 0, 0, 69, 0, 70, 0, 0, 0],
+      [70, 0, 0, 0, 74, 0, 72, 0, 0, 0, 70, 0, 67, 0, 0, 0],
+      [72, 0, 0, 0, 75, 0, 74, 0, 0, 0, 72, 0, 70, 0, 0, 0],
+      [69, 0, 0, 0, 72, 0, 75, 0, 0, 0, 74, 0, 72, 0, 0, 0],
+      [77, 0, 0, 0, 74, 0, 77, 0, 0, 0, 81, 0, 79, 0, 0, 0],
+      [79, 0, 0, 0, 77, 0, 74, 0, 0, 0, 72, 0, 70, 0, 0, 0],
+      [75, 0, 0, 0, 74, 0, 72, 0, 0, 0, 70, 0, 72, 0, 0, 0],
+      [74, 0, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [79, 0, 0, 0, 77, 0, 75, 0, 0, 0, 74, 0, 75, 0, 0, 0],
+      [77, 0, 0, 0, 74, 0, 72, 0, 0, 0, 69, 0, 72, 0, 0, 0],
+      [75, 0, 0, 0, 72, 0, 70, 0, 0, 0, 67, 0, 70, 0, 0, 0],
+      [72, 0, 0, 0, 69, 0, 72, 0, 0, 0, 75, 0, 74, 0, 0, 0],
+      [74, 0, 0, 0, 72, 0, 70, 0, 0, 0, 74, 0, 77, 0, 0, 0],
+      [79, 0, 0, 0, 77, 0, 74, 0, 0, 0, 72, 0, 0, 0, 0, 0],
+      [72, 0, 0, 0, 74, 0, 75, 0, 0, 0, 72, 0, 69, 0, 0, 0],
+      [70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "sine",
+    leadLen: 3.4,
+    bass: bars(
+      [46, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0, 0, 0, 0, 0, 0],
+      [43, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0, 0, 0, 0, 0, 0],
+      [43, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [39, 0, 0, 0, 0, 0, 0, 0, 46, 0, 0, 0, 0, 0, 0, 0],
+      [38, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0, 0, 0, 0, 0, 0],
+      [43, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    bassWave: "triangle",
+    bassLen: 7,
+    kick: "x.......x.......",
+    snare: "................",
+    hat: "..x...x...x...x.",
+    gags: { 0: "chime", 128: "chime" },
+  },
+  // 1-1's muzak: a slow arpeggio on a triangle up and down F major's changes, brushed hats, a bass on the half notes.
+  lobby: {
+    step: 0.14,
+    lead: bars(
+      [65, 0, 69, 0, 72, 0, 76, 0, 77, 0, 76, 0, 72, 0, 69, 0],
+      [62, 0, 65, 0, 69, 0, 72, 0, 74, 0, 72, 0, 69, 0, 65, 0],
+      [67, 0, 70, 0, 74, 0, 77, 0, 79, 0, 77, 0, 74, 0, 70, 0],
+      [60, 0, 64, 0, 67, 0, 70, 0, 72, 0, 70, 0, 67, 0, 64, 0],
+      [65, 0, 69, 0, 72, 0, 76, 0, 77, 0, 0, 0, 76, 0, 72, 0],
+      [69, 0, 72, 0, 76, 0, 79, 0, 81, 0, 79, 0, 76, 0, 72, 0],
+      [70, 0, 74, 0, 77, 0, 81, 0, 82, 0, 81, 0, 77, 0, 74, 0],
+      [72, 0, 70, 0, 67, 0, 64, 0, 60, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "triangle",
+    leadLen: 1.8,
+    bass: bars(
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [38, 0, 0, 0, 0, 0, 0, 0, 45, 0, 0, 0, 0, 0, 0, 0],
+      [43, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [45, 0, 0, 0, 0, 0, 0, 0, 52, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 53, 0, 0, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    bassWave: "triangle",
+    bassLen: 7,
+    kick: "x.......x.......",
+    snare: "................",
+    hat: "x.x.x.x.x.x.x.x.",
+    gags: {},
+  },
+  // 1-2's bossa: a syncopated bass under two-note comping (the lead and its double a fourth below) through D minor's
+  // changes, then a little tune on its own.
+  restaurant: {
+    step: 0.12,
+    lead: bars(
+      [77, 0, 0, 81, 0, 0, 77, 0, 0, 0, 74, 0, 0, 77, 0, 0],
+      [76, 0, 0, 79, 0, 0, 76, 0, 0, 0, 79, 0, 0, 76, 0, 0],
+      [76, 0, 0, 79, 0, 0, 72, 0, 0, 0, 76, 0, 0, 79, 0, 0],
+      [79, 0, 0, 76, 0, 0, 79, 0, 0, 0, 76, 0, 0, 79, 0, 0],
+      [81, 0, 0, 79, 0, 0, 77, 0, 0, 0, 76, 0, 74, 0, 0, 0],
+      [79, 0, 0, 77, 0, 0, 76, 0, 0, 0, 74, 0, 72, 0, 0, 0],
+      [76, 0, 0, 79, 0, 0, 83, 0, 0, 0, 81, 0, 79, 0, 0, 0],
+      [79, 0, 0, 0, 0, 0, 76, 0, 0, 0, 73, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "triangle",
+    leadLen: 1.4,
+    double: { from: 0, to: 64, shift: -5, wave: "triangle" },
+    bass: bars(bossa(38, 45), bossa(43, 50), bossa(36, 43), bossa(45, 40), bossa(38, 45), bossa(43, 50), bossa(36, 43), bossa(45, 40)),
+    bassWave: "triangle",
+    bassLen: 3,
+    kick: "x..x....x..x....",
+    snare: "x..x..x...x..x..",
+    hat: "..x...x...x...x.",
+    gags: {},
+  },
+  // 1-3's lo-fi: a lazy square lead doubled a few cents off (the wobble) over E flat's changes, a soft kick and a snare on
+  // two and four.
+  campus: {
+    step: 0.13,
+    lead: bars(
+      [0, 0, 74, 0, 0, 0, 72, 70, 0, 0, 67, 0, 0, 0, 0, 0],
+      [0, 0, 70, 0, 0, 0, 67, 0, 63, 0, 0, 0, 65, 0, 67, 0],
+      [0, 0, 72, 0, 0, 0, 75, 0, 0, 0, 72, 0, 70, 0, 0, 0],
+      [0, 0, 74, 0, 72, 0, 70, 0, 0, 0, 68, 0, 0, 0, 0, 0],
+      [0, 0, 79, 0, 0, 0, 77, 75, 0, 0, 74, 0, 0, 0, 70, 0],
+      [0, 0, 72, 0, 0, 0, 70, 0, 67, 0, 0, 0, 70, 0, 72, 0],
+      [0, 0, 75, 0, 0, 0, 79, 0, 0, 0, 77, 0, 75, 0, 0, 0],
+      [0, 0, 74, 0, 0, 0, 70, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "square",
+    leadLen: 1.6,
+    double: { from: 0, to: 128, shift: 0.12, wave: "square" },
+    bass: bars(
+      [39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 46, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0],
+      [44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0],
+      [39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 46, 0, 0, 0, 0, 0],
+      [36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 43, 0, 0, 0, 0, 0],
+      [44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 39, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0],
+    ),
+    bassWave: "triangle",
+    bassLen: 4,
+    kick: "x.........x.....",
+    snare: "....x.......x...",
+    hat: ".x.x.x.x.x.x.x.x",
+    gags: {},
+  },
+  // 1-4's first boss theme: a driving sawtooth bass in eighths through E minor's i, VI, VII, V, a riff for four bars, then
+  // a second lead doubled an octave down for four.
+  arena: {
+    step: 0.1,
+    lead: bars(
+      [76, 0, 79, 0, 83, 0, 79, 0, 76, 0, 79, 0, 84, 0, 83, 0],
+      [76, 0, 79, 0, 84, 0, 79, 0, 76, 0, 79, 0, 86, 0, 84, 0],
+      [78, 0, 81, 0, 86, 0, 81, 0, 78, 0, 81, 0, 88, 0, 86, 0],
+      [78, 0, 83, 0, 87, 0, 83, 0, 78, 0, 83, 0, 86, 0, 87, 0],
+      [88, 0, 0, 86, 0, 0, 83, 0, 86, 0, 83, 0, 79, 0, 0, 0],
+      [84, 0, 0, 83, 0, 0, 79, 0, 83, 0, 79, 0, 76, 0, 0, 0],
+      [86, 0, 0, 88, 0, 0, 90, 0, 88, 0, 86, 0, 81, 0, 0, 0],
+      [87, 0, 0, 0, 86, 0, 0, 0, 83, 0, 0, 0, 78, 0, 0, 0],
+    ),
+    leadWave: "square",
+    leadLen: 1.6,
+    double: { from: 64, to: 128, shift: -12, wave: "sawtooth" },
+    bass: bars(
+      [40, 0, 52, 0, 40, 0, 52, 0, 40, 0, 52, 0, 40, 0, 50, 0],
+      [36, 0, 48, 0, 36, 0, 48, 0, 36, 0, 48, 0, 36, 0, 47, 0],
+      [38, 0, 50, 0, 38, 0, 50, 0, 38, 0, 50, 0, 38, 0, 50, 0],
+      [35, 0, 47, 0, 35, 0, 47, 0, 35, 0, 47, 0, 47, 0, 46, 0],
+      [40, 0, 52, 0, 40, 0, 52, 0, 40, 0, 52, 0, 40, 0, 50, 0],
+      [36, 0, 48, 0, 36, 0, 48, 0, 36, 0, 48, 0, 36, 0, 47, 0],
+      [38, 0, 50, 0, 38, 0, 50, 0, 38, 0, 50, 0, 38, 0, 50, 0],
+      [35, 0, 47, 0, 35, 0, 47, 0, 35, 0, 47, 0, 47, 0, 46, 0],
+    ),
+    bassWave: "sawtooth",
+    bassLen: 1.6,
+    kick: "x...x...x...x...",
+    snare: "....x.......x...",
+    hat: "x.x.x.x.x.x.x.x.",
+    gags: {},
+  },
+  // The stash's tune as it was: its square lead a note a step, its bass every other step, no drums.
+  cellar: {
+    step: 0.21,
+    lead: [57, 55, 53, 55, 52, 50, 53, 55, 57, 59, 57, 55, 53, 52, 50, 53],
+    leadWave: "square",
+    leadLen: 0.86,
+    bass: [45, 0, 41, 0, 43, 0, 40, 0, 45, 0, 41, 0, 43, 0, 40, 0],
+    bassWave: "triangle",
+    bassLen: 1.7,
+    kick: "................",
+    snare: "................",
+    hat: "................",
+    gags: {},
+  },
   // "Feeding Frenzy": a circus galop off the rails. Oom-pah under a frantic A minor lead of arpeggios and chromatic runs,
   // then a chicken-dance chorus in C with a kazoo doubling it, a slide whistle at each turn and a bike horn.
   banquet: {
@@ -110,7 +330,8 @@ export class AudioBus {
   private sfxGain: GainNode | null = null;
   muted = false;
   private musicOn = false;
-  private theme: Theme = "day";
+  private theme: Theme = "lobby";
+  private quiet = false;
   private step = 0;
   private nextAt = 0;
   hurry = false;
@@ -207,7 +428,7 @@ export class AudioBus {
         this.master = this.ctx.createGain();
         this.musicGain = this.ctx.createGain();
         this.sfxGain = this.ctx.createGain();
-        this.musicGain.gain.value = 0.07;
+        this.musicGain.gain.value = this.musicLevel;
         this.sfxGain.gain.value = 0.14;
         this.musicGain.connect(this.master);
         this.sfxGain.connect(this.master);
@@ -229,13 +450,56 @@ export class AudioBus {
     }
   }
 
-  startMusic(theme: Theme) {
+  /** The music bus's level now: quiet under the cards and the break. */
+  get musicLevel(): number {
+    return MUSIC.level * (this.quiet ? MUSIC.quiet : 1);
+  }
+
+  startMusic(theme: Theme, quiet = false) {
     this.unlock();
     this.preloadCurse();
     this.theme = theme;
     this.musicOn = true;
     this.step = 0;
     this.nextAt = (this.ctx?.currentTime ?? 0) + 0.05;
+    this.setQuiet(quiet);
+  }
+
+  /** The music down under a card or a break, back up in play. */
+  setQuiet(on: boolean) {
+    this.quiet = on;
+    if (this.musicGain && this.ctx) this.musicGain.gain.setTargetAtTime(this.musicLevel, this.ctx.currentTime, 0.15);
+  }
+
+  /** Hammer down: four falling notes on a muted trombone, the last one wobbling, 1.2 s. */
+  hammerDown() {
+    this.jingle([
+      [55, 0, 0.26],
+      [54, 0.28, 0.26],
+      [53, 0.56, 0.26],
+      [52, 0.84, 0.36],
+    ]);
+  }
+
+  /** An act's ending: a short brass rise to a held chord, 1.5 s. */
+  fanfare() {
+    this.jingle([
+      [60, 0, 0.14],
+      [64, 0.15, 0.14],
+      [67, 0.3, 0.14],
+      [72, 0.45, 1],
+      [76, 0.45, 1],
+    ]);
+  }
+
+  /** A few notes on the music's bus, each `[midi, start, length]` in seconds, a sawtooth doubled a fifth below. */
+  private jingle(notes: [number, number, number][]) {
+    if (!this.ctx || !this.musicGain || this.muted) return;
+    const at = this.ctx.currentTime + 0.02;
+    for (const [n, t, len] of notes) {
+      this.tone(midi(n), at + t, len, "sawtooth", 0.12, this.musicGain, midi(n - 0.4));
+      this.tone(midi(n - 7), at + t, len, "square", 0.05, this.musicGain);
+    }
   }
 
   stopMusic() {
@@ -256,7 +520,7 @@ export class AudioBus {
     if (this.musicGain && this.ctx) {
       const at = this.ctx.currentTime;
       this.musicGain.gain.cancelScheduledValues(at);
-      this.musicGain.gain.setTargetAtTime(0.07, at, 0.08);
+      this.musicGain.gain.setTargetAtTime(this.musicLevel, at, 0.08);
     }
   }
 
@@ -467,24 +731,10 @@ export class AudioBus {
 
   tick() {
     if (!this.ctx || !this.musicGain || !this.musicOn || this.muted) return;
-    if (this.theme === "banquet" || this.theme === "gate") return this.tickSong(SONGS[this.theme], this.musicGain);
-    const beat = (this.theme === "cellar" ? 0.21 : 0.17) * (this.hurry ? 0.78 : 1);
-    const mel = this.theme === "cellar" ? CELLAR : DAY;
-    const bass = this.theme === "cellar" ? CELLAR_BASS : DAY_BASS;
-    const now = this.ctx.currentTime;
-    while (this.nextAt < now + 0.28) {
-      const f = mel[this.step % mel.length];
-      this.tone(f, this.nextAt, beat * 0.86, "square", 0.1, this.musicGain);
-      if (this.step % 2 === 0) {
-        const b = bass[(this.step / 2) % bass.length];
-        this.tone(b, this.nextAt, beat * 1.7, "triangle", 0.09, this.musicGain);
-      }
-      this.nextAt += beat;
-      this.step++;
-    }
+    this.tickSong(SONGS[this.theme], this.musicGain);
   }
 
-  /** A side quest's song, scheduled a little ahead: the lead and its double, the bass, the drums and the gags. */
+  /** A song, scheduled a little ahead: the lead and its double, the bass, the drums and the gags. */
   private tickSong(s: Song, bus: GainNode) {
     if (!this.ctx) return;
     const step = s.step * (this.hurry ? 0.78 : 1);
@@ -665,7 +915,7 @@ export class AudioBus {
     const music = this.musicGain?.gain;
     music?.cancelScheduledValues(at);
     music?.setValueAtTime(0.025, at);
-    music?.setTargetAtTime(0.07, at + buffer.duration, 0.12);
+    music?.setTargetAtTime(this.musicLevel, at + buffer.duration, 0.12);
     src.onended = () => {
       src.disconnect();
       if (this.yellSrc === src) this.yellSrc = null;

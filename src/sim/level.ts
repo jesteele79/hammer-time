@@ -1,3 +1,4 @@
+import type { SongId } from "../game/audio";
 import type { HeatZone } from "./hazards";
 import type { QuestId } from "./quests/quest";
 import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, Stage } from "./types";
@@ -169,7 +170,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   /** How many pickups the seeding places, and how many of them are Buc-ee's and nuts (those only up on platforms). */
   rewards: { count: number; bucees: number; nuts: number };
   routes: RewardRoute[];
-  music: "day" | "cellar" | "sat";
+  /** Its song (story spec §13). */
+  music: SongId;
   /** The x before which the first hint teaches the snot and the ! crate. */
   hints?: { early: number };
   /** The home screen's scene (story spec §5.1, plan decision 8): where he stands, and where the camera looks. */

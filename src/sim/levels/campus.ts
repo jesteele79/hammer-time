@@ -97,7 +97,7 @@ export const CAMPUS: Level = {
     { id: "floor", x0: 8300, x1: 10400, y0: -100, y1: 0 },
     { id: "deck", x0: 8300, x1: 10400, y0: -600, y1: -560 },
   ],
-  music: "day",
+  music: "campus",
   hints: { early: 1500 },
   // The cast (R3 §3.2).
   cast: [

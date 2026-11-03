@@ -89,7 +89,7 @@ export const RESTAURANT: Level = {
     { id: "line", x0: 7600, x1: 10400, y0: -100, y1: 0 },
     { id: "rack", x0: 8000, x1: 10200, y0: -600, y1: -560 },
   ],
-  music: "day",
+  music: "restaurant",
   hints: { early: 1500 },
   pitWord: "DELIVERY REFUSED",
   heat: [

@@ -384,6 +384,10 @@ export function NextGame({
     setStop(null);
     whenReady(() => look.current?.start(0));
   };
+  // An act's card comes up to its fanfare.
+  useEffect(() => {
+    if (cards[0]?.kind === "act") look.current?.fanfare();
+  }, [cards]);
   /** Continue on a story card: the next card, or the game moves on. */
   const continueStory = () => {
     const rest = cards.slice(1);

@@ -1,4 +1,5 @@
-import { AudioBus, type Theme } from "../game/audio";
+import { AudioBus, type SongId, type Theme } from "../game/audio";
+import type { GameMode } from "../sim/game";
 import { FARES } from "../sim/quests/fares/fares";
 import { HUNGRY } from "../sim/quests/hungry/hungry";
 import type { Quest } from "../sim/quests/quest";
@@ -79,8 +80,12 @@ const HARD_LANDING = 2200;
 export type Sound = {
   unlock(): void;
   play(e: GameEvent): void;
-  /** The level's theme, or silence; the same theme again carries on where it was. */
-  music(theme: Theme | null): void;
+  /** The level's theme, or silence, quiet under the cards; the same theme again carries on where it was. */
+  music(theme: Theme | null, quiet?: boolean): void;
+  /** Hammer down's four falling notes. */
+  hammerDown(): void;
+  /** An act's ending. */
+  fanfare(): void;
   setHurry(on: boolean): void;
   setMuted(on: boolean): void;
   /** One of the owner's recordings, by name. */
@@ -208,12 +213,25 @@ export function questMusic(q: Quest): { theme: "banquet" | "gate"; hurry: boolea
   return q.id === "hungry" ? { theme: "banquet", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
 }
 
+/**
+ * What plays in a mode (story spec §13): the title tune on the home screen; the level's song quiet under its cards, the
+ * tallies and the break, full in play; the round's song quiet on its card and tally, full in the round; nothing once
+ * Hammer is down (his four notes play over the silence).
+ */
+export function musicFor(mode: GameMode, level: SongId, quest: SongId | null): { theme: SongId | null; quiet: boolean } {
+  if (mode === "title") return { theme: "title", quiet: false };
+  if (mode === "over") return { theme: null, quiet: false };
+  if (quest && (mode === "questCard" || mode === "questTally" || mode === "quest" || mode === "pause")) return { theme: quest, quiet: mode !== "quest" };
+  return { theme: level, quiet: mode !== "play" && mode !== "dying" };
+}
+
 /** The shipped game's sound effects for the rebuild's events. Silent until the first key unlocks it. */
 export function createSound(): Sound {
   const bus = new AudioBus();
   const played: Record<string, number> = {};
   let theme: Theme | null = null;
   let playing: Theme | null = null;
+  let hushed = false;
   const sound: Sound = {
     played,
     unlocked: false,
@@ -231,7 +249,11 @@ export function createSound(): Sound {
         if (sound.unlocked) (bus[name] as () => void).call(bus);
       }
     },
-    music(next) {
+    music(next, quiet = false) {
+      if (quiet !== hushed) {
+        hushed = quiet;
+        bus.setQuiet(quiet);
+      }
       if (next === theme) return;
       theme = next;
       played[`music:${next ?? "off"}`] = (played[`music:${next ?? "off"}`] ?? 0) + 1;
@@ -258,10 +280,18 @@ export function createSound(): Sound {
     stopVoice() {
       bus.stopVoice();
     },
+    hammerDown() {
+      played.hammerDown = (played.hammerDown ?? 0) + 1;
+      if (sound.unlocked) bus.hammerDown();
+    },
+    fanfare() {
+      played.fanfare = (played.fanfare ?? 0) + 1;
+      if (sound.unlocked) bus.fanfare();
+    },
     tick() {
       // Music asked for before the first key starts once the key unlocks sound.
       if (theme && sound.unlocked && playing !== theme) {
-        bus.startMusic(theme);
+        bus.startMusic(theme, hushed);
         playing = theme;
       }
       bus.tick();

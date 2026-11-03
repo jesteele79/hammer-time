@@ -55,7 +55,7 @@ import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
 import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM, createScene, floorFocus } from "./scene";
-import { createSound, heard, questMusic, tauntFor } from "./sound";
+import { createSound, heard, musicFor, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
@@ -141,6 +141,8 @@ export type Look = {
   /** A fresh run from the start card. */
   newRun(): void;
   togglePause(): void;
+  /** An act's ending: the fanfare under its card. */
+  fanfare(): void;
   /** A touch button went down or came up. */
   press(action: Action, down: boolean): void;
   /** His face on the screen, in CSS px, as last drawn: the cards keep clear of it. */
@@ -348,6 +350,8 @@ export async function startLook(
     // key held from the shift and let go here is let go, so the next shift does not start with it down.
     // The story's cards between levels are the page's too: Enter or Space presses their focused Continue.
     if (game.mode === "title" || game.mode === "story") {
+      // The title tune waits for the first key or tap (plan decision 13).
+      if (e.type === "keydown") sound.unlock();
       if (e.type === "keyup") down.delete(e.code);
       return;
     }
@@ -505,6 +509,7 @@ export async function startLook(
     counts[e.type] = (counts[e.type] ?? 0) + 1;
     if (e.type === "levelDone") opts.onLevelDone?.({ id: e.id, score: e.score, bonked: e.bonked, last: e.last, snapshot: snapshotNow() });
     if (heard(e, scene.view())) sound.play(e);
+    if (e.type === "over") sound.hammerDown();
     const f = feelOf(e);
     if (f) {
       applyFeel(clock, f);
@@ -1130,9 +1135,10 @@ export async function startLook(
     bubbles.update(simDt, { crown: banquet.crown(), face, facing: 1, view });
     speech.update(simDt, (id) => banquet.crownOf(id), face, view);
     particles.update(simDt, face);
-    // Each side quest has its own song (owner, 2026-10-25), faster for the frenzy.
+    // Each side quest has its own song (owner, 2026-10-25), faster for the frenzy; quiet on its card and its tally.
     const tune = questMusic(q);
-    sound.music(game.mode === "quest" ? tune.theme : null);
+    const banquetMusic = musicFor(game.mode, game.level.music, tune.theme);
+    sound.music(banquetMusic.theme, banquetMusic.quiet);
     afterFrame(simDt, game.mode === "quest" && tune.hurry);
     vignette.width = scene.width;
     vignette.height = scene.height;
@@ -1246,9 +1252,10 @@ export async function startLook(
     bubbles.update(simDt, { crown: gate.crown(), face, facing: 1, view });
     speech.update(simDt, (id) => gate.crownOf(id), face, view);
     particles.update(simDt, face);
-    // Its own song (owner, 2026-10-25), faster while he is on a streak.
+    // Its own song (owner, 2026-10-25), faster while he is on a streak; quiet on its card and its tally.
     const tune = questMusic(q);
-    sound.music(game.mode === "quest" ? tune.theme : null);
+    const gateMusic = musicFor(game.mode, game.level.music, tune.theme);
+    sound.music(gateMusic.theme, gateMusic.quiet);
     afterFrame(simDt, game.mode === "quest" && tune.hurry);
     vignette.width = scene.width;
     vignette.height = scene.height;
@@ -1307,6 +1314,9 @@ export async function startLook(
     lean.y = e.clientY / Math.max(1, innerHeight) - 0.5;
   };
   window.addEventListener("pointermove", onLean, { passive: true });
+  // A tap or a click anywhere unlocks sound, the home screen's and the cards' included (plan decision 13).
+  const onTap = () => sound.unlock();
+  window.addEventListener("pointerdown", onTap, { passive: true });
   /**
    * The start screen's picture, CSS px, measured twice a second: `frame` is its camera's box below the tools along the
    * top, the scene framed inside it; `free` is the part no piece of the menu covers, where his thoughts go.
@@ -1609,8 +1619,9 @@ export async function startLook(
     const usable = !!d && (d.kind === "stash" || d.kind === "return" || (d.kind === "quest" && !game.run.spent.includes(d.id)));
     views.get(game.level.id)?.venue.setDoorGlow(game.mode === "play" && usable ? d!.id : null);
     views.get(game.level.id)?.venue.setSpent(game.run.spent);
-    // The level's theme while he plays (the stash has its own), silence otherwise; a repeat changes nothing.
-    sound.music(game.mode === "play" ? game.level.music : null);
+    // The title tune on the home screen; the level's song (the stash has its own), quiet under its cards; a repeat changes nothing.
+    const levelMusic = musicFor(game.mode, game.level.music, game.quest ? questMusic(game.quest).theme : null);
+    sound.music(levelMusic.theme, levelMusic.quiet);
     afterFrame(simDt, game.level.time > 0 && game.run.time < RUN.hurry);
 
     const cam = scene.camera;
@@ -1983,6 +1994,7 @@ export async function startLook(
       window.removeEventListener("keyup", onKey);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("pointermove", onLean);
+      window.removeEventListener("pointerdown", onTap);
       sound.destroy();
       objects.destroy();
       cast.destroy();
@@ -2005,6 +2017,9 @@ export async function startLook(
     togglePause() {
       forgetPresses();
       pause();
+    },
+    fanfare() {
+      sound.fanfare();
     },
     face() {
       return faceOnScreen;

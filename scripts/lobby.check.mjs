@@ -16,7 +16,7 @@ const mini = () => ({
   doors: [{ id: "d1", kind: "stash", x: 5200, y: 0, label: "STAFF ONLY" }],
   checkpoints: [{ id: "k1", x: 3000, y: 0 }],
   signs: [], furniture: [], carts: [5600], lights: [], camera: { zones: [] },
-  rewards: { count: 12, bucees: 3, nuts: 7 }, routes: [], music: "day",
+  rewards: { count: 12, bucees: 3, nuts: 7 }, routes: [], music: "lobby",
 });
 
 test("reward anchors stand on floors and shelves, never in a gap, a solid, a door's doorway or on a cart", () => {

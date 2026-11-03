@@ -91,7 +91,7 @@ export const LOBBY: Level = {
     { id: "floor", x0: 6560, x1: 11100, y0: -100, y1: 0 },
     { id: "balcony", x0: 7493, x1: 10200, y0: -600, y1: -560 },
   ],
-  music: "day",
+  music: "lobby",
   // The home screen: by the desk, as the key art has him (story spec §5.1).
   home: { x: 1100, cx: 1600 },
   hints: { early: 1500 },

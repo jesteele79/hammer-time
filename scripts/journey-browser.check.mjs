@@ -105,6 +105,10 @@ try {
   assert.ok(thinks >= 6 && thinks <= 8, `about one insult every eight seconds: ${thinks} in a minute`);
   assert.equal(await page.evaluate(() => JSON.stringify(window.__next.cast.acts)), acts0, "the cast stands still");
   assert.equal(await mode(), "title", "nothing clocked in");
+  // A click on the home screen unlocks sound, and the title tune is what plays.
+  await page.mouse.click(40, 500);
+  await page.waitForFunction(() => window.__next.sound.unlocked, null, { timeout: 3000 });
+  assert.ok((await page.evaluate(() => window.__next.sound.played["music:title"] ?? 0)) >= 1, "the title tune on the home screen");
   // His face and his thought clear of every piece of the menu, on a laptop, a small laptop and a phone both ways up.
   for (const [w, h] of [[1920, 1080], [1280, 720], [390, 844], [844, 390]]) {
     await page.setViewportSize({ width: w, height: h });
@@ -141,6 +145,7 @@ try {
   let text = await veil();
   for (const words of ["Basel office", "Your transition", "Training is moving to video.", "Transition."]) assert.ok(text.includes(words), `the email says ${words}: ${text}`);
   assert.equal((await run()).level, "sat");
+  assert.ok((await page.evaluate(() => window.__next.sound.played["music:sat"] ?? 0)) >= 1, "SAT's song under the email");
   await cardFits("email");
   await enter();
   await waitMode("card");
@@ -214,6 +219,8 @@ try {
     await page.waitForFunction(() => window.__next.run.mode === "dying" || window.__next.run.mode === "over", null, { timeout: 8000 });
   }
   await waitMode("over");
+  const played = await page.evaluate(() => window.__next.sound.played);
+  assert.ok((played.hammerDown ?? 0) >= 1 && (played["music:off"] ?? 0) >= 1, `Hammer down's notes over silence: ${JSON.stringify(played)}`);
   text = await veil();
   assert.match(text, /Hammer down/);
   assert.ok(await page.getByRole("button", { name: "Try again" }).isVisible(), "Try again");

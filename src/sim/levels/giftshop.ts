@@ -36,7 +36,7 @@ export const GIFTSHOP: Level = {
   camera: { zones: [{ x0: 600, x1: 3900, zoom: 0.92 }] },
   rewards: { count: 6, bucees: 1, nuts: 2 },
   routes: [],
-  music: "day",
+  music: "arena",
   hints: { early: 560 },
   boss: { x: 2600, arena: [600, 3900] },
   // The plush wall and the shirt wall; at the mid plane the plush shelf, the postcard spinner, the gift boxes, the gumball

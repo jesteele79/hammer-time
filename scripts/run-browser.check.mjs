@@ -169,7 +169,7 @@ try {
   await page.waitForFunction(() => window.__next.moves.heat < 50, {}, { timeout: 3000 });
   await page.waitForTimeout(200);
   played = await page.evaluate(() => window.__next.sound.played);
-  assert.ok((played["music:day"] ?? 0) >= 2, `the day music comes back in the lobby: ${JSON.stringify(played)}`);
+  assert.ok((played["music:lobby"] ?? 0) >= 2, `the lobby's song comes back in the lobby: ${JSON.stringify(played)}`);
 
   // The exit: walk in, the tally, and the shift goes on in the restaurant. Its card holds 1.6 s, too short to turn
   // the phone, so it is seen on the phone's tall shape, where his face sits nearest the card.

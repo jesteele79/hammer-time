@@ -1,0 +1,43 @@
+// Music everywhere (story spec §13): a song for every place in the side quests' form, each level naming its own, the
+// boarding chime at SAT every eight bars, the music quiet under the cards and full in play.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { SONGS, AudioBus } from "../src/game/audio.ts";
+import { musicFor } from "../src/render/sound.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
+import { CAMPUS } from "../src/sim/levels/campus.ts";
+import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+import { SAT } from "../src/sim/levels/sat.ts";
+
+const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate"];
+test("every place has a song in the side quests' form", () => {
+  assert.deepEqual(Object.keys(SONGS).sort(), [...IDS].sort());
+  for (const id of IDS) {
+    const s = SONGS[id];
+    assert.ok(s.step >= 0.07 && s.step <= 0.24, `${id} step ${s.step}`);
+    assert.ok(s.lead.length % 16 === 0 && s.bass.length % 16 === 0, `${id} bars`);
+    assert.ok(s.kick.length === s.snare.length && s.hat.length === s.kick.length, `${id} drum rows`);
+  }
+});
+test("every level names its song; the boarding chime comes every eight bars at SAT", () => {
+  assert.deepEqual([LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, STASH, SAT].map((l) => l.music), ["lobby", "restaurant", "campus", "arena", "cellar", "sat"]);
+  const chimes = Object.entries(SONGS.sat.gags).filter(([, g]) => g === "chime").map(([k]) => Number(k));
+  assert.ok(chimes.length >= 2 && chimes.every((k) => k % 128 === 0));
+});
+test("the music by mode: the title tune, the level's song quiet under its cards and full in play, the round's, silence on Hammer down", () => {
+  assert.deepEqual(musicFor("title", "lobby", null), { theme: "title", quiet: false });
+  for (const mode of ["card", "story", "walkoff", "tally", "clear", "pause"]) assert.deepEqual(musicFor(mode, "lobby", null), { theme: "lobby", quiet: true }, mode);
+  for (const mode of ["play", "dying"]) assert.deepEqual(musicFor(mode, "sat", null), { theme: "sat", quiet: false }, mode);
+  assert.deepEqual(musicFor("over", "lobby", null), { theme: null, quiet: false });
+  for (const mode of ["questCard", "questTally", "pause"]) assert.deepEqual(musicFor(mode, "lobby", "gate"), { theme: "gate", quiet: true }, mode);
+  assert.deepEqual(musicFor("quest", "lobby", "banquet"), { theme: "banquet", quiet: false });
+});
+test("quiet music is 0.4 of its level, and back up when the cards go", () => {
+  const bus = new AudioBus();
+  bus.startMusic("lobby", true);
+  assert.ok(Math.abs(bus.musicLevel - 0.07 * 0.4) < 1e-9, `${bus.musicLevel}`);
+  bus.setQuiet(false);
+  assert.ok(Math.abs(bus.musicLevel - 0.07) < 1e-9, `${bus.musicLevel}`);
+});

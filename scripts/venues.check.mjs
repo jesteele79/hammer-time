@@ -30,7 +30,7 @@ const levelOf = (extra = {}) => ({
   id: "restaurant", name: "Mini", world: "1-2", length: 6000, spawn: { x: 200, y: 0 }, time: 420,
   floor: [{ x0: -400, x1: 6400, y0: 0, y1: 0, kind: "quarry" }], platforms: [], solids: [], passes: [],
   bounds: { x: -400, y: -1600, w: 6800, h: 2200 }, crates: [], doors: [{ id: "out", kind: "exit", x: 5900, y: 0, label: "OUT" }],
-  checkpoints: [], signs: [], furniture: [], carts: [], lights: [], camera: { zones: [] }, rewards: { count: 4, bucees: 1, nuts: 1 }, routes: [], music: "day",
+  checkpoints: [], signs: [], furniture: [], carts: [], lights: [], camera: { zones: [] }, rewards: { count: 4, bucees: 1, nuts: 1 }, routes: [], music: "lobby",
   ...extra,
 });
 
