@@ -1,0 +1,156 @@
+HAMMER TIME — ART BATCH 11: THE HOTEL AT NIGHT (STORY PHASE 2, ACT 2)
+
+Ten files for Act 2: three new people, the M CLUB lounge's room and its food sheet, the
+tower's two walls and its sheet of objects, and (later, once the game has rendered them)
+the suite's three walls painted over the game's own renders. The game draws the floors,
+the stairs, the rails, the table, the carts in motion, the flashlight, the duster and the
+briefcase (do not paint any of that into a wall or into a person's hands). The design is
+docs/superpowers/specs/2026-11-02-hammer-time-story-design.md §8 and §16, with the plan
+docs/superpowers/plans/2026-11-04-story-phase-2.md.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one
+shadow tone and one highlight tone, small white specular glints, saturated but natural
+colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same
+artist and same style as the reference images.
+
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens,
+  badges, tags, labels, bottles and boxes are blank. The hotel's colors (a warm cream, a
+  deep navy, gold trim) are fine; never a hotel's name or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing
+  standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- Walls are exactly 1536 x 1024 pixels, landscape, the hotel's shape; never upscale.
+- PNG; never upscale or resize afterward.
+
+------------------------------------------------------------------------------------------
+ITEMS 1 TO 3: THE PEOPLE (pose-locked like the cast; save to art/incoming/cast/)
+
+Attach: Image 1 art/incoming/hammer/body-affliction.png (the pose, camera, framing,
+canvas and drawing style to copy exactly); Image 2 art/outgoing/references/hammer-profile.png
+(the drawing style); Image 3 art/incoming/cast/bellhop-1.png and nurse.png (the pose and
+style done right).
+
+They are NOT the man in Image 1. Each has their own face, hair, build and clothes;
+nothing of the man may remain except the pose, the camera and the canvas.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips,
+  legs and both shoes point left; the torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from
+  vertical, elbows nearly straight, hands open, relaxed and EMPTY, the far arm and hand
+  visible just behind the near one, a clear triangular green gap between the near
+  forearm and the belly.
+- Both soles flat with the same small forward-back stagger as Image 1, the soles at the
+  same height in the frame as Image 1's; only the top of the head sits lower or higher.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait).
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No props,
+  nothing in the hands (the game draws the flashlight, the duster and the briefcase).
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no
+  scenery, no texture, no gradient.
+
+1. guard-1.png — the night security guard. A man in his forties, solid, a short dark
+   beard, a navy uniform shirt with a blank badge and blank shoulder tabs, a black belt
+   with a radio pouch, navy trousers, black shoes, a navy peaked cap with a flat visor.
+2. housekeeper-1.png — the housekeeper. A woman in her fifties, sturdy, her grey hair in
+   a bun, a grey uniform dress to the knee with a white apron and white collar, a blank
+   name badge, black flat shoes, white socks. Hands empty.
+3. titanium.png — Lifetime Titanium guy. A man in his fifties, tall and soft, a receding
+   hairline combed back, a smug half-smile with the mouth closed, a navy business suit
+   with a pale blue shirt and no tie, a lanyard round his neck with a blank white tag on
+   his chest, brown dress shoes. Hands empty (the briefcase is the game's).
+
+------------------------------------------------------------------------------------------
+ITEMS 4 AND 5: THE M CLUB LOUNGE (save to art/incoming/backdrops/ and art/incoming/props/)
+
+Attach: art/incoming/backdrops/ballroom.png (the banquet's room: how a round's room is
+framed, with no table in it, the game puts the table in front); art/incoming/props/
+food-sheet.png (a sheet of sixteen dishes in a four by four grid on green); hammer-profile.png
+(the style); bellhop-1.png (the inked finish).
+
+4. lounge.png — the M CLUB lounge at night, 1536 x 1024, seen straight on like the
+   ballroom: a long bar along the back wall with unlabeled bottles on lit shelves and
+   two warm pendant lamps, a dark wood panel wall with a blank gold plaque, a window at
+   the right with the city's lights at night, the carpet's edge as one level line about
+   three-quarters of the way down, plain carpet below it to the bottom edge. Warm lamp
+   light, blue shadows. No table, no chairs, no people, no text.
+5. lounge-sheet.png — sixteen dishes on flat bright green in a FOUR BY FOUR grid, each
+   in its own cell, none touching, in this reading order (left to right, top to bottom):
+   a. cheese cubes on a small plate; b. crudités (carrot and celery sticks in a cup);
+   c. three meatballs with toothpicks; d. two sliders; e. the hot dish (a small oval
+   casserole with a spoon); f. hummus with a pita wedge; g. crackers fanned on a plate;
+   h. two cookies; i. two brownies; j. a fruit cup; k. a yogurt parfait in a glass;
+   l. a slice of cheesecake; m. a bowl of pretzels; n. a tiny water bottle, blank;
+   o. a white to-go box, closed, blank; p. a glass of red wine.
+   Each a small round plate or its own vessel seen from a high three-quarter angle, the
+   same angle as food-sheet.png, the same size as its cells.
+
+------------------------------------------------------------------------------------------
+ITEM 6: THE TOWER'S WALLS (save to art/incoming/backdrops/)
+
+Attach: art/incoming/backdrops/lobby-far-1.png, lobby-far-2.png (the shape and the
+finish: 1536 x 1024, the base line three-quarters down, a whole cream pillar at each
+edge); hammer-profile.png (the style).
+
+These two walls stack one above the other in the game, floor after floor, so the top
+edge of each must meet the bottom edge of the other: the top row of pixels is the
+underside of the landing above, one flat color (the same color in both), and nothing is
+cut off at the top or the bottom. The base line (the landing's floor) is at the same
+row in both. A whole cream pillar at each side edge, outlined on both sides, as the
+lobby's walls have.
+
+6. tower-far-1.png — a hotel's service stairwell landing wall: painted beige block wall,
+   a grey steel fire door with a small blank window and a push bar at the left third, a
+   blank black floor-number plate beside it, a red fire alarm pull and a blank evacuation
+   map frame at the right, a caged ceiling light. Plain grey carpet below the base line.
+   tower-far-2.png — the same stairwell's other wall: an ice machine's alcove at the left
+   (a recess with a blank stainless machine far back in it), a vending nook at the right
+   (a recess with a blank dark machine), a wet-floor sign's shadow of a hook, pipes
+   along the top under the landing above. The same beige block, the same light, the
+   same carpet.
+
+------------------------------------------------------------------------------------------
+ITEM 7: THE TOWER SHEET (save to art/incoming/props/)
+
+Attach: art/incoming/props/sat-sheet.png and gate-sheet.png (sheets of objects on green,
+left to right, apart); hammer-profile.png (the style); bellhop-1.png (the finish).
+
+7. tower-sheet.png — exactly FIVE objects on flat bright green, in a single row from
+   left to right, none touching another or the edge, each whole and upright, seen from
+   the side at the cast's eye level:
+   a. a housekeeping cart facing LEFT: a grey cart on four wheels with stacked white
+      towels on top, a bag at the back, blank spray bottles in a caddy;
+   b. a stainless ice machine, chest high, with a blank front panel and a scoop;
+   c. a laundry chute's door: a steel hatch in a small frame, its handle down, blank;
+   d. a fire hose cabinet: a red steel box with a glass door and the coiled hose inside;
+   e. a yellow wet-floor sign, the A-frame kind, blank.
+
+------------------------------------------------------------------------------------------
+ITEM 8: THE SUITE (later; save to art/incoming/backdrops/)
+
+The game renders the suite's three rooms in Blender first (the planning's Task 15) and
+puts the renders in art/outgoing/renders/suite-1.png, suite-2.png, suite-3.png. This item
+is painted over them: the render is the input image, the painting keeps its camera,
+walls, furniture and lamps exactly, in the game's inked style. Prompt 5 in
+batch-story-phase2-codex.txt is written for it and is handed over when the renders exist.
+
+8. suite-1.png (the living room), suite-2.png (the bedroom), suite-3.png (the balcony
+   with the city at night and the pool far below the rail), each 1536 x 1024, painted
+   over its render: the room seen straight on, the floor's edge one level line about
+   three-quarters down, the sofa, the coffee table, the minibar, the bed, the rail
+   where the render has them; no people, no text, no logos, nothing on the floor that
+   the render does not show.
+
+------------------------------------------------------------------------------------------
+CHECKLIST (pass/fail, every file):
+- People: strict left profile, both arms forward and down with empty open hands, the
+  soles at Image 1's height, 1086 x 1448, flat green, no props, no text; clearly a
+  different person from everyone in art/incoming/cast/ and not the man in Image 1.
+- Walls: 1536 x 1024, straight on, level lines, the base line about three-quarters down,
+  a whole pillar at each edge, nothing in front, no people, no text; the tower's two with
+  the same flat ceiling color across their top rows.
+- Sheets: flat green, no shadows, the objects apart and whole, in the stated order (the
+  food in a four by four grid, the tower's five in one row), no text.
+- All: the inked cartoon style and finish of bellhop-1.png and the lobby's walls.

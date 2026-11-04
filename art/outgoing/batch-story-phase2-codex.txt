@@ -1,0 +1,139 @@
+HAMMER TIME — STORY PHASE 2, THE CODEX PROMPTS (THE HOTEL AT NIGHT)
+
+These are for Codex in its mode that works on this laptop (it reads the brief and the
+reference images from the repo and saves its images straight into art/incoming/). Paste
+each into a new Codex chat. Prompts 1 to 4 can run at the same time, at the start of the
+phase. Prompt 5 waits until the game has rendered the suite (the session hands it over
+then, with the renders in art/outgoing/renders/). The brief they point at:
+art/outgoing/batch-11-story-phase2.txt.
+
+
+1. THE THREE PEOPLE: THE GUARD, THE HOUSEKEEPER, LIFETIME TITANIUM GUY (batch 11, items 1 to 3)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-11-story-phase2.txt in full. It is the brief. Make ITEMS 1 TO 3 only, and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png, art\incoming\cast\nurse.png and art\incoming\cast\skycap-1.png, and the other people in art\incoming\cast\ — the pose and style done right. The three new people must match them for style, finish and placement in the frame.
+
+3. Make guard-1.png, then housekeeper-1.png, then titanium.png. For each, use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: each has their own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with Image 1, bellhop-1.png and nurse.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and EMPTY. The far arm and hand visible just behind the near one, with a green gap between the near forearm and the belly.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's.
+   - guard-1: a man in his forties, solid, a short dark beard, a navy uniform shirt with a blank badge and blank shoulder tabs, a black belt with a radio pouch, navy trousers, black shoes, a navy peaked cap with a flat visor; no flashlight, nothing in the hands.
+   - housekeeper-1: a woman in her fifties, sturdy, grey hair in a bun, a grey uniform dress to the knee with a white apron and white collar, a blank name badge, black flat shoes, white socks; no duster, nothing in the hands.
+   - titanium: a man in his fifties, tall and soft, a receding hairline combed back, a smug half-smile with the mouth closed, a navy business suit with a pale blue shirt and no tie, a lanyard round his neck with a blank white tag on his chest, brown dress shoes; no briefcase, nothing in the hands.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text, letters or logos anywhere; the badges and the tag are blank.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Clearly a different person from everyone already in art\incoming\cast\, and not looking like the man in Image 1.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\guard-1.png, housekeeper-1.png and titanium.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. In a few lines, tell me how many tries each took and anything on the checklist you could not get right.
+
+
+2. THE M CLUB LOUNGE: THE ROOM AND THE FOOD SHEET (batch 11, items 4 and 5)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-11-story-phase2.txt in full. It is the brief. Make ITEMS 4 AND 5 only, and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\ballroom.png — the banquet's room: how a round's room is framed, with no table in it.
+   - art\incoming\props\food-sheet.png — a sheet of sixteen dishes in a four by four grid on green: the angle, the size of each dish, the layout.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish everything must match.
+
+3. Make lounge.png at exactly 1536 x 1024, landscape, then lounge-sheet.png at the largest square or landscape size the tool offers. Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - lounge.png: seen straight on, every horizontal line level, no side walls or corners; a long bar along the back wall with unlabeled bottles on lit shelves and two warm pendant lamps; a dark wood panel wall with a blank gold plaque; a window at the right with the city's lights at night; the carpet's edge one straight level line about three-quarters of the way down; plain carpet below it to the bottom edge; warm lamp light with blue shadows; no table, no chairs, no people, nothing on the floor, no text.
+   - lounge-sheet.png: exactly SIXTEEN dishes in a FOUR BY FOUR grid on flat bright green (#00FF00), each in its own cell, none touching another or the edge, no shadows, in this reading order: cheese cubes, crudités in a cup, three meatballs with toothpicks, two sliders, the hot dish (a small oval casserole with a spoon), hummus with a pita wedge, crackers fanned on a plate, two cookies, two brownies, a fruit cup, a yogurt parfait in a glass, a slice of cheesecake, a bowl of pretzels, a tiny blank water bottle, a closed blank white to-go box, a glass of red wine; the same high three-quarter angle and the same dish size as food-sheet.png; no text or labels anywhere.
+   - Both: the same inked cartoon style as bellhop-1.png and the ballroom: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\lounge.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\lounge-sheet.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. Tell me how many tries each took and anything on the checklist you could not get right.
+
+
+3. THE TOWER'S TWO WALLS (batch 11, item 6)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-11-story-phase2.txt in full. It is the brief. Make ITEM 6 only (two walls), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\lobby-far-1.png and lobby-far-2.png — the shape to match: 1536 x 1024, landscape, the wall's base about three-quarters of the way down, a whole cream pillar at each edge.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make tower-far-1.png, then tower-far-2.png, each exactly 1536 x 1024, landscape. Once tower-far-1.png is kept, attach it to the second generation so the block wall, the light, the base line and the ceiling color match. Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Seen straight on, every horizontal line level, no side walls or corners; a whole cream pillar at each side edge, outlined on both sides, not cut in half.
+   - The top row of pixels is the flat underside of the landing above, one flat color, the SAME color in both pictures, with nothing cut off at the top; the two walls stack one above the other in the game.
+   - The base line (the landing's floor) one straight level line about three-quarters of the way down, at the same row in both; plain grey carpet below it to the bottom edge; nothing standing in front of the wall or on the floor; no people.
+   - tower-far-1: painted beige block wall; a grey steel fire door with a small blank window and a push bar at the left third; a blank black floor-number plate beside it; a red fire alarm pull and a blank evacuation map frame at the right; a caged ceiling light.
+   - tower-far-2: the same beige block and light; an ice machine's alcove at the left (a recess with a blank stainless machine far back in it); a vending nook at the right (a recess with a blank dark machine); pipes along the top under the landing above.
+   - No text, letters, numbers, logos or signatures anywhere: the plate, the map frame and the machines are blank.
+   - The same inked cartoon style and finish as bellhop-1.png and the lobby's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\tower-far-1.png and tower-far-2.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.
+
+
+4. THE TOWER SHEET (batch 11, item 7)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-11-story-phase2.txt in full. It is the brief. Make ITEM 7 only, and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\props\sat-sheet.png and art\incoming\props\gate-sheet.png — sheets of objects on green, in a row, apart: the finish and the layout.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish to match.
+
+3. Make tower-sheet.png. Use your built-in image generation at the widest landscape size it offers. Do not upscale or resize afterward.
+
+4. Before you keep it, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Exactly five objects in the brief's order from left to right: the housekeeping cart facing LEFT (a grey cart on four wheels with stacked white towels on top, a bag at the back, blank spray bottles in a caddy), the stainless ice machine with a blank front panel and a scoop, the laundry chute's steel hatch in its frame with the handle down, the red fire hose cabinet with a glass door and the coiled hose inside, the yellow A-frame wet-floor sign, blank.
+   - Each object whole and upright, seen from the side at eye level, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text, letters, numbers or logos anywhere.
+   - The same inked cartoon style as bellhop-1.png and the lobby's pieces: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\props\tower-sheet.png, and the exact prompt you used for it as tower-sheet.prompt.txt in the same folder.
+
+6. Stop. Tell me how many tries it took and anything on the checklist you could not get right.
+
+
+5. THE SUITE, PAINTED OVER THE GAME'S RENDERS (batch 11, item 8; run when the renders exist)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything in art\outgoing\renders\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-11-story-phase2.txt in full. It is the brief. Make ITEM 8 only (three walls), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\outgoing\renders\suite-1.png, suite-2.png, suite-3.png — the game's own renders of the suite's three rooms: the camera, the walls, the furniture and the lamps to keep exactly.
+   - art\incoming\backdrops\lobby-far-1.png — a finished game wall: the finish, the line weight, the palette, the base line about three-quarters down.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make suite-1.png, suite-2.png and suite-3.png, one at a time, each exactly 1536 x 1024, landscape. For each, use your built-in image generation with its render as the input image, so the camera, the walls, the furniture and the lamps carry over exactly; paint it in the game's inked style. Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with its render and with lobby-far-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - The same view as the render: the same walls, the same furniture in the same places, the same lamps; nothing added on the floor, no people.
+   - Seen straight on, every horizontal line level; the floor's edge one straight level line about three-quarters of the way down; plain floor below it to the bottom edge.
+   - suite-1: the living room: the sofa, the coffee table with the fruit basket, the minibar, a lamp.
+   - suite-2: the bedroom: the king bed with its headboard, the nightstands, the lamp.
+   - suite-3: the balcony: the rail, the city's lights at night beyond it, the pool's glint far below.
+   - No text, letters, numbers, logos or signatures anywhere.
+   - The same inked cartoon style and finish as bellhop-1.png and lobby-far-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone; not a render.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\suite-1.png, suite-2.png and suite-3.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.
