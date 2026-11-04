@@ -1,0 +1,15 @@
+Use case: illustration-story
+Asset type: sat-far-2.png, security-line far wall for a 2D airport game.
+Create one finished PNG at the widest native landscape size, same 3:1 canvas shape as Image 1; maximum native size, no upscaling.
+Reference roles: Image 1 is the KEPT sat-far-1 wall. Match its exact ceiling height, floor-baseline height, line weight, finish and overall daytime illumination because the walls join side by side. Its ceiling ends about y=0.19H and wall base about y=0.79H. Preserve those heights. Image 2 lobby-far-1 and Image 3 bellhop-1 supply the thick inked game finish only; do not include their subjects.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+Subject: a wide airport security queue hall's BACK WALL only, a plain cool grey-blue wall. Flat recessed rectangular fluorescent lights across the plain light ceiling band, cold white light. A spaced row of completely BLANK blue rectangular signs on slim grey posts, bases flush against the distant wall base. A few SMALL grey X-ray-machine housings recessed far back against the wall, no conveyor belt projecting forward and no body scanners in the foreground. Keep machines small and visually quiet. Floor below the wall base: plain finely speckled cream terrazzo exactly like Image 1, entirely empty, spanning full width to bottom edge. No floor seams. The foreground floor contains NOTHING.
+Camera and composition: strictly square-on front elevation, orthographic, no corners, no side walls, no diagonal receding lines. Every ceiling, light, wall rail and base horizontal is perfectly level. One straight continuous wall-base line at the same height as Image 1. Leave both edges simple plain wall, no clipped objects. Grey-blue wall, blue signs, small muted grey housings; no ornamental gold fittings.
+No people, seats, stanchions, ropes, kiosks, luggage, bins or standalone objects in the foreground. No writing, glyphs, letters, numbers, logos or marks on signs or machines. No shadows falling on the empty floor. This is a flat painted background wall, NOT a furnished airport scene.

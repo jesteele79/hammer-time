@@ -19,7 +19,7 @@ import { PALETTE } from "../palette";
 import type { Scene } from "../scene";
 import { TOWEL_OUT } from "../towel";
 import { Diner } from "./diner";
-import { RouteBoard, drawScalpel, scalpelInFist } from "./gate-board";
+import { RouteBoard, drawScalpel, paintScalpel, scalpelInFist } from "./gate-board";
 import type { GateLayout } from "./gate-layout";
 
 /** Who sits at the gate in whose painting (R5 §1, decision 13). */
@@ -268,6 +268,8 @@ export class GateView {
         if (tex) this.pieces[k] = tex;
       }),
     );
+    const scalpel = pieces.scalpel;
+    if (scalpel && this.pieces.scalpel) paintScalpel({ texture: this.pieces.scalpel, aspect: scalpel.height / scalpel.width });
   }
 
   /** A sheet piece standing on its base at `x`, `floor`, scaled to `w` wide; null when it is not painted. */

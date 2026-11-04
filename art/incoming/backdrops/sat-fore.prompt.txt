@@ -1,0 +1,14 @@
+Use case: illustration-story
+Asset: sat-fore.png, ONE isolated foreground concourse column for a 2D airport game.
+One PNG, tall portrait at maximum offered native resolution, no subsequent resizing or upscaling.
+References: Image 1 sat-mid shows the chosen airport object's black outline, cel palette, specular glints and blank screens. Image 2 lobby-mid and Image 3 bellhop-1 show the game's finished ink style only. No characters or other objects.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+Exactly ONE upright square-section cream airport column, orthographic FRONT VIEW, tall and simple, running from a low plain square plinth to a modest plain square capital. Full column visible, ample bright-green margin on every side. Height is about 88% of canvas height, width about 22% of canvas width, centered. Flat cream front, one flat warm beige shadow side, one flat pale-cream highlight edge, thick clean black contours. On the column's upper half, ONE black rectangular departures screen, entirely blank, mounted flush. Above the screen, ONE round clock with a plain cream/white face, completely blank: NO NUMBERS, NO TICKS, NO HANDS, no decorative marking. Keep lower two-thirds simple cream stone, quiet at eye height. Screen and clock are physically attached to the column, no detached components.
+Pure uniform opaque #00FF00 background, including all surrounding space. NO floor, NO cast shadow, NO gradient, NO texture on green, NO additional objects. No people, plants, decorations, signs, text, lettering, numbers, logos or watermark. Keep the whole subject within the frame.

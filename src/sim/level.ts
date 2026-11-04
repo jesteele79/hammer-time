@@ -77,8 +77,11 @@ export type FurnitureKind =
 export type LevelPass = Pass & { kind?: "service" | "gantry" | "scanner" };
 /** The kitchen's swinging door, and the spawn id of the server whose rush bangs it open. */
 export type SwingDoorSpec = { id: string; x: number; y: number; server: string };
-/** A venue's painted walls in walking order, and its standing pieces by name at the world x they stand beside (R3 §6). */
-export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number }[] };
+/**
+ * A venue's painted walls in walking order, and its standing pieces by name at the world x they stand beside (R3 §6).
+ * `far` is for a short venue with wide walls: its own wall scale and far plane's pan, so the whole row is walked past.
+ */
+export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number }[]; far?: { pan: number; scale: number } };
 /** The gift shop's fight: where the pig sleeps and the arena he is held in once it wakes (R3 §3.3, §5.1). */
 export type BossSpec = { x: number; arena: [number, number] };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */

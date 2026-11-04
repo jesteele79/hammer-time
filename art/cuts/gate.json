@@ -1,0 +1,5 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/gate.png. floor is the middle of the wall's base ink line (550 to 553). windows are the glass's top and bottom rows, inside the steel frame (116 to 119 above, 426 to 428 below). Check with: node scripts/art-grid.mjs gate/room.",
+  "floor": 552,
+  "windows": [120, 426]
+}

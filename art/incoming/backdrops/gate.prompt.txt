@@ -1,0 +1,10 @@
+Use case: illustration-story
+EDIT Image 1, the Gate B7 airport far-wall panorama, on the same native ultrawide 3:1 PNG canvas (2172x724).
+Make ONLY these corrections:
+1. Raise the bottom wall-base/floor boundary by 31 pixels: from about y=574 to y=543, EXACTLY THREE QUARTERS down. Keep the window sill fixed near y=434. The plain low grey wall must end at y=543, and the EMPTY cream terrazzo floor below must be 181 pixels tall. One perfectly level unbroken horizontal wall-base line across the full width.
+2. Replace the lower wall's existing soft gradient/texture with ONE perfectly uniform FLAT warm-grey base color. Use a single thin flat shadow band only along the sill/skirting. Likewise the ceiling is a flat light-cream field with flat recessed lights, no shading gradient. Preserve the finished thick black ink contours and simple flat cel style throughout.
+Everything else stays: ceiling top band, continuous window band from about 16% to 60% of height, evenly spaced dark steel mullions, sunny Texas apron/taxiway with yellow lines, pale blue sky and a few clouds, low distant terminal and exactly TWO whole blue airliners nose-in at attached jet bridges. Blue bodies, red/yellow belly stripes, red tails with yellow bands, no aircraft writing or logos. Both side edges plain mullion/glass/wall without any half-cut subject.
+Strict front elevation, perfectly level horizontal lines, no side walls, no corners, no convergence. Nothing standing in front of windows or wall, nothing on the floor: no seats, podium, signs, screens, people, plants, stanchions or luggage. No indoor shadows or floor seams.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+No text, letters, digits, logos, glyphs, signatures or watermarks anywhere. No green screen. Output native PNG, no subsequent resizing or upscaling. Critical: floor starts at y=543 and wall fills are FLAT.

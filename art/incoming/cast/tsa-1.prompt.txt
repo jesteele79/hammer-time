@@ -1,0 +1,23 @@
+Use case: illustration-story
+Asset: tsa-1.png, one finished TSA officer sprite for an existing 2D airport game.
+EDIT TARGET Image 1 body-affliction.png: carry over ONLY pose, orthographic camera, canvas and placement, but COMPLETELY REPLACE the man. Image 2 hammer-profile: drawing style only. Image 3 bellhop-1 and Image 4 nurse: finished cast's clean ink and cel finish and framing, NOT their identity. Do not draw those characters.
+EXACT same native canvas size as Image 1: 1086 x 1448 PNG portrait. No later resize, upscaling or crop.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, the far arm and hand visible just behind the near one, a clear triangular green gap between the near forearm and the belly.
+- Both soles flat with the same small forward-back stagger as Image 1, the soles at the same height in the frame as Image 1's; only the top of the head sits lower or higher.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait).
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No props, nothing in the hands.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no scenery, no texture, no gradient.
+Subject: TSA officer, a lean man in his thirties with his OWN younger clean-shaven face, close-cropped dark hair and no hat. Narrow angular jaw, long straight nose, alert eyes, medium brown complexion, tall slim build distinct from Hammer's stocky build. Royal BLUE uniform shirt with blank BLACK shoulder tabs, BLACK tie, BLACK trousers and BLACK boots, BLUE nitrile gloves covering BOTH hands. Small blank silver/white badge on the chest without emblem or markings. No vest, belt equipment, weapon, radio, headset or other accessories.
+Both gloved hands fully open, relaxed, empty, fingers distinct. Arms extend FORWARD-left and DOWN about 30 degrees forward of vertical, almost straight; far arm parallel and slightly offset so both hands are visible. A clear triangular GREEN gap between forearm and belly. Strict left profile for head, shoulders, torso, hips, knees and both boots. No chest/front view, no three-quarter rotation. Chin level, lips closed, eyes ahead-left.
+Match Image 1's footwear positions: far boot a small step left, sole around y=1325; near boot sole around y=1415; same canvas and green margin all around. Both soles flat and level individually. Entire body and footwear within frame.
+Flat uniform opaque exact #00FF00 background, no scenery, floor or shadow. No letters, numbers, logos, emblem, pseudo-writing, signature or watermark. Chest badge and shoulder tabs completely BLANK. Nothing held in either hand.

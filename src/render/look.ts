@@ -241,6 +241,7 @@ export async function startLook(
   // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
   const lighting = createLighting(scene, render.quality, [...[...LEVELS.values()].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
   const props = new Props(scene.layers.play, particles, scene.ambient);
+  if (!opts.noart) void props.loadBox(registry);
   const cast = new Cast(scene.layers.play, scene.ambient, registry, particles);
   cast.setQuality(render.quality);
   render.onQuality = (q) => {

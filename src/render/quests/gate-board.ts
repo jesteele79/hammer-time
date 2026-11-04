@@ -1,4 +1,4 @@
-import { Container, Graphics, type BitmapText } from "pixi.js";
+import { Container, Graphics, type BitmapText, type Texture } from "pixi.js";
 import { CITY_CODES, HOME, MAP, TAGS, cityAt, classOf, polygon, type CityCode } from "../../sim/quests/fares/board";
 import type { FaresEvent } from "../../sim/quests/fares/events";
 import { FARES, aimOf, crosshair, groupOf, tagRect, type Fares, type Tag } from "../../sim/quests/fares/fares";
@@ -54,6 +54,15 @@ export function drawScalpel(g: Graphics, butt: Point, tip: Point, width = 7): vo
   const dx = tip.x - butt.x;
   const dy = tip.y - butt.y;
   const len = Math.hypot(dx, dy) || 1;
+  if (painted && len >= PAINTED_MIN) {
+    // The sheet paints it level with the blade's tip at its left edge.
+    const h = len * painted.aspect;
+    // Pixi applies each to what came before: turn it, then carry it to the tip.
+    g.save().rotateTransform(Math.atan2(-dy, -dx)).translateTransform(tip.x, tip.y);
+    g.texture(painted.texture, 0xffffff, 0, -h / 2, len, h);
+    g.restore();
+    return;
+  }
   const ux = dx / len;
   const uy = dy / len;
   const nx = -uy;
@@ -62,6 +71,14 @@ export function drawScalpel(g: Graphics, butt: Point, tip: Point, width = 7): vo
   g.poly([...at(0, -0.5), ...at(0.66, -0.5), ...at(0.66, 0.5), ...at(0, 0.5)]).fill(0x8d969f).stroke({ width: 2, color: INK });
   g.poly([...at(0.64, -0.55), ...at(0.8, -0.75), ...at(1, 0), ...at(0.86, 0.4), ...at(0.64, 0.55)]).fill(0xe9edf0).stroke({ width: 2, color: INK });
   for (const s of [0.12, 0.24, 0.36]) g.moveTo(...(at(s, -0.4) as [number, number])).lineTo(...(at(s, 0.4) as [number, number])).stroke({ width: 1.5, color: 0x5d646b });
+}
+
+/** The sheet's scalpel, once the gate's pieces are in: the one in his fist. */
+let painted: { texture: Texture; aspect: number } | null = null;
+/** Shorter than this the painting, scaled down four times over, loses its ink on the map: the drawn one reads better. */
+const PAINTED_MIN = 80;
+export function paintScalpel(art: { texture: Texture; aspect: number } | null): void {
+  painted = art;
 }
 
 /** The scalpel in his fist at the gate: 30 rest units of handle behind the grip, 70 of blade ahead (as the rig's checks probe it). */

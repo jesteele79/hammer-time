@@ -692,6 +692,27 @@ test("a wall is cropped between its seams, full height, its floor line kept and 
   await assert.rejects(wallCrop(png, { floor: 700, seams: [50, 950] }), /floor/);
 });
 
+test("the airport's and the gate's paintings are all in: the walls, the pieces, the two sheets' names and the three people", () => {
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  for (const wall of ["sat-far-1", "sat-far-2", "sat-far-3"]) assert.ok(reg.walls[wall], wall);
+  for (const piece of ["sat-mid-1", "sat-mid-2", "sat-mid-3", "sat-fore-1"]) assert.ok(reg.pieces[piece], piece);
+  assert.deepEqual(Object.keys(reg.gate.pieces).sort(), ["box", "cart", "kiosk", "podium", "scalpel", "seats", "stanchion"]);
+  assert.deepEqual(Object.keys(reg.sat.pieces).sort(), ["bin", "kiosk", "pretzel", "sign", "stanchion", "van"]);
+  assert.ok(reg.gate.room && reg.gate.plane);
+  for (const person of ["skycap-1", "tsa-1", "gate-agent"]) assert.ok(reg.cast.bodies[person], person);
+});
+
+test("a wall painted with sky over its roof: the rows above the roof are dropped, its floor counted from the roof, the color above it its cut's", async () => {
+  const W = 400, H = 300;
+  const rgba = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) rgba.set(y < 20 ? [10, 120, 200, 255] : [200, 190, 170, 255], (y * W + x) * 4);
+  const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
+  const w = await wallCrop(png, { floor: 220, seams: [0, 400], roof: 20, above: "#147dac" });
+  assert.deepEqual([w.width, w.height, w.floor, w.top], [400, 280, 200, "#147dac"]);
+  assert.equal((await sharp(w.png).metadata()).height, 280);
+  await assert.rejects(wallCrop(png, { floor: 10, seams: [0, 400], roof: 20 }), /floor/);
+});
+
 test("a sheet of objects on green is cut into one piece each, left to right, near shapes joined, specks dropped, each with its base", async () => {
   const W = 700, H = 320;
   const rgba = Buffer.alloc(W * H * 4);
@@ -986,6 +1007,7 @@ test("the gate sheet's seven pieces are named in the brief's order; six or eight
 });
 
 import { BODY_SCALE, TEXTURE_SCALE, firstLevelBytes, FIRST_LEVEL_BUDGET } from "./art-cut.mjs";
+import { join } from "node:path";
 
 test("his body and heads and the cast's are published at the painting's full size; the first level's art stays under 20 MB", async () => {
   assert.equal(BODY_SCALE, 1);
@@ -1004,6 +1026,23 @@ test("his body and heads and the cast's are published at the painting's full siz
   const bytes = firstLevelBytes("public/art");
   assert.ok(bytes > 1e6 && bytes < FIRST_LEVEL_BUDGET, `the lobby's art: ${(bytes / 1e6).toFixed(1)} MB`);
   assert.equal(FIRST_LEVEL_BUDGET, 20e6);
+});
+
+test("the first level's budget counts the airport, where a new journey starts, as well as the lobby, where a saved one can", () => {
+  const dir = mkdtempSync(join(tmpdir(), "first-level-"));
+  for (const sub of ["hammer", "cast", "backdrops", "products", "sat", "gate"]) mkdirHat(join(dir, sub));
+  const file = (name, bytes) => writeHat(join(dir, name), Buffer.alloc(bytes));
+  file("hammer/a.webp", 100);
+  file("cast/bellhop-1-torso.webp", 10);
+  file("backdrops/lobby-far-1.webp", 10);
+  assert.equal(firstLevelBytes(dir), 120);
+  file("cast/skycap-1-torso.webp", 50);
+  file("cast/tsa-1-torso.webp", 50);
+  file("backdrops/sat-far-1.webp", 50);
+  file("sat/van.webp", 50);
+  file("gate/seats.webp", 50);
+  file("gate/plane.webp", 5000);
+  assert.equal(firstLevelBytes(dir), 350, "the airport's art, and of the gate's sheet only what the airport stands");
 });
 
 test("the SAT sheet's six pieces are named in the brief's order; five or seven refuse", async () => {

@@ -971,15 +971,19 @@ export const FIRST_LEVEL_BUDGET = 20e6;
 /** Who works the lobby (src/sim/levels/lobby.ts): their paintings load with the first level. */
 const LOBBY_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2"];
 
-/** The bytes of the first level's published art under `dir`: hammer/*, the lobby's people and hats, its walls and pieces, the products. */
+/** Who works the airport (src/sim/levels/sat.ts), the bartender in the server's painting. */
+const SAT_PERSONS = ["skycap-1", "tsa-1", "server-1"];
+
+/**
+ * The bytes of the art the first level waits for under `dir`: hammer/*, its people, walls and pieces, the products. A new
+ * journey starts at the airport, a saved one can start at the lobby: the larger of the two.
+ */
 export function firstLevelBytes(dir) {
   const sizeOf = (sub, keep) => (existsSync(join(dir, sub)) ? readdirSync(join(dir, sub)).filter(keep).reduce((t, f) => t + statSync(join(dir, sub, f)).size, 0) : 0);
-  return (
-    sizeOf("hammer", () => true) +
-    sizeOf("cast", (f) => LOBBY_PERSONS.some((p) => f.startsWith(`${p}-`)) || f.startsWith("bellhop-hat")) +
-    sizeOf("backdrops", (f) => f.startsWith("lobby-")) +
-    sizeOf("products", () => true)
-  );
+  const shared = sizeOf("hammer", () => true) + sizeOf("products", () => true);
+  const lobby = sizeOf("cast", (f) => LOBBY_PERSONS.some((p) => f.startsWith(`${p}-`)) || f.startsWith("bellhop-hat")) + sizeOf("backdrops", (f) => f.startsWith("lobby-"));
+  const sat = sizeOf("cast", (f) => SAT_PERSONS.some((p) => f.startsWith(`${p}-`))) + sizeOf("backdrops", (f) => f.startsWith("sat-")) + sizeOf("sat", () => true) + sizeOf("gate", (f) => f.startsWith("seats.") || f.startsWith("podium."));
+  return shared + Math.max(lobby, sat);
 }
 /** The rim light's silhouettes are only an edge: half the textures' size. */
 const SIL_SCALE = TEXTURE_SCALE / 2;
@@ -1277,13 +1281,18 @@ export function skinWeights(positions, rig, layer) {
   return { bones, weights };
 }
 
-/** A wall painting cropped between its seams (the middles of its edge pilasters), full height; its floor line kept and its top and bottom rows' mean colors, which the wall carries on above and below itself. */
+/**
+ * A wall painting cropped between its seams (the middles of its edge pilasters), full height from its roof (the first
+ * row, unless the cut says the painting has sky over its roof to drop); its floor line kept and its top and bottom rows'
+ * mean colors, which the wall carries on above and below itself (the cut's `above` in place of the top row's).
+ */
 export async function wallCrop(png, cut) {
   const meta = await sharp(png).metadata();
   const [a, b] = cut.seams;
+  const roof = cut.roof ?? 0;
   if (!(a >= 0 && b <= meta.width && b - a > 200)) throw new Error(`wallCrop: seams ${a}..${b} outside the painting's ${meta.width} px`);
-  if (!(cut.floor > 0 && cut.floor < meta.height)) throw new Error(`wallCrop: floor line ${cut.floor} outside the painting's ${meta.height} px`);
-  const out = await sharp(png).extract({ left: a, top: 0, width: b - a, height: meta.height }).png().toBuffer();
+  if (!(cut.floor > roof && cut.floor < meta.height)) throw new Error(`wallCrop: floor line ${cut.floor} outside the painting's ${meta.height} px`);
+  const out = await sharp(png).extract({ left: a, top: roof, width: b - a, height: meta.height - roof }).png().toBuffer();
   const { data } = await sharp(out).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const w = b - a;
   const rowColor = (y) => {
@@ -1291,7 +1300,7 @@ export async function wallCrop(png, cut) {
     for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) sum[c] += data[(y * w + x) * 4 + c];
     return "#" + sum.map((v) => Math.round(v / w).toString(16).padStart(2, "0")).join("");
   };
-  return { png: out, width: w, height: meta.height, floor: cut.floor, top: rowColor(0), bottom: rowColor(meta.height - 1) };
+  return { png: out, width: w, height: meta.height - roof, floor: cut.floor - roof, top: cut.above ?? rowColor(0), bottom: rowColor(meta.height - roof - 1) };
 }
 
 /**

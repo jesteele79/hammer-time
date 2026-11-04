@@ -78,6 +78,8 @@ export type Scene = {
   scale: number;
   /** The venue's ambient light as a tint, applied to scenery and body parts, never to a head plate. */
   ambient: number;
+  /** How far the far plane scrolls per world px of camera travel in the venue shown. */
+  farPan: number;
   width: number;
   height: number;
   resize(): void;
@@ -140,6 +142,7 @@ export function createScene(render: RenderApp): Scene {
     camera,
     scale: 1,
     ambient: 0xffffff,
+    farPan: PARALLAX.far,
     width: app.screen.width,
     height: app.screen.height,
     reducedMotion: typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -200,7 +203,7 @@ export function createScene(render: RenderApp): Scene {
       scene.scale = (HERO_SCREEN_FRACTION * height * camera.zoom * punchK * portrait) / HERO_HEIGHT;
       for (const name of LAYER_ORDER) {
         const layer = layers[name];
-        const f = PARALLAX[name];
+        const f = name === "far" ? scene.farPan : PARALLAX[name];
         if (f === 0) {
           layer.position.set(0, 0);
           layer.scale.set(1);

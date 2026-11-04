@@ -211,11 +211,18 @@ he has done it once: Space jumps, Shift runs, ↓ while running slides, H swings
 F fires a snot rocket, T towels off. His thoughts come once as he passes their
 marks ("Pre-check. I AM pre-check.", "Take your shoes off? These are loafers.",
 "It's Coke Zero. It's not a liquid. It's a lifestyle.", "Seven minutes.
-Plenty."). Until its paintings are synced (`art/incoming/backdrops/sat-*.png`,
-`cast/skycap-1.png`, `cast/tsa-1.png`, `props/sat-sheet.png`), the airport is
-drawn in code (`src/render/venue-sat.ts`) against a drawn terminal wall, the
-skycap and the agents are stand-ins, and the bartender wears the restaurant
-server's painting, which already has his white shirt and black apron.
+Plenty."). **The paintings**: the three walls (`art/incoming/backdrops/sat-far-1..3.png`,
+cut by `art/cuts/wall-sat-far-N.json`), the mid sheet and the column
+(`sat-mid.png`, `sat-fore.png`), the skycap and the TSA agent (`cast/skycap-1.png`,
+`cast/tsa-1.png`, whose navy second agent is a recolor) and the sheet of small pieces
+(`props/sat-sheet.png`); the seats and the podium are the gate's sheet's, and the
+bartender wears the restaurant server's painting. These walls are twice as wide as a
+hotel wall and the level half as long, so `backdrop.far` in `sat.ts` gives the airport
+its own wall scale and a far plane that pans at 0.5 instead of 0.25: the curb is seen at
+the curb and gate B7's wall at the gate. Their cuts drop the sky painted over the roof
+(`roof`) and carry one sky above all three (`above`). The X-ray, the scanner, the
+walkway and the door are drawn in code (`src/render/venue-sat.ts`); without a painting
+(or with `&noart=1`) a drawn terminal wall and stand-ins take the others' places.
 
 ## The lobby (1-1)
 
@@ -530,8 +537,9 @@ scripted players). **The paintings** asked of Codex (`art/outgoing/batch-r5-code
 kiosk, the seats, the cart, a stanchion, a scalpel and a box) and the gate agent (`cast/gate-agent.png`, cut like the
 cast); `node scripts/art-grid.mjs gate/room` and `gate/sheet` draw their cuts. Until each is in (and with `&noart=1`)
 the drawn gate, a drawn plane, drawn pieces and the agent's stand-in in a navy polo take their places; the board, the
-ladder, the passes, the clipboard and the birds are always drawn in code, and the scalpels and the box are until the
-sheet's are wired in when it arrives. The travelers are the cast's own paintings.
+ladder, the passes, the clipboard and the birds are always drawn in code. The sheet's scalpel is the one in his fist and
+its box is the box of blades he lobs anywhere; the scalpels on the tray, in flight and stuck in the map stay drawn,
+because the painting scaled that small loses its ink against the map. The travelers are the cast's own paintings.
 
 ## The walls
 

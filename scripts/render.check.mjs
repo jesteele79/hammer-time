@@ -858,6 +858,100 @@ test("a venue's walls are scaled so they span its length in the far plane, each 
   assert.equal(wallScale([{ width: 400 }], level), 1.4);
 });
 
+import { Graphics as PaintedGraphics, Texture as PaintedTexture } from "pixi.js";
+import { KIOSK_W, drawSatDressing } from "../src/render/venue-sat.ts";
+import { drawSample } from "../src/render/props.ts";
+import { drawScalpel, paintScalpel } from "../src/render/quests/gate-board.ts";
+
+const paintedPiece = (width, height) => ({ texture: PaintedTexture.WHITE, piece: { file: "p.webp", width, height, base: { x: width / 2, y: height } } });
+const textures = (g) => g.context.instructions.filter((i) => i.action === "texture").map((i) => i.data);
+
+test("SAT's seats and podium are the gate sheet's once it is in, each on its floor; the sheet's kiosk stands behind its counter, not over it", () => {
+  const seats = new PaintedGraphics();
+  assert.ok(drawSatFurniture(seats, { kind: "seats", x: 100, y: -140, w: 400, h: 140 }, { seats: paintedPiece(800, 400) }));
+  const [s] = textures(seats);
+  assert.deepEqual([s.dx, s.dy, s.dw, s.dh], [100, -200, 400, 200]);
+  const back = new PaintedGraphics();
+  const over = new PaintedGraphics();
+  assert.ok(drawSatFurniture(back, { kind: "podium", x: 700, y: -220, w: 200, h: 220 }, { podium: paintedPiece(200, 240) }, over));
+  assert.equal(textures(back).length, 0, "the podium stands in front of the door");
+  assert.equal(textures(over)[0].dh, 240);
+  const behind = new PaintedGraphics();
+  drawSatDressing(behind, new PaintedGraphics(), { platforms: [{ x0: 1500, x1: 1800, y: -180, kind: "counter" }] }, { kiosk: paintedPiece(180, 320) });
+  const [k] = textures(behind);
+  assert.equal(k.dw, KIOSK_W);
+  assert.ok(k.dh < 340, `about a head over the counter, not a wall: ${k.dh}`);
+  assert.equal(k.dx + k.dw / 2, 1650);
+});
+
+test("the sheet's scalpel, once in, runs from the butt to the tip with its painted blade at the tip; before that the drawn one stands in", () => {
+  const drawn = new PaintedGraphics();
+  drawScalpel(drawn, { x: 0, y: 0 }, { x: 100, y: 0 });
+  assert.equal(textures(drawn).length, 0);
+  paintScalpel({ texture: PaintedTexture.WHITE, aspect: 0.15 });
+  try {
+    const g = new PaintedGraphics();
+    drawScalpel(g, { x: 0, y: 0 }, { x: 100, y: 0 });
+    const [t] = textures(g);
+    assert.deepEqual([t.dw, t.dh], [100, 15]);
+    // The painting's left edge is the blade's tip: it lands on the tip, its right edge on the butt.
+    const at = (x, y) => t.transform.apply({ x, y });
+    assert.ok(Math.abs(at(0, 0).x - 100) < 1e-6 && Math.abs(at(0, 0).y) < 1e-6, "the blade at the tip");
+    assert.ok(Math.abs(at(100, 0).x) < 1e-6 && Math.abs(at(100, 0).y) < 1e-6, "the handle at the butt");
+    // One stuck in the map or on the tray is too small for the painting's ink: the drawn one, for reading it.
+    const small = new PaintedGraphics();
+    drawScalpel(small, { x: 0, y: 0 }, { x: 60, y: 0 });
+    assert.equal(textures(small).length, 0);
+  } finally {
+    paintScalpel(null);
+  }
+});
+
+test("a box of blades is the sheet's once it is in, sitting on the floor where it lands, and keeps its spin and fade", () => {
+  const b = { x: 300, y: 0, landed: 0 };
+  const g = new PaintedGraphics();
+  drawSample(g, b, { texture: PaintedTexture.WHITE, aspect: 1 });
+  const [t] = textures(g);
+  assert.equal(t.dw, t.dh);
+  assert.equal(g.y, -t.dh / 2, "its bottom on the floor");
+  const flying = new PaintedGraphics();
+  drawSample(flying, { x: 120, y: -200, landed: -1 }, { texture: PaintedTexture.WHITE, aspect: 1 });
+  assert.equal(flying.y, -200);
+  assert.ok(flying.rotation !== 0, "it tumbles in the air");
+  const drawn = new PaintedGraphics();
+  drawSample(drawn, b);
+  assert.equal(textures(drawn).length, 0, "the drawn one stands in");
+});
+
+import { farPan } from "../src/render/backdrop.ts";
+import { PARALLAX } from "../src/render/scene.ts";
+import { SAT as SAT_LEVEL } from "../src/sim/levels/sat.ts";
+
+test("a venue may set its far plane's scale and pan; the others keep the formula and the shared pan", () => {
+  const walls = [{ width: 1000 }];
+  const bounds = { x: 0, y: 0, w: 16000, h: 1000 };
+  assert.equal(wallScale(walls, { bounds, backdrop: { walls: [], mid: [], fore: [], far: { pan: 0.5, scale: 1.05 } } }), 1.05);
+  assert.equal(farPan({ backdrop: { walls: [], mid: [], fore: [], far: { pan: 0.5, scale: 1.05 } } }), 0.5);
+  assert.equal(farPan({ backdrop: { walls: [], mid: [], fore: [] } }), PARALLAX.far);
+  assert.equal(farPan({}), PARALLAX.far);
+  assert.ok(farPan(SAT_LEVEL) < PARALLAX.mid, "the far plane stays slower than the mid plane");
+});
+
+test("SAT's walls are all seen on the walk: the curb's left edge at the start, gate B7's wall at the end, nothing past them", () => {
+  // The cut walls' widths; half the view at 16:9 and zoom 1 in world px.
+  const walls = [{ width: 2158 }, { width: 878 }, { width: 2158 }];
+  const half = 1036;
+  const pan = farPan(SAT_LEVEL);
+  const b = SAT_LEVEL.bounds;
+  const scale = wallScale(walls, SAT_LEVEL);
+  const row = layWalls(walls, scale, (b.x + b.w / 2) * pan, [b.x * pan - half, (b.x + b.w) * pan + half]);
+  const first = row.find((r) => r.index === 1).x - walls[0].width * scale;
+  const last = row.find((r) => r.index === 1).x + walls[1].width * scale + walls[2].width * scale;
+  const seen = [(b.x + half) * pan - half, (b.x + b.w - half) * pan + half];
+  assert.ok(first > seen[0] - 100 && first < seen[0] + 100, `the row starts where the walk's view starts: ${first} against ${seen[0]}`);
+  assert.ok(last > seen[1] - 100 && last < seen[1] + 100, `the row ends where the walk's view ends: ${last} against ${seen[1]}`);
+});
+
 test("the ground under him: the lowest floor at his x, up the library steps and onto the dock; none over a pit", () => {
   const floor = [
     { x0: 0, x1: 1000, y0: 0, y1: 0 },

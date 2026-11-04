@@ -62,10 +62,14 @@ export function wallsFor(level: Pick<Level, "backdrop">, registry: Pick<Registry
  * One scale per venue: its walls side by side span its length in the far plane, so each stands behind its own stretch
  * in walking order (the dining room's wall behind the dining room); a short arena keeps WALL_MIN and centres them.
  */
-export function wallScale(walls: Pick<Wall, "width">[], level: Pick<Level, "bounds">): number {
+export function wallScale(walls: Pick<Wall, "width">[], level: Pick<Level, "bounds"> & Partial<Pick<Level, "backdrop">>): number {
+  if (level.backdrop?.far) return level.backdrop.far.scale;
   const total = walls.reduce((a, w) => a + w.width, 0);
   return Math.min(WALL_SCALE, Math.max(WALL_MIN, (level.bounds.w * PARALLAX.far) / total));
 }
+
+/** How far a venue's far plane scrolls per world px of camera travel. */
+export const farPan = (level: Partial<Pick<Level, "backdrop">>): number => level.backdrop?.far?.pan ?? PARALLAX.far;
 
 /** The ground at x: the lowest floor there (a belt or a stair over the floor is not the ground), or null over a pit. */
 export function groundAt(floor: readonly Pick<FloorSegment, "x0" | "x1" | "y0" | "y1">[], x: number): number | null {
@@ -134,8 +138,9 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
   if (walls && textures) {
     const scale = wallScale(walls, level);
-    const extent: [number, number] = [b.x * PARALLAX.far - VIEW_HALF, (b.x + b.w) * PARALLAX.far + VIEW_HALF];
-    for (const { index, x } of layWalls(walls, scale, (b.x + b.w / 2) * PARALLAX.far, extent)) {
+    const pan = farPan(level);
+    const extent: [number, number] = [b.x * pan - VIEW_HALF, (b.x + b.w) * pan + VIEW_HALF];
+    for (const { index, x } of layWalls(walls, scale, (b.x + b.w / 2) * pan, extent)) {
       const w = walls[index];
       const top = -w.floor * scale;
       // The wall carries on above the painting in its top row's color.
@@ -162,7 +167,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   }
   if (level.id === "stash") planes.far.addChild(blockWall(level.length));
   // SAT's walls are still to be painted: a drawn terminal wall stands in until they are.
-  if (level.id === "sat" && !(walls && textures)) planes.far.addChild(terminalWall(level.length));
+  if (level.id === "sat" && !(walls && textures)) planes.far.addChild(terminalWall(level.length * farPan(level)));
   const piece = async (name: string): Promise<Sprite | null> => {
     const p = registry.pieces?.[name];
     const texture = p ? (await loadAll([ART_BASE + p.file]))?.[0] : null;
@@ -195,6 +200,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   return {
     setVisible(on) {
       for (const c of Object.values(planes)) c.visible = on;
+      if (on) scene.farPan = farPan(level);
     },
     update(face, dt, ground) {
       if (ground !== null) {
@@ -229,9 +235,9 @@ function blockWall(length: number): Graphics {
 }
 
 /** The airport's stand-in wall in the far plane: a ceiling band, a cream wall, a window band onto a blue sky, a terrazzo floor. */
-function terminalWall(length: number): Graphics {
+function terminalWall(span: number): Graphics {
   const g = new Graphics();
-  const w = length * PARALLAX.far + 2400;
+  const w = span + 2400;
   const wall = tones("#d8d2c4");
   const line = { width: MID_OUTLINE, color: PALETTE.outline, alpha: 0.75 };
   g.rect(-1200, -1600, w, 1600).fill(wall.base);

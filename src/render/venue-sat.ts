@@ -1,5 +1,5 @@
 import { Assets, type Graphics, type Texture } from "pixi.js";
-import { ART_BASE, SAT_PIECES, type Piece, type Registry, type SatPiece } from "../art/registry";
+import { ART_BASE, SAT_PIECES, type GatePiece, type Piece, type Registry, type SatPiece } from "../art/registry";
 import type { Furniture, Level, LevelFloor } from "../sim/level";
 import type { FloorSegment, Point } from "../sim/types";
 import { FLOOR, INK, THIN } from "./ink";
@@ -27,16 +27,19 @@ const C = {
 /** The X-ray belt's grey bins, one every `gap` px of its run; the moving walkway's grooves, one every `groove`. */
 export const BIN = { gap: 200, w: 90, h: 40, groove: 60 } as const;
 
-/** The sheet's pieces, loaded: each with its registry entry (its size and the point it stands on). */
-export type SatPieces = Partial<Record<SatPiece, { texture: Texture; piece: Piece }>>;
+/** The gate sheet's pieces the airport stands too: Fare Darts is played at this same gate. */
+const FROM_GATE = ["seats", "podium"] as const satisfies readonly GatePiece[];
+/** The sheets' pieces, loaded: each with its registry entry (its size and the point it stands on). */
+export type SatPieces = Partial<Record<SatPiece | (typeof FROM_GATE)[number], { texture: Texture; piece: Piece }>>;
 
-/** The SAT sheet's pieces, or null while the sheet is not in (the drawn stand-ins stand); one that fails is left out. */
+/** The sheets' pieces, or null while neither sheet is in (the drawn stand-ins stand); one that fails is left out. */
 export async function loadSatPieces(registry: Registry): Promise<SatPieces | null> {
-  const listed = registry.sat?.pieces;
-  if (!listed) return null;
+  const gate = registry.gate?.pieces;
+  const listed: Partial<Record<keyof SatPieces, Piece>> = { ...registry.sat?.pieces, seats: gate?.seats, podium: gate?.podium };
+  if (!Object.values(listed).some(Boolean)) return null;
   const out: SatPieces = {};
   await Promise.all(
-    SAT_PIECES.map(async (name) => {
+    [...SAT_PIECES, ...FROM_GATE].map(async (name) => {
       const piece = listed[name];
       if (!piece) return;
       try {
@@ -198,6 +201,10 @@ export function drawSatFurniture(g: Graphics, f: Furniture, pieces: SatPieces | 
       return true;
     }
     case "seats": {
+      if (pieces?.seats) {
+        stand(g, pieces.seats, f.x + f.w / 2, floor, f.w);
+        return true;
+      }
       // Four seats from behind on one beam: the travelers' backs come with the gate's own scene.
       const seat = tones(C.seat);
       const w = f.w / 4;
@@ -207,9 +214,13 @@ export function drawSatFurniture(g: Graphics, f: Furniture, pieces: SatPieces | 
       return true;
     }
     case "podium": {
+      const d = over ?? g;
+      if (pieces?.podium) {
+        stand(d, pieces.podium, f.x + f.w / 2, floor, f.w);
+        return true;
+      }
       // The gate agent's podium: a navy desk with a sloped top and the gate's number.
       const p = tones(C.podium);
-      const d = over ?? g;
       d.poly([f.x, f.y + 20, f.x + f.w, f.y, f.x + f.w, floor, f.x, floor]).fill(p.base).stroke(INK);
       d.rect(f.x + 30, f.y + 70, f.w - 60, 60).fill(p.highlight);
       return true;
@@ -220,6 +231,8 @@ export function drawSatFurniture(g: Graphics, f: Furniture, pieces: SatPieces | 
 
 /** The check-in hall's end: its counters are the kiosks (the concourse's counter is the bar's top). */
 const HALL_END = 3200;
+/** The sheet's kiosk behind its counter, about a head over the top he jumps onto. */
+export const KIOSK_W = 170;
 
 /** SAT's dressing beside its platforms: a check-in kiosk behind each kiosk counter, the pretzel bag on the newsstand's shelf. */
 export function drawSatDressing(back: Graphics, front: Graphics, level: Pick<Level, "platforms">, pieces: SatPieces | null): void {
@@ -227,7 +240,7 @@ export function drawSatDressing(back: Graphics, front: Graphics, level: Pick<Lev
     const w = p.x1 - p.x0;
     if (p.kind === "counter" && p.x1 <= HALL_END) {
       if (pieces?.kiosk) {
-        stand(back, pieces.kiosk, (p.x0 + p.x1) / 2, 0, w);
+        stand(back, pieces.kiosk, (p.x0 + p.x1) / 2, 0, KIOSK_W);
         continue;
       }
       // A kiosk's tall body and screen standing behind the counter's top.

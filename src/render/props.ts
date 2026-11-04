@@ -1,4 +1,5 @@
-import { Container, Graphics } from "pixi.js";
+import { Assets, Container, Graphics, type Texture } from "pixi.js";
+import { ART_BASE, type Registry } from "../art/registry";
 import { flies, type Missile } from "../sim/missiles";
 import type { Puddle, Snot } from "../sim/snot";
 import { SAMPLE, type Sample } from "../sim/samples";
@@ -158,6 +159,10 @@ function drawBin(g: Graphics, t: Pick<Target, "w">, flash: boolean): void {
 
 type CartView = { root: Container; body: Graphics; flash: Graphics; lean: number; spilled: boolean; load: string };
 
+type BoxArt = { texture: Texture; aspect: number };
+/** The sheet's box as wide as the drawn one, its depth showing above and below. */
+const BOX_W = 48;
+
 /** Draws the carts, the snot in flight and the puddles from each snapshot. */
 export class Props {
   readonly container = new Container({ label: "props" });
@@ -167,6 +172,8 @@ export class Props {
   private readonly missiles: Graphics[] = [];
   /** The boxes of #15 blades in the air or lying a moment (R5 §9). */
   private readonly boxes: Graphics[] = [];
+  /** The gate sheet's box, once it is in; the drawn one stands in until then. */
+  private boxArt: BoxArt | null = null;
   private trailT = 0;
   /** How many puddles the last sync drew as snot splats, for the checks. */
   splats = 0;
@@ -180,6 +187,17 @@ export class Props {
     // Props take the venue's light like the scenery; the hit flash goes a touch warm with it.
     this.container.tint = ambient;
     layer.addChild(this.container);
+  }
+
+  /** Loads the gate sheet's box of blades; if it fails the drawn box stays. */
+  async loadBox(registry: Registry): Promise<void> {
+    const piece = registry.gate?.pieces?.box;
+    if (!piece) return;
+    try {
+      this.boxArt = { texture: await Assets.load<Texture>(ART_BASE + piece.file), aspect: piece.height / piece.width };
+    } catch (err) {
+      console.warn(`box of blades: the drawn one stands in (${(err as Error).message})`);
+    }
   }
 
   /** Draws the props `alpha` of the way from the last step to this one, as Hammer is drawn. */
@@ -197,7 +215,7 @@ export class Props {
       if (trail) this.particles.emit(b.hot ? "ember" : "snot", b.x, b.y, b.hot ? 2 : 1);
     });
     this.pool(this.boxes, s.samples.length, 3);
-    s.samples.forEach((b, i) => drawSample(this.boxes[i], b));
+    s.samples.forEach((b, i) => drawSample(this.boxes[i], b, this.boxArt));
     this.pool(this.puddles, s.puddles.length, 0);
     s.puddles.forEach((p, i) => drawPuddle(this.puddles[i], p));
     this.splats = s.puddles.filter((p) => p.kind === "snot").length;
@@ -281,12 +299,18 @@ function drawSnot(g: Graphics, b: Snot) {
 }
 
 /** A sealed box of #15 blades, white with a blue band, tumbling end over end in the air and fading where it lies. */
-export function drawSample(g: Graphics, b: Sample) {
+export function drawSample(g: Graphics, b: Sample, art: BoxArt | null = null) {
   g.clear();
-  g.roundRect(-22, -15, 44, 30, 4).fill("#f7f5ef").stroke({ width: 3, color: INK, join: "round" });
-  g.rect(-22, -4, 44, 9).fill("#2f6fd0");
-  g.moveTo(-22, -4).lineTo(22, -4).moveTo(-22, 5).lineTo(22, 5).stroke({ width: 2, color: INK });
-  g.position.set(b.x, b.y - (b.landed >= 0 ? 15 : 0));
+  let half = 15;
+  if (art) {
+    half = (BOX_W * art.aspect) / 2;
+    g.texture(art.texture, 0xffffff, -BOX_W / 2, -half, BOX_W, half * 2);
+  } else {
+    g.roundRect(-22, -15, 44, 30, 4).fill("#f7f5ef").stroke({ width: 3, color: INK, join: "round" });
+    g.rect(-22, -4, 44, 9).fill("#2f6fd0");
+    g.moveTo(-22, -4).lineTo(22, -4).moveTo(-22, 5).lineTo(22, 5).stroke({ width: 2, color: INK });
+  }
+  g.position.set(b.x, b.y - (b.landed >= 0 ? half : 0));
   g.rotation = b.landed >= 0 ? 0 : b.x / 60;
   g.alpha = b.landed >= 0 ? Math.max(0, 1 - b.landed / SAMPLE.fade) : 1;
 }

@@ -1,0 +1,22 @@
+Use case: illustration-story
+Asset: skycap-1.png, one finished pose-locked airport employee sprite.
+EDIT TARGET Image 1 body-affliction.png: copy ONLY his pose, orthographic camera, canvas and placement. Completely REPLACE his identity, face, hair, build and clothes. NOTHING recognizable of that man remains except pose. Reference Image 2 hammer-profile is drawing style only. Reference Images 3 bellhop-1 and 4 nurse are finished game cast: copy their ink, polish and figure placement, NOT their identities.
+Generate at EXACT native 1086 x 1448 PNG portrait, same canvas as Image 1. No crop, no rescaling or upscaling afterward.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from vertical, elbows nearly straight, hands open, relaxed and EMPTY, the far arm and hand visible just behind the near one, a clear triangular green gap between the near forearm and the belly.
+- Both soles flat with the same small forward-back stagger as Image 1, the soles at the same height in the frame as Image 1's; only the top of the head sits lower or higher.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait).
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No props, nothing in the hands.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no scenery, no texture, no gradient.
+Subject: the airport skycap, a distinct man in his fifties, BROAD/stocky shoulders and sturdy build, a trim GREY moustache, warm medium-tan skin, broad blunt nose, square jaw, mature hooded eyes. Close grey hair visible at the nape under a RED PEAKED CAP WITH A FLAT VISOR pointing left. Red practical uniform coat with BLUE collar, GREY trousers, BLACK work shoes, one completely BLANK small white name badge on the coat. No gold bellhop braid, no gold cuffs, no yellow trouser stripe: he is a different employee from the bellhop. Coat plain red, collar plain blue.
+Identity must differ from Hammer and the silver-haired slim bellhop, professor, bald bearded cook and all other game cast. NO cart, luggage, straps, headset or equipment, NO held props. Bare hands open, relaxed and EMPTY, fingers readable. Both arms point forward-left and downward at the reference angle, far arm and hand clearly distinct behind near one, triangular pure green gap between near forearm and belly. Whole body, cap and both shoes entirely inside frame, same soles positions as Image 1 near bottom (near shoe around y=1415, far around y=1325), green margin all around, far foot a small step left.
+Strict profile of entire body, no chest visible, no torso twist, no three-quarter view. Chin level, mouth closed, eyes ahead left. Exact flat uniform #00FF00 background, no floor or shadow. Absolutely no letters, numbers, badges with symbols, emblems, logos, signature, writing or watermark. Badges blank.

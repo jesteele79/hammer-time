@@ -1,0 +1,17 @@
+Use case: illustration-story
+Asset: sat-mid.png, a chroma-key furniture sheet for a side-scrolling airport game.
+One finished PNG, widest native ultrawide 3:1 landscape canvas at maximum offered native resolution. No post resizing.
+Reference roles: Image 1 lobby-mid and Image 2 campus-mid show thick inked finish and isolated whole connected objects on green. Image 3 bellhop-1 shows finished cel style. Copy finish, not their subject matter. No people in this image.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+Exactly THREE separate connected silhouettes, in ONE horizontal row left-to-right, all standing whole upright with generous green spacing between groups, 5% green margin all around. Eye-height orthographic front view. Common bottom baseline. No separate pieces floating above, no hidden overlaps across groups. Each group is physically connected as a single component by a base/plinth/rail. Background is one exact solid #00FF00 everywhere, including openings. No floor, ground plane, shadows, glow or gradients.
+LEFT GROUP (30% width): THE CHECK-IN ISLAND: exactly three BLUE self-service kiosks with blank dark screens, all mounted together on one connected low blue plinth. The row joins ON ITS RIGHT to a bag drop: a short grey conveyor with black belt, blue hood and entirely blank dark scale readout. All parts form one connected island silhouette.
+MIDDLE GROUP (28% width): SECURITY MACHINES: grey X-ray housing with a dark tunnel, short belt in and out, stacked grey security bins at the end. On its RIGHT, a tall rounded body scanner arch with two glass panels and a yellow footprint mat (two simple foot silhouettes are okay, no letters). The X-ray housing, bins and scanner must be visibly joined by one shared grey base so the entire group is one connected shape. No loose bins.
+RIGHT GROUP (32% width): BAR AND NEWSSTAND: a small airport bar with dark wood counter, brass rail and exactly four stools, a blank menu board physically attached to the bar on a short support. The four stools touch or connect to the bar's brass support rail; no detached stools. The bar joins ON ITS RIGHT to a newsstand kiosk with magazine racks of blank covers, shelves of unlabeled snack bags/cans, and a fully blank sign attached on top. Bar and newsstand share one continuous base/structure, one connected silhouette.
+No additional objects or components. No rope lines, no moving walkway. All signage, screens, covers and packaging completely blank. No text, logos, digits, pseudo-writing, people or watermark. Match clean thick black outline, flat base colors, one shadow tone, one highlight tone and small white glints of references.

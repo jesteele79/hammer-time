@@ -1,0 +1,13 @@
+Use case: illustration-story
+Edit target: Image 1 is the first airport wall painting. Produce a corrected version in the same widest native 3:1 landscape canvas, PNG.
+Make one precise composition correction: move the entire wall-base/counter-bottom/door-bottom baseline UP to exactly 75% of the image height, so the bottom 25% is empty plain floor. In Image 1 the baseline is too low at about 82%. All interior counter bottoms, door bottoms and wall bases must meet this ONE straight level horizontal y=75% line. Keep a narrow yellow curb on the left third at that line; its top is level with the interior floor line. The floor below is plain grey concrete on the left third and plain finely speckled cream terrazzo on the right two thirds. No perspective seams and no diagonal lines on the floor.
+Preserve the same LEFT THIRD exterior canopy and glass entrance doors, blank blue sign and sunlit gap; RIGHT TWO THIRDS blue-and-white wall-bound check-in counters, blank screens above them, wide blank black departures board high up. Preserve every subject complete, thick outlines and inked palette, but simplify the shade fills to clean flat cel tones. Architectural ceiling band across the top. All horizontal lines level. No side walls or corners. Wall planes only, no freestanding furniture, no people, no objects on the clear floor. Do not add any objects. Screen and sign faces remain fully blank. No text, letters, numbers, glyphs, logos or watermarks.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens, badges, tails, tags and boxes are blank. Southwest's colors (blue, red, yellow) are fine; never its name, heart or logo.
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, nothing standing in front of the wall or on the floor, no people.
+- Sheets and people: flat bright green background (#00FF00), no floor, no shadow.
+- PNG, the largest size the tool offers; never upscale afterward.
+The bottom quarter must read as a completely clear flat floor strip.

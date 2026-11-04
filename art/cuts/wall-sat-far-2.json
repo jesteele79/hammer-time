@@ -1,0 +1,7 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/sat-far-2.png (the security wall). Its five even bays repeat: the row keeps the last two (1292, a bay's line, to 2170, the ink line at the painting's edge), which leaves room for the curb and the gate on the walk, and drops the bay whose sign post stands in front of a machine. floor is the middle of the base's ink line (570 to 573). roof is the first row of the roof's ink line (9); see wall-sat-far-1.json. Check with: node scripts/art-grid.mjs wall/sat-far-2.",
+  "floor": 572,
+  "seams": [1292, 2170],
+  "roof": 9,
+  "above": "#147dac"
+}

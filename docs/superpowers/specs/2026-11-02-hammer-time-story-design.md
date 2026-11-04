@@ -1250,6 +1250,12 @@ Every phase ends with all of these green, then the commit on the branch:
 6. The production build served and smoked against the dev verdict.
 7. README updated; the design's "As built" notes appended to this file.
 
+### As built (Phase 1's paintings, 2026-11-04)
+
+- The twelve paintings came back from Codex and are cut in. The SAT walls are 2172 x 724, not the hotel's 1536 x 1024, so the airport has its own wall scale (1.05) and far-plane pan (0.5, the shared one is 0.25); the security wall keeps its last two bays; the sky over the roof is dropped and one sky carries on above all three walls.
+- The first level's art budget now counts the airport as well as the lobby, the larger of the two.
+- The sheet's scalpel is the one in his fist; the tray's, the flying and the stuck ones stay drawn, because the painting scaled that small loses its ink against the map.
+
 ## 20. Decisions taken for the owner (mine, to report)
 
 1. The level codes: SAT for the prologue (his home airport's code), 1-1 to
