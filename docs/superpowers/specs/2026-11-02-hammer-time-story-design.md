@@ -653,6 +653,34 @@ Look it up." Hammer's: "I've been Platinum since it was Platinum Premier." ·
 "I've had status since '98." · "This is a room with a view of a wall." ·
 "Where's my welcome gift?" · "Ambassador of WHAT?" · "Resort fee THIS."
 
+### As planned (Phase 2, 2026-11-04)
+
+Approved by the owner in the Phase 2 brainstorm, section by section:
+
+- **Two halves.** 2a: 2-1 with the lounge table, and 2-2. 2b: 2-3, 2-4, Act
+  2's ending and the Phase 3 handoff. The home screen becomes the lobby at
+  night when 2a ships (Act 1 is already done in the save), "Act 2 is coming"
+  leaves the strip the moment 2-1 is built, and 3-1's stop shows "Act 3 is
+  coming" by the same rule until Phase 3 builds it.
+- **2-1** is the lobby's level under a night lighting preset, with no new
+  walls; keycards are a new pickup kind; status is a run value taken in the
+  snapshot; the lounge table runs on the banquet's engine with its own food
+  table, three rivals, and Lifetime Titanium guy as the one new rival behavior.
+- **2-2:** the stairs are sloped floor segments the floor engine learns to
+  walk, not a new movement system; the camera gains an "up" mode and is
+  otherwise unchanged; the supervisor is the housekeeper's painting recolored
+  at 1.05 on the Pink Menace's boss machinery (health, waves); the maintenance
+  man and the drunk guest are recolors of paintings already in hand.
+- **2-3:** the hall is **3 m wide**, not 2.4 (the spike's finding: a 2.4 m
+  hall clips his mallet through the walls); the cast in the hall face him as
+  they come at him, so they use their existing paintings and need no back
+  views. The view is §12's note.
+- **2-4:** one level with three camera stops, not three levels; Lifetime
+  Titanium guy on the Pink Menace's boss machinery, three phases of four hits;
+  the apples and the minibar bottles are new missile kinds. The suite's
+  backdrops are three Blender renders the session makes at 2b's start and the
+  owner paints over in Codex; stand-ins draw until they are cut in.
+
 ## 9. Act 3: the way to Basel
 
 ### 9.1 3-1 Row 52, the flight
@@ -1000,6 +1028,32 @@ the straight lines; Codex paints over the render in the game's inked style,
 using the render as the input image, by the rules of `art/outgoing/`'s briefs.
 Levels that are relit or small (2-1, 2-2, 3-2's hotel) are painted straight.
 
+### As planned (Phase 2, 2026-11-04)
+
+- **The spike's verdict** (`docs/superpowers/notes/2026-11-04-3d-spike-verdict.md`):
+  three.js with the inked look (three-step toon materials and a screen-space
+  ink pass, about 15 percent of the frame rate), 93 fps at 1080p at density 1
+  on the laptop's integrated card. The drawn perspective corridor of §12.4 is
+  not needed and is not built. The set pipeline works: Blender 5.2 run by
+  script, a draco glTF, the decoder served beside it.
+- **The swing (the owner's choice, 2026-11-04):** the ordinary swing is the
+  back-view swing frames of §12.3, so the mallet goes where the target is,
+  straight down the hall; his painted profile turns in only when he is hit and
+  for the super smash.
+- **The cast in 3D face him** as they come at him and are cut-outs of their
+  existing front paintings. The back views of office-2, the nurse, the
+  bellhops, the purser and the attendants (§12.3, §16) are dropped; only
+  Hammer's back is painted.
+- **The 3D view's own quality steps** below ultra: the draw density first
+  (2, then 1.5, then 1), then the antialiasing, then the bloom, and the ink
+  pass last, because the ink is what holds the look together.
+- **If the back painting does not read as him,** the owner says so and it is
+  repainted from a revised prompt; the level is built against a stand-in
+  meanwhile and never waits on it.
+- The verdict's pitfalls (the pass's cloned uniforms, the white mask over
+  him, capped lamp strengths, no tone mapping, mipmaps on his textures) bind
+  `ThreeView`'s build.
+
 ## 13. Music and sound
 
 All on the game's own synth (`src/game/audio.ts`'s `Song` and `SONGS`, the
@@ -1299,3 +1353,11 @@ Every phase ends with all of these green, then the commit on the branch:
     1.0; the Buc-ee's rest stop is shown in the epilogue, not played.
 18. Phases 2 to 5 are planned in detail when their turn comes, in a Fable
     session, because the spike, the play-tests and the paintings change them.
+19. (2026-11-04) Phase 2 is built in two halves: 2a the side-view night
+    levels with the lounge table, 2b the 3D hallway and the suite.
+20. (2026-11-04) The hall is 3 m wide; the cast in 3D face him and need no
+    back views; the 3D view steps its density, antialiasing and bloom down
+    before the ink.
+21. (2026-11-04) The suite is one level with three camera stops; its three
+    renders are asked for at 2b's start, painted over by the owner.
+22. (2026-11-04) 3-1's stop shows "Act 3 is coming" until Phase 3 builds it.
