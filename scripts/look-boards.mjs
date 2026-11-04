@@ -67,7 +67,16 @@ try {
     count += 2;
     if ((await live()) !== before) throw new Error(`pig board figures left alive: ${(await live()) - before}`);
   }
-  for (const venue of ["sat", "restaurant", "campus", "arena"]) {
+  if (want("home-night")) {
+    // The home screen as it stands once Act 1 is done.
+    await page.goto(`${base}?dev=1&home=night`);
+    await page.waitForFunction(() => document.querySelector(".next-start[data-live]"), null, { timeout: 60000 });
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: resolve(out, "home-night.png") });
+    console.log(resolve(out, "home-night.png"));
+    count++;
+  }
+  for (const venue of ["sat", "restaurant", "campus", "arena", "lobby-night"]) {
     if (!want(venue)) continue;
     await page.goto(`${base}?next=1&board=1&venue=${venue}`);
     await page.waitForFunction((v) => window.__nextBoard && window.__next?.run?.level === v, venue, { timeout: 30000 });

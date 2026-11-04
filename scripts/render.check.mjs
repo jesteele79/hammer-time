@@ -1481,6 +1481,17 @@ test("the camera's rest focus puts the walking line at 78 percent of the view in
 });
 
 import { TIERS, firstTier, gpuClassOf, isDesktopGpu } from "../src/render/quality.ts";
+import { ambientOf, lightsOf } from "../src/render/lighting.ts";
+import { PALETTE } from "../src/render/palette.ts";
+import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
+test("a night level has the cool ambient and tighter, brighter lamps; a day level is unchanged", () => {
+  assert.deepEqual([ambientOf(LOBBY), ambientOf(LOBBY_NIGHT)], [PALETTE.lobbyAmbient, PALETTE.nightAmbient]);
+  const day = lightsOf(LOBBY)[0], night = lightsOf(LOBBY_NIGHT)[0];
+  assert.deepEqual([night.radius, night.intensity, night.flicker], [day.radius * 0.7, day.intensity * 1.6, 0.06]);
+  assert.deepEqual([day.radius, day.intensity, day.flicker, day.group], [900, 0.5, 0.04, "lobby"]);
+  assert.equal(night.group, "lobby-night");
+  assert.deepEqual([night.soft, day.soft], [true, undefined]);
+});
 
 test("a desktop card by all the browser tells: WebGPU's Intel Arc is vendor intel, architecture xe-hpg; integrated Intel is not", () => {
   assert.equal(gpuClassOf({ vendor: "intel", architecture: "xe-hpg" }), "desktop");

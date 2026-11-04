@@ -31,8 +31,8 @@ try {
   const owner = "art/incoming/brand/key-art.png";
   // The key art is the home screen's first paint (story spec §5.1): the live scene's own frame at 1920 by 1080, taken with
   // the start screen hidden and cropped to its picture, so the engine's lobby fades in over the same picture.
-  const titleFrame = async () => {
-    await page.goto(`${base}?dev=1`);
+  const titleFrame = async (home = "") => {
+    await page.goto(`${base}?dev=1${home}`);
     await page.waitForFunction(() => document.querySelector(".next-start[data-live]"), null, { timeout: 60000 });
     await page.waitForTimeout(1200);
     const r = await page.evaluate(() => {
@@ -44,8 +44,9 @@ try {
     return page.screenshot({ clip: r });
   };
   if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await titleFrame(), 1600, "key-art.webp");
+  if (want("key-art-night")) await webp(await titleFrame("&home=night"), 1600, "key-art-night.webp");
   // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
-  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
+  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).
   for (const [name, url, kind] of [
     ["banquet", `${base}?next=1&board=1&quest=hungry`, "banquet-thumb"],

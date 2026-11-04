@@ -500,6 +500,11 @@ export class Cast {
     layer.addChild(this.container);
   }
 
+  /** The level's light on everyone (the night's cool ambient). */
+  setAmbient(tint: number): void {
+    this.container.tint = tint;
+  }
+
   /** Loads the paintings these people wear; anyone whose painting is missing or does not load draws as the stand-in. */
   async preload(persons: Iterable<CastPerson>): Promise<void> {
     const reg = this.registry;

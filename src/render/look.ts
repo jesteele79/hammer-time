@@ -42,7 +42,7 @@ import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
-import { createLighting, multiplyTint, type Light } from "./lighting";
+import { ambientOf, ambientTint, createLighting, lightsOf, multiplyTint, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects, productTexture } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
@@ -84,7 +84,6 @@ import type { QuestId } from "../sim/quests/quest";
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** SAT is the journey's first stop, never part of Work the whole shift. */
 const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT].map((l) => [l.id, l]));
-const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
@@ -277,7 +276,7 @@ export async function startLook(
         const backdrop = await loadBackdrop(scene, level, registry);
         if (stopped) return;
         const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null);
-        venue.root.tint = multiplyTint(venue.root.tint, scene.ambient);
+        venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
         if (!opts.nocast) await cast.preload((level.cast ?? []).map((s) => s.person));
@@ -877,6 +876,15 @@ export async function startLook(
     scene.camera.focusY = scene.camera.y = floorFocus(scene.height, scale, y, portrait);
   }
 
+  /** A level's light on everything that takes it: the lamps' group, the ambient on the people, the props and what flies. */
+  function lightLevel(level: Level) {
+    lighting.setGroup(level.id);
+    lighting.setAmbient(ambientOf(level));
+    cast.setAmbient(scene.ambient);
+    props.setAmbient(scene.ambient);
+    flyers.setAmbient(scene.ambient);
+  }
+
   /** The level he is in now: its venue, backdrop, lamps, bounds and camera. */
   function showLevel(level: Level, x: number, y: number) {
     shown = level.id;
@@ -885,7 +893,7 @@ export async function startLook(
       v.venue.setVisible(id === level.id);
       v.backdrop.setVisible(id === level.id);
     }
-    lighting.setGroup(level.id);
+    lightLevel(level);
     scene.camera.bounds = level.bounds;
     objects.clear();
     shownPickups = game.pickups;
@@ -1761,7 +1769,7 @@ export async function startLook(
         v.venue.setVisible(k === id);
         v.backdrop.setVisible(k === id);
       }
-      lighting.setGroup(id);
+      lightLevel(LEVELS.get(id)!);
       scene.camera.bounds = LEVELS.get(id)!.bounds;
       boardCrates?.destroy({ children: true });
       boardCrates = null;

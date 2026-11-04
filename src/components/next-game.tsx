@@ -111,6 +111,7 @@ export function NextGame({
   title = false,
   quest,
   journeyAll = false,
+  homeNight = false,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
@@ -127,6 +128,8 @@ export function NextGame({
   quest?: QuestId;
   /** Every built stop open for this page, nothing saved (`&journey=all`, spec §4.7). */
   journeyAll?: boolean;
+  /** The home screen as it stands once Act 1 is done, whatever the save says (`&home=night`, the boards' and the pictures'). */
+  homeNight?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -326,7 +329,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, level, title, home: homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
+      const started = await startLook(render, { noart, board, dev, nocast, level, title, home: homeNight ? "lobby-night" : homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
       setLiveQuality(render.quality);
       if (cancelled) {
         started.stop();
@@ -346,12 +349,12 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, level, title, journeyAll, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
+  }, [forceWebgl, noart, board, dev, nocast, level, title, journeyAll, homeNight, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
 
   // The save decides the home scene: finishing Act 1, or New game, changes it from the next visit home.
   useEffect(() => {
-    if (ready) look.current?.setHome(homeOf(journey));
-  }, [ready, journey]);
+    if (ready && !homeNight) look.current?.setHome(homeOf(journey));
+  }, [ready, journey, homeNight]);
 
   // Settings opened while the game still loaded: the game hears it once it is ready, so its keys stay the page's.
   useEffect(() => {

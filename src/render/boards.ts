@@ -89,6 +89,11 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
     { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
     { x: 3200, y: -180, cx: 3700, cy: -380, zoom: 0.92 },
   ],
+  "lobby-night": [
+    { x: 1100, cx: 1600 },
+    { x: 8000, y: -520, cx: 8400, zoom: 0.88 },
+    { x: 13100, cx: 13500 },
+  ],
 };
 
 /** Each start's picture on the start screen: where he stands and where the camera looks. */
@@ -98,6 +103,7 @@ export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },
   campus: { x: 7250, y: -120, cx: 8100, cy: -420, zoom: 0.88 },
   arena: { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
+  "lobby-night": { x: 1100, cx: 1600 },
 };
 
 const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [

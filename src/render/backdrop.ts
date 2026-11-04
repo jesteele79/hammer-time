@@ -117,10 +117,16 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   scene.layers.far.addChild(planes.far);
   scene.layers.mid.addChild(planes.mid);
   scene.layers.fore.addChild(planes.fore);
+  // A night level's planes are dark from the start: its walls, its pieces and its sky (story spec §8.1).
+  const night = level.ambient === "night";
+  const wallTint = night ? PALETTE.nightWall : WALL_TINT;
+  const midTint = night ? PALETTE.nightMid : MID_TINT;
+  const foreTint = night ? PALETTE.nightFore : FORE.tint;
+  const skyStops = night ? PALETTE.nightSky : ["#1c1512", "#3a2a22", "#5b4536"];
   const sky = new Sprite(gradientTexture([
-    [0, "#1c1512"],
-    [0.6, "#3a2a22"],
-    [1, "#5b4536"],
+    [0, skyStops[0]],
+    [0.6, skyStops[1]],
+    [1, skyStops[2]],
   ]));
   sky.width = 4096;
   sky.height = 2304;
@@ -144,12 +150,14 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
       const w = walls[index];
       const top = -w.floor * scale;
       // The wall carries on above the painting in its top row's color.
-      grounded.far.addChild(new Graphics().rect(x, -4000, w.width * scale, 4000 + top).fill(w.top));
-      grounded.far.addChild(new Graphics().rect(x, top + w.height * scale - 2, w.width * scale, 4000).fill(w.bottom ?? w.top));
+      const above = new Graphics().rect(x, -4000, w.width * scale, 4000 + top).fill(w.top);
+      const below = new Graphics().rect(x, top + w.height * scale - 2, w.width * scale, 4000).fill(w.bottom ?? w.top);
+      if (night) above.tint = below.tint = wallTint;
+      grounded.far.addChild(above, below);
       const s = new Sprite(textures[index]);
       s.position.set(x, top);
       s.scale.set(scale);
-      s.tint = WALL_TINT;
+      s.tint = wallTint;
       grounded.far.addChild(s);
     }
     // In the mid plane, so it stands in front of the walls; it runs level, so the plane's slower pan never shows.
@@ -161,7 +169,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
       const tile = new TilingSprite({ texture, width: texture.width * 3, height: texture.height });
       tile.scale.set(FAR_SCALE);
       tile.position.set(-1500, -FAR_FLOOR_LINE * FAR_SCALE);
-      tile.tint = WALL_TINT;
+      tile.tint = wallTint;
       planes.far.addChild(tile);
     }
   }
@@ -182,7 +190,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     if (!s) continue;
     s.position.set(m.x * PARALLAX.mid, 0);
     s.scale.set(MID_SCALE);
-    s.tint = MID_TINT;
+    s.tint = midTint;
     grounded.mid.addChild(s);
     mids++;
   }
@@ -193,7 +201,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     if (!s) continue;
     s.position.set(f.x * PARALLAX.fore, FORE.down);
     s.scale.set(f.scale ?? 1);
-    s.tint = FORE.tint;
+    s.tint = foreTint;
     s.filters = [new BlurFilter({ strength: FORE.blur })];
     grounded.fore.addChild(s);
     fores.push(s);

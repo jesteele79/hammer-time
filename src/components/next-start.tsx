@@ -130,7 +130,7 @@ export function NextStart({
       <section className="next-start__hero">
         <div className="next-start__stage" aria-hidden="true">
           <div className="next-start__camera">
-            <img className="next-start__art" src="/start/key-art.webp" alt="" draggable={false} fetchPriority="high" />
+            <img className="next-start__art" src={journey.done.includes("arena") ? "/start/key-art-night.webp" : "/start/key-art.webp"} alt="" draggable={false} fetchPriority="high" />
           </div>
           <div className="next-start__sweep" />
           <div className="next-start__shade" />

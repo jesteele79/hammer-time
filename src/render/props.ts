@@ -189,6 +189,11 @@ export class Props {
     layer.addChild(this.container);
   }
 
+  /** The level's light on the props. */
+  setAmbient(tint: number): void {
+    this.container.tint = tint;
+  }
+
   /** Loads the gate sheet's box of blades; if it fails the drawn box stays. */
   async loadBox(registry: Registry): Promise<void> {
     const piece = registry.gate?.pieces?.box;

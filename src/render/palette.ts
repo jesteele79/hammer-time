@@ -9,6 +9,12 @@ export const PALETTE = {
   woodShadow: "#8c6a3f",
   outline: "#101010",
   lobbyAmbient: "#ffe9c9",
+  /** The night (story spec §8.1): a cool ambient in the shadows, the walls and the planes dark, the sky black. */
+  nightAmbient: "#8f9ec4",
+  nightWall: "#6a7694",
+  nightMid: "#5d6880",
+  nightFore: 0x6f7a90,
+  nightSky: ["#07090f", "#0d1220", "#141a2c"],
   marbleTop: "#d9d2c4",
   marbleFront: "#b8ad99",
   brass: "#c9a24a",

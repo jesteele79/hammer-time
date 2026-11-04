@@ -22,6 +22,11 @@ export class Flyers {
     layer.addChild(this.root);
   }
 
+  /** The level's light on what flies. */
+  setAmbient(tint: number): void {
+    this.root.tint = tint;
+  }
+
   /** Sorted by the look each frame, just behind Hammer. */
   get container(): Container {
     return this.root;
