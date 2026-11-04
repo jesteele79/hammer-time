@@ -72,6 +72,8 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   // SAT's people: the skycap's red coat and cap (the cap is his hat), the TSA's blue shirt and gloves, the bartender in the server's black and white.
   "skycap-1": { height: 330, head: 0.22, build: 1.0, skin: "#9c6b4a", hair: "#1c1612", hairStyle: "short", top: "#b8282e", sleeves: "top", bottom: "#1c1d24", shoes: "#141414", mustache: true },
   "tsa-1": { height: 320, head: 0.22, build: 1.05, skin: "#e2b48f", hair: "#3b2a22", hairStyle: "short", top: "#5b7fb8", sleeves: "top", bottom: "#141414", shoes: "#141414", gloves: "#3a6fd8", lanyard: true },
+  // The night's guard: navy and a flashlight (his stand-in is the fallback only).
+  "guard-1": { height: 340, head: 0.22, build: 1.1, skin: "#d7a27a", hair: "#1c1612", hairStyle: "short", top: "#1f2c4d", sleeves: "top", bottom: "#141a2c", shoes: "#141414", mustache: true },
   "bartender-1": { height: 310, head: 0.22, build: 0.9, skin: "#c9956a", hair: "#1c1612", hairStyle: "short", top: "#f4f3ee", sleeves: "skin", vest: "#1b1b1b", apron: true, bottom: "#1b1b1b", shoes: "#141414" },
 };
 
@@ -184,7 +186,7 @@ export function drawFigure(g: Graphics, s: Solved, look: CastLook, o: FigureOpts
   drawHead(g, s, look, o);
 }
 
-export type Carried = "glasses" | "food" | "cup" | "phone" | "pan" | "book";
+export type Carried = "glasses" | "food" | "cup" | "phone" | "pan" | "book" | "torch";
 /** What each job carries in its hands: drawn in code over the painting or the stand-in, so it can fly and break. */
 export function carriedOf(job: CastJob): Carried[] {
   switch (job) {
@@ -198,6 +200,8 @@ export function carriedOf(job: CastJob): Carried[] {
       return ["pan"];
     case "prof":
       return ["book"];
+    case "guard":
+      return ["torch"];
     default:
       return [];
   }
@@ -242,6 +246,11 @@ function drawProp(g: Graphics, j: Record<JointName, Point>, k: number, f: 1 | -1
     g.roundRect(Math.min(h.x, h.x + f * 70 * k), h.y - 6 * k, 70 * k, 12 * k, 4).fill("#3a2a1c").stroke({ width: 2, color: INK });
     g.ellipse(h.x + f * 110 * k, h.y - 8 * k, 46 * k, 12 * k).fill("#2b2b2e").stroke({ width: 3, color: INK });
     g.ellipse(h.x + f * 110 * k, h.y - 16 * k, 24 * k, 8 * k).fill("#d98a3a");
+  }
+  if (c.includes("torch")) {
+    // The guard's flashlight, in the near hand whatever a hit has done: its lens the way he faces.
+    g.roundRect(Math.min(h.x - f * 6 * k, h.x + f * 40 * k), h.y - 9 * k, 46 * k, 16 * k, 3).fill("#23262b").stroke({ width: 2, color: INK });
+    g.circle(h.x + f * 42 * k, h.y - 1 * k, 11 * k).fill(o.act === "attack" ? "#fff6c8" : "#8d939c").stroke({ width: 2, color: INK });
   }
   if (c.includes("book") && o.prop) {
     // The professor's open book, held up in the far hand.

@@ -90,6 +90,11 @@ function hands(role: CastRole, t: number): Hands {
       headTilt: 12,
     };
   }
+  if (role === "guard") {
+    // The flashlight held low in the near hand, off.
+    const near = armTo("near", { x: 70, y: 215 }, 10, -1);
+    return { rot: { shoulderNear: near.shoulder, elbowNear: near.elbow, wristNear: near.wrist, shoulderFar: HANG.shoulderFar }, lean: -2, headTilt: 0 };
+  }
   if (role === "student") {
     const near = armTo("near", { x: 62, y: 250 }, 70, -1);
     return { rot: { shoulderNear: near.shoulder, elbowNear: near.elbow, wristNear: near.wrist, shoulderFar: HANG.shoulderFar + 6 }, lean: -3, headTilt: 6 };
@@ -188,6 +193,15 @@ const windup = (role: CastRole, t: number): Pose => {
       root: { x: 0, y: -24 * k },
     });
   }
+  if (role === "guard") {
+    // The flashlight comes up to his eye line.
+    const low = armTo("near", { x: 70, y: 215 }, 10, -1);
+    const up = armTo("near", { x: 104, y: 282 }, 0, -1);
+    return pose({
+      rot: { shoulderNear: low.shoulder + (up.shoulder - low.shoulder) * k, elbowNear: low.elbow + (up.elbow - low.elbow) * k, wristNear: low.wrist + (up.wrist - low.wrist) * k, shoulderFar: HANG.shoulderFar },
+      lean: -2,
+    });
+  }
   if (role === "office") {
     const near = armTo("near", { x: -40 + 90 * (1 - k), y: 230 }, 40, -1);
     const far = armTo("far", { x: 58, y: 248 }, 65, -1);
@@ -243,6 +257,11 @@ const attack = (role: CastRole, t: number, speed: number): Pose => {
     const p = walk(role, t, speed, true, 0);
     const near = armTo("near", { x: 104, y: 322 }, 0, -1);
     return pose({ rot: { ...p.rot, shoulderNear: near.shoulder, elbowNear: near.elbow, wristNear: near.wrist }, lean: 20, headTilt: -2 });
+  }
+  if (role === "guard") {
+    // Held out, shining.
+    const up = armTo("near", { x: 104, y: 282 }, 0, -1);
+    return pose({ rot: { shoulderNear: up.shoulder, elbowNear: up.elbow, wristNear: up.wrist, shoulderFar: HANG.shoulderFar }, lean: -2 });
   }
   if (role === "office") {
     const k = smooth(clamp01(t / 0.2));

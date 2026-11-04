@@ -244,7 +244,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // The gift shop's pig sleeps at its spot, fresh, each time the venue is laid out.
     world.pig = level.boss ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
     world.zone = null;
-    world.cast = opts.cast === false ? [] : createCast(level, world.targets);
+    world.cast = opts.cast === false ? [] : createCast(level, world.targets, game.run.seed);
     world.missiles = [];
     world.nextMissile = 0;
     world.snot = [];
@@ -805,6 +805,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     world.step(input);
     ev.push(...world.events);
+    // The ice water: a pip, as any thrown thing, and it cools him right down.
+    if (world.events.some((e) => e.type === "missileHit" && e.kind === "water" && e.hero)) {
+      h.heat = 0;
+      ev.push({ type: "think", text: "COLD. But fair.", seconds: THINK.seconds });
+    }
     if (world.events.some((e) => e.type === "flop")) run.flopped = true;
     if (world.events.some((e) => e.type === "sampleThrow")) run.lobbed = true;
     learn(input, ev);

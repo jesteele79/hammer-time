@@ -1,12 +1,13 @@
 import { CAST_LINES, JOB_LINES, pick, type CastJobName, type CastLineSet } from "../game/lines";
 import type { GameEvent } from "./events";
 import { bodyRect } from "./geometry";
-import type { CarriedKind, CastPerson, Level } from "./level";
+import type { CarriedKind, CastPerson, CastTrick, Level } from "./level";
 import { floorAt } from "./physics";
+import { seededRandom } from "./rewards";
 import { SNOT, type Puddle } from "./snot";
 import type { Point, Rect, Stage, Target } from "./types";
 
-export type CastRole = "bellhop" | "server" | "office" | "student";
+export type CastRole = "bellhop" | "server" | "office" | "student" | "guard";
 export type CastAct =
   | "idle"
   | "walk"
@@ -48,6 +49,8 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   skycap: "bellhop",
   tsa: "bellhop",
   bartender: "student",
+  // The night's security guard: his flashlight stuns (story spec §8.1).
+  guard: "guard",
 };
 /** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
 export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1" };
@@ -66,7 +69,10 @@ export const CAST = {
   server: { w: 90, h: 310, notice: 850, windup: 0.45, rush: 420, rushT: 2, rushPx: 1000, walk: 200, skid: 0.4, rest: 1, daze: 2.5, hits: 2 },
   office: { w: 95, h: 320, notice: 650, windup: 0.5, march: 160, chime: 400, leap: 500, leapUp: 600, rest: 1.2, daze: 2.5, hits: 2 },
   student: { w: 90, h: 310, notice: 1100, windup: 0.65, restMin: 2.5, restStep: 0.5, melee: 300, hop: 200, hopT: 0.35, duck: 0.5, schooled: 9, flee: 400, planes: 4, hits: 2 },
+  guard: { w: 100, h: 330, notice: 900, windup: 0.6, flash: 0.25, reach: 600, walk: 140, rest: 3, daze: 3, hits: 2, stun: 1 },
 } as const;
+/** The night crew's tricks: half the time she tosses the ice water instead of rushing; the reply-all's three planes. */
+export const TRICKS = { waterChance: 0.5, replyAll: { planes: 3, gap: 0.4 } } as const;
 /** How many may be on the attack at once (the design §4; three since 2026-10-15). */
 export const TICKETS = 3;
 /** The shipped chain: one moving thing bowling staffer after staffer, the eighth a life. */
@@ -154,9 +160,14 @@ export type Npc = {
   /** How long this freeze lasts: the lecture's, or a box of blades' with birds round the head (R5). */
   freeze: number;
   birds: boolean;
+  /** The night crew's trick, and the seeded roll it asks (the toss or the rush). */
+  trick: CastTrick | null;
+  rng: (() => number) | null;
+  /** The reply-all is sent once. */
+  replied: boolean;
 };
 
-export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target[]): Npc[] {
+export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target[], seed = 1): Npc[] {
   return (level.cast ?? []).map((s, k) => {
     const job = jobOf(s.person);
     const role = ROLE_OF[job];
@@ -212,6 +223,9 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       carry: s.carry ?? null,
       freeze: T.freeze,
       birds: false,
+      trick: s.trick ?? null,
+      rng: s.trick ? seededRandom((seed + Math.imul(k + 1, 7919)) >>> 0) : null,
+      replied: false,
     };
   });
 }

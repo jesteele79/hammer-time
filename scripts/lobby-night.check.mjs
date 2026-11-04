@@ -11,6 +11,7 @@ import { newJourney, playableNext } from "../src/sim/journey.ts";
 import { builtStops } from "../src/sim/story.ts";
 import { STATUS_TIERS, tierOf } from "../src/sim/status.ts";
 import { hudOf } from "../src/render/hud.ts";
+import { CAST } from "../src/sim/cast.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -140,4 +141,66 @@ test("Ambassador's checkpoint is where he stood: a life lost brings him back the
   knockOut(g);
   until(g, (x) => x.mode === "card", 4);
   assert.deepEqual([Math.round(g.world.hero.x), g.world.hero.y], [8300, -520]);
+});
+
+const crewed = () => { const g = createGame({ lobby: LOBBY, stash: STASH }, 21, { title: true }); g.newRun(21, 0, { shift: [LOBBY_NIGHT, STASH], journey: true }); return g; };
+const person = (g, spawn) => g.world.cast.find((n) => n.spawn === spawn);
+test("the night crew: the auditor, three bellhops carrying keycards, the guard on the mezzanine, two servers with ice water, no students", () => {
+  const people = LOBBY_NIGHT.cast.map((c) => c.person);
+  assert.deepEqual([people.filter((p) => p.startsWith("bellhop")).length, people.includes("guard-1"), people.some((p) => p.startsWith("student"))], [3, true, false]);
+  assert.equal(LOBBY_NIGHT.cast.filter((c) => c.carry === "keycard").length, 3);
+  assert.deepEqual(LOBBY_NIGHT.carts, [3150, 7900, 12050]);
+  assert.deepEqual(LOBBY_NIGHT.cast.find((c) => c.person === "guard-1").y, -520);
+  assert.deepEqual(LOBBY_NIGHT.cast.filter((c) => c.trick === "water").length, 2);
+  assert.equal(LOBBY_NIGHT.cast.find((c) => c.id === "auditor").trick, "replyAll");
+});
+test("a water toss costs a pip and cools him to zero with the cold thought", () => {
+  const g = crewed(); play(g); g.world.hero.heat = 60;
+  const s = person(g, "server-night-1");
+  s.rng = () => 0.1;
+  Object.assign(g.world.hero, { x: 12900, y: 0, onGround: true });
+  const evs = until(g, (x) => x.world.hero.heat === 0 && x.world.hero.patience < 2, 8);
+  assert.ok(evs.some((e) => e.type === "think" && e.text === "COLD. But fair."));
+  assert.ok(evs.some((e) => e.type === "missile" && e.kind === "water"));
+  assert.equal(g.world.hero.patience, 1);
+});
+test("half the time she rushes as ever: the toss is the rng's call", () => {
+  const g = crewed(); play(g);
+  const s = person(g, "server-night-1");
+  s.rng = () => 0.9;
+  Object.assign(g.world.hero, { x: 12900, y: 0, onGround: true });
+  const evs = until(g, () => s.act === "attack", 6);
+  assert.equal(evs.filter((e) => e.type === "missile").length, 0);
+  assert.equal(s.act, "attack");
+});
+test("the reply-all is three planes 0.4 s apart, 'Per my last email' on the first, and then he marches", () => {
+  const a = crewed(); play(a); Object.assign(a.world.hero, { x: 1100, y: 0, onGround: true });
+  const evs = until(a, (x) => x.world.missiles.length >= 3, 6);
+  const planes = of(evs, "castThrow");
+  assert.equal(planes.length, 3);
+  assert.ok(Math.abs(planes[1].t - planes[0].t - 0.4) < 0.02, String(planes[1].t - planes[0].t));
+  assert.ok(of(evs, "castLine").some((e) => e.text === "Per my last email"));
+  const n = person(a, "auditor");
+  until(a, () => n.act === "walk", 3);
+  assert.equal(n.act, "walk");
+  a.world.missiles = [];
+  const more = until(a, () => false, 3);
+  assert.equal(of(more, "castThrow").length, 0, "once, not on every approach");
+});
+test("a bonked night bellhop drops a keycard, and it counts", () => {
+  const g = crewed(); play(g);
+  const n = person(g, "bellhop-night-1");
+  n.hits = 2; n.act = "idle"; n.noticed = true; n.rest = 9;
+  Object.assign(g.world.hero, { x: n.x - 180, y: 0, facing: 1, onGround: true, vx: 0, move: null });
+  g.step(input({ hammer: true }, { hammer: true }));
+  const evs = until(g, () => g.pickups.some((p) => p.kind === "keycard" && p.body), 2);
+  assert.ok(of(evs, "castDrop").some((e) => e.kind === "keycard"), "it drops");
+  const p = g.pickups.find((p) => p.kind === "keycard" && p.body);
+  assert.ok(Math.abs(p.x - n.x) < 300);
+  Object.assign(g.world.hero, { x: p.x, y: p.y, onGround: true }); g.step(input());
+  assert.ok(p.taken);
+  assert.equal(g.run.keycards - g.run.spots.length, 1, "the dropped card counts, beyond any fixed one he stood on");
+});
+test("the guard's numbers: he sees far, flashes within 600 px, rests three seconds", () => {
+  assert.deepEqual([CAST.guard.notice, CAST.guard.windup, CAST.guard.flash, CAST.guard.reach, CAST.guard.rest, CAST.guard.hits], [900, 0.6, 0.25, 600, 3, 2]);
 });

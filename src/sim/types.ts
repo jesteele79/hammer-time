@@ -88,6 +88,8 @@ export type HeroState = {
   boxes: number;
   /** Seconds until he can lob the next box. */
   boxCd: number;
+  /** Seconds left of the guard's flashlight: no control, no pip lost. */
+  stunT: number;
 };
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */

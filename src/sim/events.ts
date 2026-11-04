@@ -149,6 +149,11 @@ export type GameEvent =
   | FaresEvent
   /** Back from a side quest's tally: what it paid. */
   | { type: "questPaid"; quest: QuestId; score: number; grade: string; doggy: boolean; flop: boolean; boxes: number; cans: number; lives: number }
+  /** The guard's flashlight shines the way he faces; it caught him: no control for a moment. */
+  | { type: "flash"; id: number; x: number; y: number; facing: 1 | -1 }
+  | { type: "stunned"; x: number; y: number }
+  /** A throw on the world's clock: one plane of a reply-all. */
+  | { type: "castThrow"; id: number; x: number; y: number; t: number }
   /** A keycard counted toward his status (`n` he holds now); a tier reached: its name and comic word, over his head. */
   | { type: "keycard"; n: number; x: number; y: number }
   | { type: "tier"; name: string; word: string; x: number; y: number }

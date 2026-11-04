@@ -166,7 +166,7 @@ export function cuesFor(e: GameEvent): Cue[] {
       // The server's warning carries the order-up ding (R2b §2.2); every wind-up carries the sting.
       return e.role === "server" ? ["sting", "ding"] : ["sting"];
     case "castAttack":
-      return e.role === "bellhop" ? ["squeal"] : e.role === "server" || e.role === "office" ? ["whoosh"] : ["paper"];
+      return e.role === "bellhop" ? ["squeal"] : e.role === "guard" ? [] : e.role === "server" || e.role === "office" ? ["whoosh"] : ["paper"];
     case "castHit": {
       // The mallet and the snot ring through their own hit event; the hit that knocks a server's tray away shatters its
       // glasses, an office worker's coffee splashes, a professor's pages fly.

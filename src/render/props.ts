@@ -333,6 +333,16 @@ export function drawMissile(g: Graphics, m: Missile) {
     g.rotation = m.phase * 4;
     return;
   }
+  if (m.kind === "water") {
+    // The server's ice water: a tumbling glass, cubes in it.
+    g.roundRect(-14, -20, 28, 40, 4).fill({ color: "#dff3ff", alpha: 0.85 }).stroke({ width: 3, color: INK });
+    g.rect(-11, -6, 22, 23).fill({ color: "#7fc6ee", alpha: 0.9 });
+    g.rect(-8, -11, 9, 9).fill("#ffffff").rect(1, -3, 9, 9).fill("#ffffff");
+    g.position.set(m.x, m.y);
+    g.scale.set(1);
+    g.rotation = m.spin;
+    return;
+  }
   if (m.kind === "plane") {
     g.poly([-36, 0, 32, -5, 12, 6, 32, 9]).fill("#fbf7ee").stroke({ width: 3, color: INK, join: "round" });
     g.moveTo(-36, 0).lineTo(32, -5).stroke({ width: 2, color: "#b8b0a2" });

@@ -5,7 +5,7 @@ import { damage } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
-import type { Input } from "./input";
+import { emptyInput, type Input } from "./input";
 import { stepMissiles, type Missile } from "./missiles";
 import { stepPig, type Pig } from "./pig";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
@@ -80,9 +80,12 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     hit(fromX) {
       world.hits.push(fromX);
     },
-    step(input) {
+    step(given) {
       const events: GameEvent[] = [];
       const h = world.hero;
+      // Dazzled by the flashlight his keys do nothing: he stands, slowing as when idle.
+      const input = h.stunT > 0 ? emptyInput() : given;
+      h.stunT = Math.max(0, h.stunT - STEP);
       for (const from of world.hits.splice(0)) damage(h, world.stage, from, events);
       startMove(h, input, world.snot.length, events);
       steerMove(h);

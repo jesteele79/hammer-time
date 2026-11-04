@@ -87,7 +87,7 @@ export const isNewBest = (score: number, before: number) => score > before;
 
 /** A staffer this near on his level who still carries a prize names it in the hint (owner, 2026-10-18). */
 const CARRY_HINT = { x: 700, y: 300 } as const;
-const CARRIED_NAME: Record<CarriedKind, string> = { can: "Coke Zero", nuts: "mixed nuts", bucees: "Buc-ee's" };
+const CARRIED_NAME: Record<CarriedKind, string> = { can: "Coke Zero", nuts: "mixed nuts", bucees: "Buc-ee's", keycard: "a keycard" };
 
 /** The shipped game's hint (its engine's hint(), gone since R4), first match wins, without the cast's lines. */
 export function hintOf(game: Game): string {

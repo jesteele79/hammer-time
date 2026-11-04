@@ -120,7 +120,8 @@ export type CastPerson =
   | "gate-agent"
   | "skycap-1"
   | "tsa-1"
-  | "bartender-1";
+  | "bartender-1"
+  | "guard-1";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
@@ -143,8 +144,11 @@ export type CastSpawn = {
   load?: CartLoad;
   /** What they carry and drop when knocked out for good: the floor road's prize is a fight (owner, 2026-10-18). */
   carry?: CarriedKind;
+  /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
+  trick?: CastTrick;
 };
-export type CarriedKind = "can" | "nuts" | "bucees";
+export type CastTrick = "water" | "replyAll" | "wander";
+export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
 export type Lesson = "jump" | "run" | "slide" | "swing" | "snot" | "wipe";

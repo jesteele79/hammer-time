@@ -32,6 +32,46 @@ const until = (w, done, seconds = 10, held = {}) => { const out = []; for (let i
 const of = (evs, type) => evs.filter((e) => e.type === type);
 const npc = (w, spawn) => w.cast.find((n) => n.spawn === spawn);
 
+test("the guard's flashlight stuns him for a second within reach and costs no pip; while stunned his keys do nothing; the lecture freezes the guard", () => {
+  const w = worldWith([{ id: "guard", person: "guard-1", x: 500, y: 0, x0: 500, x1: 500 }], { x: 100, y: 0 }, { patience: 2 });
+  w.hero.facing = 1;
+  const evs = until(w, () => w.hero.stunT > 0, 4);
+  assert.ok(of(evs, "flash").length === 1 && of(evs, "stunned").length === 1);
+  assert.ok(of(evs, "castWindup").length >= 1, "telegraphed");
+  assert.deepEqual([w.hero.patience, w.hero.stunT > 0.9 && w.hero.stunT <= 1, w.hero.hurtT], [2, true, 0]);
+  const x = w.hero.x;
+  steps(w, 0.5, { right: true });
+  assert.equal(w.hero.x, x, "no control");
+  assert.ok(w.hero.stunT > 0.4 && w.hero.stunT < 0.6);
+  steps(w, 0.6, { right: true });
+  assert.equal(w.hero.stunT, 0);
+  assert.ok(w.hero.x > x, "he walks again");
+});
+test("out of the flashlight's reach, or behind it, or in grace, nothing happens to him", () => {
+  const far = worldWith([{ id: "guard", person: "guard-1", x: 1000, y: 0, x0: 1000, x1: 1000 }], { x: 200, y: 0 }, { patience: 2 });
+  const evs = until(far, () => of(far.events, "flash").length > 0, 4);
+  assert.ok(of(evs, "flash").length === 1, "he shines it at 800 px");
+  assert.equal(far.hero.stunT, 0, "too far");
+  const grace = worldWith([{ id: "guard", person: "guard-1", x: 500, y: 0, x0: 500, x1: 500 }], { x: 100, y: 0 }, { patience: 2 });
+  grace.hero.invuln = 9;
+  until(grace, () => of(grace.events, "flash").length > 0, 4);
+  assert.equal(grace.hero.stunT, 0, "grace");
+});
+test("walking into the flashing guard costs no pip: his attack is the beam", () => {
+  const w = worldWith([{ id: "guard", person: "guard-1", x: 300, y: 0, x0: 300, x1: 300 }], { x: 260, y: 0 }, { patience: 2 });
+  until(w, () => npc(w, "guard").act === "attack", 4);
+  steps(w, 0.15);
+  assert.equal(w.hits.length, 0);
+  assert.equal(w.hero.patience, 2);
+});
+test("the lecture freezes the guard where he stands", () => {
+  const w = worldWith([{ id: "guard", person: "guard-1", x: 400, y: 0, x0: 400, x1: 400 }], { x: 100, y: 0 }, { patience: 2 });
+  w.hero.facing = 1;
+  steps(w, 0.3);
+  press(w, "lecture");
+  until(w, () => npc(w, "guard").act === "frozen", 3);
+  assert.equal(npc(w, "guard").act, "frozen");
+});
 test("the cast spawns from the level data with the role's size, a bellhop tied to his cart, ids past the carts", () => {
   const w = worldWith(
     [{ id: "b", person: "bellhop-1", x: 1250, y: 0, cart: 1250 }, { id: "s", person: "server-2", x: 900, y: 0, x0: 700, x1: 1100 }, { id: "k", person: "student-1", x: 2000, y: -520, sit: true }],
@@ -685,7 +725,7 @@ test("whatever step her rush reaches him against the swing, it is one knockdown 
 });
 
 const ACTS = ["idle", "walk", "notice", "windup", "attack", "recover", "chase", "return", "hide", "bumped", "fly", "down", "getup", "leave", "slide", "slip", "frozen", "schooled", "duck", "hop", "flee"];
-const ROLES = ["bellhop", "server", "office", "student"];
+const ROLES = ["bellhop", "server", "office", "student", "guard"];
 const ctx = (role, act, t, extra = {}) => ({ role, act, t, speed: 300, onGround: true, sit: false, spin: 0, hits: 0, ...extra });
 
 test("every act of every role animates without a jump: no joint turns more than 9 degrees in one step", () => {

@@ -11,6 +11,12 @@ export const KNOCKDOWN = { back: 540, up: 900 } as const;
 /** The shipped patience: form + 1. */
 export const PATIENCE_MAX = 3;
 
+/** Dazzled: no control for `seconds`, and no pip lost (the guard's flashlight, story spec §8.1). */
+export function stun(h: HeroState, seconds: number, events: GameEvent[]): void {
+  h.stunT = Math.max(h.stunT, seconds);
+  events.push({ type: "stunned", x: h.x, y: h.y - h.h });
+}
+
 /**
  * A hit from something at `fromX`. In grace or already down it does nothing. Otherwise it costs a
  * patience pip, ends whatever he was doing, drops hot snot (the shipped game's lost form), turns

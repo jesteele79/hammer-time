@@ -46,7 +46,7 @@ import { ambientOf, ambientTint, createLighting, lightsOf, multiplyTint, type Li
 import { drawCrate, loadProducts, Objects, productTexture } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
-import { HATTED, type CastRole } from "../sim/cast";
+import { CAST, HATTED, type CastRole } from "../sim/cast";
 import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
 import { fightFrame } from "./frame";
@@ -240,10 +240,15 @@ export async function startLook(
   if (!reduced) smear.blendMode = "add";
   scene.layers.fx.addChild(smear);
   const objects = new Objects(scene.layers.play, particles);
+  // The guard's flashlight: its beam behind him, its last moment fading.
+  const beam = new Graphics();
+  if (!reduced) beam.blendMode = "add";
+  beam.visible = false;
+  let beamT = 0;
   // The Buc-ee's shield: a gold glow drawn behind him, so nothing of it is ever over his face.
   const shieldGlow = new Graphics();
   if (!reduced) shieldGlow.blendMode = "add";
-  scene.layers.play.addChild(shieldGlow);
+  scene.layers.play.addChild(shieldGlow, beam);
   // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
   const lighting = createLighting(scene, render.quality, [...[...LEVELS.values()].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
   const props = new Props(scene.layers.play, particles, scene.ambient);
@@ -544,7 +549,7 @@ export async function startLook(
   /** Knocking out staff: a recording, or sometimes a written comeback as a thought, never over a recording. */
   const comeback = (role: CastRole) => {
     if (taunt("staff") || bubbles.text || Math.random() >= 0.45) return;
-    const lines = STAFF_COMEBACKS[role === "bellhop" ? "hotel" : role === "student" ? "office" : role];
+    const lines = STAFF_COMEBACKS[role === "bellhop" || role === "guard" ? "hotel" : role === "student" ? "office" : role];
     bubbles.think(lines[Math.floor(Math.random() * lines.length)].text, 1.6);
   };
 
@@ -770,8 +775,16 @@ export async function startLook(
         particles.emit("paper", e.x, e.y, 14);
         if (flies(e.kind)) words.say("SWAT!", e.x, e.y - 50, false, face, view);
         break;
+      // The guard's beam: drawn behind him, so nothing of it is ever over his face.
+      case "flash":
+        drawBeam(e.x, e.y, e.facing);
+        break;
+      case "stunned":
+        words.say("!", e.x, e.y - 40, true, face, view);
+        break;
       case "missileHit":
-        if (!flies(e.kind)) particles.emit("coffee", e.x, e.y, 12);
+        if (e.kind === "water") particles.emit("water", e.x, e.y, 16);
+        else if (!flies(e.kind)) particles.emit("coffee", e.x, e.y, 12);
         else particles.emit("paper", e.x, e.y, 4);
         break;
       case "castSplash":
@@ -863,6 +876,13 @@ export async function startLook(
       particles.emit("glint", x + Math.cos(a) * SHIELD_LOOK.rx, cy + Math.sin(a) * SHIELD_LOOK.ry, 1);
       particles.emit("glint", x - Math.cos(a) * SHIELD_LOOK.rx, cy - Math.sin(a) * SHIELD_LOOK.ry, 1);
     }
+  }
+
+  /** The flashlight's beam from his hand, the length of its reach. */
+  function drawBeam(x: number, y: number, facing: 1 | -1) {
+    beam.clear();
+    beam.poly([x, y - 10, x, y + 10, x + facing * CAST.guard.reach, y + 130, x + facing * CAST.guard.reach, y - 90]).fill({ color: 0xfff6c8, alpha: 0.42 });
+    beamT = CAST.guard.flash;
   }
 
   /** Lets the drawn people, carts, flyers and bubbles go, for a new venue or a new shift. */
@@ -999,6 +1019,7 @@ export async function startLook(
     banquet.setVisible(id === "hungry");
     gate.setVisible(id === "fares");
     if (on) {
+      beam.visible = false;
       shieldGlow.clear();
       smear.clear();
       walkCan.visible = false;
@@ -1525,7 +1546,7 @@ export async function startLook(
     const floorY = supportY(x, y);
     smugT = Math.max(0, smugT - simDt);
     const expression: Expression =
-      m?.kind === "tumble" || h.hurtT > 0
+      m?.kind === "tumble" || h.hurtT > 0 || h.stunT > 0
         ? "hurt"
         : m?.kind === "super" || m?.kind === "lecture"
           ? "angry"
@@ -1541,6 +1562,10 @@ export async function startLook(
     character.container.zIndex = y;
     const nose = m?.kind === "snot" && playback.kind === "snot";
     character.apply(solved, expression, floorY - drawY, scene.ambient, towel, watchUp, nose);
+    beamT = Math.max(0, beamT - simDt);
+    beam.visible = beamT > 0;
+    beam.alpha = beamT / CAST.guard.flash;
+    beam.zIndex = y - 0.65;
     // The carts, the snot and the puddles sort just behind him: none of them ever covers his face.
     props.container.zIndex = y - 0.5;
     props.sync(prev, cur, alpha, simDt);

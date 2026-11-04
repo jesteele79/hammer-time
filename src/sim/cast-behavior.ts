@@ -1,5 +1,6 @@
 import { CAST_LINES, RETORTS, STAFF_SIGHS, pick } from "../game/lines";
-import { SPILL_OF, freezeNpc, linesOf } from "./cast";
+import { SPILL_OF, TRICKS, freezeNpc, linesOf } from "./cast";
+import { stun } from "./damage";
 import {
   CAST,
   CHAIN,
@@ -50,9 +51,9 @@ const TICKET_ACTS: ReadonlySet<CastAct> = new Set<CastAct>(["windup", "attack", 
 export const attackers = (cast: Npc[]): number => cast.filter((n) => n.alive && TICKET_ACTS.has(n.act)).length;
 export const ticketFree = (cast: Npc[]): boolean => attackers(cast) < TICKETS;
 const toward = (n: Npc, h: HeroState): 1 | -1 => (h.x < n.x ? -1 : 1);
-/** On the attack now: what costs a pip on contact. A student's follow-through hurts nobody, and the office worker's march only head-on. */
+/** On the attack now: what costs a pip on contact. A student's follow-through hurts nobody, the guard's attack is his beam, and the office worker's march only head-on. */
 export const attacking = (n: Npc, h: HeroState): boolean =>
-  n.role !== "student" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
+  n.role !== "student" && n.role !== "guard" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
 /** How much of a rolling cart hurts him: the stacked cases, from the floor up; the brass frame and arch hurt nobody. */
 const CART_HURT = { w: 140, h: 220 } as const;
 /** Going about their business: what a touch from him staggers. */
@@ -83,7 +84,8 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   if (Math.abs(h.x - n.x) > c.notice || (n.role !== "student" && !level)) return false;
   n.noticed = true;
   n.facing = toward(n, h);
-  say(n, noticeLine(n), events);
+  // The reply-all's own line says it, with the first plane.
+  if (n.trick !== "replyAll") say(n, noticeLine(n), events);
   // The office worker never looks up: a mutter, no double-take.
   if (n.role === "office") return false;
   n.vx = 0;
@@ -127,6 +129,17 @@ function stepServer(n: Npc, w: CastWorld, events: GameEvent[]): void {
   if (n.act === "windup") {
     n.vx = 0;
     if (n.actT >= c.windup) {
+      // The ice water, half the time, instead of the rush: tossed at him, and she goes back to her rounds.
+      if (n.trick === "water" && n.rng && n.rng() < TRICKS.waterChance) {
+        const m = launchCoffee(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }, "water");
+        w.missiles.push(m);
+        events.push({ type: "missile", kind: m.kind, x: m.x, y: m.y });
+        attack(n, events);
+        say(n, "Ice water, sir?", events);
+        setAct(n, "idle");
+        n.rest = c.rest + c.skid;
+        return;
+      }
       attack(n, events);
       n.mark = n.x;
       n.vx = n.facing * c.rush;
@@ -309,10 +322,48 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
   say(n, CAST_LINES.student.heads, events);
 }
 
+/** The night auditor's reply-all (story spec §8.1): a wind-up at the notice, three planes a beat apart, then the march. True while it takes his step. */
+function replyAll(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
+  const c = CAST.office;
+  const h = w.hero;
+  const { planes, gap } = TRICKS.replyAll;
+  if (n.act === "windup") {
+    n.vx = 0;
+    if (n.actT >= c.windup) {
+      attack(n, events);
+      n.mark = 0;
+    }
+    return true;
+  }
+  if (n.act === "attack") {
+    n.vx = 0;
+    if (n.mark < planes && n.actT >= n.mark * gap) {
+      const m = launchPlane(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 });
+      w.missiles.push(m);
+      events.push({ type: "missile", kind: m.kind, x: m.x, y: m.y });
+      events.push({ type: "castThrow", id: n.id, x: m.x, y: m.y, t: w.time });
+      if (n.mark === 0) say(n, "Per my last email", events);
+      n.mark++;
+    }
+    if (n.mark >= planes && n.actT >= planes * gap) {
+      setAct(n, "walk");
+      n.rest = c.rest;
+    }
+    return true;
+  }
+  if (!n.replied && n.noticed && marchLevel(n, h) && Math.abs(h.x - n.x) <= c.notice && ticketFree(w.cast)) {
+    n.replied = true;
+    windup(n, w, events);
+    return true;
+  }
+  return false;
+}
+
 /** The office worker: the ambush, for the one behind the screen; then the head-down march, for both, with the phone's chime as its only warning. */
 function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.office;
   const h = w.hero;
+  if (n.trick === "replyAll" && replyAll(n, w, events)) return;
   if (n.act === "hide") {
     n.vx = 0;
     if (!sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
@@ -357,6 +408,37 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
     events.push({ type: "chime", x: n.x, y: n.y - n.h, job: n.job });
   }
   if (!near && Math.abs(h.x - n.x) > c.chime * 2) n.cue = false;
+}
+
+/**
+ * The security guard: walks his patrol; seeing Hammer in front of him he raises the flashlight (telegraphed), and its beam
+ * dazzles him for a second if he stands in it: no pip lost. Then a rest. The lecture freezes him as it does any staff.
+ */
+function stepGuard(n: Npc, w: CastWorld, events: GameEvent[]): void {
+  const c = CAST.guard;
+  const h = w.hero;
+  if (n.act === "windup") {
+    n.vx = 0;
+    if (n.actT >= c.windup) {
+      attack(n, events);
+      events.push({ type: "flash", id: n.id, x: n.x + n.facing * 40, y: n.y - n.h * 0.72, facing: n.facing });
+      const front = (h.x - n.x) * n.facing;
+      if (sameLevel(n, h) && front > 0 && front <= c.reach && h.invuln <= 0 && h.move?.kind !== "tumble") stun(h, c.stun, events);
+    }
+    return;
+  }
+  if (n.act === "attack") {
+    n.vx = 0;
+    if (n.actT >= c.flash) {
+      setAct(n, "idle");
+      n.rest = c.rest;
+    }
+    return;
+  }
+  patrol(n, w, c.walk);
+  if (!n.noticed || n.rest > 0 || !sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
+  windup(n, w, events);
+  say(n, pick(linesOf(n).warn, n.k + n.hits), events);
 }
 
 function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
@@ -446,6 +528,7 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   if (n.role === "server") stepServer(n, w, events);
   else if (n.role === "office") stepOffice(n, w, events);
   else if (n.role === "bellhop") stepBellhop(n, w, events);
+  else if (n.role === "guard") stepGuard(n, w, events);
   else stepStudent(n, w, events);
 }
 

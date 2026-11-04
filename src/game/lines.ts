@@ -155,7 +155,7 @@ export const CAST_LINES = {
 } as const;
 
 
-export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender";
+export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -244,6 +244,17 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
     bump: none, down: none,
     fall: "Taaab",
     shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null,
+  },
+  // The night crew (story spec §8.1).
+  guard: {
+    notice: ["Sir. Sir.", "Lobby's closed, sir."],
+    bump: ["Room key, sir?", "Step back, sir."],
+    down: ["I'm calling this in.", "That's on camera."],
+    fall: "Securityyy",
+    shove: none,
+    warn: ["Sir, hold it right there.", "Let me see your key."],
+    skid: none, march: none, ambush: none,
+    frozen: "Sir, I just—",
   },
 };
 

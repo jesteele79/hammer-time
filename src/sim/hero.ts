@@ -69,6 +69,7 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     flopChain: 0,
     boxes: opts.boxes ?? 0,
     boxCd: 0,
+    stunT: 0,
   };
 }
 

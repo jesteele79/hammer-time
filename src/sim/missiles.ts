@@ -5,7 +5,7 @@ import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
 import type { HeroState, Point, Stage } from "./types";
 
-export type MissileKind = "plane" | "coffee" | "pan" | "coaster";
+export type MissileKind = "plane" | "coffee" | "pan" | "coaster" | "water";
 /** What flies like a paper plane (held up while fast, swatted for points): the plane, and the bartender's coaster. */
 export const flies = (kind: MissileKind): boolean => kind === "plane" || kind === "coaster";
 /** Something thrown at him: `phase` seeds a plane's wobble, `from` is the thrower. */
@@ -15,6 +15,9 @@ export type Missile = { id: number; kind: MissileKind; x: number; y: number; vx:
 export const PLANE = { speed: 520, gravity: 900, lift: 900 / (520 * 520), drag: 0.35, life: 2.4, r: 22, wobble: 40, aimUp: -150, aimDown: 250, hand: 0.75 } as const;
 /** The office worker's coffee: a hot arc from the hand. */
 export const COFFEE = { speed: 700, up: -420, gravity: 2200, life: 1.5, r: 16, hand: 0.55 } as const;
+
+/** The fastest the ice water leaves her hand. */
+const WATER_REACH = 1000;
 
 export type MissileWorld = { stage: Stage; hero: HeroState; missiles: Missile[]; hits: number[]; puddles: Puddle[] };
 
@@ -30,12 +33,21 @@ export function launchPlane(id: number, from: Thrower, target: Point, kind: "pla
   return { id, kind, x: from.x + dir * 40, y, vx: dir * PLANE.speed, vy, spin: 0, life: PLANE.life, phase: id * 1.3, from: from.id };
 }
 
-export function launchCoffee(id: number, from: Thrower, target: Point, kind: "coffee" | "pan" = "coffee"): Missile {
+export function launchCoffee(id: number, from: Thrower, target: Point, kind: "coffee" | "pan" | "water" = "coffee"): Missile {
   const dir = Math.sign(target.x - from.x) || from.facing;
-  return { id, kind, x: from.x + dir * 40, y: from.y - from.h * COFFEE.hand, vx: dir * COFFEE.speed, vy: COFFEE.up, spin: 0, life: COFFEE.life, phase: 0, from: from.id };
+  const x = from.x + dir * 40;
+  const y = from.y - from.h * COFFEE.hand;
+  // Ice water is tossed to land on him where he stands now, on the coffee's arc: walk on and it misses.
+  const drop = target.y - y;
+  const air = (-COFFEE.up + Math.sqrt(Math.max(0, COFFEE.up * COFFEE.up + 2 * COFFEE.gravity * drop))) / COFFEE.gravity;
+  const vx = kind === "water" ? clamp((target.x - x) / air, -WATER_REACH, WATER_REACH) : dir * COFFEE.speed;
+  return { id, kind, x, y, vx, vy: COFFEE.up, spin: 0, life: COFFEE.life, phase: 0, from: from.id };
 }
 
-function puddleAt(w: MissileWorld, x: number, y: number, kind: "coffee" | "grease") {
+/** What a thrown thing leaves on the floor where it lands. */
+const SPILLED: Partial<Record<MissileKind, "coffee" | "grease" | "water">> = { coffee: "coffee", pan: "grease", water: "water" };
+
+function puddleAt(w: MissileWorld, x: number, y: number, kind: "coffee" | "grease" | "water") {
   const s = SPILL[kind];
   w.puddles.push({ x, y, w: s.w, life: s.life, max: s.life, kind });
   if (w.puddles.length > SNOT.puddles) w.puddles.shift();
@@ -73,7 +85,7 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       w.hits.push(m.x);
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y: m.y, floor: false, hero: true });
-      if (!flies(m.kind)) puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y, m.kind === "pan" ? "grease" : "coffee");
+      if (!flies(m.kind)) puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y, SPILLED[m.kind] ?? "coffee");
       continue;
     }
     const floor = floorAt(w.stage, m.x, a.y);
@@ -84,7 +96,7 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       const y = onFloor ? floor! : plat ? plat.y : m.y;
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y, floor: onFloor || !!plat, hero: false });
-      if (!flies(m.kind) && (onFloor || plat)) puddleAt(w, m.x, y, m.kind === "pan" ? "grease" : "coffee");
+      if (!flies(m.kind) && (onFloor || plat)) puddleAt(w, m.x, y, SPILLED[m.kind] ?? "coffee");
     }
   }
   w.missiles = w.missiles.filter((m) => m.life > 0);
