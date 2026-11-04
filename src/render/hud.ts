@@ -113,8 +113,8 @@ export function hintOf(game: Game): string {
   if (missile) return `${missile.kind === "coaster" ? "Coaster" : "Paper"} incoming · duck, jump or swat with H`;
   if (w.targets.some((t) => near(t.x, 900) && Math.abs(t.vx) >= ROLLING && (h.x - t.x) * t.vx > 0)) return "Runaway cart · jump it, or bonk it back";
   const reach = lectureReach(h);
-  if (h.lectureCd <= 0 && w.cast.some((n) => n.alive && n.role === "student" && n.act !== "schooled" && overlapsRect(reach, npcRect(n))))
-    return "E lectures them · schooled students stop throwing paper";
+  const pupil = h.lectureCd <= 0 ? w.cast.find((n) => n.alive && n.role === "student" && n.act !== "schooled" && overlapsRect(reach, npcRect(n))) : undefined;
+  if (pupil) return pupil.job === "bartender" ? "E lectures them · a schooled bartender stops throwing coasters" : "E lectures them · schooled students stop throwing paper";
   if (w.puddles.length && w.cast.some((n) => n.alive && n.role !== "student" && standing(n) && near(n.x, 900))) return "Staff slip on puddles · stomp or bonk them while they are down";
   if (w.cast.some((n) => n.alive && n.role !== "student" && (n.act === "windup" || n.act === "attack") && near(n.x, 900))) return "H swings the mallet · hit them with the head";
   if (game.world.swingDoors.some((d) => Math.abs(d.x - h.x) < 500 && Math.abs(d.y - h.y) < 60)) return "Swinging door · stand clear when it bangs, or bonk it back";

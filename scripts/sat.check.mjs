@@ -102,6 +102,16 @@ test("at the gate the hint says to walk in and board, not that it is closed", ()
   assert.equal(hintOf(g), "GATE B7 · walk in to board");
 });
 
+test("the lecture's hint beside the bartender speaks of his coasters, not of students and paper", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 11, { title: true });
+  g.newRun(11, 0, { shift: [SAT, LOBBY], journey: true });
+  play(g);
+  const bartender = g.world.cast.find((n) => n.job === "bartender");
+  g.world.hero.x = bartender.x - 120;
+  g.world.hero.y = 0;
+  assert.equal(hintOf(g), "E lectures them · a schooled bartender stops throwing coasters");
+});
+
 import { createCast } from "../src/sim/cast.ts";
 import { createCart } from "../src/sim/targets.ts";
 test("SAT's people: the skycap with his cart at the curb, two TSA agents in the line, the bartender on the bar", () => {
