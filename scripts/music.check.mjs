@@ -67,6 +67,14 @@ test("the clock's hurry speeds the music only in play, never under the tally or 
   assert.equal(hurryFor("play", 0, 0), false, "no clock, no hurry");
   for (const mode of ["tally", "story", "card", "walkoff", "clear", "pause"]) assert.equal(hurryFor(mode, 420, 30), false, mode);
 });
+test("the act's fanfare plays at the music's full level, even under the card's quiet", () => {
+  const bus = new AudioBus();
+  assert.equal(bus.jingleLift, 1);
+  bus.startMusic("lobby", true);
+  assert.ok(Math.abs(bus.jingleLift * bus.musicLevel - 0.07) < 1e-9);
+  bus.setQuiet(false);
+  assert.equal(bus.jingleLift, 1);
+});
 test("back after a hidden tab (or the mute) the song picks up where the clock is, not with every missed note at once", () => {
   let notes = 0;
   const node = () => new Proxy(function () {}, { get: (_, k) => (k === "then" ? undefined : node()), apply: () => node(), set: () => true });

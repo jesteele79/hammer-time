@@ -7,7 +7,7 @@ import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
-import { PICKUP_SIZE, stageOf, type DoorSpec, type Lesson, type Level } from "./level";
+import { PICKUP_SIZE, stageOf, type DoorSpec, type Lesson, type Level, type LevelId } from "./level";
 import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
@@ -27,8 +27,11 @@ import { shuffled } from "./rewards";
 
 /** `story`: the game holds between levels (or before the first) while the shell shows the story's cards; nothing steps. */
 export type GameMode = "card" | "play" | "pause" | "dying" | "over" | "walkoff" | "tally" | "clear" | "title" | "questCard" | "quest" | "questTally" | "story";
-/** The lobby and its stash, and the venues after the lobby in the shift's order (R3 §2). */
-export type Levels = { lobby: Level; stash: Level; venues?: Level[] };
+/**
+ * The lobby and its stash, the venues after the lobby in the shift's order (R3 §2), and the levels that may stand as the
+ * home screen's scene without being part of Work the whole shift (the lobby at night).
+ */
+export type Levels = { lobby: Level; stash: Level; venues?: Level[]; homes?: Level[] };
 /**
  * A run of the journey (story Phase 1): `shift` the levels it plays (the stop's to the end of its act), `journey` its rules
  * (three lives a card, the snapshot, the story hold after each level), `snapshot` the run to restore (Try again, or the
@@ -83,6 +86,8 @@ export type Game = {
   togglePause(): void;
   /** Back to the start screen: the game holds, nothing steps, until a new run is chosen. */
   toTitle(): void;
+  /** The level the home screen shows from the next visit on (story spec §5.1): none is the first with a home spot. */
+  setHome(id: LevelId | undefined): void;
   /** The banquet while its card shows, it runs, or its tally waits (R4). */
   quest: Quest | null;
   /** The door it was opened from; null for practice from the start screen. */
@@ -122,12 +127,18 @@ const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x 
  * the seeded pickups and the crates, score, cans, lives and the clock, punch clocks, deaths and respawn.
  */
 /** `cast: false` runs the lobby with nobody in it (the older browser checks); `title` holds it on the start screen. */
-export function createGame(levels: Levels, seed: number, opts: { cast?: boolean; start?: number; title?: boolean } = {}): Game {
+export function createGame(levels: Levels, seed: number, opts: { cast?: boolean; start?: number; title?: boolean; home?: LevelId } = {}): Game {
   /** Today's whole shift: the lobby and the venues after it. */
   const wholeShift = [levels.lobby, ...(levels.venues ?? [])];
   const clampStart = (s: number | undefined, length = wholeShift.length) => Math.min(length - 1, Math.max(0, Math.floor(s ?? 0)));
-  const start = clampStart(opts.start);
-  const world = createWorld(stageOf(wholeShift[start]), wholeShift[start].spawn, { patience: RUN.patience });
+  let homeId = opts.home;
+  /** The level the home screen shows: the save's choice, else the first of the whole shift with a home spot (the lobby by the desk). */
+  const homeLevel = () => [...wholeShift, ...(levels.homes ?? [])].find((l) => l.id === homeId) ?? wholeShift.find((l) => l.home) ?? wholeShift[0];
+  /** The home scene's own shift: the whole shift when it is part of it, else just that level. */
+  const homeShift = () => (wholeShift.includes(homeLevel()) ? wholeShift : [homeLevel()]);
+  const firstShift = opts.title && homeId ? homeShift() : wholeShift;
+  const start = opts.title && homeId ? firstShift.indexOf(homeLevel()) : clampStart(opts.start);
+  const world = createWorld(stageOf(firstShift[start]), firstShift[start].spawn, { patience: RUN.patience });
   let timedOut = false;
   /** Down must come up between doors, so arriving with it held never sends him straight back. */
   let armed = true;
@@ -160,10 +171,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   const game: Game = {
     levels,
-    shift: wholeShift,
+    shift: firstShift,
     venue: start,
     start,
-    level: wholeShift[start],
+    level: firstShift[start],
     world,
     run: createRun(seed),
     pickups: [],
@@ -176,6 +187,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     newRun,
     togglePause,
     toTitle,
+    setHome(id) {
+      homeId = id;
+    },
     quest: null,
     questDoor: null,
     newQuest,
@@ -294,9 +308,6 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
   }
 
-  /** The level the home screen shows: the first of the whole shift with a home spot (the lobby by the desk). */
-  const homeLevel = () => wholeShift.find((l) => l.home) ?? wholeShift[0];
-
   /** A visit to the home screen begins: him at the home spot facing in, the insults shuffled afresh, the beats from the top. */
   function visitHome() {
     const home = homeLevel().home;
@@ -315,8 +326,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.quest = null;
     game.questDoor = null;
     // The home screen's scene is laid out fresh: the lobby as a shift finds it, whatever was played last.
-    game.shift = wholeShift;
-    game.venue = game.start = wholeShift.indexOf(homeLevel());
+    game.shift = homeShift();
+    game.venue = game.start = game.shift.indexOf(homeLevel());
     game.journey = false;
     game.snapshot = null;
     game.run = createRun(game.run.seed);

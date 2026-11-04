@@ -65,7 +65,9 @@ export function migrateJourney(raw: unknown): Journey {
   if (isObject(raw.best)) for (const [k, v] of Object.entries(raw.best)) if (isStoryId(k) && finiteAtLeast0(v)) best[k] = v;
   // An unknown next (a later build's stop) plays on from the last stop finished.
   const last = done[done.length - 1];
-  const next: StoryId = isStoryId(raw.next) ? raw.next : last ? (nextOf(last) ?? last) : "sat";
+  const given: StoryId = isStoryId(raw.next) ? raw.next : last ? (nextOf(last) ?? last) : "sat";
+  // Next is the first stop not finished: a hand-edited pair that disagrees would replay a finished stop or lock one for good.
+  const next: StoryId = STORY.find((s) => !done.includes(s.id))?.id ?? given;
   const bonked = finiteAtLeast0(raw.bonked) && Number.isInteger(raw.bonked) ? raw.bonked : 0;
   return { v: 1, next, done, best, bonked, run: runOf(raw.run), carry: carryOf(raw.carry), credits: raw.credits === true };
 }

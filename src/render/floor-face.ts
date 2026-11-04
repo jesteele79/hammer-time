@@ -1,5 +1,4 @@
 import type { Graphics } from "pixi.js";
-import { FLOOR } from "./ink";
 
 /** How dark a floor's front face is at its bottom, and the contact shadow along its top edge (story spec §15). */
 export const FACE = { dark: 0.25, bands: 8, contact: 40, contactAlpha: 0.35, contactBands: 5, platform: 16 } as const;
@@ -32,6 +31,3 @@ export function contactShadow(g: Graphics, x0: number, x1: number, y0: number, y
 export function platformShadow(g: Graphics, x0: number, x1: number, y: number): void {
   contactShadow(g, x0, x1, y, y, FACE.platform);
 }
-
-/** Where a floor's front face starts at x0 and x1: just below its top strip. */
-export const faceTop = (f: { y0: number; y1: number }) => [f.y0 + FLOOR.top, f.y1 + FLOOR.top] as const;

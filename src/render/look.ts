@@ -29,6 +29,7 @@ import { RESTAURANT } from "../sim/levels/restaurant";
 import { CAMPUS } from "../sim/levels/campus";
 import { GIFTSHOP } from "../sim/levels/giftshop";
 import { SAT } from "../sim/levels/sat";
+import { LOBBY_NIGHT } from "../sim/levels/lobby-night";
 import { STOP_LEVELS } from "../sim/levels";
 import type { Carry, Snapshot } from "../sim/journey";
 import { shiftFrom, type StoryId } from "../sim/story";
@@ -82,7 +83,7 @@ import type { QuestId } from "../sim/quests/quest";
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** SAT is the journey's first stop, never part of Work the whole shift. */
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH].map((l) => [l.id, l]));
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT].map((l) => [l.id, l]));
 const lightsOf = (level: Level): Light[] => level.lights.map((l) => ({ ...l, color: PALETTE.lampGlow, flicker: 0.04, group: level.id }));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
@@ -156,6 +157,8 @@ export type Look = {
   start(at: number): void;
   /** Back to the start screen. */
   toTitle(): void;
+  /** The level the home screen shows, from the save (story spec §5.1): on the home screen it changes at once, else at the next visit. */
+  setHome(id: LevelId | undefined): void;
   /** The start screen's quality choice: a tier kept on this device, or null to let the game choose (and step down). */
   setQuality(q: Quality | null): void;
   /** Hungry Hungry Hammer as practice: from the start screen's card, or Play again on its tally (R4 §8). */
@@ -194,6 +197,8 @@ export async function startLook(
     /** Straight into play at this level of the whole shift (`&level=`, the old `&venue=`). */
     level?: LevelId;
     title?: boolean;
+    /** The home screen's scene, from the save: the lobby at night once Act 1 is done. */
+    home?: LevelId;
     onHud?: (hud: HudPayload) => void;
     onMode?: (mode: GameMode) => void;
     /** A journey level's tally is counted: the shell finishes it in the save and shows the story's cards. */
@@ -208,13 +213,15 @@ export async function startLook(
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
-  const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1) }, newSeed(), {
+  const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1), homes: [LOBBY_NIGHT] }, newSeed(), {
     cast: !opts.nocast,
     title: !!opts.title,
     start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.level)),
+    home: opts.home,
   });
-  // SAT is no stop of the whole shift: `&level=sat` plays it as the journey does, Act 1 after it.
+  // SAT and Act 2 are no stops of the whole shift: `&level=` plays them as the journey does, what follows them after them.
   if (opts.level === "sat") game.newRun(newSeed(), 0, { shift: [SAT, ...SHIFT], journey: true });
+  else if (opts.level && !SHIFT.some((l) => l.id === opts.level)) game.newRun(newSeed(), 0, { shift: shiftFrom(opts.level as StoryId, STOP_LEVELS), journey: true });
   const world = game.world;
   const clock = createClock();
   scene.camera.bounds = game.level.bounds;
@@ -2068,6 +2075,10 @@ export async function startLook(
       game.newRun(newSeed(), at);
       prev = cur = world.snapshot();
       clearActors();
+    },
+    setHome(id) {
+      game.setHome(id);
+      if (game.mode === "title" && game.level.id !== (id ?? "lobby")) look.toTitle();
     },
     toTitle() {
       forgetPresses();

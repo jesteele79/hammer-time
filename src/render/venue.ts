@@ -556,7 +556,7 @@ function drawDial(g: Graphics, x: number, y: number, floor: number) {
 function drawPits(g: Graphics, level: Level) {
   for (const p of pitsOf(level)) {
     g.rect(p.x0, p.y - FLOOR.back, p.x1 - p.x0, 700).fill(COLORS.shaft);
-    if (level.id === "lobby")
+    if (level.id === "lobby" || level.id === "lobby-night")
       for (const k of [0.35, 0.65])
         g.moveTo(p.x0 + (p.x1 - p.x0) * k, p.y - FLOOR.back)
           .lineTo(p.x0 + (p.x1 - p.x0) * k, p.y + 700)

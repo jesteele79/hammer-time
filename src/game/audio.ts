@@ -486,6 +486,11 @@ export class AudioBus {
     this.setQuiet(quiet);
   }
 
+  /** What a jingle's notes are lifted by so they ring at the music's full level under a card's quiet. */
+  get jingleLift(): number {
+    return this.quiet ? 1 / MUSIC.quiet : 1;
+  }
+
   /** The music down under a card or a break, back up in play. */
   setQuiet(on: boolean) {
     this.quiet = on;
@@ -517,9 +522,10 @@ export class AudioBus {
   private jingle(notes: [number, number, number][]) {
     if (!this.ctx || !this.musicGain || this.muted) return;
     const at = this.ctx.currentTime + 0.02;
+    const lift = this.jingleLift;
     for (const [n, t, len] of notes) {
-      this.tone(midi(n), at + t, len, "sawtooth", 0.12, this.musicGain, midi(n - 0.4));
-      this.tone(midi(n - 7), at + t, len, "square", 0.05, this.musicGain);
+      this.tone(midi(n), at + t, len, "sawtooth", 0.12 * lift, this.musicGain, midi(n - 0.4));
+      this.tone(midi(n - 7), at + t, len, "square", 0.05 * lift, this.musicGain);
     }
   }
 

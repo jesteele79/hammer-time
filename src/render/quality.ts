@@ -33,6 +33,9 @@ export const TIERS: Record<"ultra" | "high" | "medium" | "low", Tier> = {
 
 /** A real video card by its adapter's or renderer's name (story spec §15): NVIDIA, AMD and Intel Arc. */
 export const isDesktopGpu = (name: string): boolean => /NVIDIA|GeForce|RTX|Radeon|AMD|Arc\b/i.test(name);
+/** The same from everything a browser tells of its card: WebGPU may say Intel Arc only as vendor "intel", architecture "xe-hpg". */
+export const gpuClassOf = (info: { name?: string; vendor?: string; architecture?: string }): "desktop" | "other" =>
+  isDesktopGpu(info.name ?? "") || isDesktopGpu(info.vendor ?? "") || (/intel/i.test(info.vendor ?? "") && /xe-hpg|xe2|arc/i.test(info.architecture ?? "")) ? "desktop" : "other";
 
 /** Auto's one pick once the governor has settled: ultra on a desktop card holding 58 fps or better, high otherwise. */
 export const firstTier = (gpu: "desktop" | "other", fps: number): "ultra" | "high" => (gpu === "desktop" && fps >= 58 ? "ultra" : "high");

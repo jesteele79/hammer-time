@@ -267,11 +267,18 @@ try {
   assert.deepEqual([s.next, s.done, s.run], ["lobby-night", ["sat", "lobby", "restaurant", "campus", "arena"], null], "Act 1 done, Act 2 starts clean");
   await cardFits("act");
   await enter();
+  // 2-1 is built: Continue plays on to the lobby at night, clean; the way home from a level's card is a fresh page.
+  await waitMode("card");
+  r = await run();
+  assert.deepEqual([r.level, r.score, r.lives], ["lobby-night", 0, 3], "Act 2 starts clean");
+  assert.match(await veil(), /Front desk has you as MEMBER\. System error\./);
+  await page.goto(home);
   await waitMode("title");
-  // The strip: 1-4 finished, 2-1 next and coming, Clock in gives way to "Act 2 is coming", Act 1's header totals its bests.
+  // The strip: 1-4 finished, 2-1 next, Clock in plays it, the home scene is the lobby at night, Act 1's header totals its bests.
   const strip = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, e.dataset.state])));
   assert.deepEqual([strip["1-4"], strip["2-1"]], ["done", "next"], JSON.stringify(strip));
-  assert.ok(await page.getByRole("button", { name: "Act 2 is coming" }).isDisabled(), "Act 2 is coming");
+  assert.ok(await page.getByRole("button", { name: "Clock in" }).isEnabled(), "Clock in plays 2-1");
+  assert.equal((await run()).level, "lobby-night", "the home scene is the lobby at night");
   assert.equal(await page.locator(".next-strip__act[data-act='act1'] > b").textContent(), String(total).padStart(6, "0"), "Act 1's total on its header");
   assert.ok(await page.getByRole("button", { name: /Work the whole shift/ }).isVisible(), "Work the whole shift on Act 1's header");
 

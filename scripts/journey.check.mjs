@@ -207,6 +207,17 @@ test("a gate door is walked into like an exit: Fare Darts as the set piece, its 
 
 import { playableNext } from "../src/sim/journey.ts";
 
+test("a save whose done and next disagree is put right: next is the first stop not done", () => {
+  const j = migrateJourney({ v: 1, next: "lobby", done: ["sat", "lobby", "restaurant"], best: {}, bonked: 0, run: null, carry: null, credits: false });
+  assert.deepEqual([j.next, j.done], ["campus", ["sat", "lobby", "restaurant"]]);
+  // A next past a stop that was never finished would leave that stop locked for good.
+  const locked = migrateJourney({ v: 1, next: "campus", done: ["sat"], best: {}, bonked: 0, run: null, carry: null, credits: false });
+  assert.deepEqual([locked.next, locked.done], ["lobby", ["sat"]]);
+  // The story's last stop finished stays next: there is nothing after it.
+  const all = migrateJourney({ v: 1, next: "replacement", done: STORY.map((s) => s.id), best: {}, bonked: 0, run: null, carry: null, credits: false });
+  assert.equal(all.next, "replacement");
+});
+
 test("Clock in plays the next stop, or the first built one after it while it is not built; nothing past an act not built", () => {
   const built = ["lobby", "restaurant", "campus", "arena"];
   assert.equal(playableNext(newJourney(), built), "lobby");

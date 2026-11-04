@@ -82,6 +82,8 @@ const readJourney = (): Journey => {
     return newJourney();
   }
 };
+/** The home screen's scene (story spec §5.1): the lobby at night once Act 1 is done. */
+const homeOf = (j: Journey): LevelId | undefined => (j.done.includes("arena") ? "lobby-night" : undefined);
 /** `&journey=all`: every built stop finished, for the page only (spec §4.7). */
 const openJourney = (): Journey => ({ ...newJourney(), done: [...BUILT], next: nextOf(BUILT[BUILT.length - 1]) ?? BUILT[BUILT.length - 1] });
 
@@ -324,7 +326,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
+      const started = await startLook(render, { noart, board, dev, nocast, level, title, home: homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
       setLiveQuality(render.quality);
       if (cancelled) {
         started.stop();
@@ -344,7 +346,17 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, level, title, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
+  }, [forceWebgl, noart, board, dev, nocast, level, title, journeyAll, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
+
+  // The save decides the home scene: finishing Act 1, or New game, changes it from the next visit home.
+  useEffect(() => {
+    if (ready) look.current?.setHome(homeOf(journey));
+  }, [ready, journey]);
+
+  // Settings opened while the game still loaded: the game hears it once it is ready, so its keys stay the page's.
+  useEffect(() => {
+    if (ready) look.current?.setMenu(settings);
+  }, [ready, settings]);
 
   // A start chosen while the game still loaded begins once it is ready, and only once.
   useEffect(() => {
@@ -467,6 +479,7 @@ export function NextGame({
   const info = {
     venue: hud?.venue ?? "Hotel lobby",
     world: hud?.world ?? "1-1",
+    card: hud?.card ?? null,
     score: hud?.score ?? 0,
     best,
     lives: hud?.lives ?? 3,

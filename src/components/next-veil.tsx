@@ -28,6 +28,8 @@ export type RunKind = "journey" | "replay" | "shift" | "practice";
 export type VeilInfo = {
   venue: string;
   world: string;
+  /** The level's own line on its card. */
+  card: string | null;
   score: number;
   best: number;
   lives: number;
@@ -253,8 +255,8 @@ export function NextVeil({
     // In a journey the first stop of the hotel's shift starts it, and a replay starts its own; the rest go on.
     const line = info.back
       ? "Back from your break"
-      : info.world === "SAT"
-        ? "Boarding in 7:00"
+      : info.card
+        ? info.card
         : storied
         ? info.how === "replay" || info.world === "1-1"
           ? "Your shift starts here"

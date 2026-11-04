@@ -16,6 +16,8 @@ import { RUN } from "../sim/run";
 export type HudPayload = {
   venue: string;
   world: string;
+  /** The line under the level's name on its card, when it has its own. */
+  card: string | null;
   portrait: string | null;
   heat: number;
   sinus: number;
@@ -160,6 +162,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   return {
     venue: game.level.name,
     world: game.level.world,
+    card: game.level.card ?? null,
     portrait,
     heat: clamp(h.heat, 0, 100),
     sinus: clamp(h.sinus, 0, SINUS_MAX),

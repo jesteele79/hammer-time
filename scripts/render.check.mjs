@@ -1480,7 +1480,16 @@ test("the camera's rest focus puts the walking line at 78 percent of the view in
   }
 });
 
-import { TIERS, firstTier, isDesktopGpu } from "../src/render/quality.ts";
+import { TIERS, firstTier, gpuClassOf, isDesktopGpu } from "../src/render/quality.ts";
+
+test("a desktop card by all the browser tells: WebGPU's Intel Arc is vendor intel, architecture xe-hpg; integrated Intel is not", () => {
+  assert.equal(gpuClassOf({ vendor: "intel", architecture: "xe-hpg" }), "desktop");
+  assert.equal(gpuClassOf({ vendor: "intel", architecture: "xe2" }), "desktop");
+  assert.equal(gpuClassOf({ vendor: "intel", architecture: "gen-12lp" }), "other");
+  assert.equal(gpuClassOf({ name: "NVIDIA GeForce RTX 4070" }), "desktop");
+  assert.equal(gpuClassOf({ vendor: "amd", architecture: "gcn-5" }), "desktop");
+  assert.equal(gpuClassOf({}), "other");
+});
 
 test("Auto picks ultra on a desktop GPU holding 58 fps, high otherwise; the tiers differ", () => {
   assert.deepEqual([firstTier("desktop", 60), firstTier("desktop", 50), firstTier("other", 60)], ["ultra", "high", "high"]);

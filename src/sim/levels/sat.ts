@@ -71,6 +71,7 @@ export const SAT: Level = {
   rewards: { count: 8, bucees: 0, nuts: 2 },
   routes: [{ id: "floor", x0: 1400, x1: 7400, y0: 0, y1: 0 }],
   music: "sat",
+  card: "Boarding in 7:00",
   hints: { early: 1400 },
   // The moves, taught in the stretch where each is needed (spec §6.2), each until he has done it once.
   lessons: [

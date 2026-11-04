@@ -141,7 +141,7 @@ export type ThoughtSpec = { x: number; text: string };
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
-export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena";
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
@@ -186,6 +186,10 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   thoughts?: ThoughtSpec[];
   /** The lobby's people (R2b). */
   cast?: CastSpawn[];
+  /** Relit for the night (story spec §8.1): the cool ambient and the tighter, brighter lamps. */
+  ambient?: "night";
+  /** The line under the level's name on its card. */
+  card?: string;
 };
 
 export const PICKUP_SIZE = 70;

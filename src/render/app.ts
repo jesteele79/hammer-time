@@ -4,7 +4,7 @@ import type { FoodKind } from "../sim/quests/hungry/food";
 import type { CityCode, TagKind } from "../sim/quests/fares/board";
 
 type ProbeRect = { x: number; y: number; w: number; h: number };
-import { TIERS, firstTier, isDesktopGpu, refreshFrom, shouldStepDown } from "./quality";
+import { TIERS, firstTier, gpuClassOf, refreshFrom, shouldStepDown } from "./quality";
 
 export type Quality = "ultra" | "high" | "medium" | "low";
 export type RenderApp = {
@@ -262,7 +262,8 @@ export async function createRenderApp(
     return gl && ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : "";
   };
   probe.gpu = gpuName();
-  const gpuClass = (): "desktop" | "other" => (isDesktopGpu(probe.gpu ?? "") ? "desktop" : "other");
+  const adapterInfo = (app.renderer as unknown as { gpu?: { adapter?: { info?: Record<string, string | undefined> } } }).gpu?.adapter?.info;
+  const gpuClass = (): "desktop" | "other" => gpuClassOf({ name: probe.gpu, vendor: adapterInfo?.vendor, architecture: adapterInfo?.architecture });
   probe.gpuClass = gpuClass();
   const begin = () => {
     frameStart = performance.now();
