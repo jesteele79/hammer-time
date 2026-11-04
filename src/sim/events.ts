@@ -18,7 +18,7 @@ export type GameEvent =
   | { type: "flop"; x: number; y: number }
   | { type: "swing" }
   /** `shield` is the Buc-ee's shield bowling over whatever he runs into. */
-  | { type: "hit"; by: "mallet" | "snot" | "burst" | "shield"; x: number; y: number; target: number }
+  | { type: "hit"; by: "mallet" | "snot" | "burst" | "shield" | "cart"; x: number; y: number; target: number }
   | { type: "superStart" }
   | { type: "burst"; x: number; y: number }
   | { type: "sniff" }
@@ -149,6 +149,10 @@ export type GameEvent =
   | FaresEvent
   /** Back from a side quest's tally: what it paid. */
   | { type: "questPaid"; quest: QuestId; score: number; grade: string; doggy: boolean; flop: boolean; boxes: number; cans: number; lives: number }
+  /** Down a laundry chute: a floor lost, and the slide's seconds. */
+  | { type: "chute"; x: number; y: number }
+  /** He hit a wet floor: spun back, a moment without control. */
+  | { type: "slip"; x: number; y: number }
   /** The guard's flashlight shines the way he faces; it caught him: no control for a moment. */
   | { type: "flash"; id: number; x: number; y: number; facing: 1 | -1 }
   | { type: "stunned"; x: number; y: number }

@@ -30,6 +30,7 @@ import { CAMPUS } from "../sim/levels/campus";
 import { GIFTSHOP } from "../sim/levels/giftshop";
 import { SAT } from "../sim/levels/sat";
 import { LOBBY_NIGHT } from "../sim/levels/lobby-night";
+import { TOWER } from "../sim/levels/tower";
 import { STOP_LEVELS } from "../sim/levels";
 import type { Carry, Snapshot } from "../sim/journey";
 import { shiftFrom, type StoryId } from "../sim/story";
@@ -83,7 +84,7 @@ import { questIdOf, type QuestId } from "../sim/quests/quest";
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** SAT is the journey's first stop, never part of Work the whole shift. */
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT].map((l) => [l.id, l]));
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
@@ -1727,7 +1728,8 @@ export async function startLook(
       const fighting = !!pig && pig.state !== "asleep" && pig.state !== "defeated";
       cam.target = { x: fighting ? fightFrame(x, pig.x, scene.view().w * FRAME_REACH) : x, y };
       cam.facing = h.facing;
-      cam.moving = !fighting && Math.abs(h.vx) > 40;
+      // In a climb the camera looks at him, not ahead of him.
+      cam.moving = !fighting && !zone?.follow && Math.abs(h.vx) > 40;
       cam.falling = h.vy > 900;
       cam.grounded = h.onGround;
     }

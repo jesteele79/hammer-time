@@ -1,6 +1,7 @@
 import type { SongId } from "../game/audio";
 import type { HeatZone } from "./hazards";
 import type { QuestId } from "./quests/quest";
+import type { MoverSpec } from "./movers";
 import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, Stage } from "./types";
 
 export type { CartLoad };
@@ -28,13 +29,14 @@ export type PlatformKind =
   | "deck"
   | "ledge"
   | "plush"
-  | "till";
+  | "till"
+  | "vending";
 export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt" | "carpet";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
 export type LevelPlatform = Platform & { kind: PlatformKind };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
-export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number };
+export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" };
 export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest" | "gate";
 /**
  * `closed` doors say what opens them; a `quest` door opens a side quest once a shift (the BUFFET's banquet, R4 §7); a
@@ -102,7 +104,8 @@ export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]
 export type BossSpec = { x: number; arena: [number, number] };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
-export type CameraZone = { x0: number; x1: number; zoom: number };
+/** `follow: "up"`: a tall level's climb: no look-ahead, the floor line kept as he rises. */
+export type CameraZone = { x0: number; x1: number; zoom: number; follow?: "up" };
 export type CastPerson =
   | "bellhop-1"
   | "bellhop-2"
@@ -156,12 +159,12 @@ export type Lesson = "jump" | "run" | "slide" | "swing" | "snot" | "wipe";
 /** A stretch where the hint teaches a move until he has done it. */
 export type LessonSpec = { x0: number; x1: number; move: Lesson; text: string };
 /** His thought at a mark, once a layout of the level, as he walks past it. */
-export type ThoughtSpec = { x: number; text: string };
+export type ThoughtSpec = { x: number; text: string; y?: number };
 /** A stretch the seeding stocks with one of each reward: anchors with x in [x0, x1] and y in [y0, y1]. */
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
-export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night";
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
@@ -214,6 +217,14 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   status?: boolean;
   /** Where the keycards stand: fixed spots, each once a run. */
   keycards?: Point[];
+  /** A tall level (the tower): how far apart its floors stand; the HUD reads the floor he is on. */
+  floors?: { every: number };
+  /** Carts that roll along a landing. */
+  movers?: MoverSpec[];
+  /** Gaps that drop him one floor for the slide's seconds: `x` their left end, `y` the landing. */
+  chutes?: { x: number; y: number; w: number }[];
+  /** Wet floors: a reversed step and half a second without control. */
+  slips?: Point[];
 };
 
 export const PICKUP_SIZE = 70;
@@ -273,7 +284,9 @@ export function rewardAnchors(level: Level): Anchor[] {
     if (f.y0 !== f.y1 || f.belt) continue;
     for (let x = f.x0 + ANCHOR_STEP; x < f.x1 - ANCHOR_STEP / 2; x += ANCHOR_STEP) {
       const y = f.y0 - PICKUP_SIZE;
-      if (x < level.spawn.x + 300 || x > level.length - 300 || blocked(x, y)) continue;
+      // A tall level's rule of space at the start is its first floor's alone, and its walls are its ends.
+      const nearStart = x < level.spawn.x + 300 && (!level.floors || f.y0 === level.spawn.y);
+      if (nearStart || (!level.floors && x > level.length - 300) || blocked(x, y)) continue;
       out.push({ x, y, raised: false });
     }
   }

@@ -7,6 +7,7 @@ import { createHero, stepHero, type HeroOptions } from "./hero";
 import { superBurst, swingContact } from "./hits";
 import { emptyInput, type Input } from "./input";
 import { stepMissiles, type Missile } from "./missiles";
+import { stepMovers, type Mover } from "./movers";
 import { stepPig, type Pig } from "./pig";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
@@ -47,6 +48,8 @@ export type World = {
   zone: HeatZone | null;
   /** The gift shop's pig, or null. */
   pig: Pig | null;
+  /** The carts rolling along the tower's landings. */
+  movers: Mover[];
   /** The home screen's scene: the cast stands as it is and never notices him; his snot passes them and the carts by. */
   still: boolean;
   /** A hit from something at `fromX`, applied at the start of the next step. */
@@ -76,6 +79,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     swingDoors: opts.swingDoors ?? [],
     zone: null,
     pig: opts.pig ?? null,
+    movers: [],
     still: false,
     hit(fromX) {
       world.hits.push(fromX);
@@ -100,6 +104,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       stepSnot(world, STEP, events);
       stepSamples(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP, events);
+      stepMovers(world, STEP, events);
       stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
       stepPig(world, STEP, prevY, input.held.jump, events);
@@ -123,6 +128,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         missiles: world.missiles.map((m) => ({ ...m })),
         doors: world.swingDoors.map((d) => ({ ...d })),
         pig: world.pig && { ...world.pig, arena: [world.pig.arena[0], world.pig.arena[1]] },
+        movers: world.movers.map((m) => ({ ...m, top: { ...m.top } })),
       };
     },
   };

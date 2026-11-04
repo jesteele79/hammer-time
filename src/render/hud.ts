@@ -16,7 +16,10 @@ import { RUN } from "../sim/run";
 
 /** What the shell's HUD shows (spec §10). */
 export type HudPayload = {
+  /** What the panel's top line reads: the level's name, or in a tall level the floor he is on. */
   venue: string;
+  /** The level's name, on its card. */
+  name: string;
   world: string;
   /** The line under the level's name on its card, when it has its own. */
   card: string | null;
@@ -138,6 +141,7 @@ export function hintOf(game: Game): string {
   // A prize to fight for, once the threats, his own state and the first lesson have had their say.
   const carrier = w.cast.find((n) => n.alive && n.carry && !n.out && near(n.x, CARRY_HINT.x) && Math.abs(n.y - h.y) < CARRY_HINT.y);
   if (carrier?.carry) return `Carrying ${CARRIED_NAME[carrier.carry]} · knock them out and it drops`;
+  if (game.level.floors) return "Keep climbing · jump the carts and the chutes";
   // The drop works only on the balcony itself; on the landing and the stairs he is still on his way up.
   const onBalcony = game.level.platforms.some((p) => p.kind === "balcony" && h.x >= p.x0 && h.x <= p.x1 && Math.abs(h.y - p.y) < 2);
   if (onBalcony) return "Up on the mezzanine · ↓ + jump drops you back down";
@@ -167,7 +171,8 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const q = game.quest;
   const quest = q ? (q.id === "hungry" ? banquetHud(q, !!game.questDoor) : gateHud(q, !!game.questDoor)) : null;
   return {
-    venue: game.level.name,
+    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.name,
+    name: game.level.name,
     world: game.level.world,
     card: game.level.card ?? null,
     status: game.shift[game.venue]?.world.startsWith("2-") ? statusName(game.run.keycards) : null,

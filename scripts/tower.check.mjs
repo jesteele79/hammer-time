@@ -1,0 +1,183 @@
+// The tower (story spec §8.2): fourteen floors of landings and flights, the carts that roll, the chutes, the wet floors, the
+// punch clocks and the door on fourteen; the climb driver; the floor on the HUD.
+import test from "node:test";
+import assert from "node:assert/strict";
+import { STEP } from "../src/sim/constants.ts";
+import { createGame } from "../src/sim/game.ts";
+import { pitsOf, rewardAnchors } from "../src/sim/level.ts";
+import { LOBBY } from "../src/sim/levels/lobby.ts";
+import { STASH } from "../src/sim/levels/stash.ts";
+import { TOWER, floorY } from "../src/sim/levels/tower.ts";
+import { drive } from "../src/sim/drive.ts";
+import { hudOf } from "../src/render/hud.ts";
+import { floorAt } from "../src/sim/physics.ts";
+import { stageOf } from "../src/sim/level.ts";
+
+const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
+const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
+const of = (evs, type) => evs.filter((e) => e.type === type);
+const play = (g) => { while (g.mode === "card") g.step(input()); };
+const until = (g, done, seconds = 10, held = {}) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) { g.step(input(held)); evs.push(...g.events); } return evs; };
+const tower = (opts = {}) => { const g = createGame({ lobby: LOBBY, stash: STASH }, 31, { cast: false, title: true }); g.newRun(31, 0, { shift: [TOWER], journey: true, ...opts }); return g; };
+
+test("the tower is fourteen floors of landings and 28-degree flights, chutes on 5, 9 and 13, balconies from 8, two punch clocks and the door on 14", () => {
+  assert.deepEqual([TOWER.id, TOWER.world, TOWER.time, TOWER.floors, TOWER.camera.zones[0].follow], ["tower", "2-2", 420, { every: 540 }, "up"]);
+  const flights = TOWER.floor.filter((f) => f.kind === "stairs");
+  assert.equal(flights.length, 13);
+  for (const f of flights) assert.ok(Math.abs((Math.atan2(Math.abs(f.y1 - f.y0), f.x1 - f.x0) * 180) / Math.PI - 28.4) < 1);
+  assert.deepEqual(TOWER.chutes.map((c) => c.y), [floorY(5), floorY(9), floorY(13)]);
+  assert.deepEqual(TOWER.checkpoints.map((c) => c.id), ["floor-5", "floor-10"]);
+  assert.deepEqual([TOWER.doors[0].y, pitsOf(TOWER).length], [floorY(14), 0]);
+  assert.deepEqual(TOWER.platforms.filter((p) => p.kind === "balcony").map((p) => Math.floor(-p.y / 540) + 1).sort((a, b) => a - b)[0], 8);
+});
+test("every chute's gap has the floor below under it, and a punch clock stands on its floor clear of any gap", () => {
+  const stage = stageOf(TOWER);
+  for (const c of TOWER.chutes) {
+    const mid = c.x + c.w / 2;
+    assert.equal(floorAt(stage, mid, c.y - 10), c.y + 540, `under the chute at ${c.y}`);
+  }
+  for (const k of TOWER.checkpoints) assert.equal(floorAt(stage, k.x, k.y - 24), k.y, k.id);
+});
+test("no anchor for a pickup hangs in the air: every one stands over a landing or a platform of the tower", () => {
+  const stage = stageOf(TOWER);
+  const anchors = rewardAnchors(TOWER);
+  assert.ok(anchors.length > 40, String(anchors.length));
+  assert.ok(anchors.some((a) => a.raised));
+  for (const a of anchors) {
+    const y = a.y + 70;
+    const onFloor = floorAt(stage, a.x, y - 2) === y;
+    const onPlat = TOWER.platforms.some((p) => p.y === y && a.x >= p.x0 && a.x <= p.x1);
+    assert.ok(onFloor || onPlat, `${a.x}, ${a.y}`);
+  }
+});
+test("the scripted climber reaches the fourteenth floor along the flights, never stuck, never a life lost", () => {
+  const g = tower();
+  play(g);
+  let t = 0;
+  let best = 0;
+  let since = 0;
+  while (g.mode === "play" && t < 300) {
+    g.step(drive(g.level, g.world.hero, "climb", g.world));
+    t += STEP;
+    since += STEP;
+    if (-g.world.hero.y > best + 1) {
+      best = -g.world.hero.y;
+      since = 0;
+    }
+    assert.ok(since < 25, `stuck at ${g.world.hero.x}, ${g.world.hero.y} at ${t.toFixed(1)} s`);
+  }
+  assert.deepEqual([g.mode, g.run.lives, g.run.punched], ["walkoff", 3, ["floor-5", "floor-10"]]);
+});
+test("a chute drops him a floor for 2 s and no life; the drop below floor 1 is the only pit and brings him back at the last clock", () => {
+  const g = tower();
+  play(g);
+  const t0 = g.run.time;
+  const c = TOWER.chutes[0];
+  Object.assign(g.world.hero, { x: c.x + c.w / 2, y: floorY(5) - 10, vy: 100, onGround: false });
+  const evs = until(g, (x) => x.world.hero.onGround, 3);
+  assert.deepEqual([of(evs, "chute").length, Math.round(t0 - g.run.time), Math.round(g.world.hero.y), g.run.lives], [1, 2, floorY(4), 3]);
+  for (const k of [1, 2]) {
+    const h = tower();
+    play(h);
+    const t = h.run.time;
+    const d = TOWER.chutes[k];
+    // Mid-jump over the gap, falling short: the same.
+    Object.assign(h.world.hero, { x: d.x + d.w / 2, y: d.y - 200, vy: -100, vx: 60, onGround: false });
+    const e = until(h, (x) => x.world.hero.onGround, 3);
+    assert.equal(of(e, "chute").length, 1);
+    assert.equal(h.run.lives, 3);
+    assert.ok(t - h.run.time < 3 && t - h.run.time >= 2);
+    assert.equal(Math.round(h.world.hero.y), d.y + 540);
+  }
+  const k10 = TOWER.checkpoints[1];
+  Object.assign(g.world.hero, { x: k10.x, y: floorY(10), onGround: true, vx: 0, vy: 0 });
+  g.step(input({ right: true }));
+  assert.equal(g.run.checkpoint, "floor-10");
+  Object.assign(g.world.hero, { x: 1200, y: 400, vy: 600, onGround: false });
+  until(g, (x) => x.mode === "card", 4);
+  until(g, (x) => x.mode === "play", 3);
+  assert.deepEqual([g.run.lives, Math.round(g.world.hero.y)], [2, floorY(10)]);
+});
+test("a fall off a balcony lands on the landing below, never in a pit", () => {
+  const g = tower();
+  play(g);
+  const b = TOWER.platforms.find((p) => p.kind === "balcony");
+  Object.assign(g.world.hero, { x: b.x0 - 80, y: b.y - 5, vx: 0, vy: 0, onGround: false });
+  const evs = until(g, (x) => x.world.hero.onGround, 3);
+  assert.equal(of(evs, "fell").length, 0);
+  assert.equal(g.run.lives, 3);
+  assert.ok(Math.abs(g.world.hero.y % 540) < 1, String(g.world.hero.y));
+});
+test("a cart on a landing rolls, reverses at its ends, hurts from the side and carries him on top; a wet-floor sign slips him", () => {
+  const g = tower();
+  play(g);
+  const m = g.world.movers.find((c) => c.id === "cart-2");
+  const x0 = m.x;
+  until(g, () => false, 1);
+  assert.ok(Math.abs(Math.abs(m.x - x0) - 140) < 5, "140 px/s");
+  Object.assign(g.world.hero, { x: m.x - 300, y: m.y, onGround: true, patience: 2, vx: 0, vy: 0 });
+  until(g, (x) => x.world.hero.patience < 2, 6, { right: true });
+  assert.equal(g.world.hero.patience, 1);
+  until(g, (x) => x.world.hero.invuln <= 0 && !x.world.hero.move, 3);
+  Object.assign(g.world.hero, { x: m.x, y: m.y - m.h, vx: 0, vy: 0, onGround: true, patience: 2 });
+  const x = g.world.hero.x;
+  until(g, () => false, 0.9);
+  assert.ok(Math.abs(g.world.hero.x - x) > 100, `carried: ${g.world.hero.x - x}`);
+  assert.equal(g.world.hero.patience, 2, "riding on top is free");
+  const s = TOWER.slips[0];
+  Object.assign(g.world.hero, { x: s.x - 120, y: s.y, onGround: true, vx: 300, vy: 0 });
+  const evs = until(g, (q) => q.world.hero.vx < 0, 1, { right: true });
+  assert.ok(of(evs, "slip").length >= 1);
+  assert.ok(g.world.hero.stunT > 0.4 && g.world.hero.patience === 2, "0.5 s without control, no damage");
+  // The carts turn back at their ends.
+  const c = g.world.movers[0];
+  const seen = new Set();
+  for (let i = 0; i < Math.round(30 / STEP); i++) {
+    g.step(input());
+    seen.add(c.dir);
+    assert.ok(c.x >= c.x0 - 2 && c.x <= c.x1 + 2);
+  }
+  assert.equal(seen.size, 2);
+});
+test("a chute costs him no life even with the clock nearly out, and the clock never goes below zero", () => {
+  const g = tower();
+  play(g);
+  g.run.time = 1;
+  const c = TOWER.chutes[0];
+  Object.assign(g.world.hero, { x: c.x + c.w / 2, y: floorY(5) - 10, vy: 100, onGround: false });
+  g.step(input());
+  g.step(input());
+  assert.ok(g.run.time >= 0);
+});
+test("the punch clocks count on their own floor only, not by walking past their x below", () => {
+  const g = tower();
+  play(g);
+  const k = TOWER.checkpoints[0];
+  Object.assign(g.world.hero, { x: k.x, y: 0, onGround: true });
+  g.step(input());
+  assert.deepEqual(g.run.punched, []);
+  Object.assign(g.world.hero, { x: k.x, y: k.y, onGround: true });
+  g.step(input());
+  assert.deepEqual(g.run.punched, ["floor-5"]);
+});
+test("the HUD line reads the floor he stands on; the card keeps the level's name", () => {
+  const g = tower();
+  play(g);
+  assert.equal(hudOf(g, null, false, null).venue, "Floor 1");
+  Object.assign(g.world.hero, { x: 1000, y: floorY(6), onGround: true });
+  g.step(input());
+  const hud = hudOf(g, null, false, null);
+  assert.deepEqual([hud.venue, hud.name, hud.world, hud.status], ["Floor 6", "The tower", "2-2", "MEMBER"]);
+});
+test("his thoughts at their marks fire on their own floor", () => {
+  const g = tower();
+  play(g);
+  const mark = TOWER.thoughts.find((t) => t.y === floorY(4));
+  assert.ok(mark, "a thought on floor 4");
+  Object.assign(g.world.hero, { x: mark.x, y: 0, onGround: true });
+  const none = until(g, () => false, 0.1);
+  assert.ok(!of(none, "think").some((e) => e.text === mark.text), "not from the floors below");
+  Object.assign(g.world.hero, { x: mark.x, y: mark.y, onGround: true });
+  const evs = until(g, () => false, 0.1);
+  assert.ok(of(evs, "think").some((e) => e.text === mark.text));
+});

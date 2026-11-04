@@ -16,6 +16,7 @@ import { collectPickups, dropPickup, keycardsOf, seedRewards, stepPickups, type 
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
+import { createMover } from "./movers";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
@@ -118,6 +119,10 @@ export const TITLE = { thinkEvery: 8, think: 3.2, snotAt: 45, snotEvery: 60 } as
 export const THINK = { seconds: 3, reach: 160 } as const;
 /** The moves the world's events teach: a lesson stops once he has done its move (story spec §6.2). */
 const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", slide: "slide", swing: "swing", sniff: "snot", wipeStart: "wipe" };
+/** The seconds a laundry chute's slide costs him, and how long a wet floor holds him. */
+export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60 } as const;
+/** How near a tall level's punch clock he must pass, on its floor. */
+const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 
@@ -169,6 +174,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   const thought = new Set<string>();
   /** Where he stood at the end of the last step: a thought's mark is passed going right from here. */
   let thinkFrom = 0;
+  /** How high his feet were at the end of the last step: a chute is fallen into from above it. */
+  let feetFrom = 0;
+  /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
+  let onSlip: Point | null = null;
 
   const game: Game = {
     levels,
@@ -211,7 +220,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   }
 
   const restage = () => {
-    world.stage = stageOf(game.level, crateSolids(game.crates));
+    const stage = stageOf(game.level, crateSolids(game.crates));
+    // The carts' tops are platforms he can ride.
+    world.stage = world.movers.length ? { ...stage, platforms: [...stage.platforms, ...world.movers.map((m) => m.top)] } : stage;
   };
 
   /** Stands him on the floor under `at`, still and fresh. */
@@ -237,6 +248,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const set = game.run.checkpoint === AMBASSADOR_CHECKPOINT ? game.run.checkpointAt : undefined;
     const at = set ?? k ?? level.spawn;
     Object.assign(world.hero, createHero(at, carry));
+    world.movers = (level.movers ?? []).map(createMover);
     restage();
     // Each cart stands on the floor under it: a raised dock's too.
     world.targets = level.carts.map((x, i) => createCart(i + 1, x, floorAt(world.stage, x) ?? 0));
@@ -257,6 +269,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // Ambassador's checkpoint is where he stood, on a platform too; a punch clock's is on the floor under it.
     if (set) world.hero.y = set.y;
     thinkFrom = world.hero.x;
+    feetFrom = world.hero.y;
+    onSlip = null;
     // Gold's late checkout stays on the clock when he comes back in the level that gave it.
     game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
@@ -580,6 +594,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** Moves him into another level: the stash, or back to the lobby as it was. */
   function enter(level: Level, at: Point) {
     game.level = level;
+    world.movers = [];
     restage();
     world.swingDoors = createSwingDoors(level.swingDoors ?? []);
     world.zone = null;
@@ -815,11 +830,16 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     learn(input, ev);
     for (const [i, t] of (game.level.thoughts ?? []).entries()) {
       const key = `${game.level.id}:${i}`;
-      if (thought.has(key) || thinkFrom > t.x || h.x <= t.x || h.x - t.x >= THINK.reach) continue;
+      if (thought.has(key)) continue;
+      // A mark with a floor fires near it on that floor, whichever way he comes; the rest as he passes them going right.
+      const at = t.y === undefined ? thinkFrom <= t.x && h.x > t.x && h.x - t.x < THINK.reach : Math.abs(h.y - t.y) < 60 && Math.abs(h.x - t.x) < THINK.reach;
+      if (!at) continue;
       thought.add(key);
       ev.push({ type: "think", text: t.text, seconds: THINK.seconds });
     }
     thinkFrom = h.x;
+    towerTraps(ev);
+    feetFrom = h.y;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {
@@ -863,7 +883,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     if (!lethal)
       for (const k of game.level.checkpoints)
-        if (!run.punched.includes(k.id) && h.x >= k.x) {
+        // A tall level's clocks count on their own floor, near them; a long level's as he passes them.
+        if (!run.punched.includes(k.id) && (game.level.floors ? Math.abs(h.y - k.y) < 60 && Math.abs(h.x - k.x) <= CLOCK_REACH : h.x >= k.x)) {
           run.punched.push(k.id);
           run.checkpoint = k.id;
           ev.push({ type: "checkpoint", id: k.id, x: k.x, y: k.y });
@@ -873,6 +894,25 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "fell" });
       die(ev);
     } else if (h.move?.kind === "tumble" && moveU(h.move) >= RUN.lieAt) die(ev);
+  }
+
+  /** The tower's traps: falling through a chute's gap costs the slide's seconds and no more; stepping on a wet floor slips him. */
+  function towerTraps(ev: GameEvent[]) {
+    const h = world.hero;
+    const chute = game.level.chutes?.find((c) => h.x >= c.x && h.x <= c.x + c.w && feetFrom <= c.y && h.y > c.y);
+    if (chute) {
+      game.run.time = Math.max(0, game.run.time - TOWER_TRAPS.chute);
+      h.vx = 0;
+      ev.push({ type: "chute", x: h.x, y: chute.y });
+    }
+    const slip = game.level.slips?.find((s) => Math.abs(h.y - s.y) < 4 && Math.abs(h.x - s.x) < 70) ?? null;
+    if (slip && slip !== onSlip && h.onGround && Math.abs(h.vx) > TOWER_TRAPS.slipSpeed && h.invuln <= 0) {
+      h.vx = -h.vx;
+      h.slideT = 0;
+      h.stunT = Math.max(h.stunT, TOWER_TRAPS.slip);
+      ev.push({ type: "slip", x: h.x, y: h.y });
+    }
+    onSlip = slip;
   }
 
   /** The moves he did this step that he had not done this run. */

@@ -27,6 +27,8 @@ export type RunKind = "journey" | "replay" | "shift" | "practice";
 
 export type VeilInfo = {
   venue: string;
+  /** The level's name, on its card. */
+  name: string;
   world: string;
   /** The level's own line on its card. */
   card: string | null;
@@ -275,7 +277,7 @@ export function NextVeil({
       <div className="next-veil next-veil--card" data-place={place}>
         <section className="next-veil__card" aria-live="polite">
           <p className="next-veil__eyebrow">World {info.world}</p>
-          <h2 className="next-veil__title">{info.venue}</h2>
+          <h2 className="next-veil__title">{info.name}</h2>
           <p className="next-veil__line">{line}</p>
           {info.status && <p className="next-veil__status">{info.status}</p>}
           <Lives n={info.lives} portrait={info.portrait} />

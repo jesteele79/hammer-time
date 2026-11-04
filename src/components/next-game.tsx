@@ -485,6 +485,7 @@ export function NextGame({
   const veiled = mode === "pause" || mode === "over" || mode === "clear" || mode === "questTally" || mode === "story";
   const info = {
     venue: hud?.venue ?? "Hotel lobby",
+    name: hud?.name ?? "Hotel lobby",
     world: hud?.world ?? "1-1",
     card: hud?.card ?? null,
     status: hud?.status ?? null,

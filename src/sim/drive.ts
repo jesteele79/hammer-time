@@ -21,8 +21,9 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb", world?: World): Input {
   const i = emptyInput();
+  if (route === "climb") return climb(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   const stage = stageOf(level);
@@ -35,6 +36,39 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony", wo
   if (pass) i.held.down = true;
   if ((wall || gap || landing || i.pressed.jump) && h.onGround && !pass) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
+  return i;
+}
+
+/** How far ahead the climber sees a chute's gap, a cart or a wet floor, and how near the wall a flight's foot lies. */
+const CLIMB = { gap: 45, cart: 240, slip: 90, foot: 245, towel: 85 } as const;
+
+/**
+ * The climber: across each landing to the wall, up the flight rising back over it. On an odd floor the flight's foot is by
+ * the right wall, on an even one by the left; between floors he is on a flight, and carries on up. He jumps the chutes, the
+ * carts and the wet floors in his way, and fights what is in front of him.
+ */
+function climb(level: Level, h: HeroState, i: Input, world?: World): Input {
+  const every = level.floors?.every ?? 540;
+  const k = Math.floor(-h.y / every + 0.001) + 1;
+  const landing = Math.abs(h.y + (k - 1) * every) < 1.5;
+  const odd = k % 2 === 1;
+  const b = level.bounds;
+  const toFoot = odd ? 1 : -1;
+  // On a landing, to the flight's foot by the wall; past it, or on the flight, up it.
+  const past = odd ? h.x >= b.x + b.w - CLIMB.foot : h.x <= b.x + CLIMB.foot;
+  const lastFloor = !level.floor.some((f) => f.kind === "stairs" && Math.min(f.y0, f.y1) < h.y - 1);
+  const dir: 1 | -1 = lastFloor ? (Math.sign((level.doors[0]?.x ?? h.x) - h.x) as 1 | -1) || 1 : ((landing && !past ? toFoot : -toFoot) as 1 | -1);
+  i.held.run = true;
+  i.held[dir > 0 ? "right" : "left"] = true;
+  if (world) fight(world, h, i);
+  const ahead = (x: number, within: number) => (x - h.x) * dir > 0 && Math.abs(x - h.x) < within;
+  const gap = level.chutes?.some((c) => Math.abs(c.y - h.y) < 10 && (dir > 0 ? c.x - h.x > -20 && c.x - h.x < CLIMB.gap : h.x - (c.x + c.w) > -20 && h.x - (c.x + c.w) < CLIMB.gap));
+  const slip = level.slips?.some((s) => Math.abs(s.y - h.y) < 10 && ahead(s.x, CLIMB.slip));
+  const cart = world?.movers.some((m) => Math.abs(m.y - h.y) < 10 && ahead(m.x, CLIMB.cart + m.w / 2));
+  if ((gap || slip || cart || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  // Too hot to clear a gap at a walk: a towel on a clear stretch.
+  else if (h.onGround && !h.move && h.heat >= CLIMB.towel) i.held.towel = i.pressed.towel = true;
   return i;
 }
 
