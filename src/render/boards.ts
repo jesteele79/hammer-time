@@ -33,7 +33,7 @@ import { coilPose, divePose } from "../sim/rig/dive";
 import { blend, type Pose } from "../sim/rig/pose";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw" | "lounge" | "lounge-thumb";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -125,7 +125,7 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
   { x: 12500, y: -160, cx: 13200 },
   { x: 13800, y: 0, cx: 14300 },
 ];
-const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1"];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium"];
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
 /** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
 const HEAD_SHARES = [0.22, 0.26];
@@ -228,7 +228,7 @@ export function createBoards(
   /** The level the game is in: the venue board frames it. */
   currentLevel: () => Level = () => LOBBY,
   /** The banquet's shots, drawn by the look's banquet view (R4). */
-  banquet?: { moments(): Promise<string[]>; thumb(): Promise<string>; food(): Promise<string> },
+  banquet?: { moments(): Promise<string[]>; thumb(): Promise<string>; food(): Promise<string>; lounge(): Promise<string[]>; loungeThumb(): Promise<string> },
   /** The gate's shots, drawn by the look's gate view (R5). */
   gate?: { moments(): Promise<string[]>; thumb(): Promise<string> },
 ): Boards {
@@ -801,6 +801,10 @@ export function createBoards(
           return (await banquet!.moments()).join("\n");
         case "banquet-thumb":
           return banquet!.thumb();
+        case "lounge":
+          return (await banquet!.lounge()).join("\n");
+        case "lounge-thumb":
+          return banquet!.loungeThumb();
         case "gate":
           return (await gate!.moments()).join("\n");
         case "gate-thumb":

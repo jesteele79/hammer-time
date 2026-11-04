@@ -363,7 +363,7 @@ test("the cast and the missiles draw between the last two steps, matched by id",
 });
 
 test("every person has a look, taller or shorter than Hammer by the design, and a recolor changes only the top", () => {
-  assert.deepEqual(Object.keys(LOOKS).sort(), ["bartender-1", "bellhop-1", "bellhop-2", "busser-1", "cook-1", "gate-agent", "guard-1", "lunch-1", "nurse", "office-1", "office-2", "prof-1", "server-1", "server-2", "skycap-1", "student-1", "student-2", "tsa-1"]);
+  assert.deepEqual(Object.keys(LOOKS).sort(), ["bartender-1", "bellhop-1", "bellhop-2", "busser-1", "cook-1", "gate-agent", "guard-1", "lunch-1", "nurse", "office-1", "office-2", "prof-1", "server-1", "server-2", "skycap-1", "student-1", "student-2", "titanium", "tsa-1"]);
   assert.deepEqual([LOOKS["skycap-1"].height, LOOKS["tsa-1"].height, LOOKS["bartender-1"].height], [330, 320, 310]);
   assert.equal(PAINTING_OF["bartender-1"], "server-1");
   assert.deepEqual([LOOKS["bellhop-1"].height, LOOKS["server-2"].height, LOOKS["student-1"].height], [355, 360, 315]);
@@ -1182,7 +1182,7 @@ test("the HUD in the round: its score and clock, his reach from his tap's to 118
   q.score.eaten = 9;
   q.time = 12.2;
   const hud = hudOf(g, null).quest;
-  assert.deepEqual(hud, { id: "hungry", score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, lecture: 0, goal: 30300, result: null });
+  assert.deepEqual(hud, { id: "hungry", menu: "banquet", score: 700, time: 48, reach: 610, reachBase: 610, reachMax: 1180, combo: 6, mult: 2, chomps: 9, door: false, lecture: 0, goal: 30300, result: null });
   assert.equal(hudOf(g, null).hint, "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server");
   assert.equal(hudOf(g, null).lecture, true, "the pad lights Lecture");
   q.hammer.lectureCd = 4.2;

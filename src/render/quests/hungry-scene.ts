@@ -1,8 +1,8 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import { ART_BASE, type Registry } from "../../art/registry";
 import { HEAD_SCALE } from "../../sim/constants";
-import { DISH, FOODS, type FoodKind } from "../../sim/quests/hungry/food";
-import { HUNGRY, baseReach, handOf, planeAt, serverAt, underLine, type Eater, type Hungry, type Rival } from "../../sim/quests/hungry/hungry";
+import { DISH, FOODS, type FoodKind, type Menu } from "../../sim/quests/hungry/food";
+import { HUNGRY, baseReach, handOf, planeAt, serverAt, underLine, walkerAt, type Eater, type Hungry, type Rival } from "../../sim/quests/hungry/hungry";
 import { BANQUET_SCALE, RIVALS, SEATS, TABLE, dirOf, dist, floorOf, onScreen, sub, type EaterId, type RivalId } from "../../sim/quests/hungry/table";
 import { ACTIONS, displayU, overlay } from "../../sim/rig/actions";
 import { castPose } from "../../sim/rig/cast";
@@ -11,6 +11,7 @@ import { coilPose, diveK, divePose } from "../../sim/rig/dive";
 import { solve } from "../../sim/rig/fk";
 import { groundShift } from "../../sim/rig/ground";
 import type { Pose } from "../../sim/rig/pose";
+import type { CastPerson } from "../../sim/level";
 import type { Point, Rect } from "../../sim/types";
 import type { RenderApp } from "../app";
 import { createCharacter, type Character } from "../character";
@@ -20,12 +21,24 @@ import type { Scene } from "../scene";
 import { label } from "../text";
 import { DINER_ID, Diner } from "./diner";
 
-/** Who stands at the table in whose painting (R4 plan, decision 9): the server in server-2's own black vest. */
-const PERSON: Record<RivalId | "server", "student-1" | "bellhop-1" | "nurse" | "server-2"> = {
-  student: "student-1",
-  bellhop: "bellhop-1",
-  nurse: "nurse",
-  server: "server-2",
+/**
+ * Who stands at the table in whose painting (R4 plan, decision 9): the server in server-2's own black vest. At the M CLUB
+ * (plan decision 4) the lounge's guests fill the rival slots: a grey suit, a polo and the intern; the attendant in
+ * server-1; and Lifetime Titanium guy walks behind them all.
+ */
+const PERSON_OF: Record<Menu, Record<RivalId | "server", { person: CastPerson; recolor: string | null }>> = {
+  banquet: {
+    student: { person: "student-1", recolor: null },
+    bellhop: { person: "bellhop-1", recolor: null },
+    nurse: { person: "nurse", recolor: null },
+    server: { person: "server-2", recolor: null },
+  },
+  lounge: {
+    student: { person: "student-2", recolor: null },
+    bellhop: { person: "office-1", recolor: "#5a5f6b" },
+    nurse: { person: "office-2", recolor: "#2d6a4f" },
+    server: { person: "server-1", recolor: null },
+  },
 };
 /** Where the chute's mouth hangs over the table's middle, world px: above his head as he dives under it at twice his size. */
 const CHUTE_MOUTH = -440;
@@ -76,6 +89,8 @@ export class BanquetView {
   /** The room painting's stretched edges: frames of its texture, let go without the texture itself. */
   private readonly framed: Texture[] = [];
   private readonly diners = new Map<RivalId | "server", Diner>();
+  /** Lifetime Titanium guy, at the M CLUB. */
+  private walker: Diner | null = null;
   private hammer: Character | null = null;
   private faceRect: Rect = { x: 0, y: 0, w: 1, h: 1 };
   private crownAt: Point = { x: 0, y: 0 };
@@ -87,6 +102,8 @@ export class BanquetView {
     scene: Scene,
     private readonly registry: Registry,
     private readonly noart: boolean,
+    /** Which table this view draws: the banquet's, or the M CLUB's room, sheet and guests. */
+    private readonly menu: Menu = "banquet",
   ) {
     this.root.sortableChildren = true;
     this.root.visible = false;
@@ -113,9 +130,14 @@ export class BanquetView {
   /** The paintings (or their drawn stand-ins), the diners and his banquet bib: loaded once. */
   async load(): Promise<void> {
     const b = this.noart ? undefined : this.registry.banquet;
-    await Promise.all([this.loadRoom(b), this.loadTable(b), this.loadFood(b)]);
-    for (const id of [...RIVALS, "server"] as const) this.diners.set(id, new Diner(this.root, this.registry, PERSON[id], null, this.noart));
-    await Promise.all([...this.diners.values()].map((d) => d.load()));
+    const own = this.noart ? undefined : this.registry.lounge;
+    const lounge = this.menu === "lounge";
+    // The lounge's table is the banquet's painting; its room and its sheet are its own (the banquet's room, darkened, until its own is in).
+    await Promise.all([this.loadRoom(lounge ? { ...b, room: own?.room ?? b?.room } : b, lounge && !own?.room), this.loadTable(b), this.loadFood(lounge ? own?.food : b?.food)]);
+    const who = PERSON_OF[this.menu];
+    for (const id of [...RIVALS, "server"] as const) this.diners.set(id, new Diner(this.root, this.registry, who[id].person, who[id].recolor, this.noart));
+    if (lounge) this.walker = new Diner(this.root, this.registry, "titanium", null, this.noart);
+    await Promise.all([...this.diners.values(), ...(this.walker ? [this.walker] : [])].map((d) => d.load()));
     this.hammer = createCharacter(this.registry, "banquet", { noart: this.noart });
     this.hammer.container.zIndex = Z.hammer;
     this.root.addChild(this.hammer.container);
@@ -132,7 +154,8 @@ export class BanquetView {
     }
   }
 
-  private async loadRoom(b: Registry["banquet"]) {
+  private async loadRoom(b: Registry["banquet"], dark = false) {
+    if (dark) this.room.tint = PALETTE.nightWall;
     const room = b?.room;
     const tex = room ? await this.texture(room.file) : null;
     if (room && tex) {
@@ -195,11 +218,12 @@ export class BanquetView {
     this.table.addChild(g);
   }
 
-  private async loadFood(b: Registry["banquet"]) {
-    const sheet = b?.food;
+  private async loadFood(sheet: { file: string }[] | undefined) {
     await loadProducts();
     for (const kind of Object.keys(FOODS) as FoodKind[]) {
       const f = FOODS[kind];
+      // Only this table's dishes: each sheet's cells are numbered for its own menu.
+      if (f.menu !== "both" && f.menu !== this.menu) continue;
       const cell = f.sheet !== null ? sheet?.[f.sheet] : undefined;
       const painted = cell ? await this.texture(cell.file) : null;
       if (painted) this.food.set(kind, painted);
@@ -248,7 +272,7 @@ export class BanquetView {
 
   /** How many of the diners are drawn from their paintings: the checks count the shift's painted figures apart from these. */
   paintedCount(): number {
-    return [...this.diners.values()].filter((d) => d.isPainted).length;
+    return [...this.diners.values(), ...(this.walker ? [this.walker] : [])].filter((d) => d.isPainted).length;
   }
 
   setVisible(on: boolean): void {
@@ -264,6 +288,7 @@ export class BanquetView {
   }
   crownOf(id: number): { x: number; y: number; facing: 1 | -1 } | null {
     for (const [k, d] of this.diners) if (DINER_ID[k] === id) return { ...d.crown, facing: 1 };
+    if (id === DINER_ID.walker && this.walker) return { ...this.walker.crown, facing: 1 };
     return null;
   }
   /** Where someone's hand is on screen: the words for a chomp go there. */
@@ -290,6 +315,7 @@ export class BanquetView {
     this.drawAir(q);
     for (const id of RIVALS) this.syncRival(q.rivals[id], time);
     this.syncServer(q, time);
+    this.syncWalker(q, time);
     this.syncHammer(q, time);
   }
 
@@ -414,8 +440,10 @@ export class BanquetView {
     for (const b of q.suitcases) {
       const tl = onScreen({ x: b.x, y: b.y + b.h });
       const br = onScreen({ x: b.x + b.w, y: b.y });
-      g.roundRect(tl.x, tl.y - 70, br.x - tl.x, br.y - tl.y + 70, 10).fill(0x6b4423).stroke({ width: 5, color: PALETTE.outline });
-      g.roundRect((tl.x + br.x) / 2 - 22, tl.y - 86, 44, 18, 6).stroke({ width: 5, color: PALETTE.outline });
+      // The lounge's is a briefcase, slim and black; the banquet's a suitcase.
+      if (this.menu === "lounge") g.roundRect(tl.x, tl.y - 42, br.x - tl.x, br.y - tl.y + 42, 6).fill(0x23262b).stroke({ width: 5, color: PALETTE.outline });
+      else g.roundRect(tl.x, tl.y - 70, br.x - tl.x, br.y - tl.y + 70, 10).fill(0x6b4423).stroke({ width: 5, color: PALETTE.outline });
+      g.roundRect((tl.x + br.x) / 2 - 22, tl.y - (this.menu === "lounge" ? 58 : 86), 44, 18, 6).stroke({ width: 5, color: PALETTE.outline });
     }
   }
 
@@ -513,6 +541,17 @@ export class BanquetView {
     d.container.zIndex = Z.server;
   }
 
+  /** Lifetime Titanium guy on his slow walk behind the table: dazed while the bonk's far end lasts. */
+  private syncWalker(q: Hungry, time: number) {
+    const d = this.walker;
+    const w = q.walker;
+    if (!d || !w) return;
+    const walking = w.wait <= 0 && w.away <= 0 && w.frozen <= 0;
+    const pose = castPose({ role: "office", act: walking ? "walk" : "idle", t: time, speed: walking ? 90 : 0, onGround: true, sit: false, spin: 0, hits: 0 });
+    d.pose(pose, w.dir === 1 ? -1 : 1, floorOf(walkerAt(q)), w.away > 0 || w.frozen > 0, time, "planted");
+    d.container.zIndex = Z.server - 1;
+  }
+
   /** Hammer at the left end: the hold, the coil, the dive along his line, the bonk, the duck, a flinch when slapped. */
   private syncHammer(q: Hungry, time: number) {
     const ch = this.hammer;
@@ -557,6 +596,7 @@ export class BanquetView {
 
   destroy(): void {
     for (const d of this.diners.values()) d.destroy();
+    this.walker?.destroy();
     if (!this.root.destroyed) this.root.destroy({ children: true });
     for (const t of this.drawn) t.destroy(true);
     for (const t of this.framed) t.destroy(false);

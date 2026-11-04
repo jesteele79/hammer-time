@@ -69,7 +69,7 @@ test("the dishes: the shipped values, radii 26 to 34, three courses and six spec
   assert.deepEqual(COURSES.entree, ["ribeye", "chicken", "brisket", "grits", "club"]);
   assert.deepEqual(COURSES.dessert, ["pie", "cheesecake", "pudding"]);
   assert.deepEqual(SPECIALS, ["coke", "nuts", "bucees", "hotsauce", "togo", "check"]);
-  assert.deepEqual(Object.values(FOODS).map((f) => f.sheet).filter((s) => s !== null), [...Array(16).keys()]);
+  assert.deepEqual(Object.values(FOODS).filter((f) => f.menu !== "lounge").map((f) => f.sheet).filter((s) => s !== null), [...Array(16).keys()]);
 });
 
 test("a dish slides, slows at 2.4 a second and stops: from 500 px/s it travels about 208 px", () => {

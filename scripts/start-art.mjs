@@ -51,6 +51,7 @@ try {
   for (const [name, url, kind] of [
     ["banquet", `${base}?next=1&board=1&quest=hungry`, "banquet-thumb"],
     ["gate", `${base}?next=1&board=1`, "gate-thumb"],
+    ["lounge", `${base}?next=1&board=1`, "lounge-thumb"],
   ]) {
     if (!want(name)) continue;
     await page.goto(url);

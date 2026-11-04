@@ -24,6 +24,8 @@ const BEST_KEY = "hammer-time-best-next";
 const BANQUET_BEST_KEY = "hammer-time-best-banquet";
 /** Fare Darts' best, door rounds and practice alike (R5 §1, decision 16). */
 export const FARES_BEST_KEY = "hammer-time-best-fares";
+/** The M CLUB's best, door rounds and practice alike (story spec §8.1). */
+const LOUNGE_BEST_KEY = "hammer-time-best-lounge";
 const QUALITY_KEY = "hammer-time-quality";
 const QUALITIES: readonly Quality[] = ["ultra", "high", "medium", "low"];
 const TOUCH_QUERY = "(pointer: coarse), (max-width: 899px)";
@@ -142,6 +144,7 @@ export function NextGame({
   const [best, setBest] = useState(0);
   const [banquetBest, setBanquetBest] = useState(0);
   const [faresBest, setFaresBest] = useState(0);
+  const [loungeBest, setLoungeBest] = useState(0);
   const [bestBefore, setBestBefore] = useState(0);
   const [sound, setSoundState] = useState<SoundSettings>(DEFAULT_SOUND);
   const soundRef = useRef<SoundSettings>(DEFAULT_SOUND);
@@ -226,6 +229,7 @@ export function NextGame({
     setBest(readNumber(BEST_KEY));
     setBanquetBest(readNumber(BANQUET_BEST_KEY));
     setFaresBest(readNumber(FARES_BEST_KEY));
+    setLoungeBest(readNumber(LOUNGE_BEST_KEY));
     setQualityState(readQuality());
     const s = readSound();
     soundRef.current = s;
@@ -378,17 +382,17 @@ export function NextGame({
   }, [ready, pendingQuest]);
 
   // What a round's score must beat to be a new best: its own quest's best as the round's card showed.
-  const questId = hud?.quest?.id ?? null;
+  const questId: QuestId | null = hud?.quest ? (hud.quest.id === "fares" ? "fares" : hud.quest.menu === "lounge" ? "lounge" : "hungry") : null;
   useEffect(() => {
-    if (mode === "questCard") setBestBefore(questId === "fares" ? faresBest : banquetBest);
-  }, [mode, questId, banquetBest, faresBest]);
+    if (mode === "questCard") setBestBefore(questId === "fares" ? faresBest : questId === "lounge" ? loungeBest : banquetBest);
+  }, [mode, questId, banquetBest, faresBest, loungeBest]);
 
   // A side quest's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
   const questResult = hud?.quest?.result ?? null;
   useEffect(() => {
     if (mode !== "questTally" || !questResult || !questId) return;
     const score = questResult.score;
-    const [key, set] = questId === "fares" ? [FARES_BEST_KEY, setFaresBest] : [BANQUET_BEST_KEY, setBanquetBest];
+    const [key, set] = questId === "fares" ? [FARES_BEST_KEY, setFaresBest] : questId === "lounge" ? [LOUNGE_BEST_KEY, setLoungeBest] : [BANQUET_BEST_KEY, setBanquetBest];
     set((b) => {
       if (score <= b) return b;
       writeNumber(key, score);
@@ -493,6 +497,7 @@ export function NextGame({
     practice: how === "practice",
     quest: hud?.quest ?? null,
     banquetBest,
+    loungeBest,
     faresBest,
     bestBefore,
     touch,
@@ -516,6 +521,7 @@ export function NextGame({
           best={best}
           banquetBest={banquetBest}
           faresBest={faresBest}
+          loungeBest={loungeBest}
           onSettings={() => openSettings(true)}
           onNewGame={() => setErasing(true)}
           onRecord={() => setRecord(true)}
@@ -554,7 +560,7 @@ export function NextGame({
             onContinue={() => look.current?.finishQuest()}
             onStory={continueStory}
             onReplay={() => clocked && beginStop(clocked.id, "replay")}
-            onQuestAgain={() => look.current?.newQuest(hud?.quest?.id)}
+            onQuestAgain={() => look.current?.newQuest(questId ?? undefined)}
             onSettings={() => openSettings(true)}
           />
         </>
@@ -571,7 +577,7 @@ export function NextGame({
         />
       )}
       {erasing && <NextErase onErase={eraseJourney} onKeep={() => setErasing(false)} />}
-      {record && <NextRecord journey={journey} best={best} banquetBest={banquetBest} faresBest={faresBest} onClose={() => setRecord(false)} />}
+      {record && <NextRecord journey={journey} best={best} banquetBest={banquetBest} faresBest={faresBest} loungeBest={loungeBest} onClose={() => setRecord(false)} />}
     </>
   );
 }

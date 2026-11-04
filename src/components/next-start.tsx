@@ -27,6 +27,7 @@ export function NextStart({
   best,
   banquetBest,
   faresBest,
+  loungeBest,
   onSettings,
   onNewGame,
   onRecord,
@@ -46,6 +47,8 @@ export function NextStart({
   banquetBest: number;
   /** Fare Darts' own best, door rounds and practice alike. */
   faresBest: number;
+  /** The M CLUB's own best: its card shows once 2-1 is finished. */
+  loungeBest: number;
   /** The Settings: the volumes, the quality, the controller and the keys. */
   onSettings: () => void;
   /** New game: asks, then starts the journey over. */
@@ -183,6 +186,17 @@ export function NextStart({
             <span className="next-start__where">Gate B7 · </span>best {pad(faresBest)}
           </small>
         </button>
+        {journey.done.includes("lobby-night") && (
+          <button type="button" className="next-start__quest" aria-label="Play The M CLUB" onClick={() => leave(() => onQuest("lounge"))} disabled={!live}>
+            <span className="next-start__shot">
+              <img src="/start/lounge.webp" alt="" draggable={false} />
+            </span>
+            <b>The M CLUB</b>
+            <small>
+              <span className="next-start__where">Lounge table · </span>best {pad(loungeBest)}
+            </small>
+          </button>
+        )}
       </section>
       <div className="next-start__film" aria-hidden="true" />
     </div>

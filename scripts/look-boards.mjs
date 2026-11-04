@@ -96,6 +96,15 @@ try {
     save("banquet-food.png", await render("banquet-food"));
     count += frames.length + 2;
   }
+  if (want("lounge")) {
+    // The M CLUB's table: its first spread and the entrees.
+    await page.goto(`${base}?next=1&board=1&dev=1`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const frames = (await render("lounge")).split("\n");
+    frames.forEach((f, i) => save(`lounge-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
   if (want("gate")) {
     // The gate (R5): its four moments from a replayed practice round, and his throw and lob up close.
     await page.goto(`${base}?next=1&board=1&dev=1`);

@@ -144,6 +144,8 @@ try {
   const open = await stops(page);
   for (const code of ["1-1", "1-2", "1-3", "1-4", "2-1"]) assert.deepEqual([open.find((x) => x.code === code).state, open.find((x) => x.code === code).img], ["done", true], `${code} finished`);
   assert.equal(open.find((x) => x.code === "2-2").state, "next", "2-2 next");
+  // 2-1 finished: The M CLUB takes its place on the Side quests row.
+  assert.deepEqual(await page.locator(".next-start__quest").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label"))), ["Play Hungry Hungry Hammer", "Play Fare Darts", "Play The M CLUB"], "three side quests");
   assert.deepEqual(await page.locator(".next-strip__act b").allTextContents(), ["000000", "000000", "000000", "000000", "000000"], "no bests yet");
   assert.equal(await page.getByRole("button", { name: "Clock in" }).count(), 0, "Clock in gives way to the notice");
   assert.ok(await page.getByRole("button", { name: "Act 2 is coming" }).isDisabled(), "Act 2 is coming");

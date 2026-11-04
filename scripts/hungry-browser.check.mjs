@@ -222,6 +222,23 @@ try {
   // The old link's meaning: straight to the banquet.
   await page.goto(`${base}?quest=hungry`);
   await page.waitForFunction(() => ["questCard", "quest"].includes(window.__next?.run?.mode), null, { timeout: 30000 });
+  // The M CLUB's table (story spec §8.1): its card, a round to its tally, its own best.
+  await page.goto(`${base}?dev=1&quest=lounge`);
+  await waitMode(page, "questCard", 60000);
+  assert.match(await page.locator(".next-veil__card").textContent(), /The M CLUB/);
+  assert.match(await page.locator(".next-veil__card").textContent(), /The lounge table/);
+  await waitMode(page, "quest", 60000);
+  assert.equal(await page.evaluate(() => window.__next.quest.menu), "lounge");
+  assert.match(await page.locator(".next-hud__venue").textContent(), /The M CLUB/);
+  await page.evaluate(() => {
+    window.__next.dev.quest({ eat: ["sliders", "meatballs", "cheese"] });
+    window.__next.dev.questSkip();
+  });
+  await waitMode(page, "questTally");
+  const lounge = await page.evaluate(() => window.__next.quest.result.score);
+  assert.ok(lounge > 0, "the round scored");
+  assert.equal(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-lounge"))), lounge, "the lounge's own best");
+  await shot(page, "lounge-tally.png");
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log("PASS: practice from the start screen, the dive, the rob, the bonk, the duck, the break, three shapes, the tally and its best, no key carried over, the art missing, the BUFFET door and its payout, /?quest=hungry; a locked plate, a slap and what he says to it, the lecture, the doggy bag and the belly-flop.");
 } finally {

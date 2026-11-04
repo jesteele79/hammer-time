@@ -39,8 +39,10 @@ export type HungryEvent =
   | { type: "hhCart"; x: number; y: number }
   /** The server cleared dishes off the rim. */
   | { type: "hhBus"; x: number; y: number; count: number }
-  /** A rival's or the server's line: a speech bubble. */
-  | { type: "hhSay"; who: RivalId | "server"; text: string; seconds: number }
+  /** A rival's, the server's or Lifetime Titanium guy's line: a speech bubble. */
+  | { type: "hhSay"; who: RivalId | "server" | "walker"; text: string; seconds: number }
+  /** Lifetime Titanium guy took dishes off his plate. */
+  | { type: "hhSplit"; x: number; y: number; count: number }
   /** His line: a thought. */
   | { type: "hhThink"; text: string; seconds: number }
   | { type: "hhEnd"; score: number; grade: string };

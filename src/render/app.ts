@@ -47,7 +47,7 @@ export type NextProbe = {
    * screen. Screen rects and points in CSS px.
    */
   quest?:
-    | { id: "hungry"; time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; lock: string | null; duck: boolean; stun: number; result: unknown; frame: ProbeRect }
+    | { id: "hungry"; menu?: string; walker?: { s: number; away: number } | null; time: number; score: number; eaten: number; dives: number; coiling: boolean; aim: number; lock: string | null; duck: boolean; stun: number; result: unknown; frame: ProbeRect }
     | {
         id: "fares";
         time: number;

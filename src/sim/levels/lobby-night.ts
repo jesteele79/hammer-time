@@ -29,7 +29,7 @@ export const LOBBY_NIGHT: Level = {
     { id: "buffet", kind: "closed", x: 4600, y: 0, label: "BUFFET", opens: "Closed for the night" },
     { id: "elevator", kind: "exit", x: 5700, y: 0, label: "ELEVATORS", tier: 8, down: true, opens: "Reserved for Titanium members. Thank you." },
     { id: "stairs", kind: "exit", x: 6400, y: 0, label: "STAIRS", down: true },
-    { id: "mclub", kind: "closed", x: 8800, y: -520, label: "M CLUB", opens: "Platinum members only" },
+    { id: "mclub", kind: "quest", quest: "lounge", x: 8800, y: -520, label: "M CLUB", tier: 6, opens: "Platinum members only" },
     { id: "staff", kind: "stash", x: 9700, y: 0, label: "STAFF ONLY" },
   ],
   // The floor road's cart and the wing's: the bellhops work the same stretches by night; the spare at the entrance is put away.

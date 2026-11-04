@@ -4,7 +4,7 @@ import { MOVE_SECONDS, SWING_ACTIVE } from "../../moves";
 import { seededRandom } from "../../rewards";
 import type { Point } from "../../types";
 import type { HungryEvent } from "./events";
-import { COURSES, DISH, FOODS, SPECIALS, settled, stepDishes, type Box, type Course, type Dish, type FoodKind } from "./food";
+import { DISH, FOODS, coursesOf, settled, stepDishes, type Box, type Course, type Dish, type FoodKind, type Menu } from "./food";
 import { RIVALS, SEATS, TABLE, dirOf, dist, onLine, screenDeg, sub, type EaterId, type RivalId } from "./table";
 
 const DEG = Math.PI / 180;
@@ -58,6 +58,8 @@ export const HUNGRY = {
   clash: { reach: 110, scatter: 150, speed: 400 },
   /** The server's walk behind the far side: from 15 degrees round the table to 170 (his corner) and back. */
   server: { trip: 18, from: 15, to: 170, radius: 830, linger: 1.5, bus: 150, reach: 260, quiet: 6, away: 15, tray: 4 },
+  /** The lounge's fourth figure (story spec §8.1): Lifetime Titanium guy on the server's walk at half her speed, a step behind her. */
+  walker: { trip: 36, radius: 840, linger: 2, reach: 0.96, takes: 2, away: 8, bonk: 420 },
 } as const;
 
 /** The waves from the chute (R4 §5); the cart's desserts and the frenzy come apart. */
@@ -69,7 +71,6 @@ export const WAVES: readonly { at: number; course: Exclude<Course, "special">; c
   { at: 35, course: "entree", count: 10 },
   { at: 50, course: "dessert", count: 10 },
 ];
-const ALL_COURSES: FoodKind[] = [...COURSES.appetizer, ...COURSES.entree, ...COURSES.dessert];
 /** The cart comes in from off the right along the near side and crashes into the rim 35 degrees below the right end. */
 const CART_FROM: Point = { x: 1500, y: -760 };
 const CART_TO: Point = { x: Math.cos(-35 * DEG) * TABLE.r, y: Math.sin(-35 * DEG) * TABLE.r };
@@ -139,7 +140,9 @@ export type Suitcase = Box & { t: number };
 /** `s` 0 at the right end, 1 at his corner; `wait` lingering at an end. */
 export type Server = { s: number; dir: 1 | -1; away: number; quiet: number; wait: number; frozen: number };
 export type Cart = { x: number; y: number; crashed: boolean };
-export type Score = { plate: number; bonus: number; chain: number; best: number; last: number; togo: number; eaten: number; robbed: number; paper: number; slapped: number; specials: FoodKind[]; bill: boolean };
+/** Lifetime Titanium guy behind the table: `s` as the server's; `away` seconds at the far end after a bonk; `took` dishes off his plate this trip's end; `said` his arrival's line once a round. */
+export type Walker = { s: number; dir: 1 | -1; wait: number; away: number; frozen: number; took: number; there: boolean; said: boolean };
+export type Score = { plate: number; bonus: number; chain: number; best: number; last: number; togo: number; eaten: number; robbed: number; paper: number; slapped: number; specials: FoodKind[]; bill: boolean; split: number };
 export type HungryResult = {
   score: number;
   grade: Grade;
@@ -153,6 +156,8 @@ export type HungryResult = {
   paper: number;
   /** Times a diner slapped his hand. */
   slapped: number;
+  /** Dishes Lifetime Titanium guy took off his plate. */
+  split: number;
   specials: FoodKind[];
   bill: boolean;
   /** COMPED: a doggy bag goes home with him from the BUFFET door (owner, 2026-10-18). */
@@ -165,9 +170,13 @@ export type HungryResult = {
   hot: boolean;
 };
 /** The tests' switches: no waves, specials, cart or frenzy; the rivals asleep; the server away for good. */
-export type HungryOptions = { practice?: boolean; schedule?: boolean; rivals?: boolean; server?: boolean };
+export type HungryOptions = { practice?: boolean; schedule?: boolean; rivals?: boolean; server?: boolean; menu?: Menu };
 export type Hungry = {
   id: "hungry";
+  /** The table it is: the banquet's, or the M CLUB's with its own spread and Lifetime Titanium guy. */
+  menu: Menu;
+  courses: Record<Course, FoodKind[]>;
+  walker: Walker | null;
   rng: () => number;
   practice: boolean;
   time: number;
@@ -196,16 +205,37 @@ export type Hungry = {
 
 const RIVAL_BASE: Record<RivalId, number> = { student: 0.45, bellhop: 0.33, nurse: 0.24 };
 /** What each diner says when the lecture lands on them, and when they slap his hand: speech bubbles. */
-const LECTURED: Record<RivalId | "server", readonly string[]> = {
-  student: ["Okay, boomer.", "Sir, this is a buffet.", "I'm putting this on my story."],
-  bellhop: ["Very good, sir.", "I'll make a note of it, sir.", "Of course, sir."],
-  nurse: ["Sir, chew your food.", "That's a choking hazard.", "Deep breaths, sir."],
-  server: ["I'll get my manager.", "I'll be right back with that.", "Is Pepsi okay?"],
+const LECTURED: Record<Menu, Record<RivalId | "server", readonly string[]>> = {
+  banquet: {
+    student: ["Okay, boomer.", "Sir, this is a buffet.", "I'm putting this on my story."],
+    bellhop: ["Very good, sir.", "I'll make a note of it, sir.", "Of course, sir."],
+    nurse: ["Sir, chew your food.", "That's a choking hazard.", "Deep breaths, sir."],
+    server: ["I'll get my manager.", "I'll be right back with that.", "Is Pepsi okay?"],
+  },
+  // The lounge's: the intern, the grey suit, the polo, and the attendant in her black vest.
+  lounge: {
+    student: ["Is this on the review?", "I'll take notes.", "I just started here."],
+    bellhop: ["Let's take this offline.", "Per my last email.", "Noted."],
+    nurse: ["I'm Platinum.", "Do you know who I am?", "I have status."],
+    server: ["Members only, sir.", "I'll get my manager.", "Is Pepsi okay?"],
+  },
 };
-const SLAPS: Record<RivalId, readonly string[]> = {
-  student: ["Bro. Hands.", "Get your own!", "Literally mine."],
-  bellhop: ["Hands off, sir.", "That's mine, sir.", "Not the luggage, sir."],
-  nurse: ["Sanitize!", "Hands where I can see them!", "Wash those first!"],
+const SLAPS: Record<Menu, Record<RivalId, readonly string[]>> = {
+  banquet: {
+    student: ["Bro. Hands.", "Get your own!", "Literally mine."],
+    bellhop: ["Hands off, sir.", "That's mine, sir.", "Not the luggage, sir."],
+    nurse: ["Sanitize!", "Hands where I can see them!", "Wash those first!"],
+  },
+  lounge: {
+    student: ["That's for the partners!", "Sir, please!", "I need this job."],
+    bellhop: ["Hands. Off.", "That's my briefcase's.", "Circle back to your own."],
+    nurse: ["I'm Platinum.", "Members first!", "Get your own plate!"],
+  },
+};
+/** A robbed rival's payback line: the student's paper, the bellhop's bag on the cloth, the nurse's offence. */
+const PAYBACKS: Record<Menu, Record<RivalId, string>> = {
+  banquet: { student: "Heads up!", bellhop: "Your bag, sir.", nurse: "Excuse me?" },
+  lounge: { student: "Sorry! Sorry!", bellhop: "My briefcase, thank you.", nurse: "I'm Platinum." },
 };
 function eater<I extends EaterId>(id: I): Eater & { id: I } {
   return { id, dive: null, since: HUNGRY.cadence, stun: 0, plate: [] };
@@ -216,8 +246,13 @@ export function createHungry(seed: number, opts: HungryOptions = {}): Hungry {
   const scheduled = opts.schedule !== false;
   const rival = (id: RivalId): Rival => ({ ...eater(id), base: RIVAL_BASE[id], anger: 0, calm: 0, wait: -1, target: null, burst: 0, asleep: opts.rivals === false, frozen: 0, slap: -1 });
   const { from, to } = HUNGRY.specials;
+  const menu = opts.menu ?? "banquet";
+  const courses = coursesOf(menu);
   return {
     id: "hungry",
+    menu,
+    courses,
+    walker: menu === "lounge" ? { s: 0, dir: 1, wait: 0, away: 0, frozen: 0, took: 0, there: false, said: false } : null,
     rng,
     practice: !!opts.practice,
     time: 0,
@@ -231,10 +266,10 @@ export function createHungry(seed: number, opts: HungryOptions = {}): Hungry {
     server: { s: 0, dir: 1, away: opts.server === false ? Infinity : 0, quiet: 0, wait: 0, frozen: 0 },
     cart: null,
     poured: WAVES.map(() => !scheduled),
-    specials: scheduled ? SPECIALS.map((kind) => ({ at: from + rng() * (to - from), kind, done: false })) : [],
+    specials: scheduled ? courses.special.map((kind) => ({ at: from + rng() * (to - from), kind, done: false })) : [],
     scheduled,
     frenzyT: 0,
-    score: { plate: 0, bonus: 0, chain: 0, best: 0, last: -99, togo: 0, eaten: 0, robbed: 0, paper: 0, slapped: 0, specials: [], bill: false },
+    score: { plate: 0, bonus: 0, chain: 0, best: 0, last: -99, togo: 0, eaten: 0, robbed: 0, paper: 0, slapped: 0, specials: [], bill: false, split: 0 },
     said: new Set(),
     lines: 0,
     events: [],
@@ -274,7 +309,7 @@ function think(q: Hungry, text: string, seconds = 1.8) {
   q.said.add(text);
   q.events.push({ type: "hhThink", text, seconds });
 }
-function say(q: Hungry, who: RivalId | "server", text: string, seconds = 1.4) {
+function say(q: Hungry, who: RivalId | "server" | "walker", text: string, seconds = 1.4) {
   q.events.push({ type: "hhSay", who, text, seconds });
 }
 
@@ -296,7 +331,7 @@ function schedule(q: Hungry, dt: number) {
   WAVES.forEach((w, i) => {
     if (q.poured[i] || q.time < w.at) return;
     q.poured[i] = true;
-    dump(q, COURSES[w.course], w.count);
+    dump(q, q.courses[w.course], w.count);
     if (w.at === 0) think(q, "I didn't order this. I'm eating it anyway.", 2.2);
   });
   for (const s of q.specials)
@@ -310,7 +345,7 @@ function schedule(q: Hungry, dt: number) {
     q.frenzyT -= dt;
     while (q.frenzyT <= 1e-9) {
       q.frenzyT += HUNGRY.frenzy.every;
-      dump(q, ALL_COURSES, 1);
+      dump(q, [...q.courses.appetizer, ...q.courses.entree, ...q.courses.dessert], 1);
     }
   }
 }
@@ -331,7 +366,7 @@ function stepCart(q: Hungry, dt: number) {
   c.y = CART_TO.y;
   c.crashed = true;
   const at = { x: CART_TO.x * 0.9, y: CART_TO.y * 0.9 };
-  dump(q, COURSES.dessert, HUNGRY.cart.count, at, { x: -at.x, y: -at.y }, true);
+  dump(q, q.courses.dessert, HUNGRY.cart.count, at, { x: -at.x, y: -at.y }, true);
   q.events.push({ type: "hhCart", x: at.x, y: at.y });
   think(q, "Bring the cart back.");
 }
@@ -538,7 +573,7 @@ function robbed(q: Hungry, r: Rival) {
 export function payback(q: Hungry, id: RivalId): void {
   if (id === "student") {
     q.planes.push({ from: { ...SEATS.student.plate }, to: { ...SEATS.hammer.stand }, d: 0, wait: HUNGRY.plane.windup, done: false, hit: false });
-    say(q, "student", "Heads up!");
+    say(q, "student", PAYBACKS[q.menu].student);
   } else if (id === "bellhop") {
     const p = SEATS.hammer.plate;
     const dir = dirOf(1, q.hammer.aim);
@@ -546,8 +581,8 @@ export function payback(q: Hungry, id: RivalId): void {
     const c = { x: p.x + dir.x * out, y: p.y + dir.y * out };
     q.suitcases.push({ x: c.x - w / 2, y: c.y - h / 2, w, h, t });
     q.events.push({ type: "hhSuitcase", x: c.x, y: c.y, on: true });
-    say(q, "bellhop", "Your bag, sir.");
-  } else say(q, "nurse", "Excuse me?");
+    say(q, "bellhop", PAYBACKS[q.menu].bellhop);
+  } else say(q, "nurse", PAYBACKS[q.menu].nurse);
 }
 
 /** A rival's reaction now: a fifth quicker each level of anger, never under 0.12 s (R4 §4, quicker since 2026-10-18). */
@@ -699,7 +734,8 @@ function slap(q: Hungry, r: Rival, hand: Point) {
   r.burst = 0;
   // Every third slap of the round he has had enough and says it (owner, 2026-10-18: not every time).
   q.events.push({ type: "hhSlap", who: r.id, x: hand.x, y: hand.y, curse: q.score.slapped % HUNGRY.guard.curse === 0 });
-  say(q, r.id, SLAPS[r.id][q.lines++ % SLAPS[r.id].length]);
+  const lines = SLAPS[q.menu][r.id];
+  say(q, r.id, lines[q.lines++ % lines.length]);
 }
 
 /** The lecture lands (owner, 2026-10-18): every diner awake and the server freeze where they are, a level angrier for it. */
@@ -716,14 +752,15 @@ function lecture(q: Hungry) {
     Object.assign(r, { frozen: HUNGRY.lecture.freeze, anger: Math.min(HUNGRY.rival.anger, r.anger + 1), calm: 0, wait: -1, target: null, burst: 0, slap: -1 });
     const at = SEATS[id].plate;
     q.events.push({ type: "hhSchooled", who: id, x: at.x, y: at.y });
-    say(q, id, LECTURED[id][n % LECTURED[id].length]);
+    say(q, id, LECTURED[q.menu][id][n % LECTURED[q.menu][id].length]);
   }
   if (q.server.away <= 0) {
     q.server.frozen = HUNGRY.lecture.freeze;
     const at = serverAt(q);
     q.events.push({ type: "hhSchooled", who: "server", x: at.x, y: at.y });
-    say(q, "server", LECTURED.server[n % LECTURED.server.length]);
+    say(q, "server", LECTURED[q.menu].server[n % LECTURED[q.menu].server.length]);
   }
+  if (q.walker && q.walker.away <= 0) q.walker.frozen = HUNGRY.lecture.freeze;
 }
 
 /** Two hands out at once within 110 px of each other in the last 0.1 s (R4 §3): both back empty, the food near them scattered. */
@@ -765,6 +802,53 @@ export function serverAt(q: Hungry): Point {
   const { from, to, radius } = HUNGRY.server;
   const a = (from + (to - from) * q.server.s) * DEG;
   return { x: Math.cos(a) * radius, y: Math.sin(a) * radius };
+}
+
+/** Where Lifetime Titanium guy is on his walk behind the table: `s` 0 at the far end, 1 at Hammer's. */
+export function walkerAt(q: Hungry): Point {
+  const { from, to } = HUNGRY.server;
+  const a = (from + (to - from) * (q.walker?.s ?? 0)) * DEG;
+  return { x: Math.cos(a) * HUNGRY.walker.radius, y: Math.sin(a) * HUNGRY.walker.radius };
+}
+
+/**
+ * Lifetime Titanium guy (story spec §8.1): he walks behind the table at half the server's speed and, reaching Hammer's end
+ * unbonked, takes the two best dishes off his plate; a bonk sends him to the far end for 8 s.
+ */
+function stepWalker(q: Hungry, dt: number) {
+  const w = q.walker;
+  if (!w) return;
+  const W = HUNGRY.walker;
+  if (w.away > 0) {
+    w.away = Math.max(0, w.away - dt);
+    return;
+  }
+  w.frozen = Math.max(0, w.frozen - dt);
+  if (w.frozen > 0) return;
+  if (w.wait > 0) w.wait -= dt;
+  else {
+    w.s += (w.dir * dt) / (W.trip / 2);
+    if (w.s >= 1) Object.assign(w, { s: 1, dir: -1, wait: W.linger });
+    else if (w.s <= 0) Object.assign(w, { s: 0, dir: 1, wait: W.linger, there: false });
+  }
+  if (w.there || w.s < W.reach || w.dir < 0) return;
+  w.there = true;
+  if (!w.said) {
+    w.said = true;
+    say(q, "walker", "I was here first. Ambassador.", 2);
+    think(q, "Ambassador of WHAT?", 2);
+  }
+  const plate = q.hammer.plate;
+  if (plate.length < W.takes) return;
+  // The best of what he has: "evenly".
+  const best = plate.map((kind, i) => ({ kind, i })).sort((a, b) => FOODS[b.kind].value - FOODS[a.kind].value).slice(0, W.takes);
+  for (const { kind } of best) q.score.plate -= FOODS[kind].value;
+  q.hammer.plate = plate.filter((_, i) => !best.some((b) => b.i === i));
+  q.score.split += W.takes;
+  w.took += W.takes;
+  const at = SEATS.hammer.plate;
+  q.events.push({ type: "hhSplit", x: at.x, y: at.y, count: W.takes });
+  say(q, "walker", "Let's split it evenly.", 2);
 }
 
 function stepServer(q: Hungry, dt: number) {
@@ -847,10 +931,17 @@ function bonkOthers(q: Hungry): boolean {
     const n = Math.hypot(s.x, s.y);
     const inside = { x: (s.x / n) * (TABLE.r - 80), y: (s.y / n) * (TABLE.r - 80) };
     const course: Exclude<Course, "special"> = q.time < 25 ? "appetizer" : q.time < 42 ? "entree" : "dessert";
-    dump(q, COURSES[course], HUNGRY.server.tray, inside, { x: -inside.x, y: -inside.y });
+    dump(q, q.courses[course], HUNGRY.server.tray, inside, { x: -inside.x, y: -inside.y });
     q.server.away = HUNGRY.server.away;
     q.events.push({ type: "hhTray", x: inside.x, y: inside.y });
     think(q, "Is Pepsi okay? NO.");
+    hit = true;
+  }
+  // Lifetime Titanium guy, caught at his end: off to the far end for a while.
+  const w = q.walker;
+  if (w && w.away <= 0 && dist(walkerAt(q), p) <= HUNGRY.walker.bonk) {
+    Object.assign(w, { s: 0, dir: 1, wait: 0, away: HUNGRY.walker.away, frozen: 0, there: false });
+    q.events.push({ type: "hhStun", who: "bellhop", x: p.x, y: p.y });
     hit = true;
   }
   const near = (b: Box) => dist({ x: b.x + b.w / 2, y: b.y + b.h / 2 }, p) <= R;
@@ -891,6 +982,14 @@ export function land(q: Hungry, to: EaterId, kind: FoodKind, bonus = 0): void {
     think(q, "YOU picked up the bill?", 2);
     return;
   }
+  // The lounge's wine: it costs him, no combo in it.
+  if (kind === "wine") {
+    sc.plate += FOODS.wine.value;
+    q.events.push({ type: "hhLand", who: "hammer", kind, points: FOODS.wine.value });
+    think(q, "I drink Coke Zero.", 2);
+    return;
+  }
+  if (kind === "water") think(q, "Points. Not the water.", 2);
   let points = FOODS[kind].value;
   if (sc.togo > 0 && kind !== "togo") {
     points *= 2;
@@ -944,6 +1043,7 @@ function finish(q: Hungry) {
     robbed: sc.robbed,
     paper: sc.paper,
     slapped: sc.slapped,
+    split: sc.split,
     specials: [...sc.specials],
     bill: sc.bill,
     doggy: grade === "COMPED",
@@ -964,6 +1064,7 @@ export function stepHungry(q: Hungry, input: Input, dt: number): void {
   schedule(q, dt);
   stepCart(q, dt);
   stepServer(q, dt);
+  stepWalker(q, dt);
   for (const s of q.suitcases) s.t -= dt;
   for (const s of q.suitcases.filter((b) => b.t <= 0)) q.events.push({ type: "hhSuitcase", x: s.x + s.w / 2, y: s.y + s.h / 2, on: false });
   q.suitcases = q.suitcases.filter((b) => b.t > 0);
@@ -980,14 +1081,16 @@ export function stepHungry(q: Hungry, input: Input, dt: number): void {
 
 /** Whose plate is whose, in the hint. */
 export const DINER_NAME: Record<RivalId, string> = { student: "student", bellhop: "bellhop", nurse: "nurse" };
+const LOUNGE_NAME: Record<RivalId, string> = { student: "intern", bellhop: "suit", nurse: "polo" };
 
 /** The hint line during the round (R4 §9), first match wins. */
 export function hungryHint(q: Hungry): string {
   if (q.planes.some((p) => !p.done)) return "Paper incoming · ↓ ducks, H swats";
-  if (q.suitcases.length) return "Suitcase on the table · H clears it";
+  if (q.suitcases.length) return q.menu === "lounge" ? "Briefcase on the table · H clears it" : "Suitcase on the table · H clears it";
+  if (q.walker && q.walker.away <= 0 && q.walker.dir > 0 && q.walker.s >= 0.8 && q.hammer.plate.length >= HUNGRY.walker.takes) return "Lifetime Titanium guy · H bonks him before he splits your plate";
   if (q.hammer.stun > 0) return "Slapped · wait a second";
   if (q.score.togo > 0) return `To-go box · next ${q.score.togo} grabs double`;
   if (RIVALS.some((id) => q.rivals[id].frozen > 0)) return "Lectured · they're frozen, grab now";
-  if (q.hammer.lock) return `Hold Space to grab from the ${DINER_NAME[q.hammer.lock]}'s plate · ← → picks another`;
+  if (q.hammer.lock) return `Hold Space to grab from the ${(q.menu === "lounge" ? LOUNGE_NAME : DINER_NAME)[q.hammer.lock]}'s plate · ← → picks another`;
   return "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server";
 }

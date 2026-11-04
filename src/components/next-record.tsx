@@ -14,6 +14,7 @@ export function NextRecord({
   best,
   banquetBest,
   faresBest,
+  loungeBest,
   onClose,
 }: {
   journey: Journey;
@@ -21,6 +22,7 @@ export function NextRecord({
   best: number;
   banquetBest: number;
   faresBest: number;
+  loungeBest: number;
   onClose: () => void;
 }) {
   const done = useRef<HTMLButtonElement>(null);
@@ -41,6 +43,7 @@ export function NextRecord({
     ["Whole shift best", pad(best)],
     ["Hungry Hungry Hammer best", pad(banquetBest)],
     ["Fare Darts best", pad(faresBest)],
+    ...(journey.done.includes("lobby-night") || loungeBest > 0 ? ([["The M CLUB best", pad(loungeBest)]] as [string, string][]) : []),
   ];
   return (
     <div className="next-settings" role="dialog" aria-modal="true" aria-label="Service Record">

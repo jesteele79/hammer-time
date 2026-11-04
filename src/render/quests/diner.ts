@@ -12,7 +12,7 @@ import { loadCastArt, PaintedFigure, type CastArt } from "../cast-body";
 import { LOOKS, drawFigure, recolored, star, type CastLook } from "../cast";
 
 /** The banquet's rivals and server for the speech bubbles: the pig is 900. */
-export const DINER_ID = { student: 901, bellhop: 902, nurse: 903, server: 904 } as const;
+export const DINER_ID = { student: 901, bellhop: 902, nurse: 903, server: 904, walker: 905 } as const;
 
 /**
  * Someone at the banquet table: their painting skinned on their own skeleton, or the stand-in when it is missing, posed

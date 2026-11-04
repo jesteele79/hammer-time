@@ -68,7 +68,7 @@ export type HudPayload = {
   /** The run's id (`Game.runs`): a new one means a new run began, its bonks counted from where it stands. */
   run: number;
 };
-export type BanquetHud = { id: "hungry"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
+export type BanquetHud = { id: "hungry"; menu: "banquet" | "lounge"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
 /**
  * Fare Darts (R5 §12) while its card, its round or its tally is up: `left` scalpels still on the tray, `steady` seconds
  * left of the steady hand out of `steadyMax`, `towels` the towel-offs left that refill it, `position` his boarding group
@@ -204,6 +204,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
 function banquetHud(q: Hungry, door: boolean): BanquetHud {
   return {
     id: "hungry",
+    menu: q.menu,
     score: Math.max(0, Math.round(q.score.plate + q.score.bonus)),
     time: Math.max(0, Math.ceil(HUNGRY.round - q.time)),
     reach: Math.round(q.hammer.dive?.phase === "coil" ? q.hammer.dive.reach : baseReach(q)),

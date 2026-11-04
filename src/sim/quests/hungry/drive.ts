@@ -1,7 +1,7 @@
 import { STEP } from "../../constants";
 import { emptyInput, type Input } from "../../input";
 import { FOODS, settled, type Dish } from "./food";
-import { HUNGRY, baseReach, createHungry, plateDeg, serverAt, slapFor, stepHungry, type Hungry, type HungryResult } from "./hungry";
+import { HUNGRY, baseReach, createHungry, plateDeg, serverAt, slapFor, stepHungry, walkerAt, type Hungry, type HungryOptions, type HungryResult } from "./hungry";
 import { RIVALS, SEATS, dirOf, dist, onLine, screenDeg, sub } from "./table";
 
 /** A scripted player for the grade lines (R4 §6): the keys for this step of the round. */
@@ -71,6 +71,10 @@ export function sharpPlayer(): Player {
       input.held.hammer = input.pressed.hammer = true;
       return input;
     }
+    if (q.walker && q.walker.away <= 0 && q.walker.dir > 0 && dist(walkerAt(q), P) <= HUNGRY.walker.bonk) {
+      input.held.hammer = input.pressed.hammer = true;
+      return input;
+    }
     if (h.since < HUNGRY.cadence) return input;
     // The student's plate is the only one whose line crosses no one else's guard: the far plates wait for a lecture.
     const safe = (id: (typeof RIVALS)[number]) =>
@@ -109,8 +113,8 @@ export function sharpPlayer(): Player {
 }
 
 /** A whole practice round under a scripted player. */
-export function playRound(seed: number, player: Player): HungryResult {
-  const q = createHungry(seed, { practice: true });
+export function playRound(seed: number, player: Player, opts: HungryOptions = {}): HungryResult {
+  const q = createHungry(seed, { practice: true, ...opts });
   while (!q.result) stepHungry(q, player(q), STEP);
   return q.result;
 }

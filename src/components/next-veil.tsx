@@ -45,6 +45,8 @@ export type VeilInfo = {
   /** Hungry Hungry Hammer while it is up (its card, round, break or tally), and its own best (R4). */
   quest: HudPayload["quest"];
   banquetBest: number;
+  /** The M CLUB's own best. */
+  loungeBest: number;
   /** Fare Darts' own best (R5). */
   faresBest: number;
   /** The side quest's best as it stood when its round's card showed: what the tally's score must beat. */
@@ -331,6 +333,19 @@ export function NextVeil({
         </section>
       </div>
     );
+  if (mode === "questCard" && info.quest?.id === "hungry" && info.quest.menu === "lounge")
+    return (
+      <div className="next-veil next-veil--card" data-place={place}>
+        <section className="next-veil__card" aria-live="polite">
+          <p className="next-veil__eyebrow">Side quest</p>
+          <h2 className="next-veil__title">The M CLUB</h2>
+          <p className="next-veil__line">The lounge table</p>
+          <p className="next-veil__line next-veil__line--prize">
+            {info.quest.door ? `Get COMPED (${GOAL}) to take home a doggy bag and the belly-flop` : `In a shift, COMPED (${GOAL}) takes home a doggy bag and the belly-flop`}
+          </p>
+        </section>
+      </div>
+    );
   if (mode === "questCard")
     return (
       <div className="next-veil next-veil--card" data-place={place}>
@@ -346,11 +361,12 @@ export function NextVeil({
     );
   if (mode === "questTally" && info.quest?.id === "hungry" && info.quest.result) {
     const r = info.quest.result;
-    const best = Math.max(info.banquetBest, r.score);
+    const best = Math.max(info.quest.menu === "lounge" ? info.loungeBest : info.banquetBest, r.score);
     const lines = [
       `Plate ${r.plate} from ${r.grabs} grabs`,
       `Combo bonus +${r.comboBonus} (best ${r.bestCombo} in a row)`,
       ...(r.robbed ? [`Robbed other plates ${r.robbed} time${r.robbed > 1 ? "s" : ""}`] : []),
+      ...(r.split ? [`Lifetime Titanium guy split your plate: ${r.split} dishes`] : []),
       ...(r.paper ? [`Paper to the face: ${r.paper} (-${r.paper * 150})`] : []),
       ...(r.slapped ? [`Slapped ${r.slapped} time${r.slapped > 1 ? "s" : ""} (-${r.slapped * HUNGRY.guard.cost})`] : []),
       ...(r.specials.length ? [`Specials: ${r.specials.map((k) => FOODS[k].name).join(", ")}`] : []),
@@ -360,7 +376,7 @@ export function NextVeil({
     const prize = r.doggy
       ? info.quest.door
         ? "Doggy bag packed: it saves you from the next knockdown"
-        : "COMPED: from the BUFFET door that wins a doggy bag and the belly-flop"
+        : `COMPED: from the ${info.quest.menu === "lounge" ? "M CLUB" : "BUFFET"} door that wins a doggy bag and the belly-flop`
       : `COMPED (${GOAL}) wins a doggy bag and the belly-flop`;
     return (
       <div className="next-veil" data-place={place}>

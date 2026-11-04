@@ -217,7 +217,7 @@ async function bodies(registry) {
 
 const CAST_IN = "art/incoming/cast";
 // The bartender borrows server-1's painting (PAINTING_OF); the skycap and the TSA agent are cut when theirs arrive.
-const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1", "guard-1"];
+const CAST_PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1", "guard-1", "titanium"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {
@@ -437,6 +437,36 @@ async function banquet(registry) {
     });
 }
 
+const LOUNGE = { room: "art/incoming/backdrops/lounge.png", food: "art/incoming/props/lounge-sheet.png" };
+
+/** The M CLUB (story spec §8.1): its room placed by its cut as the ballroom is, its sheet cut into its sixteen tiles. */
+async function lounge(registry) {
+  registry.lounge = {};
+  mkdirSync(join(OUT, "lounge"), { recursive: true });
+  if (existsSync(LOUNGE.room)) {
+    const file = "art/cuts/lounge.json";
+    if (!existsSync(file)) console.warn(`lounge: painted but not cut yet (no ${file}); the banquet's room stands in`);
+    else
+      await tolerant("lounge", strict, async () => {
+        const cut = JSON.parse(readFileSync(file, "utf8"));
+        const meta = await sharp(LOUNGE.room).metadata();
+        writeFileSync(join(OUT, "lounge/room.png"), await sharp(LOUNGE.room).png().toBuffer());
+        registry.lounge.room = { file: "lounge/room.png", width: meta.width, height: meta.height, table: { x: cut.table[0], y: cut.table[1] }, span: cut.span };
+        console.log(`lounge: ${meta.width}x${meta.height}, the table's middle at ${cut.table}, ${cut.span} px across`);
+      });
+  }
+  if (existsSync(LOUNGE.food))
+    await tolerant("lounge sheet", strict, async () => {
+      const cells = await foodCells(readFileSync(LOUNGE.food));
+      registry.lounge.food = cells.map((c, i) => {
+        const file = `lounge/food-${i + 1}.png`;
+        writeFileSync(join(OUT, file), c.png);
+        return { file, width: c.width, height: c.height };
+      });
+      console.log(`lounge sheet: ${cells.length} dishes`);
+    });
+}
+
 const GATE = { room: "art/incoming/backdrops/gate.png", plane: "art/incoming/props/gate-plane.png", sheet: "art/incoming/props/gate-sheet.png" };
 
 /** Gate B7 (R5 §13): the room placed by its cut, the plane keyed, the sheet cut into its seven named pieces. */
@@ -530,6 +560,7 @@ await pig(registry);
 await backdrops(registry);
 await walls(registry);
 await banquet(registry);
+await lounge(registry);
 await gate(registry);
 await sat(registry);
 await products();

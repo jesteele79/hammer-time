@@ -384,7 +384,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function newQuest(seed: number, id: QuestId = "hungry") {
     if (game.mode !== "title" && !(game.mode === "questTally" && !game.questDoor)) return;
     game.events = [];
-    openQuest(id === "fares" ? createFares(seed, { practice: true }) : createHungry(seed, { practice: true }), null, game.events);
+    openQuest(id === "fares" ? createFares(seed, { practice: true }) : createHungry(seed, { practice: true, menu: id === "lounge" ? "lounge" : "banquet" }), null, game.events);
   }
 
   /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper, and COMPED's doggy bag and belly-flop; no lives. */
@@ -652,7 +652,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (d.kind === "quest") {
       game.run.spent.push(d.id);
       const seed = (game.run.seed ^ Math.imul(Math.round(d.x), 7919)) >>> 0;
-      openQuest(d.quest === "fares" ? createFares(seed) : createHungry(seed), d, ev);
+      openQuest(d.quest === "fares" ? createFares(seed) : createHungry(seed, { menu: d.quest === "lounge" ? "lounge" : "banquet" }), d, ev);
       return true;
     }
     if (d.kind === "stash") {
