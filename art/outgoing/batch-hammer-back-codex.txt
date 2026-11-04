@@ -1,0 +1,32 @@
+HAMMER TIME — HAMMER FROM BEHIND, ONE CODEX PROMPT
+
+The fourteenth-floor hallway in Act 2 is played from behind Hammer, so he needs a painting of his back. It is also what
+the first 3D test needs to answer whether he reads as himself in a lit corridor. Paste everything below the line into a
+new Codex chat in the mode that works on this laptop. It can run at the same time as the airport's walls. When it has
+saved it, tell me.
+
+------------------------------------------------------------------------------------------
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\hammer\. The only files you create are the ones named in step 5.
+
+1. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the same man from the side: his build, height, clothes, the canvas, the framing and the drawing style.
+   - Image 2: art\outgoing\references\hammer-three-quarter.webp and hammer-profile.webp — the same man's head and hair, and the drawing style.
+   - Image 3: art\incoming\hammer\mallet.png — the mallet he holds.
+
+2. The style: inked caricature illustration, thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. The same artist and the same finish as Image 1.
+
+3. Make body-affliction-back.png: the same man seen from directly BEHIND, walking away from us. Use your built-in image generation with Image 1 as the input image for the canvas and the style.
+   - Straight-on back view: the camera is square behind him, at about the height of his chest. We see his back and nothing of his face: no eyes, no nose, no mouth, no moustache, no profile of the cheek. The back of his head, his two ears from behind, his short receding salt-and-pepper hair, the back of his neck.
+   - He is mid-sixties and stocky, the same height and build as Image 1.
+   - The same black T-shirt, seen from the back: a large blue rose and wings print across the shoulders, in the same blue as the front print in Image 1, with no letters or words. The same dark blue athletic shorts to the knee, white ankle socks, and the backs of the same white and navy running shoes.
+   - Standing straight with his feet flat and a little apart, both heels fully visible.
+   - Both arms hang straight down at his sides with a clear gap of green between each arm and his body. His left hand (on the left of the picture) is open and empty. His right hand (on the right of the picture) holds the wooden mallet from Image 3 by the end of its handle, hanging straight down at his side, the head of the mallet near his calf and the whole mallet in view.
+   - The same canvas shape and size as Image 1 (1086 x 1448, portrait), with the same placement in the frame: his soles at the same height near the bottom, his body centered, green margin all round. Do not upscale or resize afterward.
+   - A flat bright green background (#00FF00), no floor, no shadow, no scenery, no text, letters, logos or signatures anywhere.
+
+4. Before you keep it, put it side by side with Image 1 and check every point in step 3. If any point fails, generate again (up to five tries) and keep the best one. It must read at a glance as the same man from behind, and it must show no part of his face.
+
+5. Save the keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\hammer\body-affliction-back.png, and the exact prompt you used as body-affliction-back.prompt.txt in the same folder.
+
+6. Stop. In a few lines, tell me how many tries it took and anything on the checklist you could not get right.
