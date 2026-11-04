@@ -15,7 +15,7 @@ export const STASH: Level = {
   floor: [{ x0: -200, x1: 3300, y0: 0, y1: 0, kind: "tile" }],
   platforms: [{ x0: 1200, x1: 1630, y: -330, kind: "shelf" }],
   // On its shelf: there only while the night's level is on (story spec §8.1).
-  keycards: [{ x: 1300, y: -400 }],
+  keycards: [{ x: 1420, y: -400 }],
   solids: [],
   passes: [],
   bounds: { x: -200, y: -1400, w: 3500, h: 2000 },

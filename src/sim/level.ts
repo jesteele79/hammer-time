@@ -245,7 +245,7 @@ export function pitsOf(level: Pick<Level, "floor">): { x0: number; x1: number; y
   return out;
 }
 
-const CLEAR = { door: 150, cart: 200, crate: 120, checkpoint: 120, belt: 150 } as const;
+const CLEAR = { door: 150, cart: 200, crate: 120, checkpoint: 120, belt: 150, keycard: 100 } as const;
 
 /**
  * Where pickups may go (the shipped rule, scaled): on level floor and on platforms, one anchor per
@@ -262,7 +262,7 @@ export function rewardAnchors(level: Level): Anchor[] {
     level.carts.some((c) => Math.abs(x - c) < CLEAR.cart) ||
     level.crates.some((c) => Math.abs(x - c.x) < CLEAR.crate && y > c.y) ||
     level.checkpoints.some((k) => Math.abs(x - k.x) < CLEAR.checkpoint) ||
-    (level.keycards ?? []).some((k) => Math.abs(x - k.x) < CLEAR.crate && Math.abs(y - k.y) < CLEAR.crate) ||
+    (level.keycards ?? []).some((k) => Math.abs(x - k.x) < CLEAR.keycard && Math.abs(y - k.y) < CLEAR.keycard) ||
     level.floor.some((b) => !!b.belt && (Math.abs(x - b.x0) < CLEAR.belt || Math.abs(x - b.x1) < CLEAR.belt));
   for (const f of level.floor) {
     if (f.y0 !== f.y1 || f.belt) continue;
