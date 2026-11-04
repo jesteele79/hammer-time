@@ -198,7 +198,7 @@ export function NextHud({
           {hud.portrait && <img className="next-hud__portrait" src={hud.portrait} alt="" />}
           <div>
             <div className="next-hud__venue">{q ? "Hungry Hungry Hammer" : g ? "Fare Darts" : hud.venue}</div>
-            <div className="next-hud__mode">{q ? "The Banquet" : g ? "Gate B7" : `World ${hud.world}`}</div>
+            <div className="next-hud__mode">{q ? "The Banquet" : g ? "Gate B7" : `World ${hud.world}${hud.status ? ` · ${hud.status}` : ""}`}</div>
           </div>
         </header>
         {g ? (

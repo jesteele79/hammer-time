@@ -50,6 +50,8 @@ export type VenueView = {
   setPunched(ids: readonly string[]): void;
   /** The once-a-shift doors already used (the BUFFET's banquet, R4 §7): each shows its THANK YOU card. */
   setSpent(ids: readonly string[]): void;
+  /** The keycards he holds: a door with a tier shows its card until they reach it, then its light (story spec §8.1). */
+  setKeycards(n: number): void;
   update(dt: number): void;
   setVisible(on: boolean): void;
   /** The swinging doors as the sim has them this frame. */
@@ -100,7 +102,7 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   const steps = new Graphics();
   root.addChild(steps);
 
-  const doors = new Map<string, { glow: Graphics; thanks: Container | null }>();
+  const doors = new Map<string, { glow: Graphics; thanks: Container | null; shut: Container | null; lit: Graphics | null; tier: number }>();
   for (const d of level.doors) doors.set(d.id, drawDoor(root, d));
   root.addChild(over);
   const clocks = new Map<string, Graphics>();
@@ -172,6 +174,13 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
     },
     setSpent(ids) {
       for (const [k, d] of doors) if (d.thanks) d.thanks.visible = ids.includes(k);
+    },
+    setKeycards(n) {
+      for (const d of doors.values()) {
+        if (!d.tier) continue;
+        if (d.shut) d.shut.visible = n < d.tier;
+        if (d.lit) d.lit.visible = n >= d.tier;
+      }
     },
     punch(id) {
       const g = clocks.get(id);
@@ -628,8 +637,19 @@ function drawSign(root: Container, s: SignSpec) {
   }
 }
 
+/** A door card's words in lines short enough to read at the door's width: a short one stays one line. */
+export function cardLines(text: string, most = 22): string[] {
+  const lines: string[] = [];
+  for (const word of text.split(" ")) {
+    const last = lines[lines.length - 1];
+    if (last && last.length + 1 + word.length <= most && !last.endsWith(".")) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  return lines;
+}
+
 /** A door with its lintel sign; closed doors carry a card saying what opens them. Returns its glow arrow. */
-function drawDoor(root: Container, d: DoorSpec): { glow: Graphics; thanks: Container | null } {
+function drawDoor(root: Container, d: DoorSpec): { glow: Graphics; thanks: Container | null; shut: Container | null; lit: Graphics | null; tier: number } {
   const g = new Graphics();
   const brass = tones(PALETTE.brass);
   const x = d.x - DOOR.w / 2;
@@ -665,18 +685,32 @@ function drawDoor(root: Container, d: DoorSpec): { glow: Graphics; thanks: Conta
     if (sign.width > DOOR.w + 40) sign.scale.set((DOOR.w + 40) / sign.width);
     root.addChild(sign);
   }
-  if (d.kind === "closed" && d.opens) {
+  // A door with a tier wears its card only until he has the keycards; then its light is on (story spec §8.1).
+  let shut: Container | null = null;
+  let lit: Graphics | null = null;
+  if ((d.kind === "closed" || d.tier) && d.opens) {
+    shut = new Container();
     const card = new Graphics();
-    const text = label(d.opens.toUpperCase(), "ui", 18);
+    const lines = cardLines(d.opens.toUpperCase());
+    const text = label(lines.join("\n"), "ui", 18);
+    const tall = 40 + (lines.length - 1) * 22;
     const w = Math.min(DOOR.w - 30, text.width + 28);
     if (text.width > w - 28) text.scale.set((w - 28) / text.width);
-    card.roundRect(d.x - w / 2, top + 120, w, 40, 6).fill(COLORS.card);
-    card.roundRect(d.x - w / 2, top + 120, w, 40, 6).stroke(THIN);
+    card.roundRect(d.x - w / 2, top + 120, w, tall, 6).fill(COLORS.card);
+    card.roundRect(d.x - w / 2, top + 120, w, tall, 6).stroke(THIN);
     card.moveTo(d.x - 30, top + 120).lineTo(d.x, top + 90).lineTo(d.x + 30, top + 120).stroke({ width: 2, color: PALETTE.outline });
     text.tint = PALETTE.outline;
     text.anchor.set(0.5);
-    text.position.set(d.x, top + 140);
-    root.addChild(card, text);
+    text.position.set(d.x, top + 120 + tall / 2);
+    shut.addChild(card, text);
+    root.addChild(shut);
+  }
+  if (d.tier) {
+    lit = new Graphics();
+    lit.rect(d.x - DOOR.w / 2 + 6, top + 6, DOOR.w - 12, DOOR.h - 6).fill({ color: PALETTE.lampGlow, alpha: 0.28 });
+    lit.circle(d.x, top - 18 - DOOR.lintel - 16, 12).fill(PALETTE.lampGlow).stroke(THIN);
+    lit.visible = false;
+    root.addChild(lit);
   }
   // A side quest's door hangs a THANK YOU card once it has been used this shift.
   let thanks: Container | null = null;
@@ -702,7 +736,7 @@ function drawDoor(root: Container, d: DoorSpec): { glow: Graphics; thanks: Conta
   glow.poly([d.x - 34, ay - 50, d.x + 34, ay - 50, d.x + 34, ay - 14, d.x + 56, ay - 14, d.x, ay + 30, d.x - 56, ay - 14, d.x - 34, ay - 14]).stroke(INK);
   glow.visible = false;
   root.addChild(glow);
-  return { glow, thanks };
+  return { glow, thanks, shut, lit, tier: d.tier ?? 0 };
 }
 
 /** The stash's way back: a brass luggage cart with a tag on its arch. */

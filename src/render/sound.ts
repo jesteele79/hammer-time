@@ -72,7 +72,7 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   hhSwat: ["thud"],
   hhTray: ["ding"],
 };
-const PICKUP_CUES: Record<string, Cue[]> = { can: ["coin"], nuts: ["power"], bucees: ["power", "oneUp"], pepper: ["power"] };
+const PICKUP_CUES: Record<string, Cue[]> = { can: ["coin"], nuts: ["power"], bucees: ["power", "oneUp"], pepper: ["power"], keycard: [] };
 /** The tally ticks once every ten seconds of clock it counts. */
 const TALLY_TICK = 10;
 /** A fall harder than a full jump's landing thuds. */

@@ -7,13 +7,14 @@ import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
-import { PICKUP_SIZE, stageOf, type DoorSpec, type Lesson, type Level, type LevelId } from "./level";
+import { PICKUP_SIZE, stageOf, tierMet, type DoorSpec, type Lesson, type Level, type LevelId } from "./level";
 import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { PIG, createPig } from "./pig";
-import { collectPickups, dropPickup, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
+import { collectPickups, dropPickup, keycardsOf, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
+import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
@@ -230,10 +231,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.crates = cratesOf(level);
     // A level's layout is its own wherever the run began: seeded by its place in the whole shift (SAT after it).
     const place = wholeShift.indexOf(level);
-    game.pickups = seedRewards(level, game.run.seed + (place >= 0 ? place : wholeShift.length) * VENUE_SEED);
+    game.pickups = [...seedRewards(level, game.run.seed + (place >= 0 ? place : wholeShift.length) * VENUE_SEED), ...keycardsOf(level, game.run.spots)];
     bonkedIds.clear();
     const k = level.checkpoints.find((c) => c.id === game.run.checkpoint);
-    const at = k ?? level.spawn;
+    const set = game.run.checkpoint === AMBASSADOR_CHECKPOINT ? game.run.checkpointAt : undefined;
+    const at = set ?? k ?? level.spawn;
     Object.assign(world.hero, createHero(at, carry));
     restage();
     // Each cart stands on the floor under it: a raised dock's too.
@@ -252,8 +254,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.swing = [];
     world.still = false;
     standAt(at);
+    // Ambassador's checkpoint is where he stood, on a platform too; a punch clock's is on the floor under it.
+    if (set) world.hero.y = set.y;
     thinkFrom = world.hero.x;
-    game.run.time = level.time;
+    // Gold's late checkout stays on the clock when he comes back in the level that gave it.
+    game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
     timedOut = false;
     swingMove = null;
@@ -287,7 +292,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     thought.clear();
     game.runs++;
     // A snapshot is the run at a card: no punch clock of the level before it counts here.
-    game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, punched: [] } : createRun(s);
+    game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, checkpointAt: undefined, punched: [] } : createRun(s);
     stashStock = null;
     begin(snap ? { ...snap.carry } : { charge: 0, patience: RUN.patience }, (game.events = []));
     atCard();
@@ -463,10 +468,43 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     ev.push({ type: "respawn" });
   }
 
+  /** The night's level he is working: the stash behind its door counts as it. */
+  const statusVenue = () => game.shift[game.venue]?.status === true;
+
+  /** A keycard: toward his status while the night's level is on, each tier paying once a run; just points anywhere else. */
+  function takeKeycard(ev: GameEvent[]) {
+    const h = world.hero;
+    const run = game.run;
+    if (!statusVenue()) {
+      addScore(run, KEYCARD_POINTS);
+      return;
+    }
+    run.keycards++;
+    ev.push({ type: "keycard", n: run.keycards, x: h.x, y: h.y - h.h });
+    const tier = tierOf(run.keycards);
+    if (!tier || run.perks.includes(tier.name)) return;
+    run.perks.push(tier.name);
+    addScore(run, TIER_POINTS);
+    ev.push({ type: "tier", name: tier.name, word: tier.word, x: h.x, y: h.y - h.h });
+    ev.push({ type: "think", text: tier.thought, seconds: THINK.seconds });
+    if (tier.name === "GOLD") run.time += LATE_CHECKOUT;
+    else if (tier.name === "TITANIUM") {
+      run.lives++;
+      ev.push({ type: "oneUp" });
+    } else if (tier.name === "AMBASSADOR") {
+      // Where he stands: in the stash, the door he came in by.
+      const door = lobbySave?.door;
+      run.checkpoint = AMBASSADOR_CHECKPOINT;
+      run.checkpointAt = door ? { x: door.x, y: door.y } : { x: h.x, y: h.onGround ? h.y : (floorAt(world.stage, h.x, h.y) ?? h.y) };
+      game.pickups.push(dropPickup(++nextPickup, "bucees", h.x, h.y - h.h - 200));
+    }
+  }
+
   function take(kind: PickupKind, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
-    if (kind === "can") h.heat = Math.max(0, h.heat - addCans(run, 1, ev));
+    if (kind === "keycard") takeKeycard(ev);
+    else if (kind === "can") h.heat = Math.max(0, h.heat - addCans(run, 1, ev));
     else if (kind === "nuts") {
       addScore(run, RUN.nutPoints);
       h.charge = Math.min(CHARGE_MAX, h.charge + RUN.nutCharge);
@@ -573,7 +611,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // A locked exit is chained until the pig is down.
     const open = (d: DoorSpec) => !d.locked || !world.pig || world.pig.state === "defeated";
     const exit = standing
-      ? game.level.doors.find((d) => d.kind === "exit" && open(d) && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
+      ? game.level.doors.find((d) => d.kind === "exit" && !d.down && open(d) && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
       : undefined;
     if (exit) {
       exitDoor = exit;
@@ -598,7 +636,18 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (!d || !armed || !input.held.down || !h.onGround || h.move || h.slideT > 0) return false;
     // The banquet is once a shift: a spent door stays shut, and nothing is said about it.
     if (d.kind === "quest" && game.run.spent.includes(d.id)) return false;
+    // Below its tier a door reads as closed: the hint says why.
+    if (!tierMet(d, game.run.keycards)) return false;
     armed = false;
+    // An exit on ↓: the stairs, and the elevator at Titanium.
+    if (d.kind === "exit") {
+      if (!d.down || !standing) return false;
+      exitDoor = d;
+      world.hits = [];
+      ev.push({ type: "exit" });
+      setMode("walkoff", ev, RUN.walkoffT);
+      return true;
+    }
     ev.push({ type: "door", kind: d.kind, id: d.id });
     if (d.kind === "quest") {
       game.run.spent.push(d.id);
@@ -609,7 +658,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (d.kind === "stash") {
       lobbySave = { level: game.level, pickups: game.pickups, crates: game.crates, targets: world.targets, cast: world.cast, missiles: world.missiles, facing: h.facing, door: d };
       const stash = levels.stash;
-      stashStock ??= { pickups: seedRewards(stash, game.run.seed + STASH_SEED), crates: cratesOf(stash) };
+      stashStock ??= { pickups: [...seedRewards(stash, game.run.seed + STASH_SEED), ...(statusVenue() ? keycardsOf(stash, game.run.spots) : [])], crates: cratesOf(stash) };
       game.crates = stashStock.crates;
       game.pickups = stashStock.pickups;
       world.targets = stash.carts.map((x, i) => createCart(i + 1, x));
@@ -687,6 +736,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const carry = { charge: h.charge, patience: h.patience, hot: h.hot, doggy: h.doggy, flop: h.flop, boxes: h.boxes };
     game.venue++;
     game.run.checkpoint = null;
+    game.run.checkpointAt = undefined;
     game.run.punched = [];
     begin(carry, ev);
     atCard();
@@ -791,7 +841,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     stepPickups(game.pickups, world.stage, STEP);
     // Knocked flat on his last pip he is on his way out: nothing he tumbles past is his, no clock punches.
     const lethal = h.move?.kind === "tumble";
-    if (!lethal) for (const kind of collectPickups(h, game.pickups, ev)) take(kind, ev);
+    if (!lethal)
+      for (const kind of collectPickups(h, game.pickups, ev)) {
+        take(kind, ev);
+        if (kind !== "keycard") continue;
+        for (const p of game.pickups) if (p.spot && p.taken && !run.spots.includes(p.spot)) run.spots.push(p.spot);
+      }
     if (run.star > 0) {
       // The shield's bowling scores like any other hit on the cast.
       const bowled: GameEvent[] = [];

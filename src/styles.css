@@ -674,6 +674,13 @@ button:focus-visible {
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+.next-veil__status {
+  margin: 0.25rem 0 0;
+  color: #e8c26a;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: 0.85rem;
+}
 .next-veil__line {
   margin: 8px 0 0;
   font-size: 15px;

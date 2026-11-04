@@ -5,7 +5,7 @@ import { PICKUP_SIZE, rewardAnchors, type Anchor, type Level, type RewardRoute }
 import { moveBody, type Body } from "./physics";
 import type { HeroState, Point, Stage } from "./types";
 
-export type PickupKind = "can" | "nuts" | "bucees" | "pepper";
+export type PickupKind = "can" | "nuts" | "bucees" | "pepper" | "keycard";
 /** A pickup: seeded ones stand still; one that came out of a crate has a body and moves. */
 export type Pickup = {
   id: number;
@@ -15,6 +15,8 @@ export type Pickup = {
   taken: boolean;
   /** `top` is where its rise out of the crate ends: the crate's top. */
   body?: Body & { emerge: number; dir: number; top: number };
+  /** A keycard's fixed spot: taken once a run, a life lost or not. */
+  spot?: string;
 };
 
 /** The shipped generator (mulberry32), so a seed lays a run out the same way every time. */
@@ -63,10 +65,10 @@ export function seedRewards(level: Level, seed: number): Pickup[] {
   const raised = anchors.filter((a) => a.raised).length;
   const bucees = Math.min(n, raised, level.rewards.bucees);
   const nuts = Math.min(n - bucees, raised - bucees, level.rewards.nuts);
-  const left: Record<PickupKind, number> = { bucees, nuts, can: n - bucees - nuts, pepper: 0 };
+  const left: Record<"bucees" | "nuts" | "can", number> = { bucees, nuts, can: n - bucees - nuts };
   const out: Pickup[] = [];
-  const fits = (kind: PickupKind, a: Anchor) => kind === "can" || a.raised;
-  const take = (kind: PickupKind, where: (a: Anchor) => boolean) => {
+  const fits = (kind: keyof typeof left, a: Anchor) => kind === "can" || a.raised;
+  const take = (kind: keyof typeof left, where: (a: Anchor) => boolean) => {
     const i = left[kind] > 0 ? anchors.findIndex((a) => fits(kind, a) && where(a)) : -1;
     if (i < 0) return;
     const a = anchors.splice(i, 1)[0];
@@ -87,6 +89,14 @@ export function seedRewards(level: Level, seed: number): Pickup[] {
   }
   while (left.can > 0 && anchors.length) take("can", () => true);
   return out;
+}
+
+/** A level's keycards at their fixed spots (story spec §8.1), those already taken this run already gone. */
+export function keycardsOf(level: Pick<Level, "id" | "keycards">, taken: readonly string[]): Pickup[] {
+  return (level.keycards ?? []).map((k, i) => {
+    const spot = `${level.id}:${i}`;
+    return { id: 7000 + i, kind: "keycard", x: k.x, y: k.y, taken: taken.includes(spot), spot };
+  });
 }
 
 /** What a beaten staffer was carrying, jumping out of them at their middle: it falls and stays where it lands. */

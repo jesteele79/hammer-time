@@ -30,6 +30,8 @@ export type VeilInfo = {
   world: string;
   /** The level's own line on its card. */
   card: string | null;
+  /** His status through Act 2, on every card of the act. */
+  status: string | null;
   score: number;
   best: number;
   lives: number;
@@ -101,6 +103,7 @@ function StoryCardView({ card, info, place, onContinue }: { card: StoryCard; inf
       <div className="next-veil next-veil--story" data-place={place}>
         <section className="next-veil__card next-veil__caption" role="dialog" aria-label={card.text}>
           <h2 className="next-veil__title">{card.text}</h2>
+          {info.status && <p className="next-veil__status">{info.status}</p>}
           {go}
         </section>
       </div>
@@ -112,6 +115,7 @@ function StoryCardView({ card, info, place, onContinue }: { card: StoryCard; inf
           <p className="next-veil__eyebrow">{card.app}</p>
           <p className="next-veil__notice">{card.text}</p>
           <p className="next-veil__thought">{card.thought}</p>
+          {info.status && <p className="next-veil__status">{info.status}</p>}
           {go}
         </section>
       </div>
@@ -121,6 +125,7 @@ function StoryCardView({ card, info, place, onContinue }: { card: StoryCard; inf
     <div className="next-veil next-veil--story" data-place={place}>
       <section className="next-veil__card next-veil__act" role="dialog" aria-label={`${act.title} complete`}>
         <h2 className="next-veil__title">{`${act.title} · complete`}</h2>
+        {info.status && <p className="next-veil__status">{info.status}</p>}
         <dl className="next-veil__scores">
           <div>
             <dt>Score</dt>
@@ -270,6 +275,7 @@ export function NextVeil({
           <p className="next-veil__eyebrow">World {info.world}</p>
           <h2 className="next-veil__title">{info.venue}</h2>
           <p className="next-veil__line">{line}</p>
+          {info.status && <p className="next-veil__status">{info.status}</p>}
           <Lives n={info.lives} portrait={info.portrait} />
         </section>
       </div>

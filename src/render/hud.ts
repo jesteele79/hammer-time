@@ -9,6 +9,8 @@ import { PIG } from "../sim/pig";
 import { GRADES, HUNGRY, baseReach, hungryHint, type Hungry, type HungryResult } from "../sim/quests/hungry/hungry";
 import { FARES, faresHint, groupOf, type Fares, type FaresResult } from "../sim/quests/fares/fares";
 import { QUEST_NAMES } from "../sim/quests/quest";
+import { statusName } from "../sim/status";
+import { tierMet } from "../sim/level";
 import type { PickupKind } from "../sim/rewards";
 import { RUN } from "../sim/run";
 
@@ -18,6 +20,8 @@ export type HudPayload = {
   world: string;
   /** The line under the level's name on its card, when it has its own. */
   card: string | null;
+  /** His status through Act 2 (story spec §8.1): MEMBER to AMBASSADOR; null outside it. */
+  status: string | null;
   portrait: string | null;
   heat: number;
   sinus: number;
@@ -92,6 +96,8 @@ export function hintOf(game: Game): string {
   if (d) {
     if (d.kind === "stash") return `↓ ${d.label} · the stash`;
     if (d.kind === "return") return "↓ at the cart · back to the lobby";
+    if (!tierMet(d, game.run.keycards)) return `${d.label} · ${d.opens ?? "closed"}`;
+    if (d.kind === "exit" && d.down) return `↓ ${d.label} · up to the fourteenth floor`;
     if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
     if (d.kind === "gate") return `${d.label} · walk in to board`;
     if (d.kind === "quest") return game.run.spent.includes(d.id) ? `${d.label} · thank you, come again` : `↓ ${d.label} · ${QUEST_NAMES[d.quest ?? "hungry"]}`;
@@ -144,6 +150,7 @@ export function hintOf(game: Game): string {
 
 /** What a pickup just did, for the hint line (owner, 2026-10-12: each power-up has one clear job). */
 export function pickupNote(kind: PickupKind, h: { charge: number }): string {
+  if (kind === "keycard") return "+1 keycard";
   if (kind === "can") return "Coke Zero · cooled down";
   if (kind === "bucees") return `Buc-ee's · shield for ${RUN.star} seconds`;
   if (kind === "pepper") return "Pepper · extra hit and hot snot";
@@ -163,6 +170,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     venue: game.level.name,
     world: game.level.world,
     card: game.level.card ?? null,
+    status: game.shift[game.venue]?.world.startsWith("2-") ? statusName(game.run.keycards) : null,
     portrait,
     heat: clamp(h.heat, 0, 100),
     sinus: clamp(h.sinus, 0, SINUS_MAX),
@@ -237,6 +245,7 @@ export const hudKey = (p: HudPayload) =>
     p.saved,
     p.hint,
     p.venue,
+    p.status,
     p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
     p.quest?.id === "hungry" ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
     p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.towels, p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",

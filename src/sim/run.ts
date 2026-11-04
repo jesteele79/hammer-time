@@ -1,5 +1,6 @@
 import type { GameEvent } from "./events";
 import type { Lesson } from "./level";
+import type { Point } from "./types";
 
 /**
  * The shipped game's run numbers: lives, the patience a run starts with, what each
@@ -58,9 +59,17 @@ export type Run = {
   bonked: number;
   /** The moves he has done this run: their lessons stop teaching them. */
   learned: Lesson[];
+  /** Keycards he holds: his status (story spec §8.1), taken in the snapshot, reset with the act. */
+  keycards: number;
+  /** The status tiers granted this run: each pays once. */
+  perks: string[];
+  /** The keycard spots taken this run: a life lost does not put them back. */
+  spots: string[];
+  /** Where Ambassador set the checkpoint, while `checkpoint` names it. */
+  checkpointAt?: Point;
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [] });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [], keycards: 0, perks: [], spots: [] });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);

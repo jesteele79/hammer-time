@@ -36,7 +36,7 @@ const CRATE_BUMP = { px: 12, t: 0.12 } as const;
  * pickup, its middle this far behind and below the crown, in a gold glow this wide, easing round in this long when they turn.
  */
 const CARRIED = { scale: 0.78, behind: 100, below: 40, glow: 48, turn: 0.15 } as const;
-const BURSTS: Record<PickupKind, RecipeName> = { can: "frost", nuts: "crumbs", bucees: "gold", pepper: "fizz" };
+const BURSTS: Record<PickupKind, RecipeName> = { can: "frost", nuts: "crumbs", bucees: "gold", pepper: "fizz", keycard: "gold" };
 
 /**
  * The real products (owner, 2026-10-12: "obvious and with their original logos"): the shipped
@@ -89,7 +89,7 @@ function productSprite(k: Product, height: number = PRODUCTS[k].height): Sprite 
 /** A pickup about its middle: the real product where its picture loaded, the ink stand-in otherwise. */
 export function pickupView(kind: PickupKind): Container {
   const c = new Container();
-  const s = kind === "pepper" ? null : productSprite(kind);
+  const s = kind === "pepper" || kind === "keycard" ? null : productSprite(kind);
   c.addChild(s ?? drawPickup(new Graphics(), kind));
   return c;
 }
@@ -107,6 +107,17 @@ export const bob = (t: number, id: number) => 10 * Math.sin(t * 2.6 + id * 1.7);
 /** A pickup drawn about its middle, 70 px tall. */
 export function drawPickup(g: Graphics, kind: PickupKind): Graphics {
   switch (kind) {
+    // A small gold card with an M and a stripe (story spec §8.1).
+    case "keycard": {
+      const gold = tones("#ffc93a");
+      g.circle(0, 0, 58).fill({ color: COLORS.bucees, alpha: 0.42 }).circle(0, 0, 58).stroke({ width: 3, color: "#fff4c2", alpha: 0.75 });
+      g.roundRect(-42, -28, 84, 56, 7).fill(gold.base);
+      g.rect(-42, 9, 84, 10).fill(PALETTE.outline);
+      g.poly([-21, 3, -21, -19, -8, -19, 0, -8, 8, -19, 21, -19, 21, 3, 12, 3, 12, -8, 0, 6, -12, -8, -12, 3]).fill(PALETTE.outline);
+      g.roundRect(-37, -24, 22, 3, 1).fill(gold.highlight);
+      g.roundRect(-42, -28, 84, 56, 7).stroke(INK);
+      return g;
+    }
     case "can": {
       g.roundRect(-20, -31, 40, 62, 8).fill(COLORS.can);
       g.rect(-20, -6, 40, 16).fill(COLORS.canRed);

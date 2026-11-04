@@ -41,7 +41,22 @@ export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest" | "gate"
  * `gate` is walked into like an exit and opens Fare Darts as the level's set piece, its tally ending the level (spec
  * §6.3); `x` is the door's middle, `y` the floor in front of it; a `locked` exit is chained until the pig is down.
  */
-export type DoorSpec = { id: string; kind: DoorKind; x: number; y: number; label: string; opens?: string; locked?: boolean; quest?: QuestId };
+export type DoorSpec = {
+  id: string;
+  kind: DoorKind;
+  x: number;
+  y: number;
+  label: string;
+  opens?: string;
+  locked?: boolean;
+  quest?: QuestId;
+  /** The keycards it takes to open (story spec §8.1): below them it reads as closed, its `opens` on it. */
+  tier?: number;
+  /** An exit that opens on ↓ like a quest door, never by walking past it. */
+  down?: boolean;
+};
+/** A door with a tier opens at that many keycards; any other door has none to reach. */
+export const tierMet = (d: Pick<DoorSpec, "tier">, keycards: number): boolean => !d.tier || keycards >= d.tier;
 export type CheckpointSpec = { id: string; x: number; y: number };
 export type SignSpec = { x: number; y: number; label: string; note?: string };
 export type FurnitureKind =
@@ -190,6 +205,10 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   ambient?: "night";
   /** The line under the level's name on its card. */
   card?: string;
+  /** Keycards here count toward his status (2-1, story spec §8.1): the tiers, their perks and the doors; elsewhere a keycard is points. */
+  status?: boolean;
+  /** Where the keycards stand: fixed spots, each once a run. */
+  keycards?: Point[];
 };
 
 export const PICKUP_SIZE = 70;
@@ -243,6 +262,7 @@ export function rewardAnchors(level: Level): Anchor[] {
     level.carts.some((c) => Math.abs(x - c) < CLEAR.cart) ||
     level.crates.some((c) => Math.abs(x - c.x) < CLEAR.crate && y > c.y) ||
     level.checkpoints.some((k) => Math.abs(x - k.x) < CLEAR.checkpoint) ||
+    (level.keycards ?? []).some((k) => Math.abs(x - k.x) < CLEAR.crate && Math.abs(y - k.y) < CLEAR.crate) ||
     level.floor.some((b) => !!b.belt && (Math.abs(x - b.x0) < CLEAR.belt || Math.abs(x - b.x1) < CLEAR.belt));
   for (const f of level.floor) {
     if (f.y0 !== f.y1 || f.belt) continue;

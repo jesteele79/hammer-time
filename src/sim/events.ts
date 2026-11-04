@@ -149,6 +149,9 @@ export type GameEvent =
   | FaresEvent
   /** Back from a side quest's tally: what it paid. */
   | { type: "questPaid"; quest: QuestId; score: number; grade: string; doggy: boolean; flop: boolean; boxes: number; cans: number; lives: number }
+  /** A keycard counted toward his status (`n` he holds now); a tier reached: its name and comic word, over his head. */
+  | { type: "keycard"; n: number; x: number; y: number }
+  | { type: "tier"; name: string; word: string; x: number; y: number }
   /** A doggy bag caught the hit that would have knocked him flat: he eats his leftovers, at his head. */
   | { type: "doggyBag"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

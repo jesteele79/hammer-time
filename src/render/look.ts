@@ -22,7 +22,7 @@ import { addBody, addLean, createLayers, stepLayers } from "../sim/rig/layers";
 import { createPlayback, playAction } from "../sim/rig/playback";
 import { blend, type Pose } from "../sim/rig/pose";
 import { HERO_HEIGHT } from "../sim/rig/skeleton";
-import type { Level, LevelId } from "../sim/level";
+import { tierMet, type Level, type LevelId } from "../sim/level";
 import { LOBBY } from "../sim/levels/lobby";
 import { STASH } from "../sim/levels/stash";
 import { RESTAURANT } from "../sim/levels/restaurant";
@@ -650,6 +650,13 @@ export async function startLook(
           words.say(world.hero.charge >= CHARGE_MAX ? "SMASH READY!" : "NUTS!", e.x, e.y - 80, world.hero.charge >= CHARGE_MAX, face, view);
         if (e.kind === "bucees") words.say("SHIELD!", e.x, e.y - 100, true, face, view);
         if (e.kind === "pepper") words.say("HOT!", e.x, e.y - 100, true, face, view);
+        if (e.kind === "keycard") words.say("+1 KEYCARD", e.x, e.y - 80, false, face, view);
+        break;
+      // A status tier: its comic word over his head.
+      case "tier":
+        particles.emit("gold", e.x, e.y, 24);
+        // Beside him: his thought rises over his head.
+        words.say(e.word, at.crown.x + facing * 420, at.crown.y + 40, true, face, view);
         break;
       case "canPop":
         particles.emit("frost", e.x, e.y, 10);
@@ -1648,9 +1655,10 @@ export async function startLook(
     );
     // A door he can use glows: the stash's, the cart back, and the BUFFET until it is spent.
     const d = game.door;
-    const usable = !!d && (d.kind === "stash" || d.kind === "return" || (d.kind === "quest" && !game.run.spent.includes(d.id)));
+    const usable = !!d && tierMet(d, game.run.keycards) && (d.kind === "stash" || d.kind === "return" || (d.kind === "exit" && !!d.down) || (d.kind === "quest" && !game.run.spent.includes(d.id)));
     views.get(game.level.id)?.venue.setDoorGlow(game.mode === "play" && usable ? d!.id : null);
     views.get(game.level.id)?.venue.setSpent(game.run.spent);
+    views.get(game.level.id)?.venue.setKeycards(game.run.keycards);
     // The title tune on the home screen; the level's song (the stash has its own), quiet under its cards; a repeat changes nothing.
     const levelMusic = musicFor(game.mode, game.level.music, game.quest ? questMusic(game.quest).theme : null);
     sound.music(levelMusic.theme, levelMusic.quiet);

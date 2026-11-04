@@ -207,6 +207,11 @@ test("a gate door is walked into like an exit: Fare Darts as the set piece, its 
 
 import { playableNext } from "../src/sim/journey.ts";
 
+test("a snapshot saved before keycards existed is kept with its status fresh", () => {
+  const { keycards, perks, spots, ...older } = createRun(9);
+  const j = parseJourney(JSON.stringify({ v: 1, next: "restaurant", done: ["sat", "lobby"], best: {}, bonked: 0, run: { ...older, score: 700 }, carry: null, credits: false }));
+  assert.deepEqual([j.run.score, j.run.keycards, j.run.perks, j.run.spots, keycards, perks, spots], [700, 0, [], [], 0, [], []]);
+});
 test("a save whose done and next disagree is put right: next is the first stop not done", () => {
   const j = migrateJourney({ v: 1, next: "lobby", done: ["sat", "lobby", "restaurant"], best: {}, bonked: 0, run: null, carry: null, credits: false });
   assert.deepEqual([j.next, j.done], ["campus", ["sat", "lobby", "restaurant"]]);

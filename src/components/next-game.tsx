@@ -483,6 +483,7 @@ export function NextGame({
     venue: hud?.venue ?? "Hotel lobby",
     world: hud?.world ?? "1-1",
     card: hud?.card ?? null,
+    status: hud?.status ?? null,
     score: hud?.score ?? 0,
     best,
     lives: hud?.lives ?? 3,
