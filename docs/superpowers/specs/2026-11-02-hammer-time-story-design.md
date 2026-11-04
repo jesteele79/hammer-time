@@ -1306,7 +1306,7 @@ Every phase ends with all of these green, then the commit on the branch:
 
 ### As built (Phase 1's paintings, 2026-11-04)
 
-- The twelve paintings came back from Codex and are cut in. The SAT walls are 2172 x 724, not the hotel's 1536 x 1024, so the airport has its own wall scale (1.05) and far-plane pan (0.5, the shared one is 0.25); the security wall keeps its last two bays; the sky over the roof is dropped and one sky carries on above all three walls.
+- The twelve paintings came back from Codex and are cut in. The SAT walls first came back 2172 x 724; the owner had them painted again at the hotel's 1536 x 1024 (`sat-tall-far-1..3.png`), and those stand now. The level being half a hotel floor's length, the airport keeps its own wall scale (1.15) and far-plane pan (0.42, the shared one is 0.25), so the whole row is walked past and the ceiling reaches the top of the view.
 - The first level's art budget now counts the airport as well as the lobby, the larger of the two.
 - The sheet's scalpel is the one in his fist; the tray's, the flying and the stuck ones stay drawn, because the painting scaled that small loses its ink against the map.
 

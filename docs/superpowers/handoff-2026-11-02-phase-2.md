@@ -21,20 +21,14 @@ Story Phase 1 is built: the game is one story whose prologue (SAT) and Act 1 pla
 
 ## Phase 1's paintings are all in (2026-11-04)
 
-The airport's and the gate's twelve paintings are cut and synced. **One lesson for the Phase 2 wall prompts:** ask for walls at 1536 x 1024, the hotel's shape, not "the widest the tool offers". The SAT walls came back 2172 x 724: twice as wide and three-quarters as tall, which only fit a level half the hotel's length through `backdrop.far` (its own scale and pan) and a band of sky above the roof. A corridor in the night tower has no sky to carry on into.
+The airport's and the gate's paintings are cut and synced. **One lesson for the Phase 2 wall prompts:** ask for walls at 1536 x 1024, the hotel's shape, with a ceiling to the top edge, never "the widest the tool offers". The SAT walls first came back 2172 x 724 and left a band of sky over the level; the owner had them painted again in this shape (`sat-tall-far-1..3.png`), and those stand now. A level shorter than a hotel floor sets `backdrop.far` (its own wall scale and far-plane pan), so its whole row is walked past.
 
-## Waiting on Codex (2026-11-04)
-
-The owner has two prompts, and the game is not broken while they wait:
-
-- **`art/outgoing/batch-sat-tall-walls-codex.txt`:** the airport's three walls again at 1536 x 1024 with a ceiling to the top edge, saved as `art/incoming/backdrops/sat-tall-far-1..3.png`. The owner asked for these, so bring them in when they arrive: write `art/cuts/wall-sat-tall-far-N.json` (`seams` through each edge pillar, `floor`, no `roof` or `above`; check with `node scripts/art-grid.mjs wall/sat-tall-far-N`), point `walls` in `src/sim/levels/sat.ts` at the new names, and set `far` from the row's width so the walk still sees it end to end: about `{ pan: 0.43, scale: 1.13 }`, with its floor about 870 px under the view's top. The check "SAT's walls are all seen on the walk" in `scripts/render.check.mjs` holds the old widths: update them. Remove the old three from the `walls` list only; the owner's files stay. Re-render the SAT start picture.
-- **`art/outgoing/batch-hammer-back-codex.txt`:** `art/incoming/hammer/body-affliction-back.png`, the one open question in the spike's verdict. When it arrives, `node artifacts/spike-prepare.mjs` swaps it into the spike if `artifacts/spike/` is still there; if not, judge it on a quad in the first real hallway. Tell the owner what you see.
 
 ## Phase 2's asks
 
 1. **The spike is done** (spec §12.4). Its verdict is `docs/superpowers/notes/2026-11-04-3d-spike-verdict.md`: read it before planning 2-3. It asks the plan to decide the hall's width (3 m recommended over §8.3's 2.4 m), what he swings at under the chase camera, and the 3D view's density ceiling.
 2. **The plan** for 2-1 to 2-4, written in a Fable session with the owner (brainstorm first), approved before any build.
-3. **The Phase 2 paintings of spec §16:** `cast/guard`, `cast/housekeeper`, `cast/titanium`; the lounge and its sheet; the tower's walls and sheet; the suite from a Blender render painted over; Hammer's back view and frames and the cast's back views. Write the paste-ready Codex prompts early, so the owner can paint while you build.
+3. **The Phase 2 paintings of spec §16:** `cast/guard`, `cast/housekeeper`, `cast/titanium`; the lounge and its sheet; the tower's walls and sheet; the suite from a Blender render painted over; Hammer's back-view frames (his still back view is in, `hammer/body-affliction-back.png`, and reads as him) and the cast's back views. Write the paste-ready Codex prompts early, so the owner can paint while you build.
 4. **Blender 5.2** (`%LOCALAPPDATA%\Programs\Blender Foundation\Blender 5.2`) for the hallway's set and the suite's render.
 5. 2-1 is shown "coming" on the strip until it is built; Phase 2 removes the "Act 2 is coming" notice by building the level, and the home screen's scene becomes the lobby at night once Act 1 is done.
 

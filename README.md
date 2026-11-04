@@ -211,16 +211,17 @@ he has done it once: Space jumps, Shift runs, ↓ while running slides, H swings
 F fires a snot rocket, T towels off. His thoughts come once as he passes their
 marks ("Pre-check. I AM pre-check.", "Take your shoes off? These are loafers.",
 "It's Coke Zero. It's not a liquid. It's a lifestyle.", "Seven minutes.
-Plenty."). **The paintings**: the three walls (`art/incoming/backdrops/sat-far-1..3.png`,
-cut by `art/cuts/wall-sat-far-N.json`), the mid sheet and the column
+Plenty."). **The paintings**: the three walls (`art/incoming/backdrops/sat-tall-far-1..3.png`,
+cut by `art/cuts/wall-sat-tall-far-N.json`), the mid sheet and the column
 (`sat-mid.png`, `sat-fore.png`), the skycap and the TSA agent (`cast/skycap-1.png`,
 `cast/tsa-1.png`, whose navy second agent is a recolor) and the sheet of small pieces
 (`props/sat-sheet.png`); the seats and the podium are the gate's sheet's, and the
-bartender wears the restaurant server's painting. These walls are twice as wide as a
-hotel wall and the level half as long, so `backdrop.far` in `sat.ts` gives the airport
-its own wall scale and a far plane that pans at 0.5 instead of 0.25: the curb is seen at
-the curb and gate B7's wall at the gate. Their cuts drop the sky painted over the roof
-(`roof`) and carry one sky above all three (`above`). The X-ray, the scanner, the
+bartender wears the restaurant server's painting. The level is half a hotel floor's
+length, so `backdrop.far` in `sat.ts` gives the airport its own wall scale and a far
+plane that pans at 0.42 instead of 0.25: the curb is seen at the curb and gate B7's wall
+at the gate, and the painted ceiling reaches the top of the view. The first, wider walls
+(`sat-far-1..3.png`) stay in the art folder with their cuts; no level stands them. The
+X-ray, the scanner, the
 walkway and the door are drawn in code (`src/render/venue-sat.ts`); without a painting
 (or with `&noart=1`) a drawn terminal wall and stand-ins take the others' places.
 

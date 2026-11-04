@@ -1282,17 +1282,16 @@ export function skinWeights(positions, rig, layer) {
 }
 
 /**
- * A wall painting cropped between its seams (the middles of its edge pilasters), full height from its roof (the first
- * row, unless the cut says the painting has sky over its roof to drop); its floor line kept and its top and bottom rows'
- * mean colors, which the wall carries on above and below itself (the cut's `above` in place of the top row's).
+ * A wall painting cropped between its seams (the middles of its edge pilasters), full height; its floor line kept and its
+ * top and bottom rows' mean colors, which the wall carries on above and below itself (the cut's `above` in place of the
+ * top row's).
  */
 export async function wallCrop(png, cut) {
   const meta = await sharp(png).metadata();
   const [a, b] = cut.seams;
-  const roof = cut.roof ?? 0;
   if (!(a >= 0 && b <= meta.width && b - a > 200)) throw new Error(`wallCrop: seams ${a}..${b} outside the painting's ${meta.width} px`);
-  if (!(cut.floor > roof && cut.floor < meta.height)) throw new Error(`wallCrop: floor line ${cut.floor} outside the painting's ${meta.height} px`);
-  const out = await sharp(png).extract({ left: a, top: roof, width: b - a, height: meta.height - roof }).png().toBuffer();
+  if (!(cut.floor > 0 && cut.floor < meta.height)) throw new Error(`wallCrop: floor line ${cut.floor} outside the painting's ${meta.height} px`);
+  const out = await sharp(png).extract({ left: a, top: 0, width: b - a, height: meta.height }).png().toBuffer();
   const { data } = await sharp(out).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const w = b - a;
   const rowColor = (y) => {
@@ -1300,7 +1299,7 @@ export async function wallCrop(png, cut) {
     for (let x = 0; x < w; x++) for (let c = 0; c < 3; c++) sum[c] += data[(y * w + x) * 4 + c];
     return "#" + sum.map((v) => Math.round(v / w).toString(16).padStart(2, "0")).join("");
   };
-  return { png: out, width: w, height: meta.height - roof, floor: cut.floor - roof, top: cut.above ?? rowColor(0), bottom: rowColor(meta.height - roof - 1) };
+  return { png: out, width: w, height: meta.height, floor: cut.floor, top: cut.above ?? rowColor(0), bottom: rowColor(meta.height - 1) };
 }
 
 /**

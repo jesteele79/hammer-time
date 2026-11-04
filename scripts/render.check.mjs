@@ -950,7 +950,7 @@ test("a venue may set its far plane's scale and pan; the others keep the formula
 
 test("SAT's walls are all seen on the walk: the curb's left edge at the start, gate B7's wall at the end, nothing past them", () => {
   // The cut walls' widths; half the view at 16:9 and zoom 1 in world px.
-  const walls = [{ width: 2158 }, { width: 878 }, { width: 2158 }];
+  const walls = [{ width: 1425 }, { width: 1425 }, { width: 1425 }];
   const half = 1036;
   const pan = farPan(SAT_LEVEL);
   const b = SAT_LEVEL.bounds;
@@ -961,6 +961,8 @@ test("SAT's walls are all seen on the walk: the curb's left edge at the start, g
   const seen = [(b.x + half) * pan - half, (b.x + b.w - half) * pan + half];
   assert.ok(first > seen[0] - 100 && first < seen[0] + 100, `the row starts where the walk's view starts: ${first} against ${seen[0]}`);
   assert.ok(last > seen[1] - 100 && last < seen[1] + 100, `the row ends where the walk's view ends: ${last} against ${seen[1]}`);
+  // The walls' floor line is 788 px down: at this scale the painted ceiling reaches the top of a 1080p view, 870 px over the floor.
+  assert.ok(788 * scale >= 870, `the walls fill the view: ${788 * scale}`);
 });
 
 test("the ground under him: the lowest floor at his x, up the library steps and onto the dock; none over a pit", () => {

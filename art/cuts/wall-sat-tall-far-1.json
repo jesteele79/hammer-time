@@ -1,0 +1,6 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/sat-tall-far-1.png (the curb's canopy and doors on the left third, the check-in hall on the right), the walls the airport stands now. Each edge holds a whole cream pillar, outlined on both sides (14 to 95, 1447 to 1520), so the seams are their middles, as the lobby's are. floor is the middle of the base's ink line (788 to 790). above is the painted ceiling as WALL_TINT shows it, so the ceiling carried on above the painting has no seam. Check with: node scripts/art-grid.mjs wall/sat-tall-far-1.",
+  "floor": 789,
+  "seams": [55, 1484],
+  "above": "#c1a379"
+}

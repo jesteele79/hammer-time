@@ -1,0 +1,6 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/sat-tall-far-3.png (the concourse's windows, the bar's and the newsstand's shelves, gate B7's wall). Each edge holds a whole cream pillar (14 to 96, 1439 to 1521), so the seams are their middles. floor is the middle of the yellow base's lower ink line (786 to 790). above is the painted ceiling as WALL_TINT shows it. Check with: node scripts/art-grid.mjs wall/sat-tall-far-3.",
+  "floor": 788,
+  "seams": [55, 1480],
+  "above": "#c1a37e"
+}

@@ -1,6 +1,5 @@
 {
-  "note": "Coordinates are pixels of art/incoming/backdrops/sat-far-3.png (the concourse's windows, the bar's and the newsstand's shelves, gate B7's wall). Each edge keeps a whole cream pillar, its outer ink line at 7 to 9 and 2162 to 2164. floor is the middle of the yellow base's lower ink line (575 to 577). The painting has no sky over its roof, whose ink line is its first rows: above is the other walls' sky, not that line's black. Check with: node scripts/art-grid.mjs wall/sat-far-3.",
+  "note": "Coordinates are pixels of art/incoming/backdrops/sat-far-3.png (the concourse and the gate), the first, wide painting, which sat-tall-far-3.png replaced in the game; no level stands it now. Check with: node scripts/art-grid.mjs wall/sat-far-3.",
   "floor": 576,
-  "seams": [7, 2165],
-  "above": "#147dac"
+  "seams": [7, 2165]
 }

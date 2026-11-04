@@ -1,0 +1,6 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/sat-tall-far-2.png (the security wall). Each edge holds a whole cream pillar (13 to 96, 1439 to 1522), so the seams are their middles. floor is the middle of the base's lower ink line (784 to 787). above is the painted ceiling as WALL_TINT shows it. Check with: node scripts/art-grid.mjs wall/sat-tall-far-2.",
+  "floor": 786,
+  "seams": [55, 1480],
+  "above": "#c2a784"
+}

@@ -694,7 +694,9 @@ test("a wall is cropped between its seams, full height, its floor line kept and 
 
 test("the airport's and the gate's paintings are all in: the walls, the pieces, the two sheets' names and the three people", () => {
   const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
-  for (const wall of ["sat-far-1", "sat-far-2", "sat-far-3"]) assert.ok(reg.walls[wall], wall);
+  for (const wall of SAT.backdrop.walls) assert.ok(reg.walls[wall], wall);
+  assert.ok(SAT.backdrop.walls.every((wall) => wall.startsWith("sat-tall-far-")), "the taller walls");
+  for (const wall of SAT.backdrop.walls) assert.ok(reg.walls[wall].height === 1024, `${wall} is the hotel's shape`);
   for (const piece of ["sat-mid-1", "sat-mid-2", "sat-mid-3", "sat-fore-1"]) assert.ok(reg.pieces[piece], piece);
   assert.deepEqual(Object.keys(reg.gate.pieces).sort(), ["box", "cart", "kiosk", "podium", "scalpel", "seats", "stanchion"]);
   assert.deepEqual(Object.keys(reg.sat.pieces).sort(), ["bin", "kiosk", "pretzel", "sign", "stanchion", "van"]);
@@ -702,15 +704,13 @@ test("the airport's and the gate's paintings are all in: the walls, the pieces, 
   for (const person of ["skycap-1", "tsa-1", "gate-agent"]) assert.ok(reg.cast.bodies[person], person);
 });
 
-test("a wall painted with sky over its roof: the rows above the roof are dropped, its floor counted from the roof, the color above it its cut's", async () => {
+test("a wall's cut can name the color carried on above it, so a tinted wall meets it without a seam", async () => {
   const W = 400, H = 300;
   const rgba = Buffer.alloc(W * H * 4);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) rgba.set(y < 20 ? [10, 120, 200, 255] : [200, 190, 170, 255], (y * W + x) * 4);
+  for (let i = 0; i < W * H; i++) rgba.set([200, 190, 170, 255], i * 4);
   const png = await sharp(rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer();
-  const w = await wallCrop(png, { floor: 220, seams: [0, 400], roof: 20, above: "#147dac" });
-  assert.deepEqual([w.width, w.height, w.floor, w.top], [400, 280, 200, "#147dac"]);
-  assert.equal((await sharp(w.png).metadata()).height, 280);
-  await assert.rejects(wallCrop(png, { floor: 10, seams: [0, 400], roof: 20 }), /floor/);
+  const w = await wallCrop(png, { floor: 220, seams: [0, 400], above: "#147dac" });
+  assert.deepEqual([w.width, w.height, w.floor, w.top], [400, 300, 220, "#147dac"]);
 });
 
 test("a sheet of objects on green is cut into one piece each, left to right, near shapes joined, specks dropped, each with its base", async () => {

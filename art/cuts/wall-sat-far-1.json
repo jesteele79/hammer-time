@@ -1,7 +1,5 @@
 {
-  "note": "Coordinates are pixels of art/incoming/backdrops/sat-far-1.png (the curb's canopy and doors on the left third, the check-in hall on the right). The left edge is the curb's plain brick wall; the right edge keeps the hall's cream pillar whole, its right ink line ending at 2157, so the security wall starts behind a whole pillar. floor is the middle of the base's ink line (569 to 572), the same row in the curb and the hall. roof is the first row of the roof's ink line (15): the sky painted above it is dropped, with its stray white speck, and above carries on over all three walls, the painted sky as WALL_TINT shows it. Check with: node scripts/art-grid.mjs wall/sat-far-1.",
+  "note": "Coordinates are pixels of art/incoming/backdrops/sat-far-1.png (the curb and the hall), the first, wide painting, which sat-tall-far-1.png replaced in the game; no level stands it now. Check with: node scripts/art-grid.mjs wall/sat-far-1.",
   "floor": 570,
-  "seams": [0, 2158],
-  "roof": 15,
-  "above": "#147dac"
+  "seams": [0, 2158]
 }

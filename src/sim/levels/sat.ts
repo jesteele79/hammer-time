@@ -98,9 +98,9 @@ export const SAT: Level = {
     { id: "bartender", person: "bartender-1", x: 6300, y: -180, carry: "can" },
   ],
   backdrop: {
-    walls: ["sat-far-1", "sat-far-2", "sat-far-3"],
-    // The walls are twice as wide as a hotel wall and the level half as long: at the shared pan the curb and the gate would never come into view.
-    far: { pan: 0.5, scale: 1.05 },
+    walls: ["sat-tall-far-1", "sat-tall-far-2", "sat-tall-far-3"],
+    // The level is half a hotel floor's length: at the shared pan the curb and the gate would never come into view. This scale fills a 1080p view to its top.
+    far: { pan: 0.42, scale: 1.15 },
     mid: [
       { name: "sat-mid-1", x: 1800 },
       { name: "sat-mid-2", x: 4300 },

@@ -1,6 +1,6 @@
 # The 3D spike's verdict (story spec §12.4), 2026-11-04
 
-**Verdict: three.js, with the inked look. The drawn perspective corridor is not needed.** One question stays open until Codex paints his back: whether the back view reads as him. His painted profile already does, unmistakably.
+**Verdict: three.js, with the inked look. The drawn perspective corridor is not needed.** Codex's painting of his back (`art/incoming/hammer/body-affliction-back.png`) reads as him at a glance in the hall, and his painted profile already did.
 
 The spike's code is throwaway and stays out of the repo (`artifacts/spike/`, git-ignored): a Blender script that builds a stand-in hallway from boxes, three.js in its own folder so the owner's lockfile was not touched, and a page with a live Pixi canvas underneath, the three.js canvas over it and a DOM panel over that.
 
@@ -8,9 +8,9 @@ The spike's code is throwaway and stays out of the repo (`artifacts/spike/`, git
 
 | Question | Answer | How it was checked |
 | --- | --- | --- |
-| Does the cut-out read as him in a lit corridor? | **The profile: yes.** The back view: not yet known. | His real rig's swing frames, flat on a quad in the hall, look like him and sit well in the inked set. The back view in the spike is a rough drawn stand-in; `art/outgoing/batch-hammer-back-codex.txt` asks Codex for the real one. Swap it in with `node artifacts/spike-prepare.mjs` and look again. |
+| Does the cut-out read as him in a lit corridor? | **Yes, from behind and in profile.** | The owner's back painting and his real rig's swing frames, flat on a quad in the hall, both look like him and sit well in the inked set. The shirt's blue rose and wings carry him from behind. |
 | Does a turn to profile on the swing look right? | **Yes, with one thing to decide.** | The quad squeezes to an edge in 0.07 s and opens as his profile, and back. It reads as a quick turn. The thing to decide: in profile he faces the side wall while what he is hitting is ahead of him down the hall. See "For the plan". |
-| Does 60 fps hold at 1080p at the ultra tier? | **Yes at density 1. No at density 2 on the integrated card.** | The headless browser runs on the AMD Radeon 780M: 93 fps inked and 110 fps lit at 1920 by 1080, density 1, with shadows, bloom, 4x antialiasing and Pixi alive underneath. At density 2 (a 4K buffer): 21 fps. The RTX 4070 was not measured. |
+| Does 60 fps hold at 1080p at the ultra tier? | **Yes at density 1. No at density 2 on the integrated card.** | The headless browser runs on the AMD Radeon 780M at 1920 by 1080, density 1, with shadows, bloom, 4x antialiasing and Pixi alive underneath: 93 fps inked and 110 lit with the stand-in, and a steady 60 with the painting (both looks read exactly 60 in that run, which looks like a frame cap rather than the limit). At density 2 (a 4K buffer): 20 to 21 fps. The RTX 4070 was not measured. |
 | Does A step him left? | **Yes.** | Measured under the chase camera in the browser: from 0.500 of the screen's width, A takes him to 0.421 and D to 0.577. |
 
 ## What it found for the plan
@@ -32,4 +32,4 @@ The spike's code is throwaway and stays out of the repo (`artifacts/spike/`, git
 
 ## Not answered here
 
-The real back painting and its walk and run frames; a phone (nothing was measured on one); the RTX 4070; memory across a whole run with the Pixi textures alive; the real HUD; a set with the moving props of §8.3.
+His walk and run frames from behind; a phone (nothing was measured on one); the RTX 4070; memory across a whole run with the Pixi textures alive; the real HUD; a set with the moving props of §8.3.
