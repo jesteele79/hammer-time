@@ -106,6 +106,6 @@ export const SAT: Level = {
       { name: "sat-mid-2", x: 4300 },
       { name: "sat-mid-3", x: 6000 },
     ],
-    fore: [{ name: "sat-fore-1", x: 2600 }],
+    fore: [{ name: "sat-fore-1", x: 2600, scale: 0.55 }],
   },
 };

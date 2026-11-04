@@ -884,6 +884,17 @@ test("SAT's seats and podium are the gate sheet's once it is in, each on its flo
   assert.equal(k.dx + k.dw / 2, 1650);
 });
 
+test("the sheet's departures sign stands on the floor at his height, not on a column up over the ceiling", () => {
+  const f = SAT.furniture.find((x) => x.kind === "departures");
+  const g = new PaintedGraphics();
+  assert.ok(drawSatFurniture(g, f, { sign: paintedPiece(250, 320) }));
+  const [t] = textures(g);
+  assert.equal(t.dy + t.dh, f.y + f.h, "on the floor");
+  assert.ok(t.dh < 345, `no taller than he is: ${t.dh}`);
+  assert.equal(t.dx + t.dw / 2, f.x + f.w / 2);
+  assert.equal(g.context.instructions.filter((i) => i.action === "fill").length, 0, "no column under it");
+});
+
 test("the sheet's scalpel, once in, runs from the butt to the tip with its painted blade at the tip; before that the drawn one stands in", () => {
   const drawn = new PaintedGraphics();
   drawScalpel(drawn, { x: 0, y: 0 }, { x: 100, y: 0 });

@@ -189,13 +189,14 @@ export function drawSatFurniture(g: Graphics, f: Furniture, pieces: SatPieces | 
       return true;
     }
     case "departures": {
-      // A column carrying the departures board: dark, its rows of flights unlit (or the sheet's sign in its place).
       const cx = f.x + f.w / 2;
-      g.rect(cx - 50, f.y + 260, 100, f.h - 260).fill(tones("#d8d2c4").base).stroke(INK);
       if (pieces?.sign) {
-        stand(g, pieces.sign, cx, f.y + 260, f.w);
+        // The sheet's sign has its own post: it stands on the floor, the screen at his eye.
+        stand(g, pieces.sign, cx, floor, SIGN_W);
         return true;
       }
+      // A column carrying the departures board: dark, its rows of flights unlit.
+      g.rect(cx - 50, f.y + 260, 100, f.h - 260).fill(tones("#d8d2c4").base).stroke(INK);
       g.roundRect(f.x, f.y, f.w, 260, 10).fill(C.screen).stroke(INK);
       for (let y = f.y + 40; y < f.y + 240; y += 34) g.rect(f.x + 16, y, f.w - 32, 14).fill({ color: "#e0a83a", alpha: 0.18 });
       return true;
@@ -229,6 +230,8 @@ export function drawSatFurniture(g: Graphics, f: Furniture, pieces: SatPieces | 
   return false;
 }
 
+/** The sheet's departures sign, its board about as high as he stands. */
+const SIGN_W = 240;
 /** The check-in hall's end: its counters are the kiosks (the concourse's counter is the bar's top). */
 const HALL_END = 3200;
 /** The sheet's kiosk behind its counter, about a head over the top he jumps onto. */

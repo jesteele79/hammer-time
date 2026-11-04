@@ -1,0 +1,40 @@
+HAMMER TIME — THE AIRPORT'S TALLER WALLS, ONE CODEX PROMPT
+
+The airport's walls came out wider and shorter than the hotel's, which leaves a band of sky above them in the game. This
+prompt paints the same three walls in the hotel's shape, so they fill the screen. Paste everything below the line into a
+new Codex chat in the mode that works on this laptop. When it has saved them, tell me and I bring them into the game. The
+game keeps the current walls until then, so nothing is broken while you wait.
+
+------------------------------------------------------------------------------------------
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 6.
+
+These three pictures replace three existing airport walls in a game. They show the same places in the same style, in a taller shape that matches the game's other walls.
+
+1. Study these images:
+   - art\incoming\backdrops\sat-far-1.png, sat-far-2.png, sat-far-3.png — the walls being replaced: their places, colors, line weight and finish. Keep all of those.
+   - art\incoming\backdrops\lobby-far-1.png, lobby-far-2.png, lobby-far-3.png — the shape to match: 1536 x 1024, landscape, with the wall's base about three-quarters of the way down.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+2. The style, for all three: inked caricature illustration, thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look.
+
+3. The shape and the layout, for all three:
+   - Exactly 1536 x 1024 pixels, landscape. Do not use a wider size. Do not upscale or resize afterward.
+   - Seen straight on, every horizontal line level, no side walls or corners.
+   - An indoor ceiling runs off the very top edge of the picture: a tall ceiling in a warm beige with recessed lights, then the blue fascia band with its yellow trim below it, then the wall. No roof line and no sky at the top of the picture. The top row of pixels is plain ceiling, one flat color.
+   - The wall's base is one straight level line about three-quarters of the way down, the same row in all three pictures.
+   - Plain speckled cream terrazzo below that line to the bottom edge, with nothing standing or lying on it. (The curb's part of the first picture has plain grey concrete instead.)
+   - Each picture's left and right edges each show a whole cream pillar with a plain gold-trimmed base, outlined on both sides and not cut in half, so the three can stand side by side.
+   - Nothing stands in front of the wall or on the floor. No people. No text, letters, numbers, logos or signatures anywhere: signs, screens, boards, tails and planes are blank. The airline's colors (a bold blue, a warm red, a sunny yellow) are welcome; never a name, a heart or a logo.
+
+4. The three pictures, in this order:
+   - sat-tall-far-1.png — the curb and the check-in hall. Left third: the terminal's outside wall under a wide concrete canopy, glass doors, a blank blue sign, a yellow curb line, a sunlit sky and green trees through the canopy's gap, below the ceiling band and not at the top of the picture. Right two-thirds: the check-in hall: exactly three blue-and-white airline counters, a blank dark screen above each, and one blank departures board high on the wall.
+   - sat-tall-far-2.png — the security wall. A plain grey-blue wall in cold light, exactly two blank blue signs on posts along its base, and between them a small grey X-ray machine housing far back against the wall. No sign post stands in front of a machine.
+   - sat-tall-far-3.png — the concourse and gate B7. Left two-thirds: a long window band from about a sixth to about three-fifths of the way down, dark mullions evenly spaced, the sunny apron, a distant terminal and two blue airliners with red and yellow belly stripes at jet bridges outside. Under the windows a plain warm wall, with a bar's back shelves of unlabeled bottles at the left and a newsstand's shelves of unlabeled bags and cans beside them. Right third: gate B7's wall: a blank gate sign on a post, the jet bridge door, a window with a plane's nose outside.
+
+5. Make them one at a time, in that order. Once sat-tall-far-1.png is kept, attach it to the other two generations so their ceiling, fascia band, floor line and light match it. Before you keep each one, check every point in steps 3 and 4. If any point fails, generate again (up to five tries) and keep the best one.
+
+6. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\sat-tall-far-1.png, sat-tall-far-2.png and sat-tall-far-3.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+7. When all three are saved, stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.

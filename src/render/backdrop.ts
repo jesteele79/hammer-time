@@ -192,6 +192,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     const s = await piece(f.name);
     if (!s) continue;
     s.position.set(f.x * PARALLAX.fore, FORE.down);
+    s.scale.set(f.scale ?? 1);
     s.tint = FORE.tint;
     s.filters = [new BlurFilter({ strength: FORE.blur })];
     grounded.fore.addChild(s);

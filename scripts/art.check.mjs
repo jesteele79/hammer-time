@@ -1028,6 +1028,16 @@ test("his body and heads and the cast's are published at the painting's full siz
   assert.equal(FIRST_LEVEL_BUDGET, 20e6);
 });
 
+test("the check-in hall's column stands a little over twice his height, its clock and screen in the view, not a wall across it", () => {
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  const fore = SAT.backdrop.fore.find((f) => f.name === "sat-fore-1");
+  const piece = reg.pieces["sat-fore-1"];
+  const scale = fore.scale ?? 1;
+  assert.ok(piece.height * scale < 760, `its height: ${piece.height * scale}`);
+  assert.ok(piece.width * scale < 240, `its width: ${piece.width * scale}`);
+  assert.ok(piece.height * scale > 600, "still a column");
+});
+
 test("the first level's budget counts the airport, where a new journey starts, as well as the lobby, where a saved one can", () => {
   const dir = mkdtempSync(join(tmpdir(), "first-level-"));
   for (const sub of ["hammer", "cast", "backdrops", "products", "sat", "gate"]) mkdirHat(join(dir, sub));
