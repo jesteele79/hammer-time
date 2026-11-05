@@ -35,6 +35,7 @@ import { STOP_LEVELS } from "../sim/levels";
 import type { Carry, Snapshot } from "../sim/journey";
 import { shiftFrom, type StoryId } from "../sim/story";
 import { PIG_ID } from "../sim/pig";
+import { BOSS_ID } from "../sim/boss";
 import { heatZoneAt } from "../sim/hazards";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
@@ -52,6 +53,7 @@ import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
 import { fightFrame } from "./frame";
 import { PIG_HEIGHT, PigView } from "./pig";
+import { BossView } from "./boss-view";
 import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
@@ -264,6 +266,7 @@ export async function startLook(
   };
   const flyers = new Flyers(scene.layers.play, particles, scene.ambient);
   const pigView = new PigView(scene.layers.play, particles);
+  const bossView = new BossView(scene.layers.play, registry, !!opts.noart);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -287,7 +290,8 @@ export async function startLook(
         backdrop.setVisible(false);
         if (!opts.nocast) await cast.preload((level.cast ?? []).map((s) => s.person));
         // The pig's painting loads with its venue; the drawn pig stands in if it fails.
-        if (level.boss && !opts.noart && !stopped) await pigView.load(registry);
+        if (level.boss?.kind === "pig" && !opts.noart && !stopped) await pigView.load(registry);
+        if (level.boss && level.boss.kind !== "pig" && !stopped) await bossView.load(level.boss.kind);
         if (stopped) {
           venue.destroy();
           return;
@@ -836,6 +840,22 @@ export async function startLook(
       case "pigRefill":
         particles.emit("glint", e.x, e.y, 6);
         break;
+      case "bossHit":
+        words.say(e.by === "bonk" ? "BONK!" : "SNOT!", e.x, e.y - 40, false, face, view);
+        particles.emit("impact", e.x, e.y, 14);
+        break;
+      case "bossDown":
+        words.say("HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
+        break;
+      case "bossWindup":
+        words.say("!", e.x, e.y - 60, true, face, view);
+        break;
+      case "chute":
+        words.say("DOWN THE CHUTE", e.x, e.y - 200, true, face, view);
+        break;
+      case "slip":
+        words.say("WHOA!", e.x, e.y - 330, false, face, view);
+        break;
       default:
         break;
     }
@@ -1028,6 +1048,7 @@ export async function startLook(
     }
     if (!on && shown) lighting.setGroup(shown);
     character.container.visible = cast.container.visible = props.container.visible = flyers.container.visible = pigView.container.visible = !on;
+    if (on) bossView.container.visible = false;
     objects.setVisible(!on);
     banquet.setVisible(id === "hungry");
     lounge.setVisible(id === "lounge");
@@ -1604,6 +1625,8 @@ export async function startLook(
     // The pig and its tufts sort behind the cast: nothing of it is ever over his face.
     pigView.sort(y - 0.7);
     pigView.sync(prev.pig, cur.pig, alpha, simDt);
+    bossView.sort(y - 0.7);
+    bossView.sync(cur.boss, time);
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -1741,12 +1764,12 @@ export async function startLook(
     lighting.update(dt);
     views.get(game.level.id)?.venue.update(simDt);
     views.get(game.level.id)?.venue.setDoors(cur.doors);
-    views.get(game.level.id)?.venue.setChained(game.level.doors.some((d) => d.locked) && cur.pig?.state !== "defeated");
+    views.get(game.level.id)?.venue.setChained(game.level.doors.some((d) => d.locked) && (cur.boss ? cur.boss.state !== "down" : cur.pig?.state !== "defeated"));
     words.update(simDt, face, scene.view());
     // On the home screen the title stands behind him: his thoughts rise on his far side, over the scene, not under the words.
     const titled = game.mode === "title" && !!game.level.home;
     bubbles.update(simDt, { crown: at.crown, face, facing: titled ? (-h.facing as 1 | -1) : h.facing, view: titled ? titleView() : scene.view() });
-    speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : cast.crownOf(id)), face, scene.view());
+    speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : id === BOSS_ID && bossView.crown ? { ...bossView.crown, facing: 1 as const } : cast.crownOf(id)), face, scene.view());
     particles.update(simDt, face);
     vignette.width = scene.width;
     vignette.height = scene.height;
@@ -1756,6 +1779,7 @@ export async function startLook(
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, clip, walkOut: { ...walkOut } };
+      window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.carrying = objects.carrying;
@@ -2063,6 +2087,10 @@ export async function startLook(
       pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }) {
         if (world.pig) Object.assign(world.pig, o, o.state === "recover" ? { timer: 30, vx: 0 } : {});
       },
+      /** The level's boss set as the checks want it: `state: "down"` beats it. */
+      boss(o: { hp?: number; state?: string }) {
+        if (world.boss) Object.assign(world.boss, o);
+      },
       /** The running round: its clock, dishes on a rival's plate, his line locked on a rival's plate, dishes landed on his. */
       quest(o: { time?: number; plate?: { who: RivalId; kinds: FoodKind[] }; aim?: RivalId; eat?: FoodKind[] }) {
         const q = game.quest;
@@ -2101,6 +2129,7 @@ export async function startLook(
       objects.destroy();
       cast.destroy();
       pigView.destroy();
+      bossView.destroy();
       banquet.destroy();
       lounge.destroy();
       gate.destroy();

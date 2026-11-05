@@ -1,4 +1,5 @@
 import type { Npc } from "./cast";
+import type { Boss } from "./boss";
 import type { Mover } from "./movers";
 import type { Missile } from "./missiles";
 import type { Move } from "./moves";
@@ -113,4 +114,4 @@ export type Target = {
   spilled: boolean;
 };
 
-export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[] };
+export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null };

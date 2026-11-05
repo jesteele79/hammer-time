@@ -17,6 +17,7 @@ import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
+import { createBoss } from "./boss";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
@@ -254,7 +255,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.targets = level.carts.map((x, i) => createCart(i + 1, x, floorAt(world.stage, x) ?? 0));
     world.swingDoors = createSwingDoors(level.swingDoors ?? []);
     // The gift shop's pig sleeps at its spot, fresh, each time the venue is laid out.
-    world.pig = level.boss ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
+    world.pig = level.boss?.kind === "pig" ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
+    world.boss = level.boss && level.boss.kind !== "pig" ? createBoss(level.boss, level.boss.y ?? 0) : null;
     world.zone = null;
     world.cast = opts.cast === false ? [] : createCast(level, world.targets, game.run.seed);
     world.missiles = [];
@@ -624,7 +626,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // Only a man still on his feet clocks out: not one knocked flat, or out of time, thrown into the door.
     const standing = h.move?.kind !== "tumble" && !timedOut;
     // A locked exit is chained until the pig is down.
-    const open = (d: DoorSpec) => !d.locked || !world.pig || world.pig.state === "defeated";
+    const open = (d: DoorSpec) => !d.locked || (world.boss ? world.boss.state === "down" : !world.pig || world.pig.state === "defeated");
     const exit = standing
       ? game.level.doors.find((d) => d.kind === "exit" && !d.down && open(d) && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
       : undefined;
@@ -914,6 +916,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     onSlip = slip;
   }
+
+
+
 
   /** The moves he did this step that he had not done this run. */
   function learn(input: Input, ev: GameEvent[]) {

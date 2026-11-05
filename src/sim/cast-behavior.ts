@@ -53,9 +53,11 @@ export const ticketFree = (cast: Npc[]): boolean => attackers(cast) < TICKETS;
 const toward = (n: Npc, h: HeroState): 1 | -1 => (h.x < n.x ? -1 : 1);
 /** On the attack now: what costs a pip on contact. A student's follow-through hurts nobody, the guard's attack is his beam, and the office worker's march only head-on. */
 export const attacking = (n: Npc, h: HeroState): boolean =>
-  n.role !== "student" && n.role !== "guard" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
+  n.role !== "student" && n.role !== "guard" && n.trick !== "wander" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
 /** How much of a rolling cart hurts him: the stacked cases, from the floor up; the brass frame and arch hurt nobody. */
 const CART_HURT = { w: 140, h: 220 } as const;
+/** How hard the drunk guest's bump sends him: about 200 px on a clear floor. */
+const WANDER_PUSH = 1500;
 /** Going about their business: what a touch from him staggers. */
 const BUMPABLE: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice", "chase", "return"]);
 
@@ -85,7 +87,7 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   n.noticed = true;
   n.facing = toward(n, h);
   // The reply-all's own line says it, with the first plane.
-  if (n.trick !== "replyAll") say(n, noticeLine(n), events);
+  if (n.trick !== "replyAll" && n.trick !== "wander") say(n, noticeLine(n), events);
   // The office worker never looks up: a mutter, no double-take.
   if (n.role === "office") return false;
   n.vx = 0;
@@ -364,6 +366,17 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.office;
   const h = w.hero;
   if (n.trick === "replyAll" && replyAll(n, w, events)) return;
+  if (n.trick === "wander") {
+    // The drunk guest: never leaps, never throws, ambles toward him once he has seen him, along his stretch.
+    if (n.noticed && n.rest <= 0 && marchLevel(n, h) && Math.abs(h.x - n.x) <= c.notice) {
+      n.facing = toward(n, h);
+      n.vx = n.facing * c.march;
+      n.act = "walk";
+      if (n.x + n.vx * STEP < n.x0 || n.x + n.vx * STEP > n.x1) n.vx = 0;
+    } else if (n.rest > 0) n.vx = 0;
+    else patrol(n, w, c.march);
+    return;
+  }
   if (n.act === "hide") {
     n.vx = 0;
     if (!sameLevel(n, h) || Math.abs(h.x - n.x) > c.notice || !ticketFree(w.cast)) return;
@@ -598,6 +611,14 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
   }
   if (!overlapsRect(bodyRect(h), npcRect(n))) return;
   const dir: 1 | -1 = toward(n, h) === 1 ? -1 : 1;
+  // Walked into by the drunk guest: pushed along, no pip, and he takes a moment.
+  if (n.trick === "wander" && n.rest <= 0 && h.invuln <= 0 && !(h.vy > 0 && prevHeroY <= n.y - n.h + STOMP.tolerance)) {
+    h.vx = -dir * WANDER_PUSH;
+    n.rest = CAST.office.rest;
+    n.vx = 0;
+    events.push({ type: "castBump", id: n.id, x: n.x, y: n.y - n.h });
+    return;
+  }
   if (h.vy > 0 && prevHeroY <= n.y - n.h + STOMP.tolerance) {
     const landed = strikeNpc(n, "stomp", dir, w, events);
     h.vy = -(jumpHeld ? STOMP.held : STOMP.bounce);

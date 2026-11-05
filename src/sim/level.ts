@@ -100,8 +100,11 @@ export type SwingDoorSpec = { id: string; x: number; y: number; server: string }
  * A fore piece stands at the size it was painted unless it says otherwise.
  */
 export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number } };
-/** The gift shop's fight: where the pig sleeps and the arena he is held in once it wakes (R3 §3.3, §5.1). */
-export type BossSpec = { x: number; arena: [number, number] };
+/**
+ * A level's boss: the gift shop's pig (where it sleeps and the arena he is held in once it wakes, R3 §3.3, §5.1), the
+ * tower's supervisor (where she stands, her flight's top and foot, `y` her landing).
+ */
+export type BossSpec = { kind: "pig" | "supervisor"; x: number; arena: [number, number]; y?: number };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
 /** `follow: "up"`: a tall level's climb: no look-ahead, the floor line kept as he rises. */
@@ -125,7 +128,8 @@ export type CastPerson =
   | "tsa-1"
   | "bartender-1"
   | "guard-1"
-  | "titanium";
+  | "titanium"
+  | "housekeeper-1";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).

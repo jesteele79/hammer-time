@@ -125,7 +125,7 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
   { x: 12500, y: -160, cx: 13200 },
   { x: 13800, y: 0, cx: 14300 },
 ];
-const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium"];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium", "housekeeper-1"];
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
 /** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
 const HEAD_SHARES = [0.22, 0.26];
@@ -677,7 +677,7 @@ export function createBoards(
       caption.position.set(cx - cell / 2 + 12, rowTop(row) + 10);
       board.addChild(caption);
       // Its own view, held in its state for `t` (its clocks stepped at 60 a second), then scaled about its feet.
-      const pig: Pig = { ...createPig({ x: cx, arena: [-1e6, 1e6] }, floor), state, facing: -1, ...o, y: floor - lift * k };
+      const pig: Pig = { ...createPig({ kind: "pig", x: cx, arena: [-1e6, 1e6] }, floor), state, facing: -1, ...o, y: floor - lift * k };
       const v = new PigView(board, particles);
       await v.load(registry);
       v.sync(null, pig, 1, 0);
@@ -784,7 +784,7 @@ export function createBoards(
           // the sort, facing him (the start screen renders it without the cast).
           const view = new PigView(scene.layers.play, particles);
           await view.load(registry);
-          const pig: Pig = { ...createPig({ x: 960, arena: [-1e6, 1e6] }, 0), state: "windup", facing: -1 };
+          const pig: Pig = { ...createPig({ kind: "pig", x: 960, arena: [-1e6, 1e6] }, 0), state: "windup", facing: -1 };
           view.sync(null, pig, 1, 0);
           for (let i = 0; i < 18; i++) view.sync(null, pig, 1, 1 / 60);
           view.sort(-0.7);

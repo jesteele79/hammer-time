@@ -122,13 +122,13 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
     .filter((d) => d.locked)
     .map((d) => {
       const g = new Graphics();
-      for (const a of [-90, 90]) g.moveTo(d.x + a, -380).lineTo(d.x - a, -120).stroke({ width: 14, color: "#8d939c" }).stroke({ width: 4, color: PALETTE.outline, alpha: 0.6 });
-      g.roundRect(d.x - 34, -280, 68, 60, 8).fill("#c9a24a").stroke(INK);
+      for (const a of [-90, 90]) g.moveTo(d.x + a, d.y - 380).lineTo(d.x - a, d.y - 120).stroke({ width: 14, color: "#8d939c" }).stroke({ width: 4, color: PALETTE.outline, alpha: 0.6 });
+      g.roundRect(d.x - 34, d.y - 280, 68, 60, 8).fill("#c9a24a").stroke(INK);
       // Turned about the padlock as it falls.
-      g.pivot.set(d.x, -250);
-      g.position.set(d.x, -250);
+      g.pivot.set(d.x, d.y - 250);
+      g.position.set(d.x, d.y - 250);
       root.addChild(g);
-      return { g, home: { x: d.x, y: -250 }, falling: -1 };
+      return { g, home: { x: d.x, y: d.y - 250 }, falling: -1 };
     });
   let chained = true;
   scene.layers.play.addChild(root);

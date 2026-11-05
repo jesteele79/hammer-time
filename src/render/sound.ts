@@ -69,6 +69,8 @@ const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   hhLock: ["tickSfx"],
   hhLecture: ["harrumph"],
   doggyBag: ["chomp", "power"],
+  bossHit: ["thud"],
+  bossDown: ["clear"],
   hhSwat: ["thud"],
   hhTray: ["ding"],
 };

@@ -149,6 +149,11 @@ export type GameEvent =
   | FaresEvent
   /** Back from a side quest's tally: what it paid. */
   | { type: "questPaid"; quest: QuestId; score: number; grade: string; doggy: boolean; flop: boolean; boxes: number; cans: number; lives: number }
+  /** A boss beside the pig: its telegraph, a wave of what it sends, a hit that counted, and down. */
+  | { type: "bossWindup"; x: number; y: number }
+  | { type: "bossWave"; x: number; y: number; n: number }
+  | { type: "bossHit"; by: "bonk" | "snot"; x: number; y: number; hp: number }
+  | { type: "bossDown"; x: number; y: number; points: number }
   /** Down a laundry chute: a floor lost, and the slide's seconds. */
   | { type: "chute"; x: number; y: number }
   /** He hit a wet floor: spun back, a moment without control. */

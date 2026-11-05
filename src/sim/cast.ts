@@ -51,7 +51,11 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   bartender: "student",
   // The night's security guard: his flashlight stuns (story spec §8.1).
   guard: "guard",
+  // The tower's housekeepers swat with the duster as the agents shove with their hands: no cart.
+  housekeeper: "bellhop",
 };
+/** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
+export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };
 /** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
 export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1" };
 export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
@@ -165,6 +169,8 @@ export type Npc = {
   rng: (() => number) | null;
   /** The reply-all is sent once. */
   replied: boolean;
+  /** The hits that put them out. */
+  maxHits: number;
 };
 
 export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target[], seed = 1): Npc[] {
@@ -226,6 +232,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       trick: s.trick ?? null,
       rng: s.trick ? seededRandom((seed + Math.imul(k + 1, 7919)) >>> 0) : null,
       replied: false,
+      maxHits: CAST_HITS[job] ?? c.hits,
     };
   });
 }
@@ -335,7 +342,7 @@ export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, ev
   n.spills = n.prop;
   n.prop = false;
   n.hat = false;
-  n.out = n.hits >= CAST[n.role].hits;
+  n.out = n.hits >= n.maxHits;
   const points = by === "shield" ? POINTS.shield : by === "puddle" ? POINTS.slip : chain ? 0 : POINTS.down;
   if (n.role === "bellhop" && n.act === "down") {
     // The second hit while he is down: along the marble on his back.

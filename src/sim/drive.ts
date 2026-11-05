@@ -39,6 +39,8 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "
   return i;
 }
 
+/** How near her the climber swings, and how close a cart on the flight comes before he jumps it. */
+const BOSS_FIGHT = { bonk: 170, stand: 30, cart: 280 } as const;
 /** How far ahead the climber sees a chute's gap, a cart or a wet floor, and how near the wall a flight's foot lies. */
 const CLIMB = { gap: 45, cart: 240, slip: 90, foot: 245, towel: 85 } as const;
 
@@ -62,9 +64,21 @@ function climb(level: Level, h: HeroState, i: Input, world?: World): Input {
   i.held[dir > 0 ? "right" : "left"] = true;
   if (world) fight(world, h, i);
   const ahead = (x: number, within: number) => (x - h.x) * dir > 0 && Math.abs(x - h.x) < within;
+  // The supervisor: up the flight between her carts, and at the top beside her bonk her when she waits.
+  const boss = world?.boss;
+  if (boss && boss.state !== "down" && boss.awake && Math.abs(h.y - boss.y) < 100 && Math.abs(boss.x - h.x) < 500) {
+    // Past her, on the side her carts never roll, and facing her.
+    const spot = boss.x - BOSS_FIGHT.bonk;
+    i.held.left = i.held.right = i.held.run = false;
+    if (h.x > spot + BOSS_FIGHT.stand) i.held.left = true;
+    else if (h.x < spot - BOSS_FIGHT.stand) i.held.right = true;
+    else if (h.facing < 0) i.held.right = true;
+    else if (!h.move && boss.state === "waiting") i.held.hammer = i.pressed.hammer = true;
+    return i;
+  }
   const gap = level.chutes?.some((c) => Math.abs(c.y - h.y) < 10 && (dir > 0 ? c.x - h.x > -20 && c.x - h.x < CLIMB.gap : h.x - (c.x + c.w) > -20 && h.x - (c.x + c.w) < CLIMB.gap));
   const slip = level.slips?.some((s) => Math.abs(s.y - h.y) < 10 && ahead(s.x, CLIMB.slip));
-  const cart = world?.movers.some((m) => Math.abs(m.y - h.y) < 10 && ahead(m.x, CLIMB.cart + m.w / 2));
+  const cart = world?.movers.some((m) => (m.onSlope ? m.dir > 0 && Math.abs(m.y - h.y) < 200 && ahead(m.x, BOSS_FIGHT.cart) : Math.abs(m.y - h.y) < 10 && ahead(m.x, CLIMB.cart + m.w / 2)));
   if ((gap || slip || cart || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
   // Too hot to clear a gap at a walk: a towel on a clear stretch.

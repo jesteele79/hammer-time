@@ -32,6 +32,23 @@ const until = (w, done, seconds = 10, held = {}) => { const out = []; for (let i
 const of = (evs, type) => evs.filter((e) => e.type === type);
 const npc = (w, spawn) => w.cast.find((n) => n.spawn === spawn);
 
+test("the housekeepers swat with the duster up close and take two hits; the drunk guest wanders into him without a pip", () => {
+  const w = worldWith([{ id: "hk", person: "housekeeper-1", x: 500, y: 0, x0: 500, x1: 500 }], { x: 400, y: 0 }, { patience: 2 });
+  w.hero.facing = 1;
+  const evs = steps(w, 3);
+  assert.ok(of(evs, "castAttack").length >= 1 && w.hero.patience === 1, `${w.hero.patience}`);
+  const n = w.cast[0];
+  assert.equal(n.role, "bellhop");
+  strikeNpc(n, "mallet", 1, w, []);
+  assert.equal(n.out, false, "one hit is not enough");
+  until(w, () => n.act === "down", 3);
+  strikeNpc(n, "mallet", 1, w, []);
+  assert.equal(n.out, true, "two hits put her out");
+  const d = worldWith([{ id: "drunk", person: "office-2", x: 2300, y: 0, x0: 2000, x1: 2600, trick: "wander" }], { x: 2200, y: 0 }, { patience: 2 });
+  const x = d.hero.x;
+  steps(d, 3);
+  assert.deepEqual([d.hero.patience, Math.abs(d.hero.x - x) > 100, d.missiles.length], [2, true, 0]);
+});
 test("the guard's flashlight stuns him for a second within reach and costs no pip; while stunned his keys do nothing; the lecture freezes the guard", () => {
   const w = worldWith([{ id: "guard", person: "guard-1", x: 500, y: 0, x0: 500, x1: 500 }], { x: 100, y: 0 }, { patience: 2 });
   w.hero.facing = 1;

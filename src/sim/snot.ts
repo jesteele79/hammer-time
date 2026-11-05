@@ -4,6 +4,7 @@ import type { GameEvent } from "./events";
 import { sweptHeadHits } from "./hits";
 import { HEAT, SNOT_FIRE_U, moveU } from "./moves";
 import { floorAt } from "./physics";
+import { bossRect, hitBoss, type Boss } from "./boss";
 import { hitPig, pigRect, type Pig } from "./pig";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
@@ -60,7 +61,7 @@ export function fireSnot(h: HeroState, w: { snot: Snot[]; nextSnot: number }, ev
 
 /** Flight, hits on carts (hot snot goes through one), and puddles where it lands. */
 export function stepSnot(
-  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[]; pig?: Pig | null; still?: boolean },
+  w: { stage: Stage; snot: Snot[]; puddles: Puddle[]; targets: Target[]; cast: Npc[]; pig?: Pig | null; boss?: Boss | null; still?: boolean },
   dt: number,
   events: GameEvent[],
 ): void {
@@ -97,6 +98,13 @@ export function stepSnot(
     if (pig && b.life > 0 && pig.state !== "asleep" && sweptHeadHits(a, b, r, pigRect(pig))) {
       b.life = 0;
       hitPig(pig, "snot", 1, b.x, b.y, events);
+      events.push({ type: "splat", x: b.x, y: b.y, floor: false, hot: b.hot });
+    }
+    // A boss beside the pig stops it the same way; it counts only when she can be hit.
+    const boss = w.boss;
+    if (boss && b.life > 0 && sweptHeadHits(a, b, r, bossRect(boss))) {
+      b.life = 0;
+      hitBoss(boss, "snot", events);
       events.push({ type: "splat", x: b.x, y: b.y, floor: false, hot: b.hot });
     }
     const floor = floorAt(w.stage, b.x, a.y);

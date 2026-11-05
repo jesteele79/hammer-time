@@ -82,7 +82,10 @@ export const TOWER: Level = {
     { id: "hose-4", kind: "pepper", x: -310, y: floorY(4), look: "cabinet" },
     { id: "hose-12", kind: "pepper", x: -310, y: floorY(12), look: "cabinet" },
   ],
-  doors: [{ id: "out", kind: "exit", x: 100, y: floorY(14), label: "FLOOR 14" }],
+  // Chained until the supervisor is down.
+  doors: [{ id: "out", kind: "exit", x: 100, y: floorY(14), label: "FLOOR 14", locked: true }],
+  // She stands at the top of the flight up from floor 11 and sends her carts down it.
+  boss: { kind: "supervisor", x: 1480, y: floorY(12), arena: [1600, 2600] },
   checkpoints: [
     { id: "floor-5", x: 650 + 400, y: floorY(5) },
     { id: "floor-10", x: 1000, y: floorY(10) },
@@ -118,5 +121,13 @@ export const TOWER: Level = {
     { x: 700, y: floorY(6), text: "Housekeeping. HOUSEKEEPING." },
     { x: 1000, y: floorY(10), text: "This is a fire code violation." },
   ],
-  cast: [],
+  // The floor's people (story spec §8.2): housekeepers on 3, 6, 9 and 12, the maintenance man on 8, the drunk guest on 10.
+  cast: [
+    { id: "housekeeper-3", person: "housekeeper-1", x: 1500, y: floorY(3), x0: 1100, x1: 2300 },
+    { id: "housekeeper-6", person: "housekeeper-1", x: 500, y: floorY(6), x0: 0, x1: 1100 },
+    { id: "housekeeper-9", person: "housekeeper-1", x: 2000, y: floorY(9), x0: 1600, x1: 2500 },
+    { id: "housekeeper-12", person: "housekeeper-1", x: 300, y: floorY(12), x0: -100, x1: 900 },
+    { id: "maintenance", person: "bellhop-2", x: 500, y: floorY(8), x0: 100, x1: 1200, recolor: "#4a5a3a" },
+    { id: "drunk", person: "office-2", x: 800, y: floorY(10), x0: 200, x1: 1400, recolor: "#d9c7b8", trick: "wander" },
+  ],
 };

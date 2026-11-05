@@ -253,7 +253,7 @@ const wake = (g) => { g.world.hero.x = 610; return stepsG(g, STEP); };
 test("the gift shop keeps the spec's shape: 4,400 px, 300 s, the arena 600 to 3900 with its clock at the door in, the shelves, the till and the chained exit", () => {
   const L = GIFTSHOP;
   assert.deepEqual([L.id, L.world, L.name, L.length, L.time, L.spawn.x], ["arena", "1-4", "The Pink Menace", 4400, 300, 300]);
-  assert.deepEqual(L.boss, { x: 2600, arena: [600, 3900] });
+  assert.deepEqual(L.boss, { kind: "pig", x: 2600, arena: [600, 3900] });
   assert.deepEqual(L.crates.map((c) => [c.kind, c.x]), [["pepper", 500]]);
   assert.deepEqual(L.checkpoints.map((k) => k.x), [600]);
   assert.deepEqual(L.platforms.map((p) => [p.kind, p.x0, p.x1, -p.y]), [["plush", 1100, 1500, 180], ["plush", 1800, 2200, 360], ["till", 2900, 3500, 180]]);
@@ -334,7 +334,7 @@ test("the HUD shows the pig's bar and counts while the fight is on, the hint nam
   wake(g);
   Object.assign(g.world.pig, { hp: 9, bonks: 2, snots: 1 });
   const hud = hudOf(g, null);
-  assert.deepEqual(hud.boss, { hp: 9, max: 12, bonks: 2, snots: 1, need: 3 });
+  assert.deepEqual(hud.boss, { name: "The Pink Menace", hp: 9, max: 12, bonks: 2, snots: 1, need: 3 });
   assert.equal(hud.hint, "Pig fight · 3 bonks + 3 snots minimum · pepper refills on the left");
   g.world.pig.state = "defeated";
   assert.deepEqual([hudOf(g, null).boss, hudOf(g, null).hint], [null, "The chain is off · walk into CLOCK OUT"]);

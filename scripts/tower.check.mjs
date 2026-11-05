@@ -50,13 +50,14 @@ test("no anchor for a pickup hangs in the air: every one stands over a landing o
     assert.ok(onFloor || onPlat, `${a.x}, ${a.y}`);
   }
 });
-test("the scripted climber reaches the fourteenth floor along the flights, never stuck, never a life lost", () => {
+test("the scripted climber reaches the fourteenth floor along the flights, never stuck, beating the supervisor on the way", () => {
   const g = tower();
   play(g);
   let t = 0;
   let best = 0;
   let since = 0;
-  while (g.mode === "play" && t < 300) {
+  // A life lost to her carts brings him back at the last clock, and he goes on.
+  while (g.mode !== "walkoff" && g.mode !== "over" && t < 400) {
     g.step(drive(g.level, g.world.hero, "climb", g.world));
     t += STEP;
     since += STEP;
@@ -64,9 +65,11 @@ test("the scripted climber reaches the fourteenth floor along the flights, never
       best = -g.world.hero.y;
       since = 0;
     }
-    assert.ok(since < 25, `stuck at ${g.world.hero.x}, ${g.world.hero.y} at ${t.toFixed(1)} s`);
+    assert.ok(since < 120, `stuck at ${g.world.hero.x}, ${g.world.hero.y} at ${t.toFixed(1)} s`);
   }
-  assert.deepEqual([g.mode, g.run.lives, g.run.punched], ["walkoff", 3, ["floor-5", "floor-10"]]);
+  assert.deepEqual([g.mode, g.run.punched], ["walkoff", ["floor-5", "floor-10"]]);
+  assert.ok(g.run.lives >= 1, `${g.run.lives} lives left`);
+  assert.equal(g.world.boss.state, "down", "she is beaten on the way");
 });
 test("a chute drops him a floor for 2 s and no life; the drop below floor 1 is the only pit and brings him back at the last clock", () => {
   const g = tower();
@@ -180,4 +183,78 @@ test("his thoughts at their marks fire on their own floor", () => {
   Object.assign(g.world.hero, { x: mark.x, y: mark.y, onGround: true });
   const evs = until(g, () => false, 0.1);
   assert.ok(of(evs, "think").some((e) => e.text === mark.text));
+});
+
+test("the tower's people: housekeepers on 3, 6, 9 and 12, the maintenance man on 8, the drunk guest on 10", () => {
+  const on = (k) => TOWER.cast.filter((c) => c.y === floorY(k));
+  for (const k of [3, 6, 9, 12]) assert.ok(on(k).some((c) => c.person === "housekeeper-1"), `a housekeeper on ${k}`);
+  assert.equal(on(8)[0].person, "bellhop-2");
+  assert.deepEqual([on(10)[0].person, on(10)[0].trick], ["office-2", "wander"]);
+  const stage = stageOf(TOWER);
+  for (const c of TOWER.cast) assert.equal(floorAt(stage, c.x, c.y - 24), c.y, `${c.id} stands on a landing`);
+});
+test("the supervisor sends three carts a wave down the flight and goes down in three hits between them; the scripted climber beats her", () => {
+  const g = tower();
+  play(g);
+  Object.assign(g.world.hero, { x: 2300, y: floorY(11), onGround: true });
+  g.step(input());
+  const evs = [...g.events, ...until(g, (x) => of(x.events, "bossWave").length > 0, 3)];
+  assert.ok(of(evs, "bossWindup").length >= 1 && g.world.movers.some((m) => m.speed === 300));
+  assert.ok(evs.some((e) => e.type === "castLine" && e.text === "Guests use the elevator."));
+  assert.ok(evs.some((e) => e.type === "think" && e.text === "Guests wait. I don't."));
+  let t = 0;
+  const seen = [];
+  while (g.mode === "play" && t < 200 && g.world.boss.state !== "down") {
+    g.step(drive(g.level, g.world.hero, "climb", g.world));
+    t += STEP;
+    seen.push(...g.events);
+  }
+  assert.deepEqual([g.world.boss.state, g.run.lives >= 1, g.world.movers.some((m) => m.speed === 140 && m.onSlope)], ["down", true, true]);
+  assert.equal(of(seen, "bossHit").length, 3);
+  assert.equal(of(seen, "bossDown")[0].points, 2500);
+  assert.ok(seen.some((e) => e.type === "think" && e.text === "Do not disturb THIS."));
+});
+test("a cart down the flight hurts him unless he jumps it or slides under; it rolls off at the foot", () => {
+  const g = tower();
+  play(g);
+  Object.assign(g.world.hero, { x: 2300, y: floorY(11), onGround: true });
+  g.step(input());
+  until(g, (x) => x.world.movers.some((m) => m.speed === 300), 3);
+  const c = g.world.movers.find((m) => m.speed === 300);
+  assert.equal(c.dir, 1);
+  const x0 = c.x;
+  const y0 = c.y;
+  until(g, () => false, 1);
+  assert.ok(Math.abs(c.x - x0 - 300) < 8, "300 px/s");
+  assert.ok(c.y > y0, "down the slope");
+  until(g, () => !g.world.movers.includes(c), 5);
+  assert.ok(!g.world.movers.includes(c), "gone at the foot");
+});
+test("a masher who only swings at the top of the flight loses a life to the carts", () => {
+  const g = tower();
+  play(g);
+  Object.assign(g.world.hero, { x: 2200, y: floorY(11) - 400 * 0.54, onGround: true });
+  until(g, (x) => x.run.lives < 3, 30, { hammer: true });
+  assert.equal(g.run.lives, 2);
+});
+test("the fourteenth floor's door is locked until she is down", () => {
+  const g = tower();
+  play(g);
+  const door = TOWER.doors[0];
+  Object.assign(g.world.hero, { x: door.x, y: door.y, onGround: true, vx: 0 });
+  until(g, () => false, 0.2);
+  assert.equal(g.mode, "play");
+  assert.match(hudOf(g, null, false, null).hint, /Housekeeping/);
+  g.world.boss.state = "down";
+  until(g, (x) => x.mode !== "play", 0.2);
+  assert.equal(g.mode, "walkoff");
+});
+test("the boss bar names her, and the pig keeps its own", () => {
+  const g = tower();
+  play(g);
+  assert.equal(hudOf(g, null, false, null).boss, null, "not before she is met");
+  Object.assign(g.world.hero, { x: 2300, y: floorY(11), onGround: true });
+  g.step(input());
+  g.step(input());
+  assert.deepEqual([hudOf(g, null, false, null).boss?.name, hudOf(g, null, false, null).boss?.max], ["Housekeeping", 3]);
 });

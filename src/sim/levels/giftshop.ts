@@ -38,7 +38,7 @@ export const GIFTSHOP: Level = {
   routes: [],
   music: "arena",
   hints: { early: 560 },
-  boss: { x: 2600, arena: [600, 3900] },
+  boss: { kind: "pig", x: 2600, arena: [600, 3900] },
   // The plush wall and the shirt wall; at the mid plane the plush shelf, the postcard spinner, the gift boxes, the gumball
   // machine and the crate of plush; in front, the big teddy by the way in (clear of the sign) and the red-draped table past
   // the exit (clear of its door).

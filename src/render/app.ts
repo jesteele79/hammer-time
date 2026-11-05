@@ -136,6 +136,8 @@ export type NextProbe = {
   cast?: { people: Record<number, { person: string; recolor: string | null }>; targets: { id: number; load: string }[]; acts: Record<string, string>; positions: Record<string, { x: number; y: number }>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
   /** The gift shop's pig: its state, where it is, its HP and counts, and whether it is drawn or painted. */
   pig?: { state: string; x: number; hp: number; bonks: number; snots: number; drawn: "drawn" | "painted" } | null;
+  /** The boss beside the pig. */
+  boss?: { kind: string; state: string; hp: number; max: number; x: number; y: number } | null;
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
   dev?: {
     teleport(x: number, y?: number): void;
@@ -143,7 +145,8 @@ export type NextProbe = {
     /** An event as if the sim had sent it (its sound, feel and look): the voice check's taunts. */
     event(e: GameEvent): void;
     charge(): void;
-    give(kind: "can" | "nuts" | "bucees" | "pepper"): void;
+    give(kind: "can" | "nuts" | "bucees" | "pepper" | "keycard"): void;
+    boss(o: { hp?: number; state?: string }): void;
     /** Takes everything in the level he is in, as if he had cleaned it out. */
     clearShelves(): void;
     /** Sets his heat. */

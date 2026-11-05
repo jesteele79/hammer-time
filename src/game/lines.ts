@@ -155,7 +155,7 @@ export const CAST_LINES = {
 } as const;
 
 
-export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard";
+export type CastJobName = "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -244,6 +244,15 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
     bump: none, down: none,
     fall: "Taaab",
     shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null,
+  },
+  // The tower's (story spec §8.2).
+  housekeeper: {
+    notice: ["Housekeeping!", "Did you need towels?"],
+    bump: ["Did you need towels?"],
+    down: ["I'm telling my supervisor.", "I just did this floor."],
+    fall: "Housekeepiiing",
+    shove: ["Sir, that's the service stair.", "Housekeeping!"],
+    warn: none, skid: none, march: none, ambush: none, frozen: "Sir, I—",
   },
   // The night crew (story spec §8.1).
   guard: {

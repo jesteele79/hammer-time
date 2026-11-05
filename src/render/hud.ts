@@ -6,6 +6,7 @@ import { heatZoneAt } from "../sim/hazards";
 import type { CarriedKind } from "../sim/level";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
+import { BOSS_NAMES, bossUp } from "../sim/boss";
 import { GRADES, HUNGRY, baseReach, hungryHint, type Hungry, type HungryResult } from "../sim/quests/hungry/hungry";
 import { FARES, faresHint, groupOf, type Fares, type FaresResult } from "../sim/quests/fares/fares";
 import { QUEST_NAMES } from "../sim/quests/quest";
@@ -55,7 +56,7 @@ export type HudPayload = {
   /** The most pressing thing to know, one line. */
   hint: string;
   /** The pig's bar (R3 §5.2) while the fight is on: its HP and the bonks and snots it still needs. */
-  boss: { hp: number; max: number; bonks: number; snots: number; need: number } | null;
+  boss: { name: string; hp: number; max: number; bonks: number; snots: number; need: number } | null;
   /**
    * The banquet (R4 §9) while its card, its round or its tally is up; null in the shift. `reach` is where his dive stops
    * (his tap's, or the charge so far), `reachBase` his tap's; `door` when it was opened from the BUFFET door; `lecture`
@@ -100,6 +101,7 @@ export function hintOf(game: Game): string {
     if (d.kind === "stash") return `↓ ${d.label} · the stash`;
     if (d.kind === "return") return "↓ at the cart · back to the lobby";
     if (!tierMet(d, game.run.keycards)) return `${d.label} · ${d.opens ?? "closed"}`;
+    if (d.locked && game.world.boss && game.world.boss.state !== "down") return `${d.label} · Housekeeping has the key`;
     if (d.kind === "exit" && d.down) return `↓ ${d.label} · up to the fourteenth floor`;
     if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
     if (d.kind === "gate") return `${d.label} · walk in to board`;
@@ -114,6 +116,7 @@ export function hintOf(game: Game): string {
     const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
     return cleanedOut ? "Staff stash · cleaned out · ↓ at the cart to go back" : "Staff stash · ↓ at the cart to go back";
   }
+  if (bossUp(game.world.boss)) return "Housekeeping · jump her carts or slide under · bonk her when she waits";
   const zone = heatZoneAt(game.world.stage, h);
   if (zone?.kind === "flattop") return "Flat-top · it heats you fast · step off it";
   if (zone?.kind === "freezer") return "Walk-in freezer · cooling off";
@@ -197,7 +200,12 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     flop: h.flop,
     saved,
     hint: q ? (q.id === "hungry" ? hungryHint(q) : faresHint(q)) : (note ?? hintOf(game)),
-    boss: pig && pig.state !== "asleep" && pig.state !== "defeated" ? { hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need } : null,
+    boss:
+      pig && pig.state !== "asleep" && pig.state !== "defeated"
+        ? { name: "The Pink Menace", hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need }
+        : bossUp(game.world.boss)
+          ? { name: BOSS_NAMES[game.world.boss!.kind], hp: game.world.boss!.hp, max: game.world.boss!.max, bonks: 0, snots: 0, need: 0 }
+          : null,
     quest,
     boxes: h.boxes,
     pad: false,
