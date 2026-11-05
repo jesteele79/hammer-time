@@ -87,7 +87,7 @@ test("the street: the terrace's chairs are platforms, the waiter's pass knocks h
 });
 test("the waiter never notices him; bonked he walks off and is back after 8 s", () => {
   const g = paris(); play(g); const w = g.world.cast.find((n) => n.trick === "tray");
-  const h = g.world.hero; Object.assign(h, { x: w.x - 500, y: 0 });
+  const h = g.world.hero; Object.assign(h, { x: w.x + 600, y: 0 });
   const seen = until(g, () => false, 1);
   assert.equal(of(seen, "castWindup").length + of(seen, "castNotice").length, 0);
   assert.equal(strikeNpc(w, "mallet", 1, g.world, g.events), true);
