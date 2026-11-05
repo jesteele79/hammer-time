@@ -719,6 +719,23 @@ Approved by the owner in the Phase 2 brainstorm, section by section:
   alternating, highest first so a lower floor covers the painted carpet of the one
   above. Every floor has a brass plate at x 1,480.
 
+### As built (Phase 2b, 2026-11-04)
+
+- **2-3:** the sim's x is the hall's length and `lx` its breadth; everything in §8.3 is
+  as written. The third cart comes from 42 m, where there is a door. A wet floor is one
+  stumble, with 1.6 s before it can slip him again. A bonked guest walks off as staff
+  do, not to a door. W and the up arrow are their own action, a jump off a hall; the
+  left stick counts as up only past 0.6, so steering does not hop him. On the touch
+  pad forward runs, and there is no Run button there.
+- **2-4:** where the furniture stands comes from the painted rooms, so the minibar is in
+  the living room, as §8.4 says, and its can crate hangs over it. He cannot be hit for
+  2 s after moving rooms. The walls are the Blender renders until the owner's paintings
+  land (`art/outgoing/renders/`, `prompt-5-suite.txt`); then check each floor line.
+- **The grab** takes cans only, no pip, and a lost life gives them back. Once he is
+  going over the rail nothing can knock Hammer down. He keeps to the room he is fighting
+  in: no walk or lunge takes him out of it.
+- **The camera** keeps to the boss's room unless Hammer stayed behind: it never loses him.
+
 ## 9. Act 3: the way to Basel
 
 ### 9.1 3-1 Row 52, the flight
@@ -1056,6 +1073,28 @@ depth, his profile rig walking "into" the screen along a lane, which keeps
 every rule and costs no 3D. The spike's verdict is written into Phase 2's
 plan before any level depends on it.
 
+### As built (Phase 2b, 2026-11-04)
+
+- **No atlases, no mask.** The plan's atlases and §12.3's "rendered by Pixi to a texture"
+  became: his back and the cast are the rigs' own layers skinned into flat three.js
+  meshes each frame; his profile is the real 2D figure on the game's canvas, laid over
+  the hall at the hall's scale. They draw after the ink, far to near, so a wall never
+  clips anyone, and nobody can be hidden by the set.
+- **The canvases.** The 3D canvas is under the game's, which clears transparent and
+  keeps his profile, the words and the thoughts. Pixi's context must be made able to
+  do that: it starts at background alpha 0.999 and is set opaque at once.
+- **The hall runs along three.js's -z**, so the chase camera has +x on the screen's
+  right with no mirroring. The camera follows 0.55 of his sidestep, or A would not move
+  him on the screen.
+- **His back** is cut as a cast body with a head layer that has no face in it. From
+  behind a walk is legs shortening as they come through; the plan's rotation at the hip
+  read as a scissor kick. Idle beats, the snot, the towel and the lecture show his
+  profile as well as the hit and the smash.
+- **The governor** holds 55 fps whatever the display's rate. The laptop's headless
+  browser runs on its integrated card, and settles at medium: the RTX 4070 has still
+  not been measured, in this or the spike.
+- **Anyone 0.8 m behind him** is out of the picture, or they fill the screen.
+
 ### 12.5 Blender for the 2D levels too
 
 The sets of the other new levels are **Blender renders painted over by
@@ -1153,6 +1192,13 @@ drone's buzz. The crowd never speaks aloud.
   step: at 0.19 s every step would be 316 notes a minute.
 - The cues: the keycard's `chime`, the tier's `fanfare`, the chute's `slide`, the
   wave's and any cart's contact `rattle`, the flash's `glint`, the stun's `bump`.
+
+### As built (Phase 2b, 2026-11-04)
+
+- `hallway` and `suite` play on their levels. New cues: the key's `thunk` and, on the
+  third swing, `ding`; a bed's `jump`; a batted apple's `bonk`; cans given back `coin`;
+  the pool's `splash`. Nobody has heard these songs but the owner: they were measured
+  for loudness only.
 
 ## 14. Settings and the controller
 

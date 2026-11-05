@@ -110,6 +110,27 @@ processing details, durations and hashes are in `public/voice/manifest.json`.
   work or arrive late against the display's own rate, never back up; force
   one with `localStorage.setItem("hammer-time-quality", "medium")`.
 
+### The 3D view
+
+The hall is a second canvas under the game's (`src/render/3d/three-view.ts`), loaded
+only when a level asks for it. The game's canvas clears transparent over it and keeps
+only his profile, the comic words, the thoughts and the sparks, its camera laid over
+the 3D view so that a world point at his feet is on the hall's floor under him.
+
+- **The set** is built from boxes by `scripts/blender/hallway.py` and exported to
+  `public/sets/hallway.glb`, draco-compressed (`public/draco/` is the decoder).
+  Three-step toon shading, one key light, the lamps as soft pools, and an ink pass
+  (`ink-pass.ts`) drawing black lines where its normals or depth break.
+- **The people** (`cutout.ts`, `hall-people.ts`) are the rigs' own painted layers,
+  skinned on the CPU each frame into flat meshes, at the painting's full size: nothing
+  is read back and there is no atlas. They draw after the ink, far to near, so the walls
+  never clip them. His back is one painting (`art/cuts/hammer-back.json`) with clips of
+  its own (`src/sim/rig/back-clips.ts`). When he is hit, smashes or snots, his back
+  hides and the real 2D figure shows on the game's canvas, every face rule with it.
+- **Its own quality:** `TIERS3D` steps density, antialiasing, bloom and ink, in that
+  order, one tier when a second falls under 55 fps; never up; the game's tier is apart.
+  A lost context falls back flat.
+
 ## Moves
 
 Hammer's moves keep the shipped keys and rules (`src/sim/moves.ts`) on the
@@ -407,6 +428,53 @@ punch clocks on 5 and 10.
   each row's floor line on its landing. The sheet
   (`art/incoming/props/tower-sheet.png`) gives the cart, the ice machine, the chute's
   hatch, the hose cabinet and the wet-floor sign.
+
+## The fourteenth floor (2-3)
+
+The first level under a chase camera (`src/sim/levels/hallway.ts`): 80 m long and 3
+m wide, 300 seconds, and the same fixed-step sim as every other level with one
+axis added: `lx`, meters across the hall (`src/sim/hall.ts`). The sim's x is its
+length, 100 px to the meter. W walks him down it, S back without turning him, A and D
+step him within 1.1 m of the middle (`hallInput` in `src/sim/game.ts`); there is no
+slide. A key held through the card is not a step. Off a hall W and the up arrow are a
+jump, as they always were. On a phone the pad grows a forward button, which runs.
+
+- **What counts sideways:** the mallet, the snot, a box, a thrown thing and anyone's
+  shove only within 0.6 m of his lane; the lecture and the slam within 1.2; a pickup
+  within 0.5. Whoever has seen him closes on his lane at a walk.
+- **What is in the way:** housekeeping carts rolling across the hall from their
+  doors (12, 24, 42, 63 and 72 m) at 2.4 m/s: jump them or be out of their lane. Room
+  doors swinging out across their half (9, 21, 36, 57 and 69 m): the handle turns half
+  a second before, then the leaf stands there like a wall for 1.5 s. A wet floor at the
+  ice alcove, 30 m: one stumble. Two wandering guests. A punch clock at the elevator
+  lobby, 50 m, where two bellhops wait out of sight until he is within 12 m.
+- **The end:** three swings on 1417's reader: "Mobile key failed.", "Mobile key failed
+  AGAIN.", "Elite members don't wait."
+- **Drawn:** see "How it is built". With `&flat=1`, no WebGL2 or a lost context the
+  level plays on the game's own canvas as a corridor from the side
+  (`src/render/venue-hall-flat.ts`), a dot showing his lane.
+
+## The suite (2-4)
+
+Three rooms and no door (`src/sim/levels/suite.ts`), one painted wall a room, the
+furniture standing where the painting has it. Lifetime Titanium guy
+(`src/sim/titanium.ts`) has twelve health in three phases, and cannot be hit for 2 s
+after moving rooms. The camera keeps to the room he is in, unless Hammer has stayed
+behind.
+
+- **The living room (12 to 9):** he walks up and swings the briefcase, wound up 0.4 s,
+  reaching 300 px. Three apples every 3 s, lobbed where Hammer stands: a pip, or the
+  mallet bats one back for 100.
+- **The bedroom (8 to 5):** he bounces on the king bed, out of reach at the top. So does
+  Hammer if he lands on it, at 1.3 times his jump. Two bellhops with carts every 10 s,
+  each with a keycard worth 200 points and no status.
+- **The balcony (4 to 1):** bottles every 2.4 s, low and fast, leaving a puddle; every 7
+  s a wind-up and a lunge that takes up to ten cans ("Let's split it evenly."), no pip.
+  Each hit gives back up to ten of what he owes.
+- **The end:** at nothing he goes over the rail, the splash, "...Ambassador.", 5,000
+  points, "Resort fee THIS.", and the level ends 1.5 s later. Once he is going, nothing
+  can knock Hammer down: the win stands. A lost life restarts the fight, as the pig's,
+  and gives back the cans he took.
 
 ## Hungry Hungry Hammer (the BUFFET door)
 
@@ -856,8 +924,12 @@ built stop, the side quests') after the art changes, and
 The story (`src/sim/story.ts`) is fifteen stops in order: SAT (the prologue),
 1-1 to 1-4 (Act 1, The Trip: the hotel's four venues as built), 2-1 to 2-4
 (Act 2, Status Crusade) and 3-1 to 3-6 (Act 3, The Last Tour), with the cards
-that come before and after them. SAT and Act 1's four are built: a fresh
-journey's Clock in opens on the email from the Basel office, then SAT. A
+that come before and after them. SAT and Acts 1 and 2 are built, nine stops: a fresh
+journey's Clock in opens on the email from the Basel office, then SAT. Act 2 starts
+clean on "11:40 pm. The same lobby.", carries his keycards through its four levels,
+and ends on the Bonvoy review ("TITANIUM. Lifetime.") and its act card with his
+status; 3-1 then reads "Coming" and Clock in "Act 3 is coming". Act 2's header has no
+straight-through run yet (`STRAIGHT_BUILT`). A
 journey begun before SAT was built has it finished with no best; it replays
 from the strip, and New game plays it in order.
 
@@ -900,8 +972,8 @@ boarding chime every eight bars), the lobby's muzak, the restaurant's bossa,
 the campus's lo-fi, the gift shop's boss theme, the stash's cellar tune, and
 the two side quests' as built; through the night, the lobby's jazz trio (a walking
 bass and brushes), the M CLUB's cocktail piano, the tower's climb (up a semitone a
-bar for fourteen bars, the elevator he is not using dinging past), and two more
-waiting for their levels: the fourteenth floor's hum and the suite's drive. What
+bar for fourteen bars, the elevator he is not using dinging past), the fourteenth
+floor's hum and the suite's drive. What
 plays follows the mode (`musicFor` in
 `src/render/sound.ts`): the level's song quiet under its cards, the tallies
 and the break and full in play, a round's song the same way, silence under
@@ -961,6 +1033,8 @@ node scripts/journey-browser.check.mjs http://127.0.0.1:8090/
 node scripts/voice-browser.check.mjs http://127.0.0.1:8090/
 node scripts/sat-browser.check.mjs http://127.0.0.1:8090/
 node scripts/night-browser.check.mjs http://127.0.0.1:8090/
+node scripts/hallway-browser.check.mjs http://127.0.0.1:8090/
+node scripts/suite-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
