@@ -1,0 +1,148 @@
+HAMMER TIME — STORY PHASE 3, THE CODEX PROMPTS (THE WAY TO BASEL)
+
+These are for Codex in its mode that works on this laptop (it reads the brief and the
+reference images from the repo and saves its images straight into art/incoming/). Paste
+each into a new Codex chat. Prompts 1 to 4 can run at the same time, at the start of the
+phase. Prompt 5 waits until the game has rendered the station and the coaches (the session
+hands it over then, with the renders in art/outgoing/renders/). The brief they point at:
+art/outgoing/batch-12-story-phase3.txt.
+
+
+1. THE SIX PEOPLE: THE PURSER, THE ATTENDANT, THE CONCIERGE, A PARISIAN, THE WAITER, THE CONDUCTOR (batch 12, items 1 to 6)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-12-story-phase3.txt in full. It is the brief. Make ITEMS 1 TO 6 only, and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png, art\incoming\cast\nurse.png and art\incoming\cast\guard-1.png, and the other people in art\incoming\cast\ — the pose and style done right. The six new people must match them for style, finish and placement in the frame.
+
+3. Make purser.png, then attendant-1.png, concierge.png, parisian-1.png, garcon.png and conductor.png, one at a time. For each, use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: each has their own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with Image 1, bellhop-1.png and guard-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and EMPTY. The far arm and hand visible just behind the near one, with a green gap between the near forearm and the belly.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's.
+   - purser: a woman in her fifties, trim and upright, dark hair in a tight low bun, a navy uniform jacket and skirt to the knee, a red and navy scarf knotted at the neck, a blank wing badge, navy heels, a composed face; nothing in the hands.
+   - attendant-1: a man in his thirties, slim, short brown hair, a navy waistcoat over a white shirt, a navy tie, navy trousers, black shoes, a blank name badge; nothing in the hands.
+   - concierge: a woman in her forties, slight, dark hair cut short, a grey suit jacket over a white blouse, grey trousers, a blank crossed-keys lapel pin, black flat shoes, one eyebrow slightly raised; nothing in the hands.
+   - parisian-1: a man in his thirties, lean, dark tousled hair, a light scarf looped twice round the neck, a navy blazer over a striped shirt, slim dark jeans, brown leather shoes; nothing in the hands.
+   - garcon: a man in his forties, wiry, slicked dark hair, a thin moustache, a white shirt with the sleeves rolled, a black bow tie, a black vest, a long white apron from the waist to the shin, black trousers, black shoes, an unimpressed face; no tray, nothing in the hands.
+   - conductor: a man in his fifties, stout, grey at the temples, a navy uniform jacket with blank sleeve bands, a navy peaked cap with a flat visor and a blank cap badge, a white shirt, a navy tie, navy trousers, black shoes; no ticket punch, nothing in the hands.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text, letters or logos anywhere; every badge, pin and band is blank.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Clearly a different person from everyone already in art\incoming\cast\, and not looking like the man in Image 1.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\purser.png, attendant-1.png, concierge.png, parisian-1.png, garcon.png and conductor.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. In a few lines, tell me how many tries each took and anything on the checklist you could not get right.
+
+
+2. PARIS: THE HOTEL'S TWO FLOORS, THE STREET'S TWO BLOCKS, THE TERRACE, THE AWNING AND THE LAMPPOST (batch 12, item 7)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-12-story-phase3.txt in full. It is the brief. Make ITEM 7 only (four walls and three pieces, 7a to 7g), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\lobby-far-1.png and lobby-far-2.png — the shape to match: 1536 x 1024, landscape, the wall's base about three-quarters of the way down.
+   - art\incoming\backdrops\tower-far-1.png and tower-far-2.png — two walls that stack one above the other in the game: the top row of pixels one flat color.
+   - art\incoming\backdrops\sat-mid-1.png and sat-fore-1.png — pieces on green that stand in front of a wall: the finish and the layout.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make them in this order: paris-far-1.png, then paris-far-2.png (attach paris-far-1.png so the wallpaper, the wainscot, the runner and the base line match), then paris-far-3.png, then paris-far-4.png (attach paris-far-3.png so the stone, the pavement and the base line continue), each exactly 1536 x 1024, landscape; then paris-mid-1.png, paris-mid-2.png and paris-fore-1.png at the widest landscape size the tool offers (paris-fore-1 may be portrait). Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Walls: seen straight on, every horizontal line level, no side walls or corners; the base line one straight level line about three-quarters of the way down with plain runner or pavement below it to the bottom edge; nothing standing in front of the wall or on the floor; no people.
+   - paris-far-1: the tiny hotel's ground floor: striped cream and dusty rose wallpaper, dark wainscot, the reception desk at the left third with a key rack of blank hooks and tags behind it, the narrow brass-gated lift door right of center, the foot of a spiral stair at the right, a potted palm, a blank wall clock; the TOP ROW of pixels one flat color, the underside of the floor above, nothing cut off at the top.
+   - paris-far-2: the first floor in the same wallpaper and wainscot: the lift's upper brass gate at the left, the closet of a room open to the corridor with its tall window tilted inward at the top, the narrow bed with a white duvet, a tiny bedside shelf, then the hall table with a blank tray, and a door with a blank plate at the right; its base line at the SAME row as paris-far-1's.
+   - paris-far-3: the Paris street's first block: a pale stone Haussmann facade, a café front with its awning rolled up and door shut, a bakery with its metal shutter down, tall windows with iron balconies above, three of them with a television lit flat blue and nothing on the screen; the pavement's edge as the base line, no gutter.
+   - paris-far-4: the second block continuing paris-far-3's building line and pavement: a tabac with its shutter down, a brasserie front with tall windows, lace half-curtains and a shut door and NO awning, two more blue televisions above, a blue street plaque with no letters; its base line at the SAME row as paris-far-3's, its left edge meeting paris-far-3's right edge.
+   - paris-mid-1: three bentwood bistro chairs and two small round marble tables in a row with a low iron rail and two planters behind, seen from the side at eye level, every object whole and apart, on flat bright green (#00FF00), no floor, no shadow.
+   - paris-mid-2: a red and cream striped awning fully out, seen from the front, a scalloped valance, both side arms visible, nothing under it, on flat green.
+   - paris-fore-1: a dark green cast-iron Paris lamppost with one lantern, upright and whole, on flat green.
+   - No text, letters, numbers, logos or signatures anywhere: the shop fronts, the plaque, the tags, the tray and the clock are blank.
+   - The same inked cartoon style and finish as bellhop-1.png and the lobby's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\paris-far-1.png, paris-far-2.png, paris-far-3.png, paris-far-4.png, paris-mid-1.png, paris-mid-2.png and paris-fore-1.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.
+
+
+3. THE BRASSERIE: THE ROOM AND THE FRENCH SHEET (batch 12, items 8 and 9)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-12-story-phase3.txt in full. It is the brief. Make ITEMS 8 AND 9 only, and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\lounge.png and art\incoming\backdrops\ballroom.png — a round's room: how it is framed, with no table in it (the game puts the table in front).
+   - art\incoming\props\food-sheet.png and art\incoming\props\lounge-sheet.png — sheets of sixteen dishes in a four by four grid on green: the angle, the size of each dish, the layout.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish everything must match.
+
+3. Make brasserie.png at exactly 1536 x 1024, landscape, then french-sheet.png at the largest square or landscape size the tool offers. Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - brasserie.png: seen straight on, every horizontal line level, no side walls or corners; a long zinc bar along the back wall with a mirror behind it and unlabeled bottles on glass shelves, globe lamps, a blank slate menu board, dark wood panels, a brass rail, a window at the left with the shuttered street beyond; the tiled floor's edge one straight level line about three-quarters of the way down; plain tile below it to the bottom edge; daylight through the window and warm lamps; no table, no chairs, no people, nothing on the floor, no text.
+   - french-sheet.png: exactly SIXTEEN items in a FOUR BY FOUR grid on flat bright green (#00FF00), each in its own cell, none touching another or the edge, no shadows, in this reading order: a baguette on a board, six escargots in their dish with tongs, steak frites, a pot of moules, a croque monsieur, a wedge of camembert on a board, a wedge of comté, a wedge of roquefort, a crème brûlée, five macarons in a row, a slice of tarte tatin, a carafe of water with a glass, a small dark blank glass bottle, a bread basket, a small wheeled cheese cart with cheeses under a dome, a folded blank bill on a saucer with a coin; the same high three-quarter angle and the same dish size as food-sheet.png; no text or labels anywhere.
+   - Both: the same inked cartoon style as bellhop-1.png and the lounge: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\brasserie.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\french-sheet.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. Tell me how many tries each took and anything on the checklist you could not get right.
+
+
+4. THE TRAIN SHEET (batch 12, item 10)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-12-story-phase3.txt in full. It is the brief. Make ITEM 10 only, and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\props\tower-sheet.png and art\incoming\props\sat-sheet.png — sheets of objects on green, in a row, apart: the finish and the layout.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — a finished game character: the inked finish to match.
+
+3. Make train-sheet.png. Use your built-in image generation at the widest landscape size it offers. Do not upscale or resize afterward.
+
+4. Before you keep it, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Exactly six objects in the brief's order from left to right: a dark blue wheeled suitcase upright with its handle up, a grey stroller facing LEFT with a hood and empty, a city bicycle facing LEFT with a basket, a steel station luggage trolley facing LEFT and empty, a ticket barrier (a steel gate with two frosted glass paddles closed and a blank reader on top), a quiet sign (a square sign on a short post with a finger-to-lips face drawn on it and no letters).
+   - Each object whole and upright, seen from the side at eye level, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text, letters, numbers or logos anywhere.
+   - The same inked cartoon style as bellhop-1.png and the tower's pieces: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keeper as C:\Users\jeste\Desktop\hammer-time\art\incoming\props\train-sheet.png, and the exact prompt you used for it as train-sheet.prompt.txt in the same folder.
+
+6. Stop. Tell me how many tries it took and anything on the checklist you could not get right.
+
+
+5. THE STATION AND THE COACHES, PAINTED OVER THE GAME'S RENDERS (batch 12, item 11; run when the renders exist)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything in art\outgoing\renders\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-12-story-phase3.txt in full. It is the brief. Make ITEM 11 only (five walls), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\outgoing\renders\station-1.png, station-2.png, train-far-1.png, train-far-2.png, train-far-3.png — the game's own renders of the station's hall and platform and the three coaches: the camera, the walls, the seats, the windows and the lamps to keep exactly.
+   - art\incoming\backdrops\suite-1.png beside art\outgoing\renders\suite-1.png — a render and the finished game wall painted over it: how much changes (the finish) and how much does not (everything else).
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make station-1.png, station-2.png, train-far-1.png, train-far-2.png and train-far-3.png, one at a time, each exactly 1536 x 1024, landscape. For each, use your built-in image generation with its render as the input image, so the camera, the walls, the seats, the windows and the lamps carry over exactly; paint it in the game's inked style. Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with its render and with suite-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - The same view as the render: the same walls, the same seats and counters in the same places, the same windows and lamps; nothing added on the floor, no people.
+   - Seen straight on, every horizontal line level; the floor's edge one straight level line about three-quarters of the way down; plain floor below it to the bottom edge.
+   - station-1: the concourse under the big clock with a blank face, the departure board with every row blank, the iron roof.
+   - station-2: the platform: the train's flank with its doors and windows, a pillar, the platform's edge as the base line.
+   - train-far-1: a standard coach: rows of blue seats facing both ways, the luggage racks above, the windows; train-far-2: the bistro car: the counter with a fridge of blank bottles, standing tables, the racks and windows; train-far-3: a first-class coach: wider grey seats with headrests, reading lamps, the windows.
+   - Every window pane one single flat pale color, with nothing drawn in it: the game draws the countryside there.
+   - No text, letters, numbers, logos or signatures anywhere: the clock, the board, the bottles and the seat numbers are blank.
+   - The same inked cartoon style and finish as bellhop-1.png and suite-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone; not a render.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\station-1.png, station-2.png, train-far-1.png, train-far-2.png and train-far-3.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.

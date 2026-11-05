@@ -1,0 +1,206 @@
+HAMMER TIME — ART BATCH 12: THE WAY TO BASEL (STORY PHASE 3, ACT 3)
+
+Twenty files for the way to Basel: six new people, Paris's four walls with three pieces that
+stand in front of them, the brasserie's room and its food sheet, the train's sheet of objects,
+and (later, once the game has rendered them) the station's two walls and three coaches
+painted over the game's own renders. The game draws the floors, the stairs, the lift's cabin,
+the carts and scooters in motion, the mallet, the tray, the ticket punch and the flashlight
+(do not paint any of that into a wall or into a person's hands). The design is
+docs/superpowers/specs/2026-11-02-hammer-time-story-design.md §9 and §16 with its "As
+planned (Phase 3)" notes, and the plan docs/superpowers/plans/2026-11-05-story-phase-3.md.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one
+shadow tone and one highlight tone, small white specular glints, saturated but natural
+colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same
+artist and same style as the reference images.
+
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens,
+  boards, badges, tags, labels, bottles, bills and menus are blank. The game writes every
+  word itself ("Fermé", "Voie 23", "Shh").
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, no people,
+  nothing standing on the floor in front of the wall unless the item says so.
+- Sheets, pieces and people: flat bright green background (#00FF00), no floor, no shadow.
+- Walls are exactly 1536 x 1024 pixels, landscape; never upscale.
+- PNG; never upscale or resize afterward.
+
+------------------------------------------------------------------------------------------
+ITEMS 1 TO 6: THE PEOPLE (pose-locked like the cast; save to art/incoming/cast/)
+
+Attach: Image 1 art/incoming/hammer/body-affliction.png (the pose, camera, framing, canvas
+and drawing style to copy exactly); Image 2 art/outgoing/references/hammer-profile.png (the
+drawing style); Image 3 art/incoming/cast/bellhop-1.png, nurse.png and guard-1.png (the
+pose and style done right).
+
+They are NOT the man in Image 1. Each has their own face, hair, build and clothes;
+nothing of the man may remain except the pose, the camera and the canvas.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips,
+  legs and both shoes point left; the torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from
+  vertical, elbows nearly straight, hands open, relaxed and EMPTY, the far arm and hand
+  visible just behind the near one, a clear triangular green gap between the near
+  forearm and the belly.
+- Both soles flat with the same small forward-back stagger as Image 1, the soles at the
+  same height in the frame as Image 1's; only the top of the head sits lower or higher.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait).
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No props,
+  nothing in the hands.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no
+  scenery, no texture, no gradient.
+
+1. purser.png — the purser, the senior flight attendant. A woman in her fifties, trim and
+   upright, dark hair in a tight low bun, a navy uniform jacket and skirt to the knee, a
+   red and navy scarf knotted at the neck, a blank wing badge, navy heels, a composed face
+   with the mouth closed. Hands empty (the cart is the game's).
+2. attendant-1.png — a flight attendant. A man in his thirties, slim, short brown hair,
+   a navy waistcoat over a white shirt, a navy tie, navy trousers, black shoes, a blank
+   name badge. Hands empty. (The game recolors this painting for the second attendant.)
+3. concierge.png — the Paris hotel's concierge. A woman in her forties, slight, dark hair
+   cut short, a grey suit jacket over a white blouse, grey trousers, crossed gold keys as
+   a blank lapel pin (no letters), black flat shoes, one eyebrow slightly raised. Hands
+   empty.
+4. parisian-1.png — a Parisian at lunch. A man in his thirties, lean, dark tousled hair,
+   a light scarf looped twice round the neck, a navy blazer over a striped shirt, slim
+   dark jeans, brown leather shoes. Hands empty. (The game recolors this painting for the
+   other two.)
+5. garcon.png — the waiter. A man in his forties, wiry, slicked dark hair, a thin
+   moustache, a white shirt with the sleeves rolled, a black bow tie, a black vest, a
+   long white apron from the waist to the shin, black trousers, black shoes, an
+   unimpressed face. Hands empty (the tray is the game's).
+6. conductor.png — the train conductor. A man in his fifties, stout, grey at the temples,
+   a navy uniform jacket with blank sleeve bands, a navy peaked cap with a flat visor and
+   a blank cap badge, a white shirt, a navy tie, navy trousers, black shoes. Hands empty
+   (the ticket punch is the game's).
+
+------------------------------------------------------------------------------------------
+ITEM 7: PARIS'S WALLS AND PIECES (save to art/incoming/backdrops/)
+
+Attach: art/incoming/backdrops/lobby-far-1.png and lobby-far-2.png (the shape and the
+finish: 1536 x 1024, the base line three-quarters down); art/incoming/backdrops/
+tower-far-1.png and tower-far-2.png (two walls that stack one above the other: the top
+row one flat color); art/incoming/backdrops/sat-mid-1.png and sat-fore-1.png (pieces on
+green that stand in front of a wall); hammer-profile.png (the style).
+
+The hotel's two walls stack: paris-far-1 is the ground floor, paris-far-2 the floor above
+it, so paris-far-1's top row of pixels is the flat underside of the floor above, one flat
+color, and paris-far-2's base line (its floor) is at the same row as paris-far-1's. The
+street's two walls stand side by side, so their base lines match and their edges meet:
+the left edge of paris-far-4 continues the right edge of paris-far-3 (the same pavement,
+the same building line).
+
+7a. paris-far-1.png — a tiny Paris hotel's ground floor, seen straight on: striped
+    wallpaper in cream and dusty rose, dark wood wainscot, a small reception desk at the
+    left third with a key rack of blank hooks and tags behind it, a brass-gated lift door
+    (narrow, a single person wide) right of center, the foot of a spiral stair rising out
+    of frame at the right, a potted palm, a wall clock with a blank face. A red runner's
+    edge as the base line about three-quarters down, plain runner below it. Nothing in
+    front of the wall, no people.
+7b. paris-far-2.png — the hotel's first floor, the same wallpaper and wainscot: the
+    lift's upper door at the left with its brass gate, a closet of a room open to the
+    corridor (no door between them: the room is part of the wall) with a tall window
+    whose sash is tilted inward at the top, a narrow bed with a white duvet, a tiny
+    bedside shelf with no ice bucket on it, then a hall table with a blank tray on it,
+    and a door marked with a blank plate at the right. The same red runner's edge as the
+    base line.
+7c. paris-far-3.png — a Paris street in July, seen straight on, the first block: a
+    Haussmann facade in pale stone, a café front with its awning rolled up and its door
+    shut, a bakery with its metal shutter down, tall windows above with iron balconies,
+    and a television lit flat blue in three of the windows (no picture on the screens).
+    The pavement's edge as the base line about three-quarters down, plain pavement below
+    it, no gutter. No people, no text on the shop fronts.
+7d. paris-far-4.png — the second block, continuing 7c's building line: a tabac with its
+    shutter down, a brasserie front with tall windows, lace half-curtains and a shut
+    door (no awning: the game puts it in front), two more televisions lit blue above, a
+    blue street-name plaque with no letters. The same base line and pavement as 7c.
+7e. paris-mid-1.png — the café terrace, on flat green: three bentwood bistro chairs and
+    two small round marble tables in a row, seen from the side at eye level, with a low
+    iron rail and two planters behind them, each object whole and apart. This piece
+    stands in front of paris-far-3; the game puts platforms on the seats and the table
+    tops.
+7f. paris-mid-2.png — the brasserie's awning, on flat green: a red and cream striped
+    awning fully out, seen from the front, its valance scalloped, its two side arms
+    visible, nothing under it. This piece stands over paris-far-4's brasserie front.
+7g. paris-fore-1.png — a Paris lamppost, on flat green: a dark green cast-iron
+    lamppost with one lantern, upright and whole, like sat-fore-1's column.
+
+------------------------------------------------------------------------------------------
+ITEMS 8 AND 9: THE BRASSERIE (save to art/incoming/backdrops/ and art/incoming/props/)
+
+Attach: art/incoming/backdrops/lounge.png and ballroom.png (a round's room: no table in
+it, the game puts the table in front); art/incoming/props/food-sheet.png and
+lounge-sheet.png (sixteen dishes in a four by four grid on green); hammer-profile.png
+(the style); bellhop-1.png (the inked finish).
+
+8. brasserie.png — the brasserie's dining room at lunch, 1536 x 1024, seen straight on
+   like the lounge: a long zinc bar along the back wall with a mirror behind it and
+   unlabeled bottles on glass shelves, globe lamps, a blank slate menu board, dark wood
+   panels, a brass rail, a window at the left with the shuttered street beyond; the
+   tiled floor's edge as one level line about three-quarters down, plain tile below it.
+   Daylight through the window, warm lamps. No table, no chairs, no people, no text.
+9. french-sheet.png — sixteen items on flat bright green in a FOUR BY FOUR grid, each in
+   its own cell, none touching, in this reading order (left to right, top to bottom):
+   a. a baguette on a board; b. six escargots in their dish with tongs; c. steak frites;
+   d. a pot of moules; e. a croque monsieur; f. a wedge of camembert on a board;
+   g. a wedge of comté; h. a wedge of roquefort; i. a crème brûlée; j. five macarons in a
+   row; k. a slice of tarte tatin; l. a carafe of water with a glass; m. a small glass
+   bottle, blank and dark (a placeholder cell the game does not use); n. a bread basket;
+   o. the cheese cart: a small wheeled trolley with cheeses under a dome; p. the bill: a
+   folded blank slip on a small saucer with a coin.
+   Each on its own plate or in its own vessel seen from a high three-quarter angle, the
+   same angle and size as food-sheet.png's dishes.
+
+------------------------------------------------------------------------------------------
+ITEM 10: THE TRAIN SHEET (save to art/incoming/props/)
+
+Attach: art/incoming/props/tower-sheet.png and sat-sheet.png (sheets of objects on green,
+left to right, apart); hammer-profile.png (the style); bellhop-1.png (the finish).
+
+10. train-sheet.png — exactly SIX objects on flat bright green, in a single row from left
+    to right, none touching another or the edge, each whole and upright, seen from the
+    side at the cast's eye level:
+    a. a wheeled suitcase, upright, its handle up, dark blue;
+    b. a stroller facing LEFT, grey with a hood, empty;
+    c. a bicycle facing LEFT, a city bike with a basket;
+    d. a station luggage trolley facing LEFT, steel, empty;
+    e. a ticket barrier: a steel gate with two frosted glass paddles closed, a blank
+       reader on its top;
+    f. a quiet sign: a square sign on a short post with a finger-to-lips face drawn on
+       it, no letters.
+
+------------------------------------------------------------------------------------------
+ITEM 11: THE STATION AND THE COACHES (later; save to art/incoming/backdrops/)
+
+The game renders the station's two walls and three coaches in Blender first (the plan's
+Task 12) and puts the renders in art/outgoing/renders/station-1.png, station-2.png,
+train-far-1.png, train-far-2.png, train-far-3.png. This item is painted over them: the
+render is the input image, the painting keeps its camera, walls, seats, windows and
+lamps exactly, in the game's inked style. Prompt 5 in batch-story-phase3-codex.txt is
+written for it and is handed over when the renders exist.
+
+11. station-1.png (the hall: Gare de Lyon's concourse under the big clock, the departure
+    board with every row blank, the iron roof), station-2.png (the platform: the train's
+    flank with its doors and windows, a pillar, the platform's edge as the base line),
+    train-far-1.png (a standard coach: rows of blue seats facing both ways, the
+    luggage racks above, the windows with a flat pale sky, the aisle's floor as the base
+    line), train-far-2.png (the bistro car: a counter with a fridge of blank bottles,
+    standing tables, the same windows and racks), train-far-3.png (a first-class coach:
+    wider grey seats with headrests, reading lamps, the same windows), each 1536 x 1024,
+    painted over its render; no people, no text, nothing on the floor the render does
+    not show; the window panes a single flat pale color (the game draws the countryside
+    in them).
+
+------------------------------------------------------------------------------------------
+CHECKLIST (pass/fail, every file):
+- People: strict left profile, both arms forward and down with empty open hands, the
+  soles at Image 1's height, 1086 x 1448, flat green, no props, no text; clearly a
+  different person from everyone in art/incoming/cast/ and not the man in Image 1.
+- Walls: 1536 x 1024, straight on, level lines, the base line about three-quarters down,
+  nothing in front, no people, no text; the hotel's two with the same flat color across
+  paris-far-1's top row; the street's two meeting at their edges.
+- Pieces and sheets: flat green, no shadows, the objects apart and whole, in the stated
+  order (the food in a four by four grid, the train's six in one row), no text.
+- All: the inked cartoon style and finish of bellhop-1.png and the lobby's walls.

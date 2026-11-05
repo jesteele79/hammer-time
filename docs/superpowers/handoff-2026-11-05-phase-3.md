@@ -4,9 +4,20 @@ Story Phase 2 is built: Act 2 plays from 2-1's card to "Act 2 · Status Crusade 
 
 **Repo and branch:** `C:\Users\jeste\Desktop\hammer-time`, branch `claude/hammer-pass`. `main` moves only on the owner's yes at the time.
 
+## The plan is written (2026-11-05): this is now the build's handoff
+
+The Fable planning session brainstormed Act 3 with the owner (spec §9's and §12's "As planned (Phase 3, 2026-11-05)" notes, §20 items 23 to 26) and wrote the plan: **`docs/superpowers/plans/2026-11-05-story-phase-3.md`**, fifteen tasks in two halves. **3a** (Tasks 1 to 9): the cheap leftovers and the strip's label, the cabin from Blender and the view's second set, the flight's sim with its three snapped lanes, its run and the purser, the cabin drawn with his back crouching, Paris's hotel and street, the French table, Paris drawn, the four songs, the half's verification and report. **3b** (Tasks 10 to 15): the station on its stretch clock, the eighteen coaches as rooms, the conductor, the train drawn from the session's renders, Act 3's cards, the phase's verification, the Phase 4 handoff.
+
+**The method:** superpowers:executing-plans inline, test-first, the ledger `.superpowers/sdd/2026-11-05-story-phase-3/progress.md` (every ruling with its cost if wrong), one fresh reviewer on the most capable model at the end of each half (Tasks 9 and 15). Commit and push `claude/hammer-pass` after every task; `main` only on the owner's yes at the time.
+
+**The asks at the start:** put the owner's four Codex prompts to them before Task 1 (`art/outgoing/batch-story-phase3-codex.txt` prompts 1 to 4: the six people; Paris's walls and pieces; the brasserie's room and the French sheet; the train's sheet) and carry on without waiting. Prompt 5 (the station's two walls and the three coaches over the game's renders) is handed over at Task 13 with the renders. The cabin's set is the session's own Blender work (Task 2). The brief is `art/outgoing/batch-12-story-phase3.txt`.
+
+**What the plan supersedes in this file and the spec:** §16's `station.png` is two walls (`station-1..2`) and `paris-far-1..3` is four walls with three pieces (`paris-far-1..4`, `paris-mid-1..2`, `paris-fore-1`); the attendants are one painting (`attendant-1`) recolored; the kids are the student at child size; the flight is a run with snapped lanes; the brasserie's round ends 3-2. The "Phase 3's asks" section below stands otherwise. Act 2 play notes from the owner are fixed between tasks as they come.
+
 ## Read first, in full, before any code
 
-1. `docs/superpowers/specs/2026-11-02-hammer-time-story-design.md`: §1 and §2 (the decisions and the rules), §9 (Act 3), §12 and its "As built (Phase 2b)", §13 to §16, §19.
+0. `docs/superpowers/plans/2026-11-05-story-phase-3.md`, the whole plan, then this file.
+1. `docs/superpowers/specs/2026-11-02-hammer-time-story-design.md`: §1 and §2 (the decisions and the rules), §9 (Act 3) with its "As planned (Phase 3)" note, §12 and its notes, §13 to §16, §19.
 2. `docs/superpowers/plans/2026-11-02-story-roadmap.md`, Phase 3 and the art schedule.
 3. `docs/superpowers/plans/2026-11-04-story-phase-2.md` and `2026-11-04-story-phase-2-ledger.md`: the last plan, for its format and its Review Focus, and every ruling it took.
 4. `README.md`: "The fourteenth floor", "The suite", "The 3D view", "The journey", "Music".
