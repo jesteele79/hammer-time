@@ -63,6 +63,8 @@ const MOVE_FRAMES = 10;
 /** Each venue's six frames: where he stands, where the camera looks and how wide. */
 export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }[]>> = {
   flight: [{ x: 200, cx: 500 }, { x: 1700, cx: 2000 }, { x: 3700, cx: 3700 }],
+  // The hall, the platform, the quiet car, the bistro car, the family car, the bike car, coach 1.
+  train: [{ x: 1200, cx: 1400, cy: -300 }, { x: 3300, cx: 3400, cy: -200 }, { x: 4000 + 4 * 768 + 300, cx: 4000 + 4 * 768 + 384, cy: -200 }, { x: 4000 + 8 * 768 + 300, cx: 4000 + 8 * 768 + 384, cy: -200 }, { x: 4000 + 11 * 768 + 300, cx: 4000 + 11 * 768 + 384, cy: -200 }, { x: 4000 + 14 * 768 + 100, cx: 4000 + 14 * 768 + 384, cy: -200 }, { x: 4000 + 17 * 768 + 300, cx: 4000 + 17 * 768 + 384, cy: -200 }],
   paris: [{ x: 450, cx: 760, cy: -300 }, { x: 1150, y: -540, cx: 1000, cy: -720 }, { x: 2800, cx: 3100, cy: -300 }, { x: 6000, cx: 6200, cy: -300 }, { x: 10050, cx: 10150, cy: -300 }],
   // SAT: the curb, the TSA line, the gate.
   sat: [
@@ -107,6 +109,7 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
 /** Each start's picture on the start screen: where he stands and where the camera looks. */
 export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }>> = {
   flight: { x: 400, cx: 700 },
+  train: { x: 1200, cx: 1800, cy: -300 },
   paris: { x: 2800, cx: 3100, cy: -300 },
   sat: { x: 5900, y: 0, cx: 6500, zoom: 0.92 },
   lobby: { x: 1100, y: 0, cx: 1600 },
@@ -137,7 +140,7 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
   { x: 12500, y: -160, cx: 13200 },
   { x: 13800, y: 0, cx: 14300 },
 ];
-const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium", "housekeeper-1"];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium", "housekeeper-1", "conductor", "kid-1"];
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
 /** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
 const HEAD_SHARES = [0.22, 0.26];

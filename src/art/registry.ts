@@ -35,7 +35,18 @@ export type Prop = {
   scale?: number;
 };
 /** A venue's painted wall, cropped at its seams: `floor` is the row where it meets the floor; `top` and `bottom` its top and bottom rows' colors, which carry it on above and below. */
-export type Wall = { file: string; width: number; height: number; floor: number; top: string; bottom?: string };
+export type Wall = {
+  file: string;
+  width: number;
+  height: number;
+  floor: number;
+  top: string;
+  bottom?: string;
+  /** A coach's panes in its own px, [x, y, w, h]: the game draws the countryside there. */
+  windows?: [number, number, number, number][];
+  /** The hall's clock in its own px, [x, y, radius]: the game draws its hands. */
+  clock?: [number, number, number];
+};
 /** A standing piece cut from a mid or fore sheet: `base` is where it stands, in its own px. */
 export type Piece = { file: string; width: number; height: number; base: Point };
 export type Registry = {
@@ -96,7 +107,12 @@ export type Registry = {
   sat?: { pieces?: Partial<Record<SatPiece, Piece>> };
   /** The tower (story Phase 2): its sheet's five pieces by name. Missing from an older sync, or while the sheet is not in. */
   tower?: { pieces?: Partial<Record<TowerPiece, Piece>> };
+  /** The train (story Phase 3): its sheet's six pieces by name. Missing from an older sync, or while the sheet is not in. */
+  train?: { pieces?: Partial<Record<TrainPiece, Piece>> };
 };
+/** The train sheet's pieces, left to right as painted (story Phase 3, Task 13); scripts/art-cut.mjs has the same list. */
+export const TRAIN_PIECES = ["suitcase", "stroller", "bicycle", "trolley", "barrier", "quiet"] as const;
+export type TrainPiece = (typeof TRAIN_PIECES)[number];
 /** The tower sheet's pieces, left to right as painted (story Phase 2, Task 8); scripts/art-cut.mjs has the same list. */
 export const TOWER_PIECES = ["cart", "ice", "chute", "cabinet", "sign"] as const;
 export type TowerPiece = (typeof TOWER_PIECES)[number];

@@ -46,7 +46,7 @@ try {
   if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await titleFrame(), 1600, "key-art.webp");
   if (want("key-art-night")) await webp(await titleFrame("&home=night"), 1600, "key-art-night.webp");
   // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
-  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "suite", "paris"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
+  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "suite", "paris", "train"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
   // The hall is the 3D view's, seen in the running game, a little way in.
   if (want("hallway")) {
     await page.goto(`${base}?next=1&dev=1&level=hallway`);

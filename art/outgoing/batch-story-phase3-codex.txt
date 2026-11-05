@@ -138,7 +138,7 @@ You are making game art on this Windows laptop. Work only inside C:\Users\jeste\
    - Seen straight on, every horizontal line level; the floor's edge one straight level line about three-quarters of the way down; plain floor below it to the bottom edge.
    - station-1: the concourse under the big clock with a blank face, the departure board with every row blank, the iron roof.
    - station-2: the platform: the train's flank with its doors and windows, a pillar, the platform's edge as the base line.
-   - train-far-1: a standard coach: rows of blue seats facing both ways, the luggage racks above, the windows; train-far-2: the bistro car: the counter with a fridge of blank bottles, standing tables, the racks and windows; train-far-3: a first-class coach: wider grey seats with headrests, reading lamps, the windows.
+   - train-far-1: a standard coach: rows of blue seats facing both ways, the luggage racks above, the windows; train-far-2: the bistro car: the counter with a fridge of blank bottles, two standing tables, the windows, no racks; train-far-3: a first-class coach: wider grey seats with headrests, reading lamps, the windows.
    - Every window pane one single flat pale color, with nothing drawn in it: the game draws the countryside there.
    - No text, letters, numbers, logos or signatures anywhere: the clock, the board, the bottles and the seat numbers are blank.
    - The same inked cartoon style and finish as bellhop-1.png and suite-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone; not a render.

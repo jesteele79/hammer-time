@@ -32,7 +32,7 @@ export const MID_SCALE = 0.6;
 /** How fast the painted planes follow the ground he stands on, per second. */
 const GROUND_EASE = 4;
 /** Half the widest view the camera shows (21:9 at zoom 0.88), so the far plane never runs out at a level's ends. */
-const VIEW_HALF = 1400;
+export const VIEW_HALF = 1400;
 /** The fore pieces: darker, a little blurred, and set this far in front of the floor line. */
 const FORE = { tint: 0xb3b3b3, blur: 2, down: 60, faded: 0.2, ease: 6 } as const;
 const WALL_TINT = "#c4b9ad";
@@ -144,7 +144,99 @@ export function placementsOf(backdrop: NonNullable<Level["backdrop"]>, walls: Wa
   });
 }
 
-export type Backdrop = { setVisible(on: boolean): void; update(face: Rect | null, dt: number, ground: number | null): void };
+export type Backdrop = {
+  setVisible(on: boolean): void;
+  update(face: Rect | null, dt: number, ground: number | null): void;
+  /** What the coaches' windows look out on. */
+  countryside: Countryside | null;
+};
+
+/** The wall a room shows: its own by name, or the list's by order. */
+export function roomWallOf(level: Partial<Pick<Level, "rooms" | "backdrop">>, i: number, registry: Pick<Registry, "walls">): Wall | null {
+  const room = level.rooms?.[i];
+  const name = room && (room.wall ?? level.backdrop?.walls[i]);
+  return (name && registry.walls?.[name]) || null;
+}
+
+/** What's out of the window at a place on the train: fields before the tunnel, hills after. */
+export const countrysidePhase = (level: Pick<Level, "tunnel">, x: number): "fields" | "hills" => (level.tunnel && x >= level.tunnel.x ? "hills" : "fields");
+
+/** The coaches' panes in the world: a wall's own px, scaled to its room. */
+export function countryWindows(level: Partial<Pick<Level, "rooms" | "backdrop">>, registry: Pick<Registry, "walls">): Rect[] {
+  return (level.rooms ?? []).flatMap((r, i) => {
+    const w = roomWallOf(level, i, registry);
+    if (!w?.windows) return [];
+    const k = (r.x1 - r.x0) / w.width;
+    return w.windows.map(([x, y, wide, high]) => ({ x: r.x0 + x * k, y: (y - w.floor) * k, w: wide * k, h: high * k }));
+  });
+}
+
+const COUNTRY = { scroll: 1.5, drift: 120, dark: 3, hedge: 170, tree: 110, column: 12, far: 0.4 } as const;
+
+/**
+ * The countryside in the coaches' windows, drawn over each flat pane and clipped by hand to it: green fields and hedges, then
+ * after the tunnel blue-grey hills; it runs by at the train's speed and past the camera; black for the tunnel's three seconds.
+ */
+export class Countryside {
+  readonly g = new Graphics();
+  private drift = 0;
+  private dark = 0;
+
+  constructor(
+    private readonly level: Pick<Level, "tunnel">,
+    private readonly rects: Rect[],
+  ) {}
+
+  enterTunnel(): void {
+    this.dark = COUNTRY.dark;
+  }
+
+  /** The panes on screen now, for the browser check. */
+  showing(cameraX: number, half: number): Rect[] {
+    return this.rects.filter((r) => r.x + r.w > cameraX - half && r.x < cameraX + half);
+  }
+
+  sync(cameraX: number, half: number, heroX: number, dt: number): void {
+    this.dark = Math.max(0, this.dark - dt);
+    this.drift += COUNTRY.drift * dt;
+    const g = this.g.clear();
+    const shift = cameraX * COUNTRY.scroll + this.drift;
+    const fields = countrysidePhase(this.level, heroX) === "fields";
+    for (const r of this.showing(cameraX, half)) {
+      if (this.dark > 0) g.rect(r.x, r.y, r.w, r.h).fill("#0b0c10");
+      else if (fields) this.fields(g, r, shift);
+      else this.hills(g, r, shift);
+    }
+  }
+
+  private fields(g: Graphics, r: Rect, shift: number) {
+    const at = (share: number) => r.y + r.h * share;
+    g.rect(r.x, r.y, r.w, r.h).fill("#c9e0ea");
+    g.rect(r.x, at(0.52), r.w, r.h * 0.1).fill("#9dbb86");
+    g.rect(r.x, at(0.62), r.w, r.h * 0.38).fill("#7ca65a");
+    g.rect(r.x, at(0.76), r.w, r.h * 0.09).fill("#8fb765");
+    const across = (every: number, speed: number, wide: number, y0: number, y1: number, color: string) => {
+      const s = shift * speed;
+      for (let x = Math.floor((r.x + s - wide) / every) * every - s; x < r.x + r.w; x += every) {
+        const a = Math.max(x, r.x);
+        const b = Math.min(x + wide, r.x + r.w);
+        if (b > a) g.rect(a, at(y0), b - a, r.h * (y1 - y0)).fill(color);
+      }
+    };
+    across(COUNTRY.tree, COUNTRY.far, 16, 0.38, 0.54, "#3f6b3a");
+    across(COUNTRY.hedge, 1, 26, 0.58, 0.68, "#4f7a3f");
+  }
+
+  private hills(g: Graphics, r: Rect, shift: number) {
+    g.rect(r.x, r.y, r.w, r.h).fill("#c3cfdb");
+    for (let x = r.x; x < r.x + r.w; x += COUNTRY.column) {
+      const u = x + shift * COUNTRY.far;
+      const top = 0.34 + 0.1 * Math.sin(u / 70) + 0.05 * Math.sin(u / 23);
+      g.rect(x, r.y + r.h * top, Math.min(COUNTRY.column, r.x + r.w - x), r.h * (0.72 - top)).fill("#7d90a8");
+    }
+    g.rect(r.x, r.y + r.h * 0.72, r.w, r.h * 0.28).fill("#6f8f6a");
+  }
+}
 
 /**
  * A level's planes behind and in front of the play: the sky; its painted walls side by side (or its inked photo while
@@ -184,6 +276,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   planes.fore.addChild(grounded.fore);
   let groundY: number | null = null;
   const walls = wallsFor(level, registry);
+  let countryside: Countryside | null = null;
   // A wall that does not load leaves the venue its photo, never a gap in the row.
   const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
   if (level.backdrop?.layout && walls && textures) {
@@ -206,25 +299,33 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     planes.mid.addChild(new Graphics().rect(-20000, FLOOR.depth, 60000, 6000).fill(GROUND));
   } else if (level.backdrop?.rooms && level.rooms && walls && textures) {
     // One wall a room, its width the room's, so its painted furniture stands where the room's platforms are.
-    level.rooms.forEach((r, i) => {
-      const w = walls[i];
+    const rooms = level.rooms;
+    rooms.forEach((r, i) => {
+      // A room's own wall by name, or the list's by order.
+      const at = r.wall ? level.backdrop!.walls.indexOf(r.wall) : i;
+      const w = walls[at];
       const k = (r.x1 - r.x0) / w.width;
       const top = -w.floor * k;
       // Its top row carries on up, so the balcony's strip of wall never stops in mid air; its floor carries on down and past the rooms' ends.
-      const above = new Sprite(new Texture({ source: textures[i].source, frame: new Rectangle(0, 0, w.width, 1) }));
+      // On the train only the roof is up there.
+      const above = level.coaches ? new Graphics().rect(0, 0, w.width, 1).fill(w.top) : new Sprite(new Texture({ source: textures[at].source, frame: new Rectangle(0, 0, w.width, 1) }));
       above.position.set(r.x0, -4000);
       above.scale.set(k, 4000 + top);
       const below = new Graphics().rect(r.x0, top + w.height * k - 2, r.x1 - r.x0, 4000);
       if (i === 0) below.rect(r.x0 - 800, 0, 800, 4000);
-      if (i === walls.length - 1) below.rect(r.x1, 0, 800, 4000);
+      if (i === rooms.length - 1) below.rect(r.x1, 0, 800, 4000);
       below.fill(w.bottom ?? w.top);
-      const s = new Sprite(textures[i]);
+      const s = new Sprite(textures[at]);
       s.position.set(r.x0, top);
       s.scale.set(k);
       // Indoors the lamps add to the painting, so it takes the walls' tint; on the balcony only what is painted lights it.
       if (r.id !== "balcony") above.tint = below.tint = s.tint = wallTint;
       grounded.far.addChild(above, below, s);
     });
+    if (level.coaches) {
+      countryside = new Countryside(level, countryWindows(level, registry));
+      grounded.far.addChild(countryside.g);
+    }
   } else if (level.backdrop?.rooms) {
     planes.far.addChild(blockWall(level.length * 3));
   } else if (level.backdrop?.stack && walls && textures) {
@@ -307,6 +408,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     fores.push(s);
   }
   return {
+    countryside,
     setVisible(on) {
       for (const c of Object.values(planes)) c.visible = on;
       if (on) scene.farPan = farPan(level);

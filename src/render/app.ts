@@ -74,7 +74,9 @@ export type NextProbe = {
   level?: { signs: { label: string }[] };
   /** The cabin's state, while there is one. */
   flight?: { sign: number; cartLive: boolean; cartZ: number; lane: number };
-  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };
+  /** The middle of the first coach window on screen, in screen px, for the checks. */
+  trainWindow?: () => { x: number; y: number } | null;
+  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; crouch?: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
   drawn?: { character: boolean; cast: boolean; props: boolean; flyers: boolean };
   heroScreenX?: number;

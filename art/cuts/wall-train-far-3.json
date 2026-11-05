@@ -1,0 +1,28 @@
+{
+ "note": "Coordinates are pixels of art/incoming/backdrops/train-far-3.png, painted over art/outgoing/renders/train-far-3.png, whose floor's edge is three-quarters down. One wall a room: its whole width. Until the painting is in, the render shows.",
+ "floor": 768,
+ "seams": [
+  0,
+  1536
+ ],
+ "windows": [
+  [
+   160,
+   141,
+   307,
+   226
+  ],
+  [
+   614,
+   141,
+   307,
+   226
+  ],
+  [
+   1069,
+   141,
+   307,
+   226
+  ]
+ ]
+}

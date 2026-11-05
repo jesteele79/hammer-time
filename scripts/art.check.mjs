@@ -723,7 +723,7 @@ test("every recolor the night asks of a painting is in that painting's cut", () 
   }
 });
 test("every recolor a level asks of a painting is in that painting's cut, a borrowed painting's too", () => {
-  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT])
+  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT, FLIGHT, PARIS, TRAIN])
     for (const s of level.cast ?? []) {
       const painting = PAINTING_OF[s.person] ?? s.person;
       if (!s.recolor || !existsSync(`art/cuts/cast-${painting}.json`)) continue;
@@ -732,6 +732,9 @@ test("every recolor a level asks of a painting is in that painting's cut, a borr
     }
 });
 import { SAT } from "../src/sim/levels/sat.ts";
+import { FLIGHT } from "../src/sim/levels/flight.ts";
+import { PARIS } from "../src/sim/levels/paris.ts";
+import { TRAIN } from "../src/sim/levels/train.ts";
 import { PAINTING_OF } from "../src/sim/cast.ts";
 
 test("a recolor region can name the layers it reaches: a garment painted in behind an arm is recolored on its own layer only", () => {
@@ -1149,4 +1152,33 @@ test("a single mid or fore piece file is a one-piece sheet under its own name; a
     { file: "paris-mid-1.png", name: "paris-mid-1", one: true },
     { file: "paris-fore-1.png", name: "paris-fore-1", one: true },
   ]);
+});
+
+test("the station's and coaches' renders are committed with their windows", async () => {
+  const names = ["station-1", "station-2", "train-far-1", "train-far-2", "train-far-3"];
+  for (const n of names) {
+    const m = await sharp(`art/outgoing/renders/${n}.png`).metadata();
+    assert.deepEqual([m.width, m.height], [1536, 1024], n);
+  }
+  const w = JSON.parse(readFileSync("art/outgoing/renders/train-windows.json", "utf8"));
+  for (const n of names.slice(2)) assert.equal(w[n].length, 3, n);
+  assert.equal(w.clock.length, 3);
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  for (const n of names) {
+    const cut = JSON.parse(readFileSync(`art/cuts/wall-${n}.json`, "utf8"));
+    assert.deepEqual([cut.floor, cut.seams], [768, [0, 1536]], n);
+    assert.ok(reg.walls[n], n);
+  }
+  assert.deepEqual(reg.walls["train-far-2"].windows, w["train-far-2"]);
+  assert.deepEqual(reg.walls["station-1"].clock, w.clock);
+});
+test("the train sheet cuts six pieces by name, the lists agree", async () => {
+  const { TRAIN_PIECES } = await import("../src/art/registry.ts");
+  const cut = await import("./art-cut.mjs");
+  assert.deepEqual([...TRAIN_PIECES], cut.TRAIN_PIECES);
+  assert.deepEqual([...TRAIN_PIECES], ["suitcase", "stroller", "bicycle", "trolley", "barrier", "quiet"]);
+  assert.deepEqual(Object.keys(cut.nameTrainPieces([1, 2, 3, 4, 5, 6])), [...TRAIN_PIECES]);
+  assert.throws(() => cut.nameTrainPieces([1, 2, 3, 4, 5]), /5 pieces/);
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  if (existsSync("art/incoming/props/train-sheet.png")) assert.deepEqual(Object.keys(reg.train.pieces), [...TRAIN_PIECES]);
 });

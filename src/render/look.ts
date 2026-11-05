@@ -46,7 +46,7 @@ import { heatZoneAt } from "../sim/hazards";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
 import { TIERS, shouldStepDown3d } from "./quality";
-import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
+import { VIEW_HALF, groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
@@ -75,6 +75,7 @@ import { backClipOf, backCycle, flatCabinOf, hallStateOf } from "./3d/hall-state
 import type { ThreeView } from "./3d/three-view";
 import { SETS } from "./3d/sets";
 import { ParisView } from "./venue-paris";
+import { TrainView, loadTrainPieces, type TrainPieces } from "./venue-train";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
@@ -107,6 +108,8 @@ const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
 const NOTE_T = 2;
+/** A seam underfoot: a jolt of about 2 px, gone in 0.3 s. */
+const BOGIE_JOLT = 0.3;
 /** The Buc-ee's shield's look: its glow around his middle, and its last seconds' flicker. */
 const SHIELD_LOOK = { up: 170, rx: 130, ry: 215, rings: 5, alpha: 0.22, color: 0xffcf3a, rim: 0xfff1a0, flicker: 2, sparkEvery: 0.08 } as const;
 /** Seconds the camera takes to settle into a zone's zoom. */
@@ -288,6 +291,8 @@ export async function startLook(
   const towerCarts = new TowerCarts(scene.layers.play);
   const hallFlat = new HallFlatView(scene.layers.play);
   const parisView = new ParisView(scene.layers.play);
+  const trainView = new TrainView(scene.layers.play);
+  let trainPieces: TrainPieces = {};
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -314,8 +319,12 @@ export async function startLook(
           };
           objects.setLooks({ ice: looks("ice"), cabinet: looks("cabinet") });
         }
+        if (level.coaches) {
+          trainPieces = opts.noart ? {} : await loadTrainPieces(registry);
+          towerCarts.setTrainArt(trainPieces);
+        }
         if (level.pickups?.some((p) => p.kind === "bread") && !opts.noart && registry.french?.food?.[0]) setBreadPicture(await Assets.load<Texture>(ART_BASE + registry.french.food[0].file).catch(() => null));
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.bonjour ? "paris-far-1" : "suite-far-1"]);
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -762,6 +771,15 @@ export async function startLook(
         break;
       case "pigeons":
         parisView.scatter(e.x);
+        break;
+      case "tunnel":
+        views.get(game.level.id)?.backdrop.countryside?.enterTunnel();
+        break;
+      case "doorsBeep":
+        trainView.beep();
+        break;
+      case "bogie":
+        scene.camera.trauma = Math.max(scene.camera.trauma, BOGIE_JOLT);
         break;
       case "bossSay":
         speech.say(BOSS_ID, e.text, e.seconds);
@@ -1891,6 +1909,12 @@ export async function startLook(
     hallFlat.container.zIndex = y - 0.66;
     parisView.container.zIndex = y - 0.67;
     parisView.setVisible(!!game.level.bonjour);
+    trainView.container.zIndex = y - 0.72;
+    trainView.setVisible(!!game.level.coaches);
+    if (game.level.coaches) {
+      trainView.sync(game.level, trainPieces, opts.noart ? null : (registry.walls?.[game.level.rooms?.[0]?.wall ?? ""] ?? null), { stretch: game.run.stretch, heroX: world.hero.x, boss: world.boss }, simDt);
+      views.get(game.level.id)?.backdrop.countryside?.sync(scene.camera.x, VIEW_HALF, world.hero.x, simDt);
+    }
     if (game.level.bonjour) parisView.sync(game.level, time, simDt, world.bonjourDone, world.tip.out > 0);
     hallFlat.setVisible(!!game.level.hall && !hallUp());
     if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h, cur.flight ? flatCabinOf(cur) : undefined);
@@ -2063,10 +2087,17 @@ export async function startLook(
       window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
-      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip: hallBack?.clip ?? clip, walkOut: { ...walkOut } };
+      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, crouch: h.crouch, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip: hallBack?.clip ?? clip, walkOut: { ...walkOut } };
       window.__next.movers = cur.movers.map((m) => ({ id: m.id, x: m.x, y: m.y, live: m.live !== false }));
       window.__next.level = { signs: game.level.signs.map((s) => ({ label: s.label })) };
       window.__next.flight = cur.flight ? { sign: cur.flight.sign, cartLive: cur.flight.cart.live, cartZ: cur.flight.cart.z, lane: cur.hero.lane } : undefined;
+      window.__next.trainWindow = game.level.coaches
+        ? () => {
+            const half = (scene.width / scene.scale) * 0.45;
+            const r = views.get(game.level.id)?.backdrop.countryside?.showing(scene.camera.x, half)[0];
+            return r ? scene.toScreen({ x: r.x + r.w / 2, y: r.y + r.h / 2 }) : null;
+          }
+        : undefined;
       window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
@@ -2446,6 +2477,7 @@ export async function startLook(
       bossView.destroy();
       towerCarts.destroy();
       parisView.destroy();
+      trainView.destroy();
       hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();

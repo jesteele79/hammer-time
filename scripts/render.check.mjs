@@ -1730,3 +1730,28 @@ test("the flat cabin draws the drinks cart too: while she waits it is the one ro
   g.world.missiles.push({ id: 1, kind: "bag", x: 500, y: 0, vx: 0, vy: 0, spin: 0, life: 1, phase: 0, from: 0, lx: 0.9 }, { id: 2, kind: "plane", x: 500, y: 0, vx: 0, vy: 0, spin: 0, life: 1, phase: 0, from: 0 });
   assert.equal(flat().bags.length, 1);
 });
+
+import { countrysidePhase, countryWindows, roomWallOf } from "../src/render/backdrop.ts";
+import { clockTime } from "../src/render/venue-train.ts";
+import { TRAIN, coachX } from "../src/sim/levels/train.ts";
+
+const trainWalls = () => Object.fromEntries(TRAIN.backdrop.walls.map((n) => [n, { file: n, width: 1536, height: 1024, floor: 768, top: "#000000", ...(n.startsWith("train") ? { windows: [[160, 141, 307, 226], [614, 141, 307, 226], [1069, 141, 307, 226]] } : {}) }]));
+test("a room's own wall wins over the list's order", () => {
+  const walls = trainWalls();
+  assert.equal(roomWallOf(TRAIN, 10, { walls }).file, "train-far-2", "coach 10, the bistro");
+  assert.equal(roomWallOf(TRAIN, 2, { walls }).file, "train-far-1");
+  assert.equal(roomWallOf(TRAIN, 19, { walls }).file, "train-far-3", "coach 1");
+  assert.equal(roomWallOf(TRAIN, 0, { walls }).file, "station-1");
+  assert.equal(roomWallOf({ rooms: [{ id: "a", x0: 0, x1: 1 }], backdrop: { walls: ["x"] } }, 0, { walls: { x: { file: "x" } } }).file, "x", "by order where it names none");
+  assert.equal(roomWallOf(TRAIN, 2, { walls: {} }), null);
+});
+test("the countryside shows fields before the tunnel and hills after, in every coach's three windows", () => {
+  assert.equal(countrysidePhase(TRAIN, coachX(13)), "fields");
+  assert.equal(countrysidePhase(TRAIN, coachX(11)), "hills");
+  const rects = countryWindows(TRAIN, { walls: trainWalls() });
+  assert.equal(rects.length, 18 * 3);
+  assert.deepEqual(rects[0], { x: coachX(18) + 80, y: (141 - 768) / 2, w: 153.5, h: 113 });
+});
+test("the hall's clock reads 13:58 with the whole stretch left and 14:02 when it runs out", () => {
+  assert.deepEqual([clockTime(120), clockTime(60), clockTime(0), clockTime(null)], ["13:58", "14:00", "14:02", "14:02"]);
+});

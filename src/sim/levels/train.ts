@@ -13,7 +13,8 @@ const CEILING = -404;
 
 /** A coach's rack: ending short of the door frames, or he could not step off it. */
 const racks: LevelPlatform[] = COACHES.filter((n) => n !== BISTRO).map((n) => ({ x0: coachX(n) + 110, x1: coachX(n) + 620, y: -170, kind: "rack" }));
-const seatBacks: LevelPlatform[] = COACHES.filter((n) => n !== BISTRO && n !== FAMILY && n !== BIKES).flatMap((n) => [0, 1, 2, 3].map((i) => ({ x0: coachX(n) + 120 + 150 * i, x1: coachX(n) + 210 + 150 * i, y: -110, kind: "seat" as const })));
+/** Every coach's but the bistro's: the family car and the bike car show the standard coach's painted seats too. */
+const seatBacks: LevelPlatform[] = COACHES.filter((n) => n !== BISTRO).flatMap((n) => [0, 1, 2, 3].map((i) => ({ x0: coachX(n) + 120 + 150 * i, x1: coachX(n) + 210 + 150 * i, y: -110, kind: "seat" as const })));
 /** Who sits and stands up into him. */
 const STANDING: [number, CastPerson, string?][] = [
   [17, "office-1"],
@@ -88,7 +89,8 @@ export const TRAIN: Level = {
   furniture: [],
   carts: [],
   lights: [],
-  camera: { zones: [] },
+  // The coaches are only 404 px tall: closer in, the ceiling near the top of the frame.
+  camera: { zones: [{ x0: 4000, x1: 17900, zoom: 1.3 }] },
   rewards: { count: 8, bucees: 1, nuts: 2 },
   routes: [
     { id: "aisle", x0: 4100, x1: 17000, y0: -80, y1: 0 },

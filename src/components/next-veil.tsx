@@ -32,6 +32,8 @@ export type VeilInfo = {
   world: string;
   /** The level's own line on its card. */
   card: string | null;
+  /** The card says this line itself, over "Back from your break": the train left without him. */
+  told: boolean;
   /** The level's own line on its Clocked out card. */
   tally: string | null;
   /** His status through Act 2, on every card of the act. */
@@ -277,7 +279,9 @@ export function NextVeil({
     );
   if (mode === "card") {
     // In a journey the first stop of the hotel's shift starts it, and a replay starts its own; the rest go on.
-    const line = info.back
+    const line = info.told
+      ? info.card
+      : info.back
       ? "Back from your break"
       : info.card
         ? info.card

@@ -32,6 +32,7 @@ import {
   nameGatePieces,
   nameSatPieces,
   nameTowerPieces,
+  nameTrainPieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -361,7 +362,7 @@ async function walls(registry) {
   const dir = "art/incoming/backdrops";
   if (!existsSync(dir)) return;
   mkdirSync(join(OUT, "backdrops"), { recursive: true });
-  for (const file of readdirSync(dir).filter((f) => /-far-\d+\.png$/.test(f))) {
+  for (const file of readdirSync(dir).filter((f) => /-far-\d+\.png$/.test(f) && !f.startsWith("train-far-"))) {
     const name = file.replace(/\.png$/, "");
     const cutFile = `art/cuts/wall-${name}.json`;
     if (!existsSync(cutFile)) {
@@ -385,6 +386,19 @@ async function walls(registry) {
       const w = await wallCrop(readFileSync(source), JSON.parse(readFileSync(`art/cuts/wall-${name}.json`, "utf8")));
       writeFileSync(join(OUT, `backdrops/${name}.png`), w.png);
       registry.walls[name] = { file: `backdrops/${name}.png`, width: w.width, height: w.height, floor: w.floor, top: w.top, bottom: w.bottom };
+      console.log(`wall ${name}: ${w.width}x${w.height}, its floor at ${w.floor}${source === painted ? "" : " (the render)"}`);
+    });
+  }
+  // The station's and the coaches' walls the same way, with the windows the game draws the countryside in and the hall's clock.
+  for (const name of ["station-1", "station-2", "train-far-1", "train-far-2", "train-far-3"]) {
+    const painted = join(dir, `${name}.png`);
+    const source = existsSync(painted) ? painted : `art/outgoing/renders/${name}.png`;
+    if (!existsSync(source)) continue;
+    await tolerant(`wall ${name}`, strict, async () => {
+      const cut = JSON.parse(readFileSync(`art/cuts/wall-${name}.json`, "utf8"));
+      const w = await wallCrop(readFileSync(source), cut);
+      writeFileSync(join(OUT, `backdrops/${name}.png`), w.png);
+      registry.walls[name] = { file: `backdrops/${name}.png`, width: w.width, height: w.height, floor: w.floor, top: w.top, bottom: w.bottom, ...(cut.windows ? { windows: cut.windows } : {}), ...(cut.clock ? { clock: cut.clock } : {}) };
       console.log(`wall ${name}: ${w.width}x${w.height}, its floor at ${w.floor}${source === painted ? "" : " (the render)"}`);
     });
   }
@@ -587,6 +601,24 @@ async function sat(registry) {
 }
 
 const TOWER_SHEET = "art/incoming/props/tower-sheet.png";
+const TRAIN_SHEET = "art/incoming/props/train-sheet.png";
+
+/** The train (story Phase 3): the sheet cut into its six named pieces; while it is not in, the drawn stand-ins stand. */
+async function train(registry) {
+  registry.train = {};
+  if (!existsSync(TRAIN_SHEET)) return;
+  mkdirSync(join(OUT, "train"), { recursive: true });
+  await tolerant("train sheet", strict, async () => {
+    const named = nameTrainPieces(await sheetPieces(await keyOut(readFileSync(TRAIN_SHEET))));
+    registry.train.pieces = {};
+    for (const [name, p] of Object.entries(named)) {
+      const file = `train/${name}.png`;
+      writeFileSync(join(OUT, file), p.png);
+      registry.train.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+    }
+    console.log(`train sheet: ${Object.keys(named).join(", ")}`);
+  });
+}
 
 /** The tower (story Phase 2): the sheet cut into its five named pieces; while it is not in, the drawn stand-ins stand. */
 async function tower(registry) {
@@ -644,6 +676,7 @@ await banquet(registry);
 await lounge(registry);
 await french(registry);
 await tower(registry);
+await train(registry);
 await back(registry);
 await gate(registry);
 await sat(registry);

@@ -91,7 +91,7 @@ test("eighteen coaches as rooms at half scale from three paintings, the station'
 test("the racks are a crouched route under the ceiling, the seat backs are platforms, a traveler stands up into him, a kid shoves without a pip, the stroller is a cart", () => {
   const g = train(); play(g); const h = g.world.hero; g.run.stretch = null;
   Object.assign(h, { x: coachX(17) + 200, y: -170, onGround: true }); until(g, () => false, 0.5, { right: true }); assert.ok(h.crouch && h.y <= -168);
-  assert.equal(TRAIN.platforms.filter((p) => p.kind === "seat").length, 4 * 15);
+  assert.equal(TRAIN.platforms.filter((p) => p.kind === "seat").length, 4 * 17);
   const s = g.world.cast.find((n) => n.trick === "stand"); Object.assign(h, { x: s.x - 300, y: 0, patience: 2, invuln: 0, crouch: false, h: 300 }); until(g, (x) => x.world.hero.patience < 2, 3, { right: true }); assert.equal(h.patience, 1);
   const k = g.world.cast.find((n) => n.person === "kid-1"); assert.equal(k.size, 0.6); Object.assign(h, { x: k.x - 400, y: 0, patience: 2, invuln: 0 }); const sh = until(g, (x) => of(x.events, "shoved").length > 0, 4); assert.deepEqual([sh.length > 0, h.patience, of(sh, "castLine").filter((e) => e.id === k.id).length], [true, 2, 0]);
   const st = g.world.movers.find((m) => m.id === "stroller"); Object.assign(h, { x: st.x - 200, y: 0, patience: 2, invuln: 0 }); until(g, (x) => x.world.hero.patience < 2, 6); assert.equal(h.patience, 1);

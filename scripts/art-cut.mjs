@@ -1569,6 +1569,12 @@ export function nameGatePieces(pieces) {
 }
 
 /** The tower sheet's pieces, left to right as painted (story Phase 2); src/art/registry.ts has the same list. */
+export const TRAIN_PIECES = ["suitcase", "stroller", "bicycle", "trolley", "barrier", "quiet"];
+/** The train sheet's pieces, left to right as painted: six, or the sheet is refused. */
+export function nameTrainPieces(pieces) {
+  if (pieces.length !== TRAIN_PIECES.length) throw new Error(`the train sheet has ${pieces.length} pieces, not ${TRAIN_PIECES.length}`);
+  return Object.fromEntries(TRAIN_PIECES.map((name, i) => [name, pieces[i]]));
+}
 export const TOWER_PIECES = ["cart", "ice", "chute", "cabinet", "sign"];
 /** The tower sheet's pieces by name; a sheet with more or fewer than five is refused, its painting to be redone. */
 export function nameTowerPieces(pieces) {

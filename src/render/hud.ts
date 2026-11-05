@@ -27,6 +27,8 @@ export type HudPayload = {
   world: string;
   /** The line under the level's name on its card, when it has its own. */
   card: string | null;
+  /** The card says this line itself, over "Back from your break": the train left without him. */
+  told: boolean;
   /** The clock on the HUD is a stretch's own (3-3's station). */
   stretch: boolean;
   /** The level's own line on its tally. */
@@ -214,6 +216,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     name: game.level.name,
     world: game.level.world,
     card: game.cardLine ?? game.level.card ?? null,
+    told: game.cardLine !== null,
     stretch: game.run.stretch !== null,
     tally: game.level.tally ?? null,
     status: game.shift[game.venue]?.world.startsWith("2-") ? statusName(game.run.keycards) : null,

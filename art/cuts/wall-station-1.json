@@ -1,0 +1,13 @@
+{
+ "note": "Coordinates are pixels of art/incoming/backdrops/station-1.png, painted over art/outgoing/renders/station-1.png, whose floor's edge is three-quarters down. One wall a room: its whole width. Until the painting is in, the render shows.",
+ "floor": 768,
+ "seams": [
+  0,
+  1536
+ ],
+ "clock": [
+  480,
+  230,
+  84
+ ]
+}

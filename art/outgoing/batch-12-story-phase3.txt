@@ -187,7 +187,7 @@ written for it and is handed over when the renders exist.
     train-far-1.png (a standard coach: rows of blue seats facing both ways, the
     luggage racks above, the windows with a flat pale sky, the aisle's floor as the base
     line), train-far-2.png (the bistro car: a counter with a fridge of blank bottles,
-    standing tables, the same windows and racks), train-far-3.png (a first-class coach:
+    standing tables, the same windows, no racks), train-far-3.png (a first-class coach:
     wider grey seats with headrests, reading lamps, the same windows), each 1536 x 1024,
     painted over its render; no people, no text, nothing on the floor the render does
     not show; the window panes a single flat pale color (the game draws the countryside

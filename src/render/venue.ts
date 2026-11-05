@@ -12,6 +12,7 @@ import { drawSatBelt, drawSatDressing, drawSatFurniture, satFloor, type SatPiece
 import { drawHallFlat } from "./venue-hall-flat";
 import { drawParis, drawParisStandIn, parisPlatform } from "./venue-paris";
 import { drawSuiteStandIn } from "./venue-suite";
+import { drawTrain, drawTrainStandIn, type TrainPieces } from "./venue-train";
 import { towerDressing, towerFloor, towerPlatform, type TowerPieces } from "./venue-tower";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
@@ -75,7 +76,7 @@ export function escalatorSteps(seg: FloorSegment, t: number): Point[] {
 }
 
 /** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs; SAT's and the tower's sheets where they are in. */
-export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}, suitePainted = false): VenueView {
+export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}, suitePainted = false, train: TrainPieces = {}): VenueView {
   const root = new Container();
   root.zIndex = SCENERY_Z;
   root.sortableChildren = false;
@@ -95,7 +96,8 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   if (level.hall) drawHallFlat(back, level);
   const climb = !!level.floors;
   if (climb) towerDressing(back, level, tower);
-  if (level.rooms && !suitePainted) drawSuiteStandIn(back, level);
+  if (level.coaches && !suitePainted) drawTrainStandIn(back, level);
+  else if (level.rooms && !suitePainted) drawSuiteStandIn(back, level);
   if (level.bonjour) {
     if (!suitePainted) drawParisStandIn(back, level);
     drawParis(back, level);
@@ -106,6 +108,7 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
     if (!(level.rooms && suitePainted) && !(climb && towerFloor(front, f)) && !(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
   if (airport) drawSatDressing(back, front, level, sat);
   drawPits(back, level);
+  if (level.coaches) root.addChild(drawTrain(level, train));
   const doorG = new Graphics();
   root.addChild(doorG);
   for (const s of level.signs) drawSign(root, s);
@@ -119,6 +122,8 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   root.addChild(over);
   const clocks = new Map<string, Graphics>();
   for (const k of level.checkpoints) {
+    // Boarding the train punches him in on its own: no clock on the platform.
+    if (k.auto) continue;
     const g = new Graphics();
     drawClock(g, k, false);
     const card = label("BREAK", "display", 28);

@@ -243,6 +243,33 @@ try {
     frames.forEach((f, i) => save(`french-look-${i + 1}.png`, f));
     count += frames.length;
   }
+  if (want("train")) {
+    // The station and the coaches, in the running game's scene.
+    await page.goto(`${base}?next=1&board=1&dev=1&level=train`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 60000 });
+    await page.waitForTimeout(1200);
+    const frames = (await render("venue")).split("\n");
+    frames.forEach((f, i) => save(`train-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
+  // The conductor: his door shut and the wind-up, the stagger his missed punch leaves, the door open behind him at the next.
+  if (want("conductor")) {
+    const door13 = 4000 + 5 * 768;
+    await page.goto(`${base}?next=1&dev=1&level=train`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    await page.evaluate((x) => window.__next.dev.teleport(x, 0), door13 - 120);
+    await page.waitForFunction(() => window.__next.boss?.state === "windup", null, { timeout: 10000 });
+    await page.screenshot({ path: resolve(out, "conductor-1.png") });
+    await page.keyboard.down("KeyS");
+    await page.waitForFunction(() => window.__next.boss?.state === "stagger", null, { timeout: 5000 });
+    await page.keyboard.up("KeyS");
+    await page.screenshot({ path: resolve(out, "conductor-2.png") });
+    await page.evaluate(() => window.__next.dev.boss({ door: 1 }));
+    await page.evaluate((x) => window.__next.dev.teleport(x, 0), door13 + 40);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: resolve(out, "conductor-3.png") });
+    count += 3;
+  }
   if (want("paris")) {
     // Paris's stretches, in the running game's scene.
     await page.goto(`${base}?next=1&board=1&dev=1&level=paris`);
