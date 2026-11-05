@@ -10,6 +10,7 @@ import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } 
 import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
 import { drawSatBelt, drawSatDressing, drawSatFurniture, satFloor, type SatPieces } from "./venue-sat";
 import { drawHallFlat } from "./venue-hall-flat";
+import { drawSuiteStandIn } from "./venue-suite";
 import { towerDressing, towerFloor, towerPlatform, type TowerPieces } from "./venue-tower";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
@@ -73,7 +74,7 @@ export function escalatorSteps(seg: FloorSegment, t: number): Point[] {
 }
 
 /** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs; SAT's and the tower's sheets where they are in. */
-export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}): VenueView {
+export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}, suitePainted = false): VenueView {
   const root = new Container();
   root.zIndex = SCENERY_Z;
   root.sortableChildren = false;
@@ -93,7 +94,8 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   if (level.hall) drawHallFlat(back, level);
   const climb = !!level.floors;
   if (climb) towerDressing(back, level, tower);
-  for (const p of level.platforms) if (!(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
+  if (level.rooms && !suitePainted) drawSuiteStandIn(back, level);
+  for (const p of level.platforms) if (!level.rooms && !(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
   const airport = level.id === "sat";
   for (const f of level.floor)
     if (!(climb && towerFloor(front, f)) && !(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);

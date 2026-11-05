@@ -6,7 +6,8 @@ import { LOBBY_NIGHT } from "./lobby-night";
 import { RESTAURANT } from "./restaurant";
 import { SAT } from "./sat";
 import { HALLWAY } from "./hallway";
+import { SUITE } from "./suite";
 import { TOWER } from "./tower";
 
 /** The story's stops that are built, by id: the renderer plays them, the shell lists them on the strip. */
-export const STOP_LEVELS: ReadonlyMap<string, Level> = new Map([SAT, LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, LOBBY_NIGHT, TOWER, HALLWAY].map((l) => [l.id, l]));
+export const STOP_LEVELS: ReadonlyMap<string, Level> = new Map([SAT, LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, LOBBY_NIGHT, TOWER, HALLWAY, SUITE].map((l) => [l.id, l]));

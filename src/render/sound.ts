@@ -11,6 +11,10 @@ import { flies } from "../sim/missiles";
 type Cue = keyof AudioBus & string;
 
 export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
+  bounce: ["jump"],
+  batted: ["bonk"],
+  giveBack: ["coin"],
+  pool: ["splash"],
   keycard: ["chime"],
   keyFail: ["thunk"],
   keyOpen: ["thunk", "ding"],

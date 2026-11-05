@@ -45,6 +45,10 @@ export function malletAt(
 
 const rectOf = (t: Target): Rect => ({ x: t.x - t.w / 2, y: t.y - t.h, w: t.w, h: t.h });
 
+/** How a batted apple leaves: its speed and lift, and what it pays. */
+const APPLE_BACK = 700;
+const APPLE_LIFT = -300;
+const APPLE_POINTS = 100;
 export type SwingWorld = { targets: Target[]; cast: Npc[]; missiles: Missile[]; puddles: Puddle[]; stage: Stage };
 
 /**
@@ -95,6 +99,15 @@ export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): 
     const box = { x: m.x - r, y: m.y - r, w: 2 * r, h: 2 * r };
     for (let k = 1; k < path.length; k++)
       if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, box)) {
+        // An apple goes back the way it came, for a hundred; once.
+        if (m.kind === "apple") {
+          if (m.batted) break;
+          m.batted = true;
+          m.vx = h.facing * Math.max(Math.abs(m.vx), APPLE_BACK);
+          m.vy = Math.min(m.vy, APPLE_LIFT);
+          events.push({ type: "batted", x: m.x, y: m.y, points: APPLE_POINTS });
+          break;
+        }
         m.life = 0;
         events.push({ type: "swat", kind: m.kind, x: m.x, y: m.y, points: flies(m.kind) ? POINTS.swat : 0 });
         break;

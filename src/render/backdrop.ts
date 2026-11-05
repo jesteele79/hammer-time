@@ -169,7 +169,21 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   const walls = wallsFor(level, registry);
   // A wall that does not load leaves the venue its photo, never a gap in the row.
   const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
-  if (level.backdrop?.stack && walls && textures) {
+  if (level.backdrop?.rooms && level.rooms && walls && textures) {
+    // One wall a room, its width the room's, so its painted furniture stands where the room's platforms are.
+    level.rooms.forEach((r, i) => {
+      const w = walls[i];
+      const k = (r.x1 - r.x0) / w.width;
+      const top = -w.floor * k;
+      grounded.far.addChild(new Graphics().rect(r.x0, -4000, r.x1 - r.x0, 4000 + top).fill(w.top));
+      const s = new Sprite(textures[i]);
+      s.position.set(r.x0, top);
+      s.scale.set(k);
+      grounded.far.addChild(s);
+    });
+  } else if (level.backdrop?.rooms) {
+    planes.far.addChild(blockWall(level.length * 3));
+  } else if (level.backdrop?.stack && walls && textures) {
     for (const row of stackWalls(level, walls, farPan(level), VIEW_HALF))
       for (const { index, x } of row.columns) {
         const w = walls[index];
@@ -236,7 +250,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     grounded.mid.addChild(s);
     mids++;
   }
-  if (!mids && level.id !== "stash" && !level.backdrop?.stack && !level.hall) planes.mid.addChild(drawMid(level.length));
+  if (!mids && level.id !== "stash" && !level.backdrop?.stack && !level.backdrop?.rooms && !level.hall) planes.mid.addChild(drawMid(level.length));
   const fores: Sprite[] = [];
   for (const f of level.backdrop?.fore ?? []) {
     const s = await piece(f.name);

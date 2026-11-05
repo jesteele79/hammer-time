@@ -1,3 +1,4 @@
+import { TITANIUM } from "./titanium";
 import { ROLLING, hittable, npcRect, standing } from "./cast";
 import { attacking } from "./cast-behavior";
 import { overlapsRect } from "./geometry";
@@ -27,6 +28,7 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "
   if (route === "hall") return hallway(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
+  if (world && fightTitanium(world, h, i)) return i;
   const stage = stageOf(level);
   const gap = h.onGround && floorAt(stage, h.x + LOOK.gap, h.y - 60) === null;
   const wall = level.solids.some((s) => s.x - h.x > 0 && s.x - h.x < LOOK.wall && s.y < h.y - 10 && s.y + s.h > h.y - 290);
@@ -115,6 +117,37 @@ function hallway(level: Level, h: HeroState, i: Input, world?: World): Input {
   const staff = world.cast.some((n) => n.alive && hittable(n) && ahead(n.x, HALL_DRIVE.staff) && Math.abs(n.lx - h.lx) <= HALL_DRIVE.lane);
   if (staff && !h.move) i.held.hammer = i.pressed.hammer = true;
   return i;
+}
+
+/** How the suite's player keeps to him: where it stands, how near it swings, how near a thrown thing it jumps. */
+const TI_FIGHT = { stand: 200, clear: 460, swing: 280, missile: 300, bat: 240 } as const;
+/**
+ * Lifetime Titanium guy: stays a swing away from him, facing him, bonks him when he is not winding up or swinging, jumps what
+ * he throws, and on the bed jumps up to him.
+ */
+function fightTitanium(w: World, h: HeroState, i: Input): boolean {
+  const t = w.boss;
+  if (t?.kind !== "titanium" || t.state === "pool" || t.state === "down") return false;
+  i.held.left = i.held.right = i.held.run = false;
+  const gap = t.x - h.x;
+  const side = gap >= 0 ? 1 : -1;
+  // The briefcase's wind-up: back out of its reach at a run, and in again while he rests.
+  const dodge = t.state === "windup" || t.state === "swing";
+  const want = dodge ? t.x - side * TI_FIGHT.clear : t.x - side * TI_FIGHT.stand;
+  if (Math.abs(h.x - want) > 30) {
+    i.held[h.x < want ? "right" : "left"] = true;
+    i.held.run = true;
+  } else if (h.facing !== side) i.held[side > 0 ? "right" : "left"] = true;
+  // A bottle comes in low: over it. An apple comes down on him: the mallet sends it back.
+  const bottle = w.missiles.some((m) => m.kind === "bottle" && Math.abs(m.x - h.x) < TI_FIGHT.missile && (h.x - m.x) * m.vx > 0);
+  const apple = w.missiles.some((m) => m.kind === "apple" && !m.batted && (m.x - h.x) * side > 0 && Math.abs(m.x - h.x) < TI_FIGHT.bat && m.y > h.y - h.h * 1.4);
+  if (bottle && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  if (apple && !h.move && h.facing === side) i.held.hammer = i.pressed.hammer = true;
+  // On the bed he can be reached at the bottom of a bounce; from the floor beside it the mallet goes up that far.
+  const open = !dodge && (t.phase !== 2 || t.y > TITANIUM.bed.top);
+  if (!h.move && open && h.facing === side && Math.abs(gap) < TI_FIGHT.swing) i.held.hammer = i.pressed.hammer = true;
+  return true;
 }
 
 /**

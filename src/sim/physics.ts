@@ -1,4 +1,6 @@
-import { LEDGE, SNAP } from "./constants";
+import { JUMP_V0, LEDGE, SNAP } from "./constants";
+/** How fast he must come down for a bed to send him back up. */
+const BOUNCE_FROM = 200;
 import type { FloorSegment, Rect, Stage } from "./types";
 
 /** Anything with a feet point, a collider and a velocity. */
@@ -95,6 +97,14 @@ export function moveBody(body: Body, stage: Stage, dt: number, onBump?: (s: Rect
       if (body.x < p.x0 - LEDGE || body.x > p.x1 + LEDGE) continue;
       if (prevY <= p.y && body.y >= p.y) {
         body.y = p.y;
+        // A bed sends him back up harder than he can jump.
+        const bounce = (p as { bounce?: number }).bounce;
+        if (bounce && body.vy > BOUNCE_FROM) {
+          body.vy = -bounce * JUMP_V0;
+          body.onGround = false;
+          (body as { bounced?: boolean }).bounced = true;
+          continue;
+        }
         body.vy = 0;
         body.onGround = true;
       }

@@ -111,6 +111,7 @@ export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   arena: { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
   "lobby-night": { x: 1100, cx: 1600 },
   tower: { x: 1200, y: -3780, cx: 1200, cy: -4020, zoom: 0.9 },
+  suite: { x: 600, cx: 800 },
 };
 
 const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [

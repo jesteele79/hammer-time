@@ -119,6 +119,7 @@ export function hintOf(game: Game): string {
     const cleanedOut = game.pickups.every((p) => p.taken) && game.crates.every((c) => c.used || c.broken);
     return cleanedOut ? "Staff stash · cleaned out · ↓ at the cart to go back" : "Staff stash · ↓ at the cart to go back";
   }
+  if (game.world.boss?.kind === "titanium") return "Lifetime Titanium guy · bonk him · jump what he throws · H bats an apple back";
   if (bossUp(game.world.boss)) return "Housekeeping · jump her carts or slide under · bonk her when she waits";
   const zone = heatZoneAt(game.world.stage, h);
   if (zone?.kind === "flattop") return "Flat-top · it heats you fast · step off it";
@@ -141,6 +142,7 @@ export function hintOf(game: Game): string {
   if (h.flop && !game.run.flopped) return FLOP_HINT;
   if (h.boxes > 0 && !game.run.lobbed) return BOX_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
+  
   if (game.level.hall) {
     if (game.level.keyDoor && h.x >= game.level.keyDoor.x - 400) return "H on the door · the key won't open it";
     return h.x < HALL_FIRST_HINT ? "W forward · A D sidestep" : "S back · Space jumps a cart · a turning handle swings its door out";

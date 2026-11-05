@@ -7,6 +7,9 @@ import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, Stage } from 
 export type { CartLoad };
 
 export type PlatformKind =
+  | "bed"
+  | "minibar"
+  | "rail"
   | "counter"
   | "sofa"
   | "landing"
@@ -33,7 +36,7 @@ export type PlatformKind =
   | "vending";
 export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt" | "carpet";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
-export type LevelPlatform = Platform & { kind: PlatformKind };
+export type LevelPlatform = Platform & { kind: PlatformKind; bounce?: number };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
 export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" };
@@ -99,12 +102,12 @@ export type SwingDoorSpec = { id: string; x: number; y: number; server: string }
  * `far` is for a short venue with wide walls: its own wall scale and far plane's pan, so the whole row is walked past.
  * A fore piece stands at the size it was painted unless it says otherwise.
  */
-export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number }; stack?: "up" };
+export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number }; stack?: "up"; rooms?: boolean };
 /**
  * A level's boss: the gift shop's pig (where it sleeps and the arena he is held in once it wakes, R3 §3.3, §5.1), the
  * tower's supervisor (where she stands, her flight's top and foot, `y` her landing).
  */
-export type BossSpec = { kind: "pig" | "supervisor"; x: number; arena: [number, number]; y?: number };
+export type BossSpec = { kind: "pig" | "supervisor" | "titanium"; x: number; arena: [number, number]; y?: number; room?: number };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
 /** `follow: "up"`: a tall level's climb: no look-ahead, the floor line kept as he rises. */
@@ -170,7 +173,7 @@ export type ThoughtSpec = { x: number; text: string; y?: number };
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
-export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway";
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway" | "suite";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
@@ -227,6 +230,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   floors?: { every: number };
   /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand. */
   hall?: { width: number; keep: number };
+  /** A level of rooms (the suite): a painted wall each, the camera on the room the boss is in. */
+  rooms?: { id: string; x0: number; x1: number }[];
   /** Housekeeping carts rolling across it from the door at `z` meters, on `side`: first at `at` s, then every `every`. */
   hallCarts?: { z: number; side: 1 | -1; every: number; at: number }[];
   /** Room doors that swing out across their half of it, on the same clock. */

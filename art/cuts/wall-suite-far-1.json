@@ -1,0 +1,8 @@
+{
+ "note": "Coordinates are pixels of art/incoming/backdrops/suite-1.png, painted over art/outgoing/renders/suite-1.png, whose floor's edge is three-quarters down. One wall a room: its whole width. Until the painting is in the render stands in. Check the floor line when it lands: node scripts/art-grid.mjs wall/suite-far-1.",
+ "floor": 768,
+ "seams": [
+  0,
+  1536
+ ]
+}

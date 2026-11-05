@@ -165,6 +165,15 @@ export type GameEvent =
   | { type: "castThrow"; id: number; x: number; y: number; t: number }
   /** A keycard counted toward his status (`n` he holds now); a tier reached: its name and comic word, over his head. */
   | { type: "keycard"; n: number; x: number; y: number }
+  /** The suite: a bed's bounce, his move to the next room, the grab's wind-up, landing and what it took, what he gave back, the rail. */
+  | { type: "bounce"; x: number; y: number }
+  | { type: "bossPhase"; phase: number; room: number }
+  | { type: "bossCall" }
+  | { type: "grab"; phase: "windup" | "land" | "take"; x: number; y: number; n?: number }
+  | { type: "giveBack"; n: number; x: number; y: number }
+  | { type: "pool"; x: number; y: number }
+  /** An apple sent back the way it came. */
+  | { type: "batted"; x: number; y: number; points: number }
   /** A door in the hall: its handle turning, its leaf swung across, shut again. */
   | { type: "hallDoor"; z: number; side: 1 | -1; phase: "handle" | "open" | "shut" }
   /** The mallet on room 1417's reader: a failure, or the door giving way. */

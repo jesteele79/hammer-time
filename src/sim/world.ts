@@ -106,6 +106,11 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       const prevY = h.y;
       const prevX = h.x;
       stepHero(h, world.stage, input, STEP, events);
+      const sprung = h as HeroState & { bounced?: boolean };
+      if (sprung.bounced) {
+        sprung.bounced = false;
+        events.push({ type: "bounce", x: h.x, y: h.y });
+      }
       if (world.stage.hall) {
         // Down a hall he always faces it: S walks him back without turning him.
         h.facing = 1;

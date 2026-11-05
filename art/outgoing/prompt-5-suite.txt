@@ -1,0 +1,24 @@
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything in art\outgoing\renders\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-11-story-phase2.txt in full. It is the brief. Make ITEM 8 only (three walls), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\outgoing\renders\suite-1.png, suite-2.png, suite-3.png — the game's own renders of the suite's three rooms: the camera, the walls, the furniture and the lamps to keep exactly.
+   - art\incoming\backdrops\lobby-far-1.png — a finished game wall: the finish, the line weight, the palette, the base line about three-quarters down.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make suite-1.png, suite-2.png and suite-3.png, one at a time, each exactly 1536 x 1024, landscape. For each, use your built-in image generation with its render as the input image, so the camera, the walls, the furniture and the lamps carry over exactly; paint it in the game's inked style. Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with its render and with lobby-far-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - The same view as the render: the same walls, the same furniture in the same places, the same lamps; nothing added on the floor, no people.
+   - Seen straight on, every horizontal line level; the floor's edge one straight level line about three-quarters of the way down; plain floor below it to the bottom edge.
+   - suite-1: the living room: the sofa, the coffee table with the fruit basket, the minibar, a lamp.
+   - suite-2: the bedroom: the king bed with its headboard, the nightstands, the lamp.
+   - suite-3: the balcony: the rail, the city's lights at night beyond it, the pool's glint far below.
+   - No text, letters, numbers, logos or signatures anywhere.
+   - The same inked cartoon style and finish as bellhop-1.png and lobby-far-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone; not a render.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\suite-1.png, suite-2.png and suite-3.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.

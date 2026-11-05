@@ -31,12 +31,14 @@ import { GIFTSHOP } from "../sim/levels/giftshop";
 import { SAT } from "../sim/levels/sat";
 import { LOBBY_NIGHT } from "../sim/levels/lobby-night";
 import { HALLWAY } from "../sim/levels/hallway";
+import { SUITE } from "../sim/levels/suite";
 import { TOWER } from "../sim/levels/tower";
 import { STOP_LEVELS } from "../sim/levels";
 import type { Carry, Snapshot } from "../sim/journey";
 import { shiftFrom, type StoryId } from "../sim/story";
 import { PIG_ID } from "../sim/pig";
 import { BOSS_ID } from "../sim/boss";
+import { setTitanium } from "../sim/titanium";
 import { heatZoneAt } from "../sim/hazards";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
@@ -92,7 +94,10 @@ import { questIdOf, type QuestId } from "../sim/quests/quest";
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** SAT is the journey's first stop, never part of Work the whole shift. */
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY].map((l) => [l.id, l]));
+/** How far past a room's walls the camera may see, and how much of the view is kept round him if he has left the room. */
+const ROOM_MARGIN = 200;
+const ROOM_KEEP = 0.8;
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
@@ -303,7 +308,7 @@ export async function startLook(
           };
           objects.setLooks({ ice: looks("ice"), cabinet: looks("cabinet") });
         }
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces);
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.["suite-far-1"]);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -864,7 +869,24 @@ export async function startLook(
         particles.emit("impact", e.x, e.y, 14);
         break;
       case "bossDown":
-        words.say("HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
+        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
+        break;
+      case "bossPhase":
+        scene.camera.trauma = Math.max(scene.camera.trauma, 0.3);
+        break;
+      case "grab":
+        if (e.phase === "windup") words.say("!", e.x, e.y - 60, true, face, view);
+        else if (e.phase === "take" && e.n) words.say(`-${e.n} CANS`, e.x, e.y - 40, true, face, view);
+        break;
+      case "giveBack":
+        words.say(`+${e.n} CANS`, e.x, e.y - 40, false, face, view);
+        break;
+      case "batted":
+        words.say("+100", e.x, e.y - 40, false, face, view);
+        particles.emit("impact", e.x, e.y, 8);
+        break;
+      case "pool":
+        particles.emit("water", e.x, -120, 24);
         break;
       case "bossWindup":
         words.say("!", e.x, e.y - 60, true, face, view);
@@ -1015,6 +1037,24 @@ export async function startLook(
     const tl = scene.toScreen({ x: r.x, y: r.y });
     const br = scene.toScreen({ x: r.x + r.w, y: r.y + r.h });
     return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
+  };
+
+  /** In a level of rooms the camera keeps to the room the boss is in, but never so that he himself goes off the screen. */
+  let roomView: { x0: number; x1: number } | null = null;
+  const roomsCamera = (x: number, dt: number) => {
+    const rooms = game.level.rooms;
+    const boss = cur.boss;
+    if (!rooms || boss?.kind !== "titanium") {
+      roomView = null;
+      return;
+    }
+    const r = rooms[boss.room];
+    const b = game.level.bounds;
+    const half = scene.view().w / 2;
+    const want = { x0: Math.max(b.x, Math.min(r.x0 - ROOM_MARGIN, x - half * ROOM_KEEP)), x1: Math.min(b.x + b.w, Math.max(r.x1 + ROOM_MARGIN, x + half * ROOM_KEEP)) };
+    const k = roomView ? Math.min(1, dt / ZOOM_EASE) : 1;
+    roomView = roomView ? { x0: roomView.x0 + (want.x0 - roomView.x0) * k, x1: roomView.x1 + (want.x1 - roomView.x1) * k } : want;
+    scene.camera.bounds = { x: roomView.x0, y: b.y, w: roomView.x1 - roomView.x0, h: b.h };
   };
 
   /** The 3D hall, loaded the first time a level asks for it: three.js stays out of the page until then. */
@@ -1929,6 +1969,7 @@ export async function startLook(
       cam.grounded = h.onGround;
     }
     titleShown = !!home;
+    roomsCamera(x, dt);
     scene.update(dt);
     const hallBack = hallUp() ? hallFrame(alpha, simDt, dt) : undefined;
     // The home screen's scene drawn a couple of frames: the shell lets the key art go.
@@ -2276,7 +2317,8 @@ export async function startLook(
       },
       /** The level's boss set as the checks want it: `state: "down"` beats it. */
       boss(o: { hp?: number; state?: string }) {
-        if (world.boss) Object.assign(world.boss, o);
+        if (world.boss?.kind === "titanium") setTitanium(world.boss, o, game.events);
+        else if (world.boss) Object.assign(world.boss, o);
       },
       /** The running round: its clock, dishes on a rival's plate, his line locked on a rival's plate, dishes landed on his. */
       quest(o: { time?: number; plate?: { who: RivalId; kinds: FoodKind[] }; aim?: RivalId; eat?: FoodKind[] }) {

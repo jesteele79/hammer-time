@@ -1,5 +1,5 @@
 import { HERO_H, SNAP, STEP } from "./constants";
-import { FALL_MARGIN, createCast, hittable, npcRect, strikeNpc, type Npc } from "./cast";
+import { CAST_ID, FALL_MARGIN, createCast, hittable, npcRect, strikeNpc, type Npc } from "./cast";
 import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
 import { damage, PATIENCE_MAX } from "./damage";
 import type { GameEvent } from "./events";
@@ -7,12 +7,13 @@ import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
-import { PICKUP_SIZE, stageOf, tierMet, type DoorSpec, type Lesson, type Level, type LevelId } from "./level";
+import { PICKUP_SIZE, stageOf, tierMet, type CastSpawn, type DoorSpec, type Lesson, type Level, type LevelId } from "./level";
 import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { PIG, createPig } from "./pig";
 import { createHallCarts, createHallDoors, KEY_REACH } from "./hall";
+import { TITANIUM } from "./titanium";
 import { collectPickups, dropPickup, keycardsOf, laneRewards, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
@@ -125,6 +126,10 @@ const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", s
 /** `slipAgain`: how long a stumble keeps him on his feet after it, long enough to walk off the wet stretch. */
 /** The key door among the mallet's victims: clear of the carts', the cast's and the bosses'. */
 const KEY_ID = 902;
+/** The door the suite's bellhops come in by, the ids their carts start from, and how long the level runs on after the rail. */
+const BELLHOP_DOOR = 1650;
+const CART_FROM = 500;
+const BOSS_OVER = 1.5;
 export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60, slipAgain: 1.6 } as const;
 /** How near a tall level's punch clock he must pass, on its floor. */
 const CLOCK_REACH = 120;
@@ -858,6 +863,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     towerTraps(ev);
     feetFrom = h.y;
     if (keyDoor(ev)) return;
+    if (titaniumStep(ev)) return;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {
@@ -912,6 +918,59 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "fell" });
       die(ev);
     } else if (h.move?.kind === "tumble" && moveU(h.move) >= RUN.lieAt) die(ev);
+  }
+
+  /** How long after he goes over the rail the level ends. */
+  let bossOverT = 0;
+  /** What Lifetime Titanium guy's fight asks of the run: his bellhops, the grab's cans, the cans he gives back, and the end. */
+  function titaniumStep(ev: GameEvent[]): boolean {
+    const t = world.boss;
+    if (t?.kind !== "titanium") return false;
+    const run = game.run;
+    const h = world.hero;
+    const seen = world.events;
+    if (seen.some((e) => e.type === "bossPhase")) h.invuln = Math.max(h.invuln, TITANIUM.grace);
+    if (seen.some((e) => e.type === "bossCall") && opts.cast !== false) callBellhops(t.x);
+    const land = seen.find((e) => e.type === "grab" && e.phase === "land") as Extract<GameEvent, { type: "grab" }> | undefined;
+    if (land) {
+      const took = Math.min(TITANIUM.grab.takes, run.cans);
+      run.cans -= took;
+      t.owed += took;
+      ev.push({ type: "grab", phase: "take", x: land.x, y: land.y, n: took });
+    }
+    if (t.pay > 0) {
+      const n = t.pay;
+      t.pay = 0;
+      h.heat = Math.max(0, h.heat - addCans(run, n, ev));
+      ev.push({ type: "giveBack", n, x: t.x, y: t.y - t.h * 0.6 });
+    }
+    if (seen.some((e) => e.type === "bossDown")) {
+      bossOverT = BOSS_OVER;
+      world.hits = [];
+      h.invuln = 99;
+    }
+    if (t.state !== "down") return false;
+    bossOverT -= STEP;
+    if (bossOverT > 0) return false;
+    world.hits = [];
+    ev.push({ type: "exit" });
+    setMode("walkoff", ev, RUN.walkoffT);
+    return true;
+  }
+
+  /** Two bellhops from the door into the bedroom, a cart each, a keycard each, the lobby's rules. */
+  function callBellhops(near: number) {
+    const k = world.cast.length;
+    const spawn = (i: number): CastSpawn => ({ id: `bell-suite-${k + i}`, person: i === 0 ? "bellhop-1" : "bellhop-2", x: BELLHOP_DOOR + i * 160, y: 0, cart: BELLHOP_DOOR + 90 + i * 160, x0: Math.max(BELLHOP_DOOR, near - 700), x1: near + 700, carry: "keycard" });
+    for (const i of [0, 1]) {
+      const s = spawn(i);
+      const cart = createCart(CART_FROM + k + i, s.cart!, 0);
+      world.targets.push(cart);
+      const [n] = createCast({ cast: [s], carts: [] }, world.targets, game.run.seed + k + i);
+      n.id = CAST_ID + 100 + k + i;
+      n.noticed = true;
+      world.cast.push(n);
+    }
   }
 
   /** The mallet on 1417's reader: it fails, and fails, and on the last swing the door gives. True once the level is ending. */

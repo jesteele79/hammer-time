@@ -124,6 +124,26 @@ try {
     }
     count += 5;
   }
+  // The suite in the running game: a room a phase, him in it.
+  if (want("suite")) {
+    await page.goto(`${base}?next=1&dev=1&level=suite`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: resolve(out, "suite-look-1.png") });
+    await page.evaluate(() => {
+      window.__next.dev.boss({ hp: 8 });
+      window.__next.dev.teleport(2200, 0);
+    });
+    await page.waitForTimeout(1800);
+    await page.screenshot({ path: resolve(out, "suite-look-2.png") });
+    await page.evaluate(() => {
+      window.__next.dev.boss({ hp: 4 });
+      window.__next.dev.teleport(3600, 0);
+    });
+    await page.waitForTimeout(1800);
+    await page.screenshot({ path: resolve(out, "suite-look-3.png") });
+    count += 3;
+  }
   if (want("hallway-flat")) {
     await page.goto(`${base}?next=1&dev=1&level=hallway&flat=1`);
     await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });

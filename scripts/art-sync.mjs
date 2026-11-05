@@ -374,6 +374,19 @@ async function walls(registry) {
       console.log(`wall ${name}: ${w.width}x${w.height}, its floor at ${w.floor}`);
     });
   }
+  // The suite's walls, one a room: the owner's painting over the game's render, or the render until it is in.
+  for (const n of [1, 2, 3]) {
+    const painted = join(dir, `suite-${n}.png`);
+    const source = existsSync(painted) ? painted : `art/outgoing/renders/suite-${n}.png`;
+    if (!existsSync(source)) continue;
+    const name = `suite-far-${n}`;
+    await tolerant(`wall ${name}`, strict, async () => {
+      const w = await wallCrop(readFileSync(source), JSON.parse(readFileSync(`art/cuts/wall-${name}.json`, "utf8")));
+      writeFileSync(join(OUT, `backdrops/${name}.png`), w.png);
+      registry.walls[name] = { file: `backdrops/${name}.png`, width: w.width, height: w.height, floor: w.floor, top: w.top, bottom: w.bottom };
+      console.log(`wall ${name}: ${w.width}x${w.height}, its floor at ${w.floor}${source === painted ? "" : " (the render)"}`);
+    });
+  }
   for (const file of readdirSync(dir).filter((f) => /-(mid|fore)\.png$/.test(f))) {
     const sheet = file.replace(/\.png$/, "");
     await tolerant(`pieces ${sheet}`, strict, async () => {
