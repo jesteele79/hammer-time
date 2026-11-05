@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import sharp from "sharp";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import {
+  ownerHash,
   keyOut,
   registerHead,
   registerAligned,
@@ -116,12 +118,39 @@ test("every owner file still matches art/manifest.json", () => {
   assert.ok(names.includes("public/absolute-bullshit.mp3"), "the recording is guarded");
   for (const [file, sha] of files) {
     assert.ok(existsSync(file), `${file} exists`);
-    assert.equal(
-      createHash("sha256").update(readFileSync(file)).digest("hex"),
-      sha,
-      `${file} unchanged`,
-    );
+    assert.equal(ownerHash(file, readFileSync(file)), sha, `${file} unchanged`);
   }
+});
+
+test("an owner text file's hash ignores its line endings, whatever its kind", () => {
+  const unix = Buffer.from("Hammer é\nholds the mallet\n");
+  const windows = Buffer.from("Hammer é\r\nholds the mallet\r\n");
+  const asStored = createHash("sha256").update(unix).digest("hex");
+  for (const file of ["art/incoming/a.prompt.txt", "art/incoming/hammer/FABLE-HANDOFF.md", "public/voice/manifest.json"]) {
+    assert.equal(ownerHash(file, windows), asStored, `${file} with Windows endings`);
+    assert.equal(ownerHash(file, unix), asStored, `${file} with Unix endings`);
+  }
+});
+
+test("a changed word in an owner text file is still a change", () => {
+  const was = Buffer.from("Hammer\r\nholds the mallet\r\n");
+  const now = Buffer.from("Hammer\r\nholds the towel\r\n");
+  assert.notEqual(ownerHash("a.prompt.txt", now), ownerHash("a.prompt.txt", was));
+});
+
+test("a painting or a recording is hashed byte for byte", () => {
+  const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const asIs = createHash("sha256").update(pngSignature).digest("hex");
+  for (const file of ["a.png", "a.webp", "a.wav", "a.mp3", "a.m4a"]) assert.equal(ownerHash(file, pngSignature), asIs, file);
+});
+
+test("every owner text file matches its record as git stores it, so a fresh copy of the game passes the art check", () => {
+  const { files } = JSON.parse(readFileSync("art/manifest.json", "utf8"));
+  const tracked = new Set(execFileSync("git", ["ls-files"], { encoding: "utf8", maxBuffer: 1 << 26 }).split("\n"));
+  const checked = Object.keys(files).filter((file) => tracked.has(file) && /\.(txt|md|json)$/i.test(file));
+  assert.ok(checked.length >= 80, `${checked.length} text files checked`);
+  const wrong = checked.filter((file) => ownerHash(file, execFileSync("git", ["show", `:${file}`], { maxBuffer: 1 << 26 })) !== files[file]);
+  assert.deepEqual(wrong, []);
 });
 
 const CUTS = JSON.parse(readFileSync("art/cuts/hammer-body.json", "utf8"));

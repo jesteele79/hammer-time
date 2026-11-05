@@ -1,9 +1,21 @@
 // Owner green-screen plates in, registered transparent parts out. Never edits the inputs.
 import sharp from "sharp";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const MARGIN = 8;
+
+/**
+ * The hash art/manifest.json records for an owner file. Git stores text with Unix line endings and a
+ * Windows checkout writes them back, so a text file's hash ignores them: hashing its exact bytes
+ * refuses every fresh copy of the game. Latin-1 keeps every other byte as it was.
+ */
+export function ownerHash(file, bytes) {
+  const text = /\.(txt|md|json)$/i.test(file);
+  const stored = text ? Buffer.from(bytes.toString("latin1").replace(/\r\n/g, "\n"), "latin1") : bytes;
+  return createHash("sha256").update(stored).digest("hex");
+}
 
 /**
  * Chroma key: bright, green-dominant pixels of hue 90-150 at saturation above

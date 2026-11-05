@@ -4,11 +4,11 @@
 //   --overlay writes each body's layers side by side to artifacts/body-layers-<costume>.png
 //   --strict  refuse a misaligned expression plate instead of skipping it (art:sync, tests)
 //   --accept  re-record one owner file the owner regenerated on purpose
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import sharp from "sharp";
 import {
+  ownerHash,
   keyOut,
   registerHead,
   registerAligned,
@@ -54,7 +54,7 @@ const overlay = args.includes("--overlay");
 const strict = args.includes("--strict");
 const accept = args.includes("--accept") ? args[args.indexOf("--accept") + 1]?.replace(/\\/g, "/") : null;
 
-const sha = (file) => createHash("sha256").update(readFileSync(file)).digest("hex");
+const sha = (file) => ownerHash(file, readFileSync(file));
 
 /** Adds new owner files to the manifest; refuses if a recorded file changed, unless it is the accepted one. */
 function guard(files) {
