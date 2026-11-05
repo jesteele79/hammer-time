@@ -113,7 +113,7 @@ export const TOWER: Level = {
     { id: "cart-9", x: 1900, y: floorY(9), x0: 1620, x1: 2500, w: 180, h: 150, speed: 140 },
     { id: "cart-11", x: 1400, y: floorY(11), x0: 900, x1: 2000, w: 180, h: 150, speed: 140 },
   ],
-  hints: { early: 900 },
+  hints: { early: 0 },
   thoughts: [
     { x: 400, y: 0, text: "Fourteen floors. I've done worse before breakfast." },
     { x: 1000, y: floorY(4), text: "Reserved. For TITANIUM." },

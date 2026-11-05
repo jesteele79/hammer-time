@@ -138,7 +138,7 @@ try {
   await waitMode("questTally", 8000);
   const lounge = await page.evaluate(() => window.__next.quest.result.score);
   assert.ok(lounge > 0, "the round scored");
-  assert.equal(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-lounge"))), lounge, "the lounge's own best");
+  await page.waitForFunction((want) => Number(localStorage.getItem("hammer-time-best-lounge")) === want, lounge, { timeout: 4000 });
   await enter();
   await waitMode("play", 8000);
   assert.equal((await run()).level, "lobby-night", "back in the lobby");
@@ -227,6 +227,11 @@ try {
   assert.ok(dropped.time <= before.time - 2, `a chute takes two seconds: ${before.time} to ${dropped.time}`);
   assert.equal(Math.round(dropped.y), -1620, "down a floor");
   assert.match(await hud(), /Floor 4/);
+  // High up, the same four sizes: his feet on the floor line and no ground band.
+  await sizes("tower-high", async (w, h) => {
+    const y = await page.evaluate(() => window.__next.heroScreenY);
+    assert.ok(y > h * 0.3 && y < h * 0.95, `at ${w}x${h} his feet at ${y}`);
+  });
   assert.ok(await page.evaluate(() => (window.__next.sound.played.slide ?? 0) >= 1), "the chute's slide");
 
   // The supervisor: her bar on floor eleven, her first wave.

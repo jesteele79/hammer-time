@@ -121,7 +121,8 @@ export const THINK = { seconds: 3, reach: 160 } as const;
 /** The moves the world's events teach: a lesson stops once he has done its move (story spec §6.2). */
 const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", slide: "slide", swing: "swing", sniff: "snot", wipeStart: "wipe" };
 /** The seconds a laundry chute's slide costs him, and how long a wet floor holds him. */
-export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60 } as const;
+/** `slipAgain`: how long a stumble keeps him on his feet after it, long enough to walk off the wet stretch. */
+export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60, slipAgain: 1.6 } as const;
 /** How near a tall level's punch clock he must pass, on its floor. */
 const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
@@ -179,6 +180,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let feetFrom = 0;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   let onSlip: Point | null = null;
+  let slipCool = 0;
 
   const game: Game = {
     levels,
@@ -273,6 +275,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     thinkFrom = world.hero.x;
     feetFrom = world.hero.y;
     onSlip = null;
+    slipCool = 0;
     // Gold's late checkout stays on the clock when he comes back in the level that gave it.
     game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
@@ -908,10 +911,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "chute", x: h.x, y: chute.y });
     }
     const slip = game.level.slips?.find((s) => Math.abs(h.y - s.y) < 4 && Math.abs(h.x - s.x) < 70) ?? null;
-    if (slip && slip !== onSlip && h.onGround && Math.abs(h.vx) > TOWER_TRAPS.slipSpeed && h.invuln <= 0) {
+    slipCool = Math.max(0, slipCool - STEP);
+    if (slip && slip !== onSlip && slipCool <= 0 && h.onGround && Math.abs(h.vx) > TOWER_TRAPS.slipSpeed && h.invuln <= 0) {
       h.vx = -h.vx;
       h.slideT = 0;
       h.stunT = Math.max(h.stunT, TOWER_TRAPS.slip);
+      slipCool = TOWER_TRAPS.slipAgain;
       ev.push({ type: "slip", x: h.x, y: h.y });
     }
     onSlip = slip;

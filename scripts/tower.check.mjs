@@ -161,6 +161,24 @@ test("a cart on a landing rolls, reverses at its ends, hurts from the side and c
   }
   assert.equal(seen.size, 2);
 });
+test("a wet floor is one stumble, not a wall: walking on at it, he slips once and is past it", () => {
+  for (const held of [{ right: true }, { right: true, run: true }]) {
+    const g = tower();
+    play(g);
+    const s = TOWER.slips[1];
+    Object.assign(g.world.hero, { x: s.x - 200, y: s.y, vx: 0, onGround: true });
+    const evs = until(g, (x) => x.world.hero.x > s.x + 90, 5, held);
+    assert.ok(g.world.hero.x > s.x + 90, `held ${JSON.stringify(held)} he got to ${g.world.hero.x}, the sign at ${s.x}`);
+    assert.equal(of(evs, "slip").length, 1, "one stumble");
+  }
+});
+test("the hint on any floor says to climb, not to find the lobby's crate", () => {
+  const g = tower();
+  play(g);
+  Object.assign(g.world.hero, { x: 300, y: floorY(2), vx: 0, onGround: true });
+  g.step(input());
+  assert.match(hudOf(g, false, false, null).hint, /Keep climbing/);
+});
 test("a chute costs him no life even with the clock nearly out, and the clock never goes below zero", () => {
   const g = tower();
   play(g);

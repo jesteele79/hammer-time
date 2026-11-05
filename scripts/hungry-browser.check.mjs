@@ -237,7 +237,7 @@ try {
   await waitMode(page, "questTally");
   const lounge = await page.evaluate(() => window.__next.quest.result.score);
   assert.ok(lounge > 0, "the round scored");
-  assert.equal(Number(await page.evaluate(() => localStorage.getItem("hammer-time-best-lounge"))), lounge, "the lounge's own best");
+  await page.waitForFunction((want) => Number(localStorage.getItem("hammer-time-best-lounge")) === want, lounge, { timeout: 4000 });
   await shot(page, "lounge-tally.png");
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log("PASS: practice from the start screen, the dive, the rob, the bonk, the duck, the break, three shapes, the tally and its best, no key carried over, the art missing, the BUFFET door and its payout, /?quest=hungry; a locked plate, a slap and what he says to it, the lecture, the doggy bag and the belly-flop.");
