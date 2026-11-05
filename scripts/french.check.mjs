@@ -42,7 +42,7 @@ test("the other two tables are as they were: the products and the to-go box on t
   }
 });
 test("every 12 s the waiter clears the plate Hammer reaches for, his hand on the rim for 0.6 s first; a bonk in that moment cancels it, and a bonk with dishes on the tray spills them onto Hammer's end", () => {
-  const q = createHungry(7, { menu: "french" }); const evs = [];
+  const q = createHungry(7, { menu: "french", rivals: false }); const evs = [];
   run(q, 11.9, evs);
   assert.equal(of(evs, "hhTray").length, 0);
   run(q, 0.2, evs);
