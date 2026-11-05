@@ -340,6 +340,74 @@ edits by state, flashes white on a hit and throws one of the owner's stuffing
 tufts. Without its painting, or with `&noart=1`, the code-drawn pig stands in.
 `node scripts/art-grid.mjs pig` draws its cut over the painting.
 
+## The lobby at night (2-1)
+
+Act 2 opens where Act 1 opened. `src/sim/levels/lobby-night.ts` is the lobby's
+ground at 11:40 pm: the card reads "Front desk has you as MEMBER. System error."
+and his status (`src/sim/status.ts`) sits on the HUD's second line and on every
+card through the act. The walls go a cool blue, the lamps tighten and brighten
+(`nightAmbient`, `ambientOf`, `lightsOf` in `src/render/lighting.ts`).
+
+- **Keycards:** seven stand on the furniture (the desk, both sofas, the landing,
+  the mezzanine rail, the conference tables, the corridor), one on the stash's
+  shelf, and the three bellhops each carry one. One taken stays taken across a
+  lost life. A tier pays 500 points once: Silver at two ("Silver gets you
+  nothing."), Gold at four (a minute on the clock), Platinum at six (the M CLUB's
+  door), Titanium at eight (the elevator opens), Ambassador at ten (a punch clock
+  where he stands).
+- **The doors:** ↓ at the stairs ends the level for anyone. The elevator beside
+  them carries "Reserved for Titanium members. Thank you." until Titanium, and
+  goes to the same next card: he climbs regardless. The BUFFET is shut for the
+  night. The M CLUB is up on the mezzanine, "Platinum members only" until then.
+- **The night crew:** the night auditor by the desk answers a slap with a
+  reply-all, a storm of paper planes. The guard on the mezzanine turns, winds up
+  0.6 s and shines his flashlight along his side: 600 px of beam stuns him for a
+  second with no pip lost, and he goes out in two hits. Two servers in the
+  conference wing toss ice water that lands where he stood ("COLD. But fair.").
+
+## The M CLUB (the lounge table)
+
+The M CLUB's door opens at Platinum and the card row on the home screen offers
+it once 2-1 is finished. It is the banquet's machine with the lounge's menu
+(`Menu` in `src/sim/quests/hungry/food.ts`): fifteen kinds of small plates, the
+lounge's own room and sheet, its own lines, its best under
+`hammer-time-best-lounge`. The guests are the intern, a grey suit and a polo, all
+paid up; Lifetime Titanium guy walks the table where the server went,
+every 36 s, and takes the two best dishes off Hammer's plate ("Let's split it
+evenly."). A bonk within 420 px before he reaches it sends him off for eight
+seconds. What he takes has its own line on the tally.
+
+## The tower (2-2)
+
+The tower (`src/sim/levels/tower.ts`, "The tower") is the first tall level:
+fourteen floors, 540 px each, 2,400 px wide inside its walls, the camera
+following him up. Odd floors run from x 800 to the right wall, even floors from
+the left wall to x 1600, floor 1 is whole, and a flight joins each: its foot by
+the wall, rising back to the middle. The HUD's name is "Floor N". 300 seconds;
+punch clocks on 5 and 10.
+
+- **What is in the way:** housekeeping carts on floors 2, 4, 7, 9 and 11
+  (`src/sim/movers.ts`): their sides cost a pip, their tops carry him. Chutes on
+  5, 9 and 13 drop him a floor for two seconds and no life; below floor 1 is the
+  only pit. Wet floors on 2, 6 and 11. Ice machines on 3, 7 and 11 pay a can and
+  hose cabinets on 4 and 12 a pepper. The balconies from floor 8 up and the
+  vending nooks are a hop off the road. The housekeepers on 3, 6, 9 and 12 go out
+  in two ("Did you need towels?"), the maintenance man on 8 and the drunk guest on
+  10 work their stretches; the guest ambles into him, a push and no pip.
+- **The supervisor** (`src/sim/supervisor.ts`, on the boss machinery of
+  `src/sim/boss.ts`) waits on floor 12 at the top of the flight. Seeing him on
+  floor 11 she says "Guests use the elevator." and sends three waves of three carts
+  down the flight, four seconds apart, at 300 px/s: jump them or slide under. Three
+  bonks in the three seconds between waves beat her ("Do not disturb THIS.", 2,500
+  points), and the door on fourteen is chained until she is down.
+- **Drawn:** `src/render/venue-tower.ts` draws the landings, the sawtooth flights
+  with their noses on his feet's line, the rails, the balconies, the vending
+  machines and the chutes' ducts, each with a mouth on the floor below. The two
+  painted walls stack a floor at a time (`stackWalls` in `src/render/backdrop.ts`),
+  each row's floor line on its landing. The sheet
+  (`art/incoming/props/tower-sheet.png`) gives the cart, the ice machine, the chute's
+  hatch, the hose cabinet and the wet-floor sign.
+
 ## Hungry Hungry Hammer (the BUFFET door)
 
 The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
@@ -764,8 +832,9 @@ stop centred on arrival. A finished stop is gold with its picture and best; the
 next is lit; a locked one shows its code and a padlock and nothing else; a stop
 not built yet says what it is and that it is coming. A click picks a finished
 stop for Clock in (it replays); a double click starts a stop. Once Act 1 is
-finished its header offers Work the whole shift with today's best; with Act 2
-not built yet Clock in then reads "Act 2 is coming". The top bar holds the
+finished its header offers Work the whole shift with today's best, and the home
+scene is the lobby at night (`?home=night` shows it on any save). With Act 2's
+next stop not built yet Clock in reads "Act 2 is coming". The top bar holds the
 journey's best, the Service Record, Settings and New game, and the Side quests row
 under the strip plays Hungry Hungry Hammer and Fare Darts as practice on the same
 page, each with its own best.
@@ -829,7 +898,11 @@ Every place has its own song on the game's synth (`src/game/audio.ts`,
 brass fanfare, then a swagger), SAT's "Pre-Check" (terminal muzak with the
 boarding chime every eight bars), the lobby's muzak, the restaurant's bossa,
 the campus's lo-fi, the gift shop's boss theme, the stash's cellar tune, and
-the two side quests' as built. What plays follows the mode (`musicFor` in
+the two side quests' as built; through the night, the lobby's jazz trio (a walking
+bass and brushes), the M CLUB's cocktail piano, the tower's climb (up a semitone a
+bar for fourteen bars, the elevator he is not using dinging past), and two more
+waiting for their levels: the fourteenth floor's hum and the suite's drive. What
+plays follows the mode (`musicFor` in
 `src/render/sound.ts`): the level's song quiet under its cards, the tallies
 and the break and full in play, a round's song the same way, silence under
 four falling notes when Hammer goes down, and a brass fanfare as an act's card
@@ -887,6 +960,7 @@ node scripts/fares-browser.check.mjs http://127.0.0.1:8090/
 node scripts/journey-browser.check.mjs http://127.0.0.1:8090/
 node scripts/voice-browser.check.mjs http://127.0.0.1:8090/
 node scripts/sat-browser.check.mjs http://127.0.0.1:8090/
+node scripts/night-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 

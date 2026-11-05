@@ -67,7 +67,7 @@ export type NextProbe = {
       };
   /** Set by the look scene once it runs. */
   /** `walkOut`: out of the shuttle door, the seconds left of the can in his hand and the nuts spilling (R5 §8). */
-  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; clip?: string; walkOut?: { can: number; nuts: number } };
+  hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
   heroScreenX?: number;
   /** His feet on the screen, CSS px from the top. */

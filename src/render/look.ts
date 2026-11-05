@@ -924,7 +924,11 @@ export async function startLook(
   /** The flashlight's beam from his hand, the length of its reach. */
   function drawBeam(x: number, y: number, facing: 1 | -1) {
     beam.clear();
-    beam.poly([x, y - 10, x, y + 10, x + facing * CAST.guard.reach, y + 130, x + facing * CAST.guard.reach, y - 90]).fill({ color: 0xfff6c8, alpha: 0.42 });
+    // Layers of a warm cone, each shorter than the last, so it thins out along its reach instead of ending on an edge.
+    for (const k of [1, 0.84, 0.68, 0.52, 0.36, 0.2]) {
+      const far = x + facing * CAST.guard.reach * k;
+      beam.poly([x, y - 10, x, y + 10, far, y + 10 + 120 * k, far, y - 10 - 80 * k]).fill({ color: 0xffe9a8, alpha: 0.11 });
+    }
     beamT = CAST.guard.flash;
   }
 
@@ -986,6 +990,7 @@ export async function startLook(
       cans: game.run.cans,
       lives: game.run.lives,
       time: game.run.time,
+      keycards: game.run.keycards,
       patience: h.patience,
       hot: h.hot,
       star: game.run.star,
@@ -1792,7 +1797,7 @@ export async function startLook(
       window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
-      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, clip, walkOut: { ...walkOut } };
+      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip, walkOut: { ...walkOut } };
       window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;

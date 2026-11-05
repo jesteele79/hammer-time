@@ -352,6 +352,14 @@ Zero patience." "Bonk the staff. Dodge the paper. Get to Basel.").
 - Settings, New game and the Service Record are Phase 1b's; the 1a tools are
   sound, the keys and the quality (which shows Auto's pick, "Auto · Ultra").
 
+### As built (Phase 2a, 2026-11-04)
+
+- Act 1 finished, the home scene is the lobby at night: `Levels.homes` holds the
+  levels that may be the home scene without joining Work the whole shift, and the
+  first paint is `public/start/key-art-night.webp`, so it fades in from the night.
+- The Side quests row gains The M CLUB once 2-1 is finished. 2-1 and 2-2 have
+  their pictures; 2-3 reads "Coming" and Clock in "Act 2 is coming" until Phase 2b.
+
 ## 6. The prologue: SAT
 
 ### 6.1 The email
@@ -680,6 +688,36 @@ Approved by the owner in the Phase 2 brainstorm, section by section:
   the apples and the minibar bottles are new missile kinds. The suite's
   backdrops are three Blender renders the session makes at 2b's start and the
   owner paints over in Codex; stand-ins draw until they are cut in.
+
+### As built (Phase 2a, 2026-11-04)
+
+- **2-1:** the ground is the lobby's, spread over a new `LOBBY_NIGHT`. The stairs
+  stand at x 6,400 rather than 6,300, where the frame hung over the shaft. A fixed
+  keycard stays taken across a lost life and Gold's minute stays on the clock when
+  he comes back. The status shows on the HUD and every card while the level's world
+  is 2-x. The auditor stands in front of the desk, x 900 to 1,450, not inside it.
+  Walking into the guard while he shines costs no pip. The ice water lands where he
+  stood when it left her hand.
+- **The M CLUB:** the fifteen kinds, the walker, the split, the card and the best
+  are as §8.1. He takes the two most valuable dishes; what he takes counts as
+  `score.split`, on its own line of the tally, not as a robbery by Hammer. He can
+  be bonked within 420 px, since at the server's 300 he had always already taken the
+  plate.
+- **2-2:** landings run from one wall to the stairwell rather than across the whole
+  width, flights foot by the wall and rise back to the middle, so the chutes sit
+  where floors overlap, x 800 to 1,600, and a climber cannot simply walk under them.
+  Balconies are midway between floors. Ice machines and hose cabinets stand on the
+  floor by the walls. Carts are 180 by 150: the painted cart at 120 looked a toy
+  beside him, and at 190 the supervisor's could not be jumped uphill at a run.
+- **The supervisor:** on floor 12 at x 1,480; "Do not disturb THIS." is his thought,
+  not her line. A slide alone passes under a cart on the flight. The door on
+  fourteen is chained until she is down. The scripted climber may lose lives to her;
+  it comes back at the last clock.
+- **Housekeepers** go out in two and lie flat on their backs like a plank: the
+  skirt is painted to its hem and goes through the floor if she sits.
+- **The tower's walls** are one row a floor at scale 540 over the wall's floor line,
+  alternating, highest first so a lower floor covers the painted carpet of the one
+  above. Every floor has a brass plate at x 1,480.
 
 ## 9. Act 3: the way to Basel
 
@@ -1105,6 +1143,16 @@ drone's buzz. The crowd never speaks aloud.
   wind-up's sting); the fanfare as an act's card comes up.
 - A key or a tap on the home screen or a card unlocks sound, so the title tune
   starts at the first one.
+
+### As built (Phase 2a, 2026-11-04)
+
+- Five songs in `SONGS`: `lobby-night`, `lounge`, `tower`, `hallway`, `suite`, each
+  within 6 dB of the banquet through the game's bus: lobby-night 4.0, lounge 3.3,
+  tower 0.1, hallway 5.0, suite 1.8. The last two wait for 2b's levels. A song may
+  set `snareGain`, the trio's brushes. The trio's walking bass is on every second
+  step: at 0.19 s every step would be 316 notes a minute.
+- The cues: the keycard's `chime`, the tier's `fanfare`, the chute's `slide`, the
+  wave's and any cart's contact `rattle`, the flash's `glint`, the stun's `bump`.
 
 ## 14. Settings and the controller
 
