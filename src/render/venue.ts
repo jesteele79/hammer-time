@@ -98,7 +98,7 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   for (const p of level.platforms) if (!level.rooms && !(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
   const airport = level.id === "sat";
   for (const f of level.floor)
-    if (!(climb && towerFloor(front, f)) && !(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
+    if (!(level.rooms && suitePainted) && !(climb && towerFloor(front, f)) && !(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
   if (airport) drawSatDressing(back, front, level, sat);
   drawPits(back, level);
   const doorG = new Graphics();

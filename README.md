@@ -458,9 +458,11 @@ jump, as they always were. On a phone the pad grows a forward button, which runs
 ## The suite (2-4)
 
 Three rooms and no door (`src/sim/levels/suite.ts`), one painted wall a room, the
-furniture standing where the painting has it. Lifetime Titanium guy
-(`src/sim/titanium.ts`) has twelve health in three phases, and cannot be hit for 2 s
-after moving rooms. The camera keeps to the room he is in, unless Hammer has stayed
+furniture standing where the painting has it and the floor the painting's own, with no
+drawn floor over it. Indoors the walls take the venues' tint, because the lamps add to
+them; no lamp reaches the balcony, where a glow on the night sky reads as fog.
+Lifetime Titanium guy (`src/sim/titanium.ts`) has twelve health in three phases, and
+cannot be hit for 2 s after moving rooms. The camera keeps to the room he is in, unless Hammer has stayed
 behind.
 
 - **The living room (12 to 9):** he walks up and swings the briefcase, wound up 0.4 s,

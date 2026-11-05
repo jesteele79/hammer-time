@@ -2,6 +2,7 @@
 // bed and the bellhops, the bottles and the grab on the balcony, over the rail into the pool, and a level that ends with him.
 import test from "node:test";
 import assert from "node:assert/strict";
+import sharp from "sharp";
 import { JUMP_V0, STEP } from "../src/sim/constants.ts";
 import { createGame } from "../src/sim/game.ts";
 import { LOBBY } from "../src/sim/levels/lobby.ts";
@@ -26,6 +27,29 @@ const toBalcony = (g, t) => {
   }
 };
 const suite = (opts = {}) => { const g = createGame({ lobby: LOBBY, stash: STASH }, 51, { cast: false, title: true }); g.newRun(51, 0, { shift: [SUITE], journey: true, ...opts }); return g; };
+
+test("what he stands on meets the paintings: each end of a platform is within a step of the painted edge of its furniture", async () => {
+  const STEP_PX = 32;
+  for (const [i, room] of SUITE.rooms.entries()) {
+    const { data, info } = await sharp(`art/incoming/backdrops/suite-${i + 1}.png`).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const k = (room.x1 - room.x0) / info.width;
+    const bright = (x, y) => { const at = (y * info.width + x) * 3; return 0.3 * data[at] + 0.59 * data[at + 1] + 0.11 * data[at + 2] > 170; };
+    for (const p of SUITE.platforms.filter((p) => p.kind !== "rail" && p.x0 >= room.x0 && p.x1 <= room.x1)) {
+      // Just under its top, where the furniture is at its full width and past its highlight; the wall beyond is the bright part.
+      const y = Math.round(768 + p.y / k + 16);
+      for (const [end, outward] of [[p.x0, -1], [p.x1, 1]]) {
+        const px = Math.round((end - room.x0) / k);
+        const wall = Array.from({ length: STEP_PX }, (_, d) => px + outward * (d + 1)).some((x) => x >= 0 && x < info.width && bright(x, y));
+        assert.ok(wall, `the ${p.kind} at ${p.x0} to ${p.x1}: no wall within ${STEP_PX} px of its end at ${end}`);
+      }
+    }
+  }
+});
+
+test("no lamp's glow reaches past the bedroom's wall: on the night sky it is fog", () => {
+  const balcony = SUITE.rooms.find((r) => r.id === "balcony");
+  for (const l of SUITE.lights) assert.ok(l.x + l.radius <= balcony.x0, `the lamp at ${l.x} reaches ${l.x + l.radius}`);
+});
 
 test("the suite is three rooms with no door and no clock, the bed bounces 1.3 times his jump, and the boss has twelve health in three phases", () => {
   assert.deepEqual([SUITE.id, SUITE.world, SUITE.rooms.length, SUITE.doors.length, SUITE.checkpoints.length, SUITE.boss], ["suite", "2-4", 3, 0, 0, { kind: "titanium", x: 1200, arena: [200, 4600], room: 0 }]);

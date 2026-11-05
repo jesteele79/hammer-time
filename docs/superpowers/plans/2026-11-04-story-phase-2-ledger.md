@@ -130,3 +130,11 @@ Final: Ruling: balance numbers (key reach, grace, cart speeds, the two-second gr
 Final: Ruling: his back painting, the boards and the songs are the owner's eyes and ears; no session can judge them — cost if wrong: a repaint or a rewrite of a song.
 Final: Ruling: after a lost context the hall stays flat for the session — the spec's fallback, and a player keeps playing — cost if wrong: a reload brings 3D back.
 Task 17: complete (commits 044f952..743460d, tests: npm run test:next → # duration_ms 96833.3042)
+Paintings: the owner's three walls of the suite landed 2026-11-05 (art/incoming/backdrops/suite-1..3.png); each floor line level at 768.
+Paintings: fixed the left nightstand's platform, 84 px right of its furniture since the renders — the test that reads the paintings RED→GREEN, suite 722/722.
+Paintings: Ruling: the suite shows the painting's own floor and no drawn one — the drawn tile's lip hid the rail's foot and part of the pool, and the carpet was another color — cost if wrong: one condition in venue.ts.
+Paintings: Ruling: indoors the walls take the venues' tint — the lamps added to a bright painting and turned its peach to lemon — cost if wrong: one line in backdrop.ts.
+Paintings: Ruling: the balcony takes no tint and no lamp reaches it — a glow on the night sky read as fog; the bedroom's right lamp moved from 3000, radius 800, to 2600, radius 600, and the balcony's went — cost if wrong: the bedroom's right end a little dimmer, no rim light on the balcony.
+Paintings: Ruling: a room's top row carries on upward instead of one flat color — the flat color showed as a lighter strip over a tinted wall; the balcony's strip of wall ends in its dark top line — cost if wrong: one sprite.
+Paintings: Ruling: the platforms' heights stand — the sofa's is 9 px over its painted seat, the rest within 4, and he reads as standing on the seat's depth — cost if wrong: a number each.
+Paintings: minor (deferred): the living room and the bedroom meet at a hard edge, the two paintings' walls not one color; the owner's eye.

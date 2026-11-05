@@ -20,7 +20,7 @@ Story Phase 2 is built: Act 2 plays from 2-1's card to "Act 2 · Status Crusade 
 
 ## What is still unpainted
 
-- **The suite's three walls:** prompt 5 is with the owner (`art/outgoing/prompt-5-suite.txt`). Until `art/incoming/backdrops/suite-1..3.png` land, the sync uses the renders in `art/outgoing/renders/`. When they land, run `npm run art:sync` and check each floor line against `art/cuts/wall-suite-far-N.json` (768 now): the furniture's platforms in `src/sim/levels/suite.ts` must meet the painting.
+- **The suite's three walls are in,** since 2026-11-05: `art/incoming/backdrops/suite-1..3.png`, each floor line at 768. `scripts/suite.check.mjs` reads the paintings and holds the furniture's platforms to them. The renders in `art/outgoing/renders/` stay as the sync's fallback.
 - **In the hall:** the set is plain boxes, shaded and inked, by design; the leaf of a swinging door and the carts' pictures are simple. The duster and the vending machines are drawn in code.
 - Everything else of Phase 2 is painted and cut: the guard, the housekeeper, Lifetime Titanium guy, the lounge and its sheet, the tower's walls and its sheet.
 
@@ -44,7 +44,7 @@ The ledger's `minor (deferred)` lines are the list:
 - The cabin's Blender set and the flight as the second 3D level on `ThreeView`: its `load` takes one glb today; make it take the level's.
 - The purser and the attendant, painted.
 - Paris and the brasserie with the French table, on the lounge's menu pattern.
-- The train from Blender renders painted over, the suite's way: `scripts/blender/suite.py` and `art/cuts/wall-suite-far-N.json` are the pattern, one wall a room or a car with a pan of 1 so the painted furniture meets the platforms.
+- The train from Blender renders painted over, the suite's way: `scripts/blender/suite.py` and `art/cuts/wall-suite-far-N.json` are the pattern, one wall a room or a car with a pan of 1 so the painted furniture meets the platforms. A level of rooms shows the painting's own floor; `drawVenue`'s `suitePainted` names the suite's first wall, so the train wants its own.
 - Act 2's straight-through run and the awards are Phase 5 (`STRAIGHT_BUILT`).
 
 ## The rules

@@ -1,4 +1,4 @@
-import { Assets, BlurFilter, Container, Graphics, Sprite, Texture, TilingSprite } from "pixi.js";
+import { Assets, BlurFilter, Container, Graphics, Rectangle, Sprite, Texture, TilingSprite } from "pixi.js";
 import { ART_BASE, type Rect, type Registry, type Wall } from "../art/registry";
 import type { Level } from "../sim/level";
 import type { FloorSegment } from "../sim/types";
@@ -175,11 +175,20 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
       const w = walls[i];
       const k = (r.x1 - r.x0) / w.width;
       const top = -w.floor * k;
-      grounded.far.addChild(new Graphics().rect(r.x0, -4000, r.x1 - r.x0, 4000 + top).fill(w.top));
+      // Its top row carries on up, so the balcony's strip of wall never stops in mid air; its floor carries on down and past the rooms' ends.
+      const above = new Sprite(new Texture({ source: textures[i].source, frame: new Rectangle(0, 0, w.width, 1) }));
+      above.position.set(r.x0, -4000);
+      above.scale.set(k, 4000 + top);
+      const below = new Graphics().rect(r.x0, top + w.height * k - 2, r.x1 - r.x0, 4000);
+      if (i === 0) below.rect(r.x0 - 800, 0, 800, 4000);
+      if (i === walls.length - 1) below.rect(r.x1, 0, 800, 4000);
+      below.fill(w.bottom ?? w.top);
       const s = new Sprite(textures[i]);
       s.position.set(r.x0, top);
       s.scale.set(k);
-      grounded.far.addChild(s);
+      // Indoors the lamps add to the painting, so it takes the walls' tint; on the balcony only what is painted lights it.
+      if (r.id !== "balcony") above.tint = below.tint = s.tint = wallTint;
+      grounded.far.addChild(above, below, s);
     });
   } else if (level.backdrop?.rooms) {
     planes.far.addChild(blockWall(level.length * 3));

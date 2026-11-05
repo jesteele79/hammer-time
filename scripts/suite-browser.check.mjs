@@ -5,6 +5,7 @@ import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
+import sharp from "sharp";
 import { checkedUrl } from "./browser-guard.mjs";
 
 const base = checkedUrl(process.argv[2] || "http://127.0.0.1:8090/");
@@ -30,6 +31,13 @@ const shot = (n) => page.screenshot({ path: resolve(out, n) });
 const waitMode = (m, timeout = 60000) => page.waitForFunction((want) => window.__next?.run?.mode === want, m, { timeout });
 const tp = (x, y = 0) => page.evaluate(([a, b]) => window.__next.dev.teleport(a, b), [x, y]);
 const screenBoss = () => page.evaluate(() => window.__next.boss);
+/** The screen's color at a point: the floor well under his feet, clear of the hint at the bottom's middle. */
+const shownColor = async (x, y) => {
+  const { data, info } = await sharp(await page.screenshot()).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const at = (y * info.width + x) * 3;
+  return [data[at], data[at + 1], data[at + 2]];
+};
+const near = (a, b, by) => a.every((v, i) => Math.abs(v - b[i]) <= by);
 
 try {
   for (const [w, h] of SIZES) {
@@ -83,6 +91,11 @@ try {
   const bal = await screenBoss();
   assert.ok(bal.x > 3200, `he is on the balcony: ${bal.x}`);
   await shot("suite-phase-3.png");
+  // The painted floor, the balcony's grey, with none of the game's drawn floor over it, and the sky without a lamp's fog.
+  const balconyFloor = await shownColor(1500, 980);
+  assert.ok(near(balconyFloor, [152, 150, 153], 24), `the balcony's floor is the painting's: ${balconyFloor}`);
+  const balconySky = await shownColor(600, 200);
+  assert.ok(near(balconySky, [3, 6, 23], 24), `the sky has no lamp's fog: ${balconySky}`);
   await page.evaluate(() => window.__next.dev.heal());
   // Over the rail: the splash, his last word, and the level is over.
   await page.evaluate(() => window.__next.dev.boss({ state: "down" }));

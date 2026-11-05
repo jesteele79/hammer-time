@@ -34,7 +34,7 @@ const banquetTarget = target.startsWith("banquet/")
           : null;
 const banquetFile =
   banquetTarget === "room" ? "art/incoming/backdrops/ballroom.png" : banquetTarget === "table" ? "art/incoming/props/banquet-table.png" : banquetTarget === "gate-room" ? "art/incoming/backdrops/gate.png" : banquetTarget === "gate-sheet" ? "art/incoming/props/gate-sheet.png" : banquetTarget === "sat-sheet" ? "art/incoming/props/sat-sheet.png" : banquetTarget === "tower-sheet" ? "art/incoming/props/tower-sheet.png" : null;
-const rawPng = wall ? readFileSync(`art/incoming/backdrops/${wall}.png`) : banquetTarget === "room" || banquetTarget === "gate-room" ? readFileSync(banquetFile) : null;
+const rawPng = wall ? readFileSync(`art/incoming/backdrops/${wall.replace(/^suite-far-/, "suite-")}.png`) : banquetTarget === "room" || banquetTarget === "gate-room" ? readFileSync(banquetFile) : null;
 const keyed = rawPng
   ? { png: rawPng, ...(await sharp(rawPng).metadata()) }
   : await keyOut(

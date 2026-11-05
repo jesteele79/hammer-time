@@ -29,7 +29,7 @@ export const SUITE: Level = {
     { x0: 214, x1: 679, y: -110, kind: "sofa" },
     { x0: 726, x1: 1005, y: -112, kind: "table" },
     { x0: 1116, x1: 1414, y: -177, kind: "minibar" },
-    { x0: 1721, x1: 1888, y: -115, kind: "table" },
+    { x0: 1633, x1: 1808, y: -115, kind: "table" },
     { x0: 1889, x1: 2782, y: -150, kind: "bed", bounce: 1.3 },
     { x0: 2865, x1: 3032, y: -115, kind: "table" },
     { x0: 4500, x1: 4800, y: -220, kind: "rail" },
@@ -47,12 +47,12 @@ export const SUITE: Level = {
   signs: [],
   furniture: [],
   carts: [],
+  // None past the bedroom's wall: on the night sky a glow is fog, and the balcony's lamp is painted.
   lights: [
     { x: 100, y: -500, radius: 900, intensity: 0.4 },
     { x: 1200, y: -600, radius: 900, intensity: 0.3 },
     { x: 1800, y: -420, radius: 800, intensity: 0.4 },
-    { x: 3000, y: -420, radius: 800, intensity: 0.4 },
-    { x: 3300, y: -420, radius: 700, intensity: 0.3 },
+    { x: 2600, y: -420, radius: 600, intensity: 0.4 },
   ],
   camera: { zones: [] },
   rewards: { count: 0, bucees: 0, nuts: 0 },
