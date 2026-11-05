@@ -4,7 +4,7 @@ Act 2 plays from 2-1's card to "Act 2 · Status Crusade · complete" on a saved 
 
 All of it is on the working branch, `claude/hammer-pass`. `main` has not moved and waits for your yes.
 
-All 716 automated tests pass. All eighteen browser checks pass on the dev server, at the screen sizes they name. The production build passes the night, journey, hall and suite checks and the smoke check. A fresh reviewer read the whole half and found three problems. I found a fourth in their notes that I judged worse than they did. All four are fixed, and each has a test that failed first.
+All 716 automated tests pass. All eighteen browser checks pass on the dev server, at the screen sizes they name. The production build passes the night, journey, hall and suite checks. Its quick smoke check raised one flag, the known one: it looks after one second, too soon for the production page to finish loading at phone size, and reports the game's canvas as missing. The hall and suite checks load that same size and see it. A fresh reviewer read the whole half and found three problems. I found a fourth in their notes that I judged worse than they did. All four are fixed, and each has a test that failed first.
 
 ## What I could not check
 
@@ -42,6 +42,7 @@ Each one is cheap to change if you disagree.
 **The hall's picture**
 
 - The 3D canvas sits under the game's canvas instead of replacing it. Hammer's thoughts, the comic words and the speech stay in the same system as every other level. Without this "Mobile key failed." would have gone silent.
+- The hall is built so that A goes left and D goes right with no mirroring. The plan's direction would have swapped them.
 - The hall extends 4 meters behind his start, or the camera would stand outside the building at his first step.
 - The camera follows a little over half of his sidestep. If it followed all of it, A and D would not move him on the screen.
 - People are drawn over the set, far to near. A wall can never cut through anyone. The cost is that nobody can stand behind anything in the hall.
@@ -77,7 +78,7 @@ Each one is cheap to change if you disagree.
 
 - There is no separate board for him: the suite's boards show his states.
 - The plan's way of installing the 3D library was not safe, as below.
-- Four test or check details: the night check now reads the new "11:40 pm" caption, one suite test keeps him out of the bottles, some tests run with the cast on, and the walking test checks his lowest foot rather than both.
+- Five test or check details: the night check now reads the new "11:40 pm" caption, one suite test keeps him out of the bottles, some tests run with the cast on, the walking test checks his lowest foot rather than both, and the hall's speed check asks for 55 frames a second, the same floor its quality rule holds.
 
 **Things only you can judge**
 
