@@ -47,6 +47,7 @@ const PERSON_OF: Record<Menu, Record<RivalId | "server", { person: CastPerson; r
     server: { person: "garcon", recolor: null },
   },
 };
+const TINY_COKE = 0.7;
 /** Where the chute's mouth hangs over the table's middle, world px: above his head as he dives under it at twice his size. */
 const CHUTE_MOUTH = -440;
 /** A dish poured from a tray or the cart drops this far onto its spot. */
@@ -341,7 +342,8 @@ export class BanquetView {
         this.dishes.addChild(s);
       }
       const at = onScreen(d);
-      s.scale.set(drawWidth(d.kind, d.r) / s.texture.width);
+      // Thirty-three centiliters: the can's picture at 0.7.
+      s.scale.set(((d.kind === "tinycoke" ? TINY_COKE : 1) * drawWidth(d.kind, d.r)) / s.texture.width);
       // Dropping onto its spot, faster as it falls: from the chute's mouth, or (a tray's, the cart's) from just above.
       const p = 1 - d.fall / DISH.fall;
       const chute = Math.hypot(d.x, d.y) < 2 * HUNGRY.dump.jitter;

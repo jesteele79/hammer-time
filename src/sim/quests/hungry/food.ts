@@ -67,7 +67,7 @@ export const FOODS: Record<FoodKind, FoodSpec> = {
   macarons: { name: "Macarons", value: 150, r: 27, course: "dessert", sheet: 9, tag: "MAC", color: 0xe58fb0, menu: "french" },
   tartetatin: { name: "Tarte tatin", value: 250, r: 29, course: "dessert", sheet: 10, tag: "TAT", color: 0xc2643c, menu: "french" },
   carafe: { name: "A carafe of water", value: 0, r: 26, course: "special", sheet: 11, tag: "H2O", color: 0x9fd6ff, menu: "french" },
-  tinycoke: { name: "Tiny Coke Zero", value: 0, r: 19, course: "special", sheet: null, tag: "ZRO", color: 0x1b1b1b, menu: "french" },
+  tinycoke: { name: "Tiny Coke Zero", value: 0, r: 26, course: "special", sheet: null, tag: "ZRO", color: 0x1b1b1b, menu: "french" },
   breadbasket: { name: "Bread basket", value: 50, r: 28, course: "appetizer", sheet: 13, tag: "BRD", color: 0xd9a35a, menu: "french" },
   cheesecart: { name: "The cheese cart", value: 0, r: 30, course: "special", sheet: 14, tag: "CART", color: 0xf4f1ea, menu: "french" },
   bill: { name: "L'addition", value: -100, r: 28, course: "special", sheet: 15, tag: "BILL", color: 0x2a1d14, menu: "french" },
