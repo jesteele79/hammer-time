@@ -16,6 +16,15 @@ const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, presse
 const of = (evs, type) => evs.filter((e) => e.type === type);
 const play = (g) => { while (g.mode === "card") g.step(input()); };
 const until = (g, done, seconds = 10, held = {}) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) { g.step(input(held)); evs.push(...g.events); } return evs; };
+/** Two hits past the thresholds: the bedroom, then the balcony. */
+const toBalcony = (g, t) => {
+  for (const hp of [9, 5]) {
+    t.hp = hp;
+    t.hurtT = 0;
+    hitBoss(t, "bonk", g.events);
+    g.step(input());
+  }
+};
 const suite = (opts = {}) => { const g = createGame({ lobby: LOBBY, stash: STASH }, 51, { cast: false, title: true }); g.newRun(51, 0, { shift: [SUITE], journey: true, ...opts }); return g; };
 
 test("the suite is three rooms with no door and no clock, the bed bounces 1.3 times his jump, and the boss has twelve health in three phases", () => {
@@ -131,4 +140,41 @@ test("Try again after Hammer down in phase 3 brings back twelve health, phase 1,
   g.newRun(51, g.venue, { snapshot, shift: [SUITE], journey: true });
   play(g);
   assert.deepEqual([g.world.boss.hp, g.world.boss.phase, g.world.boss.room, g.run.cans], [12, 1, 0, snapshot.run.cans]);
+});
+test("he goes over the rail as Hammer goes down: the win stands, no life lost", () => {
+  const g = suite();
+  play(g);
+  const t = g.world.boss;
+  const h = g.world.hero;
+  toBalcony(g, t);
+  assert.equal(t.phase, 3);
+  const lives = g.run.lives;
+  t.hurtT = 0;
+  t.hp = 1;
+  // The bottle that would finish him and the blow that finishes the boss, in one step.
+  Object.assign(h, { patience: 1, invuln: 0 });
+  g.world.hit(h.x + 50);
+  hitBoss(t, "bonk", g.events);
+  until(g, (x) => x.mode === "walkoff" || x.mode === "over", 8);
+  assert.deepEqual([g.mode, g.run.lives, t.state], ["walkoff", lives, "down"]);
+});
+test("the grab never takes more than ten or below zero, and the hits give back just what he took", () => {
+  const g = suite();
+  play(g);
+  const t = g.world.boss;
+  toBalcony(g, t);
+  g.run.cans = 3;
+  Object.assign(g.world.hero, { x: t.x - 150, y: 0, onGround: true, invuln: 99 });
+  until(g, (x) => of(x.events, "grab").some((e) => e.phase === "take"), 9);
+  assert.deepEqual([g.run.cans, t.owed], [0, 3]);
+  t.hurtT = 0;
+  t.hp = 3;
+  hitBoss(t, "bonk", g.events);
+  g.step(input());
+  assert.deepEqual([g.run.cans, t.owed], [3, 0]);
+  t.hurtT = 0;
+  t.hp = 3;
+  hitBoss(t, "bonk", g.events);
+  g.step(input());
+  assert.deepEqual([g.run.cans, t.owed], [3, 0], "a hit with nothing owed gives nothing");
 });

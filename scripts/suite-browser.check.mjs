@@ -55,6 +55,14 @@ try {
   assert.match(await page.locator(".next-hud__boss-name").textContent(), /Lifetime Titanium guy/);
   const first = await screenBoss();
   assert.deepEqual([first.hp, first.max], [12, 12]);
+  await page.waitForTimeout(2000);
+  const rates = [];
+  for (let i = 0; i < 5; i++) {
+    await page.evaluate(() => window.__next.dev.heal());
+    await page.waitForTimeout(1000);
+    rates.push(await page.evaluate(() => window.__next.fps));
+  }
+  assert.ok(Math.min(...rates) >= 55, `the suite holds 55 fps at 1920 by 1080: ${rates}`);
   // The apples, three of them, on the screen.
   await tp(600);
   await page.waitForFunction(() => (window.__next.cast?.planes ?? []).filter((m) => m.kind === "apple").length >= 2, null, { timeout: 8000, polling: 20 });

@@ -486,6 +486,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   }
 
   function die(ev: GameEvent[]) {
+    // Lifetime Titanium guy is already over the rail: the win stands.
+    if (bossBeaten()) {
+      world.hero.move = null;
+      world.hero.invuln = 99;
+      return;
+    }
     // No door glows over a man going down.
     game.door = null;
     setMode("dying", ev, RUN.dieT);
@@ -920,6 +926,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     } else if (h.move?.kind === "tumble" && moveU(h.move) >= RUN.lieAt) die(ev);
   }
 
+  const bossBeaten = () => world.boss?.kind === "titanium" && (world.boss.state === "pool" || world.boss.state === "down");
   /** How long after he goes over the rail the level ends. */
   let bossOverT = 0;
   /** What Lifetime Titanium guy's fight asks of the run: his bellhops, the grab's cans, the cans he gives back, and the end. */
@@ -929,6 +936,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const run = game.run;
     const h = world.hero;
     const seen = world.events;
+    if (bossBeaten()) {
+      world.hits = [];
+      h.invuln = Math.max(h.invuln, 1);
+    }
     if (seen.some((e) => e.type === "bossPhase")) h.invuln = Math.max(h.invuln, TITANIUM.grace);
     if (seen.some((e) => e.type === "bossCall") && opts.cast !== false) callBellhops(t.x);
     const land = seen.find((e) => e.type === "grab" && e.phase === "land") as Extract<GameEvent, { type: "grab" }> | undefined;
