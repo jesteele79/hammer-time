@@ -14,6 +14,7 @@ export const RUN = {
   canCool: 25,
   cansPerLife: 100,
   nutPoints: 500,
+  breadPoints: 50,
   /** Nuts are smash fuel: three bags fill the Super Smash (10). */
   nutCharge: 4,
   buceesPoints: 1000,

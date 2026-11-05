@@ -1,13 +1,13 @@
 import { HERO_H, SNAP, STEP } from "./constants";
 import { CAST_ID, FALL_MARGIN, createCast, hittable, npcRect, strikeNpc, type Npc } from "./cast";
 import { crateRect, crateSolids, cratesOf, hitCrate, stepCrates, type Crate, type CrateHit } from "./crates";
-import { damage, PATIENCE_MAX } from "./damage";
+import { damage, PATIENCE_MAX, stun } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero, type HeroOptions } from "./hero";
 import { BURST_R, MALLET_R } from "./hits";
 import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
-import { PICKUP_SIZE, stageOf, tierMet, type CastSpawn, type DoorSpec, type Lesson, type Level, type LevelId } from "./level";
+import { PICKUP_SIZE, stageOf, tierMet, type CastSpawn, type DoorSpec, type Lesson, type Level, type LevelId, type LevelPlatform } from "./level";
 import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
@@ -15,7 +15,7 @@ import { PIG, createPig } from "./pig";
 import { createFlight, stepFlight } from "./flight";
 import { createHallCarts, createHallDoors, KEY_REACH } from "./hall";
 import { TITANIUM } from "./titanium";
-import { collectPickups, dropPickup, keycardsOf, laneRewards, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
+import { collectPickups, dropPickup, fixedPickups, keycardsOf, laneRewards, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
@@ -28,7 +28,7 @@ import { createHungry, stepHungry, type HungryResult } from "./quests/hungry/hun
 import { createFares, stepFares, type FaresResult } from "./quests/fares/fares";
 import type { Quest, QuestId } from "./quests/quest";
 import type { Carry, Snapshot } from "./journey";
-import { HOME_INSULTS } from "../game/lines";
+import { BONJOUR, HOME_INSULTS } from "../game/lines";
 import { shuffled } from "./rewards";
 
 /** `story`: the game holds between levels (or before the first) while the shell shows the story's cards; nothing steps. */
@@ -134,6 +134,8 @@ const BELLHOP_DOOR = 1650;
 const CART_FROM = 500;
 const BOSS_OVER = 1.5;
 export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60, slipAgain: 1.6 } as const;
+/** Paris's hotel: how often she says it, the window's slip, how long it hangs open, how near a flock lets him come. */
+const PARIS_HOTEL = { nag: 4, tipOut: 1.5, tipStun: 0.5, tipSlip: 320, pigeons: 300 } as const;
 /** How near a tall level's punch clock he must pass, on its floor. */
 const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
@@ -192,6 +194,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   /** Keys held through a card down a hall: not a step until they are let go. */
   const heldThrough = { up: false, down: false, side: false };
+  /** Seconds until she says it again; the flocks already up this life. */
+  let bonjourNag = 0;
+  const pigeonsUp = new Set<number>();
   /** How many times the mallet has met 1417's reader this life. */
   let keyHits = 0;
   let onSlip: unknown = null;
@@ -246,9 +251,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   }
 
   const restage = () => {
-    const stage = stageOf(game.level, crateSolids(game.crates));
-    // The carts' tops are platforms he can ride.
-    world.stage = world.movers.length ? { ...stage, platforms: [...stage.platforms, ...world.movers.map((m) => m.top)] } : stage;
+    const gate = game.level.bonjour && !world.bonjourDone ? [game.level.bonjour.wall] : [];
+    const stage = stageOf(game.level, [...crateSolids(game.crates), ...gate]);
+    // The carts' tops are platforms he can ride; a window hanging open is none.
+    const fixed = stage.platforms.filter((p) => !(p as LevelPlatform).tip || world.tip.out <= 0);
+    world.stage = { ...stage, platforms: [...fixed, ...world.movers.map((m) => m.top)] };
   };
 
   /** Stands him on the floor under `at`, still and fresh. */
@@ -268,7 +275,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.crates = cratesOf(level);
     // A level's layout is its own wherever the run began: seeded by its place in the whole shift (SAT after it).
     const place = wholeShift.indexOf(level);
-    game.pickups = [...seedRewards(level, game.run.seed + (place >= 0 ? place : wholeShift.length) * VENUE_SEED), ...keycardsOf(level, game.run.spots)];
+    game.pickups = [...seedRewards(level, game.run.seed + (place >= 0 ? place : wholeShift.length) * VENUE_SEED), ...keycardsOf(level, game.run.spots), ...fixedPickups(level, game.run.spots)];
     if (level.hall) laneRewards(game.pickups, game.run.seed);
     bonkedIds.clear();
     const k = level.checkpoints.find((c) => c.id === game.run.checkpoint);
@@ -276,6 +283,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const at = set ?? k ?? level.spawn;
     Object.assign(world.hero, createHero(at, carry));
     world.movers = (level.movers ?? []).map(createMover);
+    world.bonjourDone = false;
+    world.tip = { on: 0, out: 0 };
+    bonjourNag = 0;
+    pigeonsUp.clear();
     restage();
     // Each cart stands on the floor under it: a raised dock's too.
     world.targets = level.carts.map((x, i) => createCart(i + 1, x, floorAt(world.stage, x) ?? 0));
@@ -567,6 +578,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "think", text: line, seconds: THINK.seconds });
     }
     if (kind === "keycard") takeKeycard(ev);
+    else if (kind === "bread") addScore(run, RUN.breadPoints);
     else if (kind === "can") h.heat = Math.max(0, h.heat - addCans(run, 1, ev));
     else if (kind === "nuts") {
       addScore(run, RUN.nutPoints);
@@ -891,6 +903,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     thinkFrom = h.x;
     towerTraps(ev);
     feetFrom = h.y;
+    parisStep(ev);
     if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;
@@ -924,7 +937,6 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (!lethal)
       for (const kind of collectPickups(h, game.pickups, ev)) {
         take(kind, ev);
-        if (kind !== "keycard") continue;
         for (const p of game.pickups) if (p.spot && p.taken && !run.spots.includes(p.spot)) run.spots.push(p.spot);
       }
     if (run.star > 0) {
@@ -1077,6 +1089,53 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function upJumps(given: Input): Input {
     if (!given.held.up && !given.pressed.up) return given;
     return { ...given, held: { ...given.held, jump: given.held.jump || given.held.up }, pressed: { ...given.pressed, jump: given.pressed.jump || given.pressed.up } };
+  }
+
+  /** Paris's hotel and its street: her gate and what opens it, the window that tips, the pigeons going up. */
+  function parisStep(ev: GameEvent[]) {
+    const level = game.level;
+    const h = world.hero;
+    const b = level.bonjour;
+    if (b && !world.bonjourDone) {
+      const near = Math.abs(h.x - b.x) <= b.reach;
+      const concierge = world.cast.find((n) => n.job === "concierge");
+      bonjourNag = Math.max(0, bonjourNag - STEP);
+      if (near && bonjourNag <= 0 && concierge) {
+        bonjourNag = PARIS_HOTEL.nag;
+        ev.push({ type: "castLine", id: concierge.id, text: "Bonjour, monsieur.", seconds: 2 });
+      }
+      if (near && world.events.some((e) => e.type === "lectureStart")) {
+        world.bonjourDone = true;
+        restage();
+        ev.push({ type: "bonjour" });
+        ev.push({ type: "think", text: BONJOUR, seconds: THINK.seconds });
+        if (concierge) ev.push({ type: "castLine", id: concierge.id, text: "The lift takes one.", seconds: 2 });
+      }
+    }
+    const tip = level.platforms.find((p) => p.tip);
+    if (tip) {
+      if (world.tip.out > 0) {
+        world.tip.out = Math.max(0, world.tip.out - STEP);
+        if (world.tip.out <= 0) restage();
+      } else {
+        const on = h.onGround && Math.abs(h.y - tip.y) < 2 && h.x >= tip.x0 && h.x <= tip.x1;
+        world.tip.on = on ? world.tip.on + STEP : 0;
+        if (world.tip.on >= tip.tip!) {
+          world.tip.on = 0;
+          world.tip.out = PARIS_HOTEL.tipOut;
+          restage();
+          stun(h, PARIS_HOTEL.tipStun, ev);
+          h.vx = PARIS_HOTEL.tipSlip;
+          h.onGround = false;
+          ev.push({ type: "tip", x: h.x, y: h.y });
+        }
+      }
+    }
+    for (const p of level.pigeons ?? []) {
+      if (pigeonsUp.has(p.x) || Math.abs(h.x - p.x) > PARIS_HOTEL.pigeons) continue;
+      pigeonsUp.add(p.x);
+      ev.push({ type: "pigeons", x: p.x, y: p.y });
+    }
   }
 
   /** The tower's traps: falling through a chute's gap costs the slide's seconds and no more; stepping on a wet floor slips him. */

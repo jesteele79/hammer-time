@@ -5,7 +5,7 @@ import { PICKUP_SIZE, rewardAnchors, type Anchor, type Level, type RewardRoute }
 import { moveBody, type Body } from "./physics";
 import type { HeroState, Point, Stage } from "./types";
 
-export type PickupKind = "can" | "nuts" | "bucees" | "pepper" | "keycard";
+export type PickupKind = "can" | "nuts" | "bucees" | "pepper" | "keycard" | "bread";
 /** A pickup: seeded ones stand still; one that came out of a crate has a body and moves. */
 export type Pickup = {
   /** Meters across a hall. */
@@ -108,6 +108,14 @@ export function keycardsOf(level: Pick<Level, "id" | "keycards">, taken: readonl
   return (level.keycards ?? []).map((k, i) => {
     const spot = `${level.id}:${i}`;
     return { id: 7000 + i, kind: "keycard", x: k.x, y: k.y, taken: taken.includes(spot), spot };
+  });
+}
+
+/** A level's fixed pickups, each once a run: the same rule as the keycards'. */
+export function fixedPickups(level: Pick<Level, "id" | "pickups">, taken: readonly string[]): Pickup[] {
+  return (level.pickups ?? []).map((k, i) => {
+    const spot = `${level.id}:p${i}`;
+    return { id: 7100 + i, kind: k.kind, x: k.x, y: k.y, taken: taken.includes(spot), spot };
   });
 }
 

@@ -34,10 +34,14 @@ export type PlatformKind =
   | "ledge"
   | "plush"
   | "till"
-  | "vending";
+  | "vending"
+  | "sash"
+  | "chair"
+  | "awning";
 export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt" | "carpet";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
-export type LevelPlatform = Platform & { kind: PlatformKind; bounce?: number };
+/** `tip`: stood on this long, it tips him off (the window of Paris's closet). */
+export type LevelPlatform = Platform & { kind: PlatformKind; bounce?: number; tip?: number };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
 export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" | "bin" };
@@ -60,6 +64,8 @@ export type DoorSpec = {
   tier?: number;
   /** An exit that opens on ↓ like a quest door, never by walking past it. */
   down?: boolean;
+  /** A quest door whose tally ends the level, as a gate's does. */
+  ends?: boolean;
 };
 /** A door with a tier opens at that many keycards; any other door has none to reach. */
 export const tierMet = (d: Pick<DoorSpec, "tier">, keycards: number): boolean => !d.tier || keycards >= d.tier;
@@ -103,7 +109,7 @@ export type SwingDoorSpec = { id: string; x: number; y: number; server: string }
  * `far` is for a short venue with wide walls: its own wall scale and far plane's pan, so the whole row is walked past.
  * A fore piece stands at the size it was painted unless it says otherwise.
  */
-export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number }; stack?: "up"; rooms?: boolean };
+export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number }; stack?: "up"; rooms?: boolean; layout?: { wall: string; x: number; y?: number }[] };
 /**
  * A level's boss: the gift shop's pig (where it sleeps and the arena he is held in once it wakes, R3 §3.3, §5.1), the
  * tower's supervisor (where she stands, her flight's top and foot, `y` her landing).
@@ -135,7 +141,10 @@ export type CastPerson =
   | "titanium"
   | "housekeeper-1"
   | "purser"
-  | "attendant-1";
+  | "attendant-1"
+  | "concierge"
+  | "garcon"
+  | "parisian-1";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
@@ -163,8 +172,8 @@ export type CastSpawn = {
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
-/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, takes no part. */
-export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated";
+/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up. */
+export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray";
 export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
@@ -244,6 +253,17 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   hall?: HallSpec;
   /** The cabin's cart, turbulence and rows (story spec §9.1). */
   flight?: FlightSpec;
+  /** The gate the lecture opens (3-2): pressed within `reach` of `x`, the `wall` stops being a solid. */
+  bonjour?: { x: number; reach: number; wall: Rect };
+  /** Drawn only (3-2): the windows' televisions, and the pigeons, who scatter as he comes. */
+  screens?: Point[];
+  pigeons?: Point[];
+  /** Fixed pickups, each once a run. */
+  pickups?: { kind: PickupKind; x: number; y: number }[];
+  /** How big the can is drawn here: Coke Zero in France. */
+  canScale?: number;
+  /** The level's own line on its tally. */
+  tally?: string;
   /** Reaching it with the boss down sits him and ends the level. */
   seat?: { x: number };
   /** What he thinks as he takes a pickup of this kind in this level: the first time each. */

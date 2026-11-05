@@ -87,7 +87,7 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   n.noticed = true;
   n.facing = toward(n, h);
   // The reply-all's own line says it, with the first plane.
-  if (n.trick !== "replyAll" && n.trick !== "wander") say(n, noticeLine(n), events);
+  if (n.trick !== "replyAll" && (n.trick !== "wander" || n.job === "parisian")) say(n, noticeLine(n), events);
   // The office worker never looks up: a mutter, no double-take.
   if (n.role === "office") return false;
   n.vx = 0;
@@ -95,6 +95,13 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   events.push({ type: "castNotice", id: n.id, x: n.x, y: n.y - n.h });
   return true;
 }
+
+/** The waiter's walk, and how long he is off walking once he is back up: about eight seconds from the bonk. */
+const TRAY = { walk: 200, back: 5 } as const;
+const trayBack = (n: Npc) => {
+  Object.assign(n, { alive: true, out: false, hits: 0, x: n.x0, vx: 0, facing: 1 });
+  setAct(n, "idle");
+};
 
 /** Walks the patrol between x0 and x1 at `speed`, turning at its ends, at walls and at ledges; stands still with no patrol. */
 function patrol(n: Npc, w: CastWorld, speed: number): void {
@@ -507,6 +514,7 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
       return;
     case "leave":
       n.vx = n.facing * T.leave;
+      if (n.trick === "tray" && n.actT >= TRAY.back) trayBack(n);
       return;
     case "flee":
       n.vx = n.facing * CAST.student.flee;
@@ -548,6 +556,11 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
       return;
     default:
       break;
+  }
+  // The waiter walks his pass with his tray, whoever comes.
+  if (n.trick === "tray") {
+    patrol(n, w, TRAY.walk);
+    return;
   }
   // The cabin's queue and its seated travelers stand as they are, whoever comes.
   if (n.trick === "queue" || n.trick === "seated") {
@@ -653,6 +666,13 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
     h.vy = -(jumpHeld ? STOMP.held : STOMP.bounce);
     h.onGround = false;
     events.push({ type: "stomp", x: n.x, y: n.y - n.h, landed });
+    return;
+  }
+  // Into the waiter on his pass: a pip, and he says so.
+  if (n.trick === "tray") {
+    if (h.invuln > 0 || h.move?.kind === "tumble") return;
+    w.hits.push(n.x);
+    say(n, pick(linesOf(n).bump, 0), events);
     return;
   }
   // An attack under way costs a pip; the office worker's coffee goes all over him and he staggers, then rests.
@@ -763,7 +783,13 @@ export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: 
   if (lecture) lectureOn(w, lecture.reach, events);
   const burst = events.find((e) => e.type === "burst") as Extract<GameEvent, { type: "burst" }> | undefined;
   for (const n of w.cast) {
-    if (!n.alive) continue;
+    if (!n.alive) {
+      // Walked off for good, except the waiter: there is always another plate.
+      if (n.trick !== "tray") continue;
+      n.actT += dt;
+      if (n.actT >= TRAY.back) trayBack(n);
+      continue;
+    }
     n.actT += dt;
     n.rest = Math.max(0, n.rest - dt);
     n.bumpT += dt;

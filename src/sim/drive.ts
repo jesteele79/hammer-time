@@ -24,11 +24,12 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
   if (route === "hall") return hallway(level, h, i, world);
   if (route === "flight") return flying(level, h, i, world);
+  if (route === "paris") return strolling(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   if (world && fightTitanium(world, h, i)) return i;
@@ -119,6 +120,45 @@ function hallway(level: Level, h: HeroState, i: Input, world?: World): Input {
   else if (!h.onGround) i.held.jump = true;
   const staff = world.cast.some((n) => n.alive && hittable(n) && ahead(n.x, HALL_DRIVE.staff) && Math.abs(n.lx - h.lx) <= HALL_DRIVE.lane);
   if (staff && !h.move) i.held.hammer = i.pressed.hammer = true;
+  return i;
+}
+
+/** How the Parisian day goes, in px: how near the desk he answers, the lift, a scooter, the waiter, the door. */
+const STROLL = { desk: 200, lift: 16, jump: 240, top: -520, door: 30 } as const;
+/**
+ * The walker: ...Bonjour. at the desk, on through the gate to the lift, crouched up it, along the floor and down the back
+ * stair, over the waiter and the scooters, and ↓ at the brasserie's door.
+ */
+function strolling(level: Level, h: HeroState, i: Input, w?: World): Input {
+  const b = level.bonjour;
+  const door = level.doors[0];
+  i.held.right = i.held.run = true;
+  if (!w || !b || !door) return i;
+  if (!w.bonjourDone) {
+    if (h.x >= b.x - STROLL.desk) {
+      i.held.right = i.held.run = false;
+      if (!h.move && h.onGround) i.held.lecture = i.pressed.lecture = true;
+    }
+    return i;
+  }
+  const lift = w.movers.find((m) => m.ride);
+  if (lift && h.y > STROLL.top && h.x < b.wall.x + 900) {
+    i.held.right = i.held.run = false;
+    if (h.x < lift.x - STROLL.lift) i.held.right = true;
+    else if (h.x > lift.x + STROLL.lift) i.held.left = true;
+    else i.held.down = true;
+    return i;
+  }
+  if (h.x >= door.x - STROLL.door && Math.abs(h.y - door.y) < 10) {
+    i.held.right = i.held.run = false;
+    if (h.onGround && !h.move) i.held.down = true;
+    return i;
+  }
+  fight(w, h, i);
+  const scooter = w.movers.some((m) => m.loop && m.live && m.x - h.x > -40 && m.x - h.x < STROLL.jump + 300);
+  const waiter = w.cast.some((n) => n.trick === "tray" && n.alive && !n.out && n.x - h.x > 0 && n.x - h.x < STROLL.jump);
+  if ((scooter || waiter || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
   return i;
 }
 

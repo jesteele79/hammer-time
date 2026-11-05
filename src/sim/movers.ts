@@ -19,18 +19,46 @@ export type Mover = {
   onSlope?: { x0: number; x1: number; y0: number; y1: number };
   /** Gone once it reaches its far end. */
   once?: boolean;
+  /** A lift between two heights: it rises only while he crouches on it, and comes back down empty. */
+  y0?: number;
+  y1?: number;
+  ride?: "crouch";
+  /** He is on it, going up. */
+  riding?: boolean;
+  /** One way: out from `x0` every `every` s from `first`, in at `x1`, gone between. */
+  loop?: 1 | -1;
+  every?: number;
+  live?: boolean;
+  t?: number;
+  next?: number;
 };
-export type MoverSpec = { id: string; x: number; y: number; x0: number; x1: number; w: number; h: number; speed: number };
+export type MoverSpec = { id: string; x: number; y: number; x0: number; x1: number; w: number; h: number; speed: number; y0?: number; y1?: number; ride?: "crouch"; loop?: 1 | -1; every?: number; first?: number };
 
 /** A cart's side costs him a pip once in this long. */
-export const MOVER = { hurtEvery: 1.2 } as const;
+export const MOVER = { hurtEvery: 1.2, liftReach: 24 } as const;
 
 export const createMover = (s: MoverSpec): Mover => ({
   ...s,
   dir: 1,
   cool: 0,
-  top: { x0: s.x - s.w / 2, x1: s.x + s.w / 2, y: s.y - s.h },
+  // A lift's floor is flush with the floor he walks on to it from.
+  top: { x0: s.x - s.w / 2, x1: s.x + s.w / 2, y: s.ride ? s.y : s.y - s.h },
+  ...(s.loop ? { live: false, t: 0, next: s.first ?? 0 } : {}),
 });
+
+/** A lift: up while he crouches on it, a hair's reach of its floor; otherwise down to its foot. */
+function stepLift(m: Mover, h: HeroState, dt: number): void {
+  const on = h.x >= m.top.x0 && h.x <= m.top.x1 && Math.abs(h.y - m.y) <= MOVER.liftReach;
+  m.riding = on && h.crouch && (h.onGround || !!m.riding);
+  const want = m.riding ? (m.y1 ?? m.y) : (m.y0 ?? m.y);
+  const most = m.speed * dt;
+  m.y += Math.max(-most, Math.min(most, want - m.y));
+  m.top.y = m.y;
+  if (!m.riding) return;
+  h.y = m.y;
+  h.vy = 0;
+  h.onGround = true;
+}
 
 export type MoverWorld = { hero: HeroState; movers: Mover[]; hits: number[]; stage: Stage };
 
@@ -42,9 +70,35 @@ export function stepMovers(w: MoverWorld, dt: number, events: GameEvent[]): void
   const h = w.hero;
   for (const m of [...w.movers]) {
     m.cool = Math.max(0, m.cool - dt);
+    if (m.ride) {
+      stepLift(m, h, dt);
+      continue;
+    }
+    if (m.loop) {
+      m.t = (m.t ?? 0) + dt;
+      if (!m.live) {
+        if (m.t < (m.next ?? 0)) continue;
+        m.live = true;
+        m.x = m.x0;
+        m.next = m.t + (m.every ?? 0);
+        events.push({ type: "scooter", id: m.id });
+      }
+      m.x += m.loop * m.speed * dt;
+      m.top.x0 = m.x - m.w / 2;
+      m.top.x1 = m.x + m.w / 2;
+      if ((m.x - m.x1) * m.loop >= 0) {
+        m.live = false;
+        m.x = m.x0;
+        m.top.x0 = m.x - m.w / 2;
+        m.top.x1 = m.x + m.w / 2;
+        continue;
+      }
+    }
     const riding = h.onGround && Math.abs(h.y - m.top.y) < 2 && h.x >= m.top.x0 - 30 && h.x <= m.top.x1 + 30;
-    m.x += m.dir * m.speed * dt;
-    if (m.x >= m.x1) {
+    if (!m.loop) m.x += m.dir * m.speed * dt;
+    if (m.loop) {
+      // Rolling one way, it carries him and hits him as a cart does, below.
+    } else if (m.x >= m.x1) {
       m.x = m.x1;
       m.dir = -1;
       if (m.once) {
@@ -65,7 +119,7 @@ export function stepMovers(w: MoverWorld, dt: number, events: GameEvent[]): void
       m.top.y = m.y - m.h;
     }
     if (riding) {
-      h.x += m.dir * m.speed * dt;
+      h.x += (m.loop ?? m.dir) * m.speed * dt;
       h.y = m.top.y;
       continue;
     }

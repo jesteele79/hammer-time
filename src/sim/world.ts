@@ -55,6 +55,10 @@ export type World = {
   movers: Mover[];
   /** The boss beside the pig: the tower's supervisor. */
   boss: Boss | null;
+  /** Paris's gate has heard his bonjour, this life. */
+  bonjourDone: boolean;
+  /** Paris's window: how long he has stood on it, and how long it hangs open. */
+  tip: { on: number; out: number };
   /** The cabin's cart, turbulence and sign; null off a flight. */
   flight: FlightState | null;
   /** The hall's carts and doors. */
@@ -91,6 +95,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     pig: opts.pig ?? null,
     movers: [],
     boss: null,
+    bonjourDone: false,
+    tip: { on: 0, out: 0 },
     flight: null,
     hallCarts: [],
     hallDoors: [],

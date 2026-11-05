@@ -155,7 +155,10 @@ export const CAST_LINES = {
 } as const;
 
 
-export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser";
+/** Through his teeth, the one word the concierge's gate takes. */
+export const BONJOUR = "...Bonjour.";
+
+export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser" | "concierge" | "garcon" | "parisian";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -221,6 +224,10 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
     ambush: none,
     frozen: "Fascinating. Go on.",
   },
+  // Paris's people (story spec §9.2).
+  concierge: { notice: ["Bonjour, monsieur."], bump: none, down: none, fall: "", shove: none, warn: ["The lift takes one."], skid: none, march: none, ambush: none, frozen: null },
+  garcon: { notice: none, bump: ["Pardon."], down: ["Pardon."], fall: "Pardoooon", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: "Pardon." },
+  parisian: { notice: ["Oh là là."], bump: ["Monsieur!"], down: ["Monsieur!"], fall: "Monsieuuur", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: "Oh là là." },
   // The cabin's crew (story spec §9.1): what they say is the flight's own; a bump is the one line more.
   attendant: { notice: none, bump: ["Sir, you need to return to your seat."], down: ["Sir."], fall: "Siiir", shove: none, warn: ["Sir, the seatbelt sign is on."], skid: none, march: none, ambush: none, frozen: "Sir." },
   purser: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },

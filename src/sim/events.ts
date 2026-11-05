@@ -154,6 +154,11 @@ export type GameEvent =
   | { type: "bossWave"; x: number; y: number; n: number }
   | { type: "bossHit"; by: "bonk" | "snot"; x: number; y: number; hp: number }
   | { type: "bossDown"; x: number; y: number; points: number }
+  /** Paris: the gate opened; the window tipping him off; a scooter out; the pigeons up. */
+  | { type: "bonjour" }
+  | { type: "tip"; x: number; y: number }
+  | { type: "scooter"; id: string }
+  | { type: "pigeons"; x: number; y: number }
   /** What a boss says, in a bubble at their head. */
   | { type: "bossSay"; text: string; seconds: number }
   /** The cabin: the drinks cart comes out, shoves him back so many rows, leaves its tray; the seatbelt chime and a bag; the kid's tablet; the curtain pulled back; he takes his seat. */
