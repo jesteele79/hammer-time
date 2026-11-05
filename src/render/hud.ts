@@ -17,6 +17,8 @@ import { RUN } from "../sim/run";
 
 /** What the shell's HUD shows (spec §10). */
 export type HudPayload = {
+  /** He is in a hall under the chase camera: the pad grows a forward button, the keys read otherwise. */
+  hall: boolean;
   /** What the panel's top line reads: the level's name, or in a tall level the floor he is on. */
   venue: string;
   /** The level's name, on its card. */
@@ -204,6 +206,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     doggy: h.doggy,
     flop: h.flop,
     saved,
+    hall: !!game.level.hall,
     hint: q ? (q.id === "hungry" ? hungryHint(q) : faresHint(q)) : (note ?? hintOf(game)),
     boss:
       pig && pig.state !== "asleep" && pig.state !== "defeated"

@@ -9,7 +9,7 @@ import { FARES, groupOf } from "@/sim/quests/fares/fares";
 
 /** COMPED's line, as the cards write it. */
 const GOAL = GRADES[0][0].toLocaleString("en-US");
-import { BANQUET_KEYS, BANQUET_TOUCH_KEYS, GATE_KEYS, GATE_TOUCH_KEYS, KEYS, PAD_KEYS, TOUCH_KEYS } from "./next-keys";
+import { BANQUET_KEYS, BANQUET_TOUCH_KEYS, GATE_KEYS, GATE_TOUCH_KEYS, HALL_KEYS, HALL_PAD_KEYS, HALL_TOUCH_KEYS, KEYS, PAD_KEYS, TOUCH_KEYS } from "./next-keys";
 
 /** A printed pass's class, as the board names it (R5 §4, §6). */
 const CLASS_NAME: Record<FareClass | Exclude<TagKind, "fare">, string> = {
@@ -57,6 +57,8 @@ export type VeilInfo = {
   touch: boolean;
   /** A controller is connected: the shift's break card names its buttons. */
   pad: boolean;
+  /** He is down a hall: its keys on the break card. */
+  hall: boolean;
   how: RunKind;
   journey: Journey | null;
   /** The stop being played in a journey or a replay. */
@@ -299,11 +301,17 @@ export function NextVeil({
                 ? info.touch
                   ? BANQUET_TOUCH_KEYS
                   : BANQUET_KEYS
-                : info.touch
-                  ? TOUCH_KEYS
-                  : info.pad
-                    ? PAD_KEYS
-                    : KEYS
+                : info.hall
+                  ? info.touch
+                    ? HALL_TOUCH_KEYS
+                    : info.pad
+                      ? HALL_PAD_KEYS
+                      : HALL_KEYS
+                  : info.touch
+                    ? TOUCH_KEYS
+                    : info.pad
+                      ? PAD_KEYS
+                      : KEYS
             ).map(([key, what]) => (
               <span key={key} className="next-hud__key">
                 <kbd>{key}</kbd>

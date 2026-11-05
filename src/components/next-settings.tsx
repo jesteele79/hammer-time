@@ -10,6 +10,8 @@ const QUALITIES: { value: Quality | null; label: string }[] = [
   { value: "low", label: "Low" },
 ];
 
+/** In the hall its own view has a density of its own, shown beside the tier. */
+const density3d = () => (typeof window !== "undefined" && window.__next?.three?.canvas ? window.__next.three.density : null);
 const PAD_LINE = "A jumps · X swings · B snots · Y lobs a box · RB runs · LB towels · RT smashes · LT lectures · Start pauses";
 
 /**
@@ -82,7 +84,7 @@ export function NextSettings({
           <select value={quality ?? "auto"} onChange={(e) => onQuality(e.target.value === "auto" ? null : (e.target.value as Quality))}>
             {QUALITIES.map((q) => (
               <option key={q.label} value={q.value ?? "auto"}>
-                {q.value === null && liveQuality ? `Auto · ${liveQuality[0].toUpperCase()}${liveQuality.slice(1)}` : q.label}
+                {q.value === null && liveQuality ? `Auto · ${liveQuality[0].toUpperCase()}${liveQuality.slice(1)}${density3d() ? ` (${density3d()}×)` : ""}` : q.label}
               </option>
             ))}
           </select>

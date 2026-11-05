@@ -134,6 +134,18 @@ test("the hall's thoughts, its punch clock at the lobby and a cast that keeps to
   until(g, () => Math.abs(n.lx - h.lx) <= 0.4 || !n.alive, 4);
   assert.ok(Math.abs(n.lx - h.lx) <= 0.4, `${n.lx} against ${h.lx}`);
 });
+test("the elevator lobby's bellhops wait out of sight until he is near, then shove their carts at him", () => {
+  const g = hall({}, true);
+  play(g);
+  const b = g.world.cast.find((c) => c.spawn === "bell-14-1");
+  assert.equal(b.act, "hide");
+  until(g, () => false, 1);
+  assert.equal(b.act, "hide", "he is far off");
+  Object.assign(g.world.hero, { x: 4300, lx: b.lx, onGround: true });
+  const evs = until(g, (x) => of(x.events, "castAttack").length > 0, 12);
+  assert.notEqual(b.act, "hide");
+  assert.ok(of(evs, "castWindup").length >= 1, "she winds up");
+});
 test("the scripted player walks the hall to 1417, sidestepping and jumping the carts, and opens the door", () => {
   const g = hall({}, true);
   play(g);

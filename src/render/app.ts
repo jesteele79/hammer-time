@@ -150,6 +150,8 @@ export type NextProbe = {
     charge(): void;
     give(kind: "can" | "nuts" | "bucees" | "pepper" | "keycard"): void;
     boss(o: { hp?: number; state?: string }): void;
+    pad(o: { axes?: number[]; buttons?: { pressed: boolean }[] } | null): void;
+    three(o: { frameMs?: number; lose?: boolean }): void;
     /** Takes everything in the level he is in, as if he had cleaned it out. */
     clearShelves(): void;
     /** Sets his heat. */

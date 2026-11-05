@@ -222,6 +222,7 @@ export class HallPeople {
       this.shadow(shadowN++, c.lx, c.z, 1.3, 0.7);
     });
     for (let i = state.carts.length; i < this.carts.length; i++) this.carts[i].visible = false;
+    for (const m of this.pickups.values()) m.visible = false;
     for (const p of state.pickups) {
       let m = this.pickups.get(p.id);
       if (p.taken) {
@@ -242,6 +243,9 @@ export class HallPeople {
         this.pickups.set(p.id, m);
       }
       m.visible = true;
+      // A fresh run lays new pickups under the old ids.
+      const material = m.material as MeshBasicMaterial;
+      if (material.map !== map) material.map = map;
       m.position.set(p.lx, Math.max(p.y, PICKUP_LIFT), -p.z);
       const mesh = m;
       draw.push({ z: p.z, set: (o) => (mesh.renderOrder = o) });
@@ -278,6 +282,16 @@ export class HallPeople {
         const mesh = new Mesh(new BoxGeometry(LEAF.t, LEAF.h, LEAF.w), new MeshToonMaterial({ color: 0x9a6232 }));
         mesh.position.set(0, LEAF.h / 2, -LEAF.w / 2);
         pivot.add(mesh);
+        // Its two panels and its handle, on both faces.
+        const panel = new MeshToonMaterial({ color: 0x6f4420 });
+        for (const y of [0.6, 1.6]) {
+          const inset = new Mesh(new BoxGeometry(LEAF.t + 0.03, 0.8, LEAF.w * 0.7), panel);
+          inset.position.set(0, y, -LEAF.w / 2);
+          pivot.add(inset);
+        }
+        const handle = new Mesh(new BoxGeometry(LEAF.t + 0.12, 0.06, 0.12), new MeshToonMaterial({ color: 0xc9a24a }));
+        handle.position.set(0, 1.05, -LEAF.w + 0.12);
+        pivot.add(handle);
         pivot.position.set(d.side * LEAF.face, 0, -d.z + LEAF.w / 2);
         this.setScene.add(pivot);
         leaf = { pivot, mesh };

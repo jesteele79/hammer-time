@@ -175,11 +175,22 @@ function cartSide(n: Npc, w: CastWorld, cart: Target, facing: 1 | -1): 1 | -1 {
   return fits(n.x - facing * CAST.bellhop.hold) ? ((-facing) as 1 | -1) : facing;
 }
 
+/** How near he comes before a hidden bellhop steps out. */
+const HIDDEN_UNTIL = 1200;
 /** The bellhop: grips his cart, winds up, shoves it at him, follows it where it stops and wheels it home. */
 function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const c = CAST.bellhop;
   const h = w.hero;
   const cart = w.targets.find((t) => t.id === n.cart);
+  // The doors open on bellhops: out of sight until he is near.
+  if (n.act === "hide") {
+    n.vx = 0;
+    if (Math.abs(h.x - n.x) > HIDDEN_UNTIL) return;
+    n.hide = false;
+    n.noticed = true;
+    setAct(n, "idle");
+    return;
+  }
   // A cart knocked out of his hands (the hit's flash is this instant's) is let go of: he goes after it.
   if (cart && cart.flash > 0 && (n.act === "windup" || n.act === "return")) {
     setAct(n, "chase");

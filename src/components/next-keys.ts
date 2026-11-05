@@ -13,8 +13,50 @@ export const KEYS: [string, string][] = [
   ["P", "break"],
 ];
 
+/** Down a hall, under the chase camera. */
+export const HALL_KEYS: [string, string][] = [
+  ["W", "forward"],
+  ["S", "back"],
+  ["A D", "sidestep"],
+  ["Shift", "run"],
+  ["Space", "jump"],
+  ["H", "swing"],
+  ["F", "snot"],
+  ["E", "lecture"],
+  ["T", "towel"],
+  ["Q", "smash"],
+  ["P", "break"],
+];
+export const HALL_PAD_KEYS: [string, string][] = [
+  ["Stick, d-pad", "forward, back, sidestep"],
+  ["RB", "run"],
+  ["A", "jump"],
+  ["X", "swing"],
+  ["B", "snot"],
+  ["LT", "lecture"],
+  ["LB", "towel"],
+  ["RT", "smash"],
+  ["Start", "break"],
+];
+export const HALL_TOUCH_KEYS: [string, string][] = [
+  ["↑", "forward"],
+  ["↓", "back"],
+  ["← →", "sidestep"],
+  ["Jump", "jump"],
+  ["Hammer", "swing"],
+  ["Snot", "snot"],
+  ["Lecture", "lecture"],
+  ["Towel", "towel"],
+  ["Super", "smash"],
+];
+
 /** A controller's buttons in place of the keys a hint names (the standard mapping's glyphs). */
 export const PAD_GLYPHS: [RegExp, string][] = [
+  [/\bW forward\b/g, "Stick forward"],
+  [/\bA D sidestep\b/g, "sideways"],
+  [/\bS back\b/g, "Stick back"],
+  [/\bSpace jumps\b/g, "A jumps"],
+  [/\bH on the door\b/g, "X on the door"],
   [/\bSpace\b/g, "A"],
   [/\bH\b/g, "X"],
   [/\bB lobs\b/g, "Y lobs"],
@@ -30,6 +72,11 @@ export const padGlyphs = (hint: string): string => PAD_GLYPHS.reduce((s, [key, g
 
 /** The touch pad's buttons in place of the keys a hint names: SAT's lessons and the shift's hints, longest phrase first. */
 const TOUCH_WORDS: [string, string][] = [
+  ["W forward", "↑ forward"],
+  ["A D sidestep", "← → sidestep"],
+  ["S back", "↓ back"],
+  ["Space jumps a cart", "Jump a cart"],
+  ["H on the door", "Hammer the door"],
   ["Space jumps", "Jump"],
   ["Shift runs", "Hold Run"],
   ["H swings the mallet", "Hammer"],

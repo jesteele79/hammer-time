@@ -71,7 +71,7 @@ import type { ThreeView } from "./3d/three-view";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
-import { NO_PAD, readPad, type Pad } from "./gamepad";
+import { NO_PAD, mapPad, readPad, type Pad } from "./gamepad";
 import { Words } from "./words";
 import { stepWalkOut, walkOutFrom, type WalkOut } from "./walk-out";
 import { BanquetView } from "./quests/hungry-scene";
@@ -1045,13 +1045,15 @@ export async function startLook(
         hallLost();
         three = null;
         view.destroy();
-        if (window.__next) window.__next.three = undefined;
+        if (window.__next) window.__next.three = { canvas: false, quality: render.quality, density: 0, fps: 0, drawing: false };
       };
     })()
       .catch((err) => console.warn("the hall plays flat:", err))
       .then(() => {
         threeSettled = true;
       }));
+  /** The checks' controller, in place of a real one. */
+  let devPad: Pad | null = null;
   let hallShown = false;
   let hallPhase = 0;
   const hallUp = () => !!game.level.hall && !!three;
@@ -1085,7 +1087,7 @@ export async function startLook(
   };
   /** The hall's own governor: a window of a second steps its tier down, never up; the game's own tier is untouched. */
   const THREE_ORDER: Quality[] = ["ultra", "high", "medium", "low"];
-  const hallGov = { settle: 2, t: 0, n: 0 };
+  const hallGov = { settle: 2, t: 0, n: 0, forced: 0 };
   const governHall = (dt: number) => {
     if (!three || game.mode === "pause" || dt <= 0) return;
     if (hallGov.settle > 0) {
@@ -1097,7 +1099,7 @@ export async function startLook(
     if (hallGov.t < 1) return;
     const intervalMs = (hallGov.t / hallGov.n) * 1000;
     hallGov.t = hallGov.n = 0;
-    if (!shouldStepDown3d({ workMs: three.frameMs, intervalMs })) return;
+    if (!shouldStepDown3d({ workMs: hallGov.forced || three.frameMs, intervalMs })) return;
     const next = THREE_ORDER[THREE_ORDER.indexOf(three.quality) + 1];
     if (!next) return;
     three.setQuality(next);
@@ -1690,7 +1692,7 @@ export async function startLook(
     const dt = game.mode === "pause" || holding ? 0 : Math.min(t.deltaMS / 1000, 0.1);
     const keys = tapped.size ? new Set([...down, ...tapped]) : down;
     // The controller merges with the keys and the touch pad; its Start breaks and resumes like P.
-    pad = opts.board ? NO_PAD : readPad();
+    pad = opts.board ? NO_PAD : (devPad ?? readPad());
     if (pad.start && !padStart && !menu && (game.mode === "play" || game.mode === "pause" || game.mode === "quest")) {
       forgetPresses();
       pause();
@@ -1701,6 +1703,8 @@ export async function startLook(
     const { simDt, steps } = runFrame(clock, frame, dt, () => {
       const touch = touchTapped.size || pointers.size || pad.held.size ? new Set([...touchDown, ...touchTapped, ...pad.held]) : touchDown;
       if (pointerSteady()) touch.add("run");
+      // Down a hall the pad's forward runs: there is no room for its own button there.
+      if (game.level.hall && touch.has("up")) touch.add("run");
       const input = inputFrom(keys, touch, prevHeld);
       prevHeld = input.held;
       prev = cur;
@@ -2260,6 +2264,15 @@ export async function startLook(
       },
       pig(o: { hp?: number; bonks?: number; snots?: number; state?: "recover" | "defeated" }) {
         if (world.pig) Object.assign(world.pig, o, o.state === "recover" ? { timer: 30, vx: 0 } : {});
+      },
+      /** The checks' controller: its buttons and stick as the Gamepad API reports them, or null for the real one. */
+      pad(o: { axes?: number[]; buttons?: { pressed: boolean }[] } | null) {
+        devPad = o ? { connected: true, ...mapPad(o.buttons ?? [], o.axes ?? []) } : null;
+      },
+      /** The 3D view pushed: its frame's work held at a number (0 lets go), or its context lost. */
+      three(o: { frameMs?: number; lose?: boolean }) {
+        if (o.frameMs !== undefined) hallGov.forced = o.frameMs;
+        if (o.lose) three?.lose();
       },
       /** The level's boss set as the checks want it: `state: "down"` beats it. */
       boss(o: { hp?: number; state?: string }) {

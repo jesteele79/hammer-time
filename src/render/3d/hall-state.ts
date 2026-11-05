@@ -33,7 +33,7 @@ export function hallStateOf(prev: Snapshot, cur: Snapshot, alpha: number, pickup
   return {
     hero: { lx: mix(was.lx, h.lx, alpha), z: toMeters(mix(was.x, h.x, alpha)), y: Math.max(0, -toMeters(mix(was.y, h.y, alpha))) },
     cast: cur.cast
-      .filter((n) => n.alive)
+      .filter((n) => n.alive && n.act !== "hide")
       .map((n) => {
         const o = lastCast.get(n.id) ?? n;
         return { id: n.spawn, num: n.id, person: n.person, role: n.role, lx: mix(o.lx, n.lx, alpha), z: toMeters(mix(o.x, n.x, alpha)), y: Math.max(0, -toMeters(mix(o.y, n.y, alpha))), clip: n.act, u: n.actT, speed: Math.abs(n.vx), spin: n.spin, hits: n.hits };

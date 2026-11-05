@@ -251,6 +251,11 @@ export class ThreeView {
     return { x: ((v.x + 1) / 2) * this.width, y: ((1 - v.y) / 2) * this.height };
   }
 
+  /** Drops the context, as a browser short of them does: the checks' way to the flat fallback. */
+  lose() {
+    this.renderer?.getContext().getExtension("WEBGL_lose_context")?.loseContext();
+  }
+
   /** His back, the level's cast and the small pictures. */
   loadPeople(registry: Registry, level: Level): Promise<void> {
     return this.people?.load(registry, level) ?? Promise.resolve();

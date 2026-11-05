@@ -10,6 +10,13 @@ const MOVE: Button[] = [
   { action: "left", label: "Left", glyph: "←" },
   { action: "right", label: "Right", glyph: "→" },
 ];
+/** Down a hall the pad walks him: forward (at a run, with no room for the button), back and a sidestep. */
+const HALL_MOVE: Button[] = [
+  { action: "up", label: "Forward", glyph: "↑" },
+  { action: "down", label: "Back", glyph: "↓" },
+  { action: "left", label: "Step left", glyph: "←" },
+  { action: "right", label: "Step right", glyph: "→" },
+];
 const ACT: Button[] = [
   { action: "towel", label: "Towel", glyph: "Towel" },
   { action: "fire", label: "Snot", glyph: "Snot" },
@@ -27,10 +34,12 @@ export function NextTouch({
   onPress,
   ready,
   boxes = 0,
+  hall = false,
 }: {
   onPress: (action: Action, down: boolean) => void;
   ready: Partial<Record<Action, boolean>>;
   boxes?: number;
+  hall?: boolean;
 }) {
   // What the pad holds down now: when it goes away (a card covers the game), it lets go of all of it.
   const held = useRef(new Set<Action>());
@@ -83,7 +92,7 @@ export function NextTouch({
   );
   return (
     <div className="next-touch" aria-label="Touch controls">
-      {pad(MOVE, "move")}
+      {pad(hall ? HALL_MOVE : MOVE, "move")}
       {pad(boxes > 0 ? [...ACT, BOX] : ACT, "act")}
     </div>
   );

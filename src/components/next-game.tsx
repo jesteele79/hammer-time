@@ -506,6 +506,7 @@ export function NextGame({
     bestBefore,
     touch,
     pad: !!hud?.pad,
+    hall: !!hud?.hall,
     how,
     journey,
     stop,
@@ -540,6 +541,7 @@ export function NextGame({
           <NextHud hud={hud} touch={touch && !veiled} muted={muted} onPause={() => look.current?.togglePause()} onMute={toggleMute} />
           {touch && !veiled && mode !== "card" && mode !== "questCard" && hud && (
             <NextTouch
+              hall={!!hud.hall}
               onPress={press}
               // At the banquet only the arrows, Jump, Hammer and the lecture do anything; at the gate every action key throws,
               // Run steadies while the meter lasts, Towel refills it while one is left and the lecture mouths off.
