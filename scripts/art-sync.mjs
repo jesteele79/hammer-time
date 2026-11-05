@@ -252,6 +252,25 @@ async function cast(registry) {
   await syncHats(registry, { inDir: CAST_IN, outDir: OUT, strict });
 }
 
+/**
+ * His back (story spec §12.3): the one painting, cut on its own rig as a cast body is. Its head layer is the back of his
+ * head and his neck, with no face in it.
+ */
+async function back(registry) {
+  const file = join(HAMMER_IN, "body-affliction-back.png");
+  const cutsFile = "art/cuts/hammer-back.json";
+  if (!existsSync(file) || !existsSync(cutsFile)) return;
+  await tolerant("his back", strict, async () => {
+    const { rig, images, layers, W, H } = await castRig("hammer-back", await keyOut(readFileSync(file)), JSON.parse(readFileSync(cutsFile, "utf8")), { strict });
+    for (const [name, png] of images) writeFileSync(join(OUT, name), png);
+    const rigFile = "cast/hammer-back-rig.json";
+    writeFileSync(join(OUT, rigFile), JSON.stringify(rig));
+    registry.hammer.back = { rig: rigFile, span: rig.span };
+    console.log(`his back: five layers and the back of his head`);
+    if (overlay) await drawLayers("hammer-back", await Promise.all(Object.keys(layers).map((name) => sharp(layers[name].rgba, { raw: { width: W, height: H, channels: 4 } }).png().toBuffer())));
+  });
+}
+
 const PIG_IN = "art/incoming/pig";
 const PIG_FACES = ["squint", "charge", "hurt", "defeated"];
 /** The tufts are painted about 350 px across and drawn under 100: stored at half size. */
@@ -582,6 +601,7 @@ await walls(registry);
 await banquet(registry);
 await lounge(registry);
 await tower(registry);
+await back(registry);
 await gate(registry);
 await sat(registry);
 await products();

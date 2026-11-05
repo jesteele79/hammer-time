@@ -43,6 +43,8 @@ export type Registry = {
   hammer: {
     heads: Partial<Record<Expression, HeadPlate>>;
     bodies: Partial<Record<Costume, Body>>;
+    /** His back, cut on its own rig as a cast body is: the hall's chase camera sees it (story spec §12.3). */
+    back?: Body;
     props: Record<string, Prop>;
     portrait: HeadPlate | null;
   };

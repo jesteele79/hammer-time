@@ -9,7 +9,7 @@ import { bodyLayersOf, bodyScale, drawOrder, layerTexture, skinLayer, type CastH
 
 /** One person's painting (or the pig's), loaded once and shared by everyone who wears it. */
 export type CastArt = {
-  person: CastPerson | "pig";
+  person: CastPerson | "pig" | "hammer-back";
   rig: RigFile;
   skeleton: Skeleton;
   head: CastHead;
@@ -49,7 +49,7 @@ function filesOf(rig: RigFile): string[] {
 const loads = new Map<string, Promise<CastArt | null>>();
 
 /** A body's rig and textures, or null when it is not registered or does not load: its stand-in draws it. */
-export function loadRigArt(registry: Registry, body: { rig: string } | undefined, person: CastPerson | "pig"): Promise<CastArt | null> {
+export function loadRigArt(registry: Registry, body: { rig: string } | undefined, person: CastPerson | "pig" | "hammer-back"): Promise<CastArt | null> {
   if (!body) return Promise.resolve(null);
   let load = loads.get(body.rig);
   if (!load) {
@@ -83,6 +83,8 @@ export function loadRigArt(registry: Registry, body: { rig: string } | undefined
 }
 
 /** A person's painting (or the one they borrow), or null: the stand-in draws them. */
+/** His back, for the hall. */
+export const loadBackArt = (registry: Registry) => loadRigArt(registry, registry.hammer.back, "hammer-back");
 export const loadCastArt = (registry: Registry, person: CastPerson) => loadRigArt(registry, registry.cast?.bodies[PAINTING_OF[person] ?? person], person);
 /** The pig's painting, cut like a cast body's (R3 §6.3). */
 export const loadPigArt = (registry: Registry) => loadRigArt(registry, registry.pig, "pig");
@@ -90,7 +92,7 @@ export const loadPigArt = (registry: Registry) => loadRigArt(registry, registry.
 type Part = { name: string; layer: RigLayer; mesh: Mesh; geometry: MeshGeometry; positions: Float32Array };
 
 /** A grid over a head plate, `cell` plate px square, with its UVs: what the head's taper bends. */
-function plateGrid(w: number, h: number, cell = 8) {
+export function plateGrid(w: number, h: number, cell = 8) {
   const cols = Math.ceil(w / cell);
   const rows = Math.ceil(h / cell);
   const verts: number[] = [];

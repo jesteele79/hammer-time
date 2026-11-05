@@ -47,6 +47,15 @@ try {
   if (want("key-art-night")) await webp(await titleFrame("&home=night"), 1600, "key-art-night.webp");
   // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
   if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
+  // The hall is the 3D view's, seen in the running game, a little way in.
+  if (want("hallway")) {
+    await page.goto(`${base}?next=1&dev=1&level=hallway`);
+    await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => window.__next.dev.teleport(1000, 0));
+    await page.waitForTimeout(1200);
+    await page.addStyleTag({ content: ".next-hud { visibility: hidden !important; }" });
+    await webp(await page.screenshot(), 640, "hallway.webp");
+  }
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).
   for (const [name, url, kind] of [
     ["banquet", `${base}?next=1&board=1&quest=hungry`, "banquet-thumb"],

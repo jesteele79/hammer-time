@@ -2,7 +2,6 @@ import {
   DataTexture,
   DepthTexture,
   DirectionalLight,
-  Group,
   HalfFloatType,
   HemisphereLight,
   Mesh,
@@ -33,6 +32,10 @@ import type { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import type { Quality } from "../app";
 import { TIERS3D, density3dFor } from "../quality";
+import type { BackClipName } from "../../sim/rig/back-clips";
+import type { Level } from "../../sim/level";
+import type { Registry } from "../../art/registry";
+import { HallPeople } from "./hall-people";
 import type { HallState } from "./hall-state";
 import { createInkPass } from "./ink-pass";
 
@@ -46,7 +49,7 @@ const FOV = { wide: 62, upright: 78 } as const;
 const LAMP_MAX = 1.6;
 const LAMP_EVERY = 6;
 const LAMP_FIRST = 3;
-/** The camera's layer for the painted people: left out of the ink's normals, white in its mask. */
+/** The camera's layer for what the ink should not outline: blob shadows, the puddle. */
 export const CUTOUT_LAYER = 1;
 /** How many frames of the 3D view to average its work over. */
 const WORK_AVERAGE = 0.05;
@@ -66,7 +69,8 @@ export class ThreeView {
   /** The hall has shown a frame since it was made visible: the probe's "drawing". */
   drawing = false;
   onContextLost: (() => void) | null = null;
-  readonly cutouts = new Group();
+  people: HallPeople | null = null;
+  private readonly peopleScene = new Scene();
   private renderer: WebGLRenderer | null = null;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(FOV.wide, 16 / 9, NEAR, FAR);
@@ -74,7 +78,6 @@ export class ThreeView {
   private ink: ShaderPass | null = null;
   private bloom: UnrealBloomPass | null = null;
   private normalTarget: WebGLRenderTarget | null = null;
-  private maskTarget: WebGLRenderTarget | null = null;
   private readonly normals = new MeshNormalMaterial();
   private key: DirectionalLight | null = null;
   private readonly pools: PointLight[] = [];
@@ -82,8 +85,6 @@ export class ThreeView {
   private height = 1;
   private visible = false;
   private frames: number[] = [];
-  private beforeMask: (() => void) | null = null;
-  private afterMask: (() => void) | null = null;
 
   constructor(
     private readonly host: HTMLElement,
@@ -117,19 +118,25 @@ export class ThreeView {
     const set = (await gltf.loadAsync("/sets/hallway.glb")).scene;
     draco.dispose();
     this.dress(set);
-    this.scene.add(set, this.cutouts);
+    this.scene.add(set);
+    this.people = new HallPeople(this.scene, this.peopleScene);
     this.camera.layers.enable(CUTOUT_LAYER);
     this.camera.position.set(0, CHASE.height, CHASE.back);
     this.light();
 
     const size = this.drawSize();
     this.normalTarget = new WebGLRenderTarget(size.x, size.y, { depthTexture: new DepthTexture(size.x, size.y) });
-    this.maskTarget = new WebGLRenderTarget(size.x, size.y);
     const composer = new EffectComposer(renderer, new WebGLRenderTarget(size.x, size.y, { type: HalfFloatType, samples: TIERS3D[this.quality].aa }));
     this.composer = composer;
     composer.addPass(new RenderPass(this.scene, this.camera));
-    this.ink = createInkPass({ normal: this.normalTarget.texture, depth: this.normalTarget.depthTexture!, mask: this.maskTarget.texture }, NEAR, FAR);
+    this.ink = createInkPass({ normal: this.normalTarget.texture, depth: this.normalTarget.depthTexture! }, NEAR, FAR);
     composer.addPass(this.ink);
+    // The people over the inked set: the ink never touches their painted lines, and no wall clips them.
+    const over = new RenderPass(this.peopleScene, this.camera);
+    over.clear = false;
+    over.clearDepth = true;
+    over.needsSwap = false;
+    composer.addPass(over);
     this.bloom = new UnrealBloomPass(new Vector2(this.width, this.height), 0.22, 0.35, 1.05);
     // Its blurs at half the buffer again: a lamp's glow loses nothing and they are most of the pass's cost.
     const fullSize = this.bloom.setSize.bind(this.bloom);
@@ -218,13 +225,13 @@ export class ThreeView {
     this.composer.setSize(w, h);
     const size = this.drawSize();
     this.normalTarget?.setSize(size.x, size.y);
-    this.maskTarget?.setSize(size.x, size.y);
     this.ink?.material.uniforms.texel.value.set(1 / size.x, 1 / size.y);
   }
 
   /** The frame's state: the chase camera after him, the key light and the nearest lamps with it. `dt` in seconds. */
-  sync(state: HallState, dt: number) {
+  sync(state: HallState, back: { clip: BackClipName; u: number } | null, dt: number) {
     const { lx, z } = state.hero;
+    this.people?.sync(state, back);
     const k = 1 - Math.exp(-CHASE.rate * dt);
     const cam = this.camera.position;
     cam.x += (lx * CHASE.follow - cam.x) * k;
@@ -244,31 +251,23 @@ export class ThreeView {
     return { x: ((v.x + 1) / 2) * this.width, y: ((1 - v.y) / 2) * this.height };
   }
 
-  /** What swaps the painted people's materials for the mask's white and back: Task 13's cut-outs. */
-  setMaskHooks(before: () => void, after: () => void) {
-    this.beforeMask = before;
-    this.afterMask = after;
+  /** His back, the level's cast and the small pictures. */
+  loadPeople(registry: Registry, level: Level): Promise<void> {
+    return this.people?.load(registry, level) ?? Promise.resolve();
   }
 
-  /** One frame: the ink's normals and mask, then the passes. */
+  /** One frame: the ink's normals, then the passes. */
   render(dt: number) {
     const renderer = this.renderer;
     if (!renderer || !this.composer || !this.visible) return;
     const t0 = performance.now();
-    if (this.ink?.enabled && this.normalTarget && this.maskTarget) {
+    if (this.ink?.enabled && this.normalTarget) {
       this.camera.layers.set(0);
       this.scene.overrideMaterial = this.normals as Material;
       renderer.setRenderTarget(this.normalTarget);
       renderer.clear();
       renderer.render(this.scene, this.camera);
       this.scene.overrideMaterial = null;
-      this.camera.layers.set(CUTOUT_LAYER);
-      this.beforeMask?.();
-      renderer.setClearColor(0x000000, 1);
-      renderer.setRenderTarget(this.maskTarget);
-      renderer.clear();
-      renderer.render(this.scene, this.camera);
-      this.afterMask?.();
       this.camera.layers.enableAll();
       renderer.setRenderTarget(null);
     }
@@ -284,9 +283,9 @@ export class ThreeView {
   destroy() {
     this.onContextLost = null;
     this.setVisible(false);
+    this.people?.destroy();
     this.composer?.dispose();
     this.normalTarget?.dispose();
-    this.maskTarget?.dispose();
     this.normals.dispose();
     this.renderer?.dispose();
     this.canvas?.remove();

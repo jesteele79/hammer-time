@@ -58,6 +58,25 @@ try {
   assert.equal(three.drawing, true, "the 3D view is drawing");
   assert.ok(await page.locator(".next-hud__hint").isVisible(), "the HUD over it");
   await shot("hallway-first.png");
+  // His back, walking and swinging, with no face to keep clear; his profile when he is hit, on the screen.
+  await page.evaluate(() => window.__next.dev.teleport(2200, 0));
+  await page.keyboard.down("KeyW");
+  await page.waitForFunction(() => window.__next.hero.clip === "walk", null, { timeout: 3000 });
+  assert.equal(await page.evaluate(() => window.__next.faceScreen), null, "no face while walking");
+  await shot("hallway-walk.png");
+  await page.keyboard.up("KeyW");
+  await page.keyboard.press("KeyH");
+  await page.waitForFunction(() => window.__next.hero.clip === "swing", null, { timeout: 3000, polling: 10 });
+  await page.waitForTimeout(700);
+  await page.evaluate(() => {
+    window.__next.dev.heal();
+    window.__next.dev.hit();
+  });
+  await page.waitForFunction(() => !!window.__next.faceScreen, null, { timeout: 2000, polling: 10 });
+  const face = await page.evaluate(() => window.__next.faceScreen);
+  assert.ok(face.x >= 0 && face.y >= 0 && face.x + face.w <= 1920 && face.y + face.h <= 1080, `his face on the screen: ${JSON.stringify(face)}`);
+  await shot("hallway-hurt.png");
+  await page.waitForTimeout(1500);
   await openTheDoor();
   await page.close();
 

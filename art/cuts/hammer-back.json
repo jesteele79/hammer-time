@@ -1,0 +1,861 @@
+{
+ "note": "Coordinates are pixels of the keyed crop of art/incoming/hammer/body-affliction-back.png. Near is his right arm and leg, on the screen's right, the mallet in that fist; far his left. The head layer is the back of his head and his neck, no face in it; it runs on under the collar. Both arms draw over the shirt, their sleeves from the shoulder seam, the shirt filled in under them. Check with: node scripts/art-grid.mjs affliction-back.",
+ "space": "crop",
+ "jaw": [
+  [
+   240,
+   205
+  ],
+  [
+   400,
+   205
+  ]
+ ],
+ "order": [
+  "armNear",
+  "armFar",
+  "torso",
+  "head",
+  "legNear",
+  "legFar"
+ ],
+ "z": [
+  "legFar",
+  "legNear",
+  "head",
+  "torso",
+  "armFar",
+  "armNear"
+ ],
+ "rig": {
+  "sole": 1408,
+  "rootX": 320,
+  "match": [],
+  "joints": {
+   "pelvis": [
+    320,
+    790
+   ],
+   "chest": [
+    320,
+    480
+   ],
+   "neck": [
+    320,
+    232
+   ],
+   "shoulderNear": [
+    505,
+    345
+   ],
+   "elbowNear": [
+    568,
+    590
+   ],
+   "wristNear": [
+    605,
+    745
+   ],
+   "knuckleNear": [
+    610,
+    795
+   ],
+   "handNear": [
+    598,
+    1135
+   ],
+   "shoulderFar": [
+    135,
+    345
+   ],
+   "elbowFar": [
+    72,
+    590
+   ],
+   "wristFar": [
+    52,
+    745
+   ],
+   "handFar": [
+    52,
+    860
+   ],
+   "hipNear": [
+    415,
+    815
+   ],
+   "kneeNear": [
+    425,
+    1060
+   ],
+   "ankleNear": [
+    430,
+    1275
+   ],
+   "toeNear": [
+    440,
+    1405
+   ],
+   "heelNear": [
+    430,
+    1405
+   ],
+   "hipFar": [
+    225,
+    815
+   ],
+   "kneeFar": [
+    205,
+    1060
+   ],
+   "ankleFar": [
+    195,
+    1275
+   ],
+   "toeFar": [
+    185,
+    1405
+   ],
+   "heelFar": [
+    195,
+    1405
+   ]
+  },
+  "bones": [
+   [
+    "pelvis",
+    "hipNear"
+   ],
+   [
+    "pelvis",
+    "chest"
+   ],
+   [
+    "chest",
+    "neck"
+   ],
+   [
+    "shoulderNear",
+    "elbowNear"
+   ],
+   [
+    "elbowNear",
+    "wristNear"
+   ],
+   [
+    "wristNear",
+    "knuckleNear"
+   ],
+   [
+    "knuckleNear",
+    "handNear"
+   ],
+   [
+    "shoulderFar",
+    "elbowFar"
+   ],
+   [
+    "elbowFar",
+    "wristFar"
+   ],
+   [
+    "wristFar",
+    "handFar"
+   ],
+   [
+    "hipNear",
+    "kneeNear"
+   ],
+   [
+    "kneeNear",
+    "ankleNear"
+   ],
+   [
+    "ankleNear",
+    "toeNear"
+   ],
+   [
+    "hipFar",
+    "kneeFar"
+   ],
+   [
+    "kneeFar",
+    "ankleFar"
+   ],
+   [
+    "ankleFar",
+    "toeFar"
+   ]
+  ],
+  "skin": {
+   "torso": {
+    "chain": [
+     "pelvis",
+     "chest",
+     "neck"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [
+     -30,
+     30
+    ],
+    "blend": [
+     60
+    ]
+   },
+   "armNear": {
+    "chain": [
+     "shoulderNear",
+     "elbowNear",
+     "wristNear",
+     "knuckleNear",
+     "handNear"
+    ],
+    "parent": [
+     "chest",
+     "neck"
+    ],
+    "start": [
+     0,
+     60
+    ],
+    "blend": [
+     50,
+     24,
+     10
+    ]
+   },
+   "armFar": {
+    "chain": [
+     "shoulderFar",
+     "elbowFar",
+     "wristFar",
+     "handFar"
+    ],
+    "parent": [
+     "chest",
+     "neck"
+    ],
+    "start": [
+     0,
+     60
+    ],
+    "blend": [
+     30,
+     20
+    ]
+   },
+   "legNear": {
+    "chain": [
+     "hipNear",
+     "kneeNear",
+     "ankleNear",
+     "toeNear"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [
+     0,
+     70
+    ],
+    "blend": [
+     36,
+     16
+    ]
+   },
+   "legFar": {
+    "chain": [
+     "hipFar",
+     "kneeFar",
+     "ankleFar",
+     "toeFar"
+    ],
+    "parent": [
+     "pelvis",
+     "hipNear"
+    ],
+    "start": [
+     0,
+     70
+    ],
+    "blend": [
+     32,
+     14
+    ]
+   }
+  }
+ },
+ "layers": {
+  "head": {
+   "polygon": [
+    [
+     215,
+     -10
+    ],
+    [
+     430,
+     -10
+    ],
+    [
+     430,
+     190
+    ],
+    [
+     402,
+     240
+    ],
+    [
+     240,
+     240
+    ],
+    [
+     215,
+     190
+    ]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [
+       240,
+       228
+      ],
+      [
+       400,
+       228
+      ],
+      [
+       400,
+       285
+      ],
+      [
+       240,
+       285
+      ]
+     ],
+     "from": [
+      [
+       268,
+       195
+      ],
+      [
+       372,
+       195
+      ],
+      [
+       372,
+       226
+      ],
+      [
+       268,
+       226
+      ]
+     ]
+    }
+   ]
+  },
+  "torso": {
+   "polygon": [
+    [
+     246,
+     232
+    ],
+    [
+     398,
+     232
+    ],
+    [
+     470,
+     262
+    ],
+    [
+     530,
+     296
+    ],
+    [
+     512,
+     400
+    ],
+    [
+     502,
+     500
+    ],
+    [
+     500,
+     545
+    ],
+    [
+     516,
+     680
+    ],
+    [
+     525,
+     815
+    ],
+    [
+     118,
+     815
+    ],
+    [
+     132,
+     680
+    ],
+    [
+     150,
+     545
+    ],
+    [
+     148,
+     500
+    ],
+    [
+     138,
+     400
+    ],
+    [
+     112,
+     296
+    ],
+    [
+     172,
+     262
+    ]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [
+       495,
+       280
+      ],
+      [
+       572,
+       330
+      ],
+      [
+       612,
+       490
+      ],
+      [
+       590,
+       550
+      ],
+      [
+       495,
+       550
+      ]
+     ],
+     "from": [
+      [
+       380,
+       600
+      ],
+      [
+       495,
+       600
+      ],
+      [
+       495,
+       760
+      ],
+      [
+       380,
+       760
+      ]
+     ]
+    },
+    {
+     "polygon": [
+      [
+       155,
+       280
+      ],
+      [
+       78,
+       330
+      ],
+      [
+       32,
+       490
+      ],
+      [
+       60,
+       550
+      ],
+      [
+       155,
+       550
+      ]
+     ],
+     "from": [
+      [
+       155,
+       600
+      ],
+      [
+       270,
+       600
+      ],
+      [
+       270,
+       760
+      ],
+      [
+       155,
+       760
+      ]
+     ]
+    }
+   ]
+  },
+  "armNear": {
+   "polygon": [
+    [
+     530,
+     296
+    ],
+    [
+     575,
+     335
+    ],
+    [
+     615,
+     490
+    ],
+    [
+     611,
+     505
+    ],
+    [
+     625,
+     600
+    ],
+    [
+     640,
+     720
+    ],
+    [
+     655,
+     790
+    ],
+    [
+     645,
+     845
+    ],
+    [
+     622,
+     880
+    ],
+    [
+     622,
+     1072
+    ],
+    [
+     705,
+     1078
+    ],
+    [
+     711,
+     1135
+    ],
+    [
+     705,
+     1200
+    ],
+    [
+     515,
+     1205
+    ],
+    [
+     495,
+     1150
+    ],
+    [
+     505,
+     1090
+    ],
+    [
+     572,
+     1078
+    ],
+    [
+     572,
+     880
+    ],
+    [
+     550,
+     800
+    ],
+    [
+     568,
+     740
+    ],
+    [
+     545,
+     680
+    ],
+    [
+     500,
+     545
+    ],
+    [
+     502,
+     500
+    ],
+    [
+     512,
+     400
+    ]
+   ]
+  },
+  "armFar": {
+   "polygon": [
+    [
+     112,
+     296
+    ],
+    [
+     72,
+     335
+    ],
+    [
+     32,
+     490
+    ],
+    [
+     36,
+     505
+    ],
+    [
+     15,
+     600
+    ],
+    [
+     8,
+     740
+    ],
+    [
+     0,
+     790
+    ],
+    [
+     12,
+     860
+    ],
+    [
+     65,
+     895
+    ],
+    [
+     105,
+     850
+    ],
+    [
+     100,
+     780
+    ],
+    [
+     84,
+     740
+    ],
+    [
+     120,
+     660
+    ],
+    [
+     150,
+     545
+    ],
+    [
+     148,
+     500
+    ],
+    [
+     138,
+     400
+    ]
+   ]
+  },
+  "legNear": {
+   "polygon": [
+    [
+     320,
+     770
+    ],
+    [
+     530,
+     770
+    ],
+    [
+     530,
+     1045
+    ],
+    [
+     500,
+     1100
+    ],
+    [
+     495,
+     1250
+    ],
+    [
+     525,
+     1415
+    ],
+    [
+     360,
+     1415
+    ],
+    [
+     385,
+     1250
+    ],
+    [
+     355,
+     1100
+    ],
+    [
+     330,
+     1045
+    ],
+    [
+     320,
+     905
+    ]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [
+       320,
+       770
+      ],
+      [
+       530,
+       770
+      ],
+      [
+       530,
+       815
+      ],
+      [
+       320,
+       815
+      ]
+     ],
+     "from": [
+      [
+       340,
+       830
+      ],
+      [
+       500,
+       830
+      ],
+      [
+       500,
+       900
+      ],
+      [
+       340,
+       900
+      ]
+     ]
+    }
+   ]
+  },
+  "legFar": {
+   "polygon": [
+    [
+     320,
+     770
+    ],
+    [
+     112,
+     770
+    ],
+    [
+     112,
+     1045
+    ],
+    [
+     138,
+     1100
+    ],
+    [
+     155,
+     1250
+    ],
+    [
+     105,
+     1415
+    ],
+    [
+     260,
+     1415
+    ],
+    [
+     240,
+     1250
+    ],
+    [
+     275,
+     1100
+    ],
+    [
+     310,
+     1045
+    ],
+    [
+     320,
+     905
+    ]
+   ],
+   "fill": [
+    {
+     "polygon": [
+      [
+       320,
+       770
+      ],
+      [
+       112,
+       770
+      ],
+      [
+       112,
+       815
+      ],
+      [
+       320,
+       815
+      ]
+     ],
+     "from": [
+      [
+       140,
+       830
+      ],
+      [
+       300,
+       830
+      ],
+      [
+       300,
+       900
+      ],
+      [
+       140,
+       900
+      ]
+     ]
+    }
+   ]
+  }
+ }
+}

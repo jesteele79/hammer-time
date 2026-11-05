@@ -654,6 +654,29 @@ test("each hatted person's cut names the hat it seats, and the sync registers ev
     if (existsSync(`${CAST_IN}/${name}-hat.png`)) assert.ok(reg.cast.hats[name]?.span > 0 && reg.cast.hats[name].pivot, `${name}'s hat`);
 });
 
+test("his back is cut into five layers and the back of his head, and it shows no face", async () => {
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  assert.ok(reg.hammer.back, "synced");
+  const rig = JSON.parse(readFileSync(`public/art/${reg.hammer.back.rig}`, "utf8"));
+  assert.deepEqual(Object.keys(rig.layers).sort(), ["armFar", "armNear", "legFar", "legNear", "torso"]);
+  const sharp = (await import("sharp")).default;
+  const plate = rig.head;
+  const { data, info } = await sharp(`public/art/${plate.file}`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  // Where a profile's face would be, and across the middle of the head: his hair, not skin.
+  const box = { x: Math.round(info.width * 0.3), y: Math.round(info.height * 0.25), w: Math.round(info.width * 0.4), h: Math.round(info.height * 0.3) };
+  let skin = 0;
+  let painted = 0;
+  for (let y = box.y; y < box.y + box.h; y++)
+    for (let x = box.x; x < box.x + box.w; x++) {
+      const i = (y * info.width + x) * 4;
+      if (data[i + 3] < 128) continue;
+      painted++;
+      const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+      if (r > 150 && g > 70 && b < g * 0.7 && r > g * 1.3) skin++;
+    }
+  assert.ok(painted > 0, "the head is there");
+  assert.ok(skin / painted < 0.15, `${Math.round((skin / painted) * 100)} percent skin in the middle of the back of his head`);
+});
 test("the tower's sheet names five pieces in order, the lists agree; its walls are cut", async () => {
   const { TOWER_PIECES } = await import("../src/art/registry.ts");
   const cut = await import("./art-cut.mjs");

@@ -58,6 +58,7 @@ import { BossView } from "./boss-view";
 import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
+import { HERO_METERS } from "./3d/hall-people";
 import { HERO_SCREEN_FRACTION, LAYER_ORDER, PORTRAIT_ZOOM, createScene, floorFocus } from "./scene";
 import { createSound, heard, hurryFor, musicFor, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
@@ -65,7 +66,7 @@ import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
-import { EMPTY_HALL, toMeters } from "./3d/hall-state";
+import { backClipOf, backCycle, hallStateOf } from "./3d/hall-state";
 import type { ThreeView } from "./3d/three-view";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
@@ -1025,6 +1026,8 @@ export async function startLook(
       const { ThreeView } = await import("./3d/three-view");
       const host = app.canvas.parentElement;
       if (!host) throw new Error("the game's canvas has no host");
+      // The game's canvas over the hall's, for his profile, his thoughts and the words.
+      Object.assign(app.canvas.style, { position: "relative", zIndex: "1" });
       const view = new ThreeView(host, render.quality, window.__next?.gpu ?? "");
       try {
         await view.load();
@@ -1036,8 +1039,10 @@ export async function startLook(
         view.destroy();
         return;
       }
+      await view.loadPeople(registry, game.level);
       three = view;
       view.onContextLost = () => {
+        hallLost();
         three = null;
         view.destroy();
         if (window.__next) window.__next.three = undefined;
@@ -1048,13 +1053,33 @@ export async function startLook(
         threeSettled = true;
       }));
   let hallShown = false;
+  let hallPhase = 0;
   const hallUp = () => !!game.level.hall && !!three;
-  /** The 3D view under the game's canvas, which clears transparent and keeps only its comic words, thoughts and sparks. */
+  /** The 3D view lost: the game's canvas opaque again, the level drawn flat where he stands. */
+  const hallLost = () => {
+    if (!hallShown) return;
+    hallShown = false;
+    for (const name of LAYER_ORDER) scene.layers[name].visible = true;
+    app.renderer.background.alpha = 1;
+    shown = null;
+    character.container.visible = true;
+    cast.container.visible = props.container.visible = true;
+    objects.setVisible(true);
+    scene.camera.bounds = game.level.bounds;
+    hallFlat.setVisible(true);
+  };
+  /** The 3D view under the game's canvas, which clears transparent and keeps only his profile, comic words, thoughts and sparks. */
   const showHall = (on: boolean) => {
     hallShown = on;
-    for (const name of LAYER_ORDER) if (name !== "fx") scene.layers[name].visible = !on;
+    for (const name of LAYER_ORDER) if (name !== "fx" && name !== "play") scene.layers[name].visible = !on;
     app.renderer.background.alpha = on ? 0 : 1;
     three?.setVisible(on);
+    if (!on) {
+      character.container.visible = true;
+      cast.container.visible = props.container.visible = true;
+      objects.setVisible(true);
+      scene.camera.bounds = game.level.bounds;
+    }
     hallGov.settle = 2;
     hallGov.t = hallGov.n = 0;
   };
@@ -1079,21 +1104,43 @@ export async function startLook(
     three.frameMs = 0;
     hallGov.settle = 1;
   };
-  const hallTick = (dt: number, simDt: number) => {
+  /**
+   * The hall's frame, once the game's own has run: its view for this frame, and the game's camera laid over it so that the
+   * world's point under his feet is the hall's, at the hall's size. His profile, his thoughts and the words then land on him.
+   */
+  const hallFrame = (alpha: number, simDt: number, dt: number) => {
     if (!three) return;
-    if (!hallShown) showHall(true);
-    const h = cur.hero;
-    const state = { ...EMPTY_HALL, hero: { ...EMPTY_HALL.hero, z: toMeters(h.x), y: -toMeters(h.y) } };
+    const hNow = cur.hero;
+    hallPhase += simDt * backCycle(hNow);
+    const back = backClipOf(hNow, hallPhase);
+    const state = hallStateOf(prev, cur, alpha, game.pickups, game.level.puddle ?? null);
     three.resize(scene.width, scene.height);
-    three.sync(state, dt);
+    three.sync(state, back, dt);
+    // The set's own view of him, then the game's camera on it: his height on the screen and his feet's place.
+    const feet = three.project(state.hero.lx, state.hero.y, state.hero.z);
+    const crown = three.project(state.hero.lx, state.hero.y + HERO_METERS, state.hero.z);
+    const cam = scene.camera;
+    cam.target = null;
+    cam.bounds = null;
+    const portrait = scene.width < scene.height ? PORTRAIT_ZOOM : 1;
+    cam.zoom = (feet.y - crown.y) / (HERO_SCREEN_FRACTION * scene.height * portrait);
+    scene.fit();
+    cam.x = prev.hero.x + (hNow.x - prev.hero.x) * alpha - (feet.x - scene.width / 2) / scene.scale;
+    cam.y = prev.hero.y + (hNow.y - prev.hero.y) * alpha - (feet.y - scene.height / 2) / scene.scale;
+    scene.fit();
+    hallCrowns.clear();
+    for (const n of state.cast) {
+      const at = three.project(n.lx, n.y + 1.85, n.z);
+      hallCrowns.set(n.num, { x: cam.x + (at.x - scene.width / 2) / scene.scale, y: cam.y + (at.y - scene.height / 2) / scene.scale });
+    }
+    character.container.visible = !back;
     three.render(dt);
     governHall(dt);
-    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time));
-    if (window.__next) {
-      window.__next.run = runProbe();
-      window.__next.three = { canvas: true, quality: three.quality, density: three.density, fps: three.fps, drawing: three.drawing };
-    }
+    if (window.__next) window.__next.three = { canvas: true, quality: three.quality, density: three.density, fps: three.fps, drawing: three.drawing };
+    return back;
   };
+  /** Where each of the cast's heads is, in the game's world, over the hall's view of them: their speech hangs from it. */
+  const hallCrowns = new Map<number, { x: number; y: number }>();
 
   /** The tail of every frame, the shift's and the banquet's: the mode's notice, the hurry, the notes' clocks and the HUD. */
   const afterFrame = (simDt: number, hurry: boolean) => {
@@ -1680,11 +1727,7 @@ export async function startLook(
       return;
     }
     if (questShown) leaveQuest(world.hero.x, world.hero.y);
-    if (hallUp()) {
-      hallTick(dt, simDt);
-      return;
-    }
-    if (hallShown) showHall(false);
+    if (hallShown && !hallUp()) showHall(false);
     const alpha = Math.min(1, frame.acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;
@@ -1740,7 +1783,7 @@ export async function startLook(
     towerCarts.container.zIndex = y - 0.65;
     towerCarts.sync(cur.movers);
     hallFlat.container.zIndex = y - 0.66;
-    hallFlat.setVisible(!!game.level.hall);
+    hallFlat.setVisible(!!game.level.hall && !hallUp());
     if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h);
 
     const fb = solved.faceBox;
@@ -1828,6 +1871,16 @@ export async function startLook(
     drawShield(x, drawY, y, simDt);
 
     if (game.level.id !== shown && !holding) showLevel(game.level, x, y);
+    if (hallUp()) {
+      if (!hallShown) showHall(true);
+      // Under the hall the game's canvas draws only his profile: the flat venue and its people are the hall's now.
+      for (const v of views.values()) {
+        v.venue.setVisible(false);
+        v.backdrop.setVisible(false);
+      }
+      cast.container.visible = props.container.visible = flyers.container.visible = false;
+      objects.setVisible(false);
+    }
     if (game.pickups !== shownPickups) {
       // A respawn or a door laid the pickups out afresh.
       objects.clear();
@@ -1856,7 +1909,7 @@ export async function startLook(
     const cam = scene.camera;
     const home = game.mode === "title" ? game.level.home : undefined;
     if (home) titleCamera(home, y, dt);
-    else {
+    else if (!hallUp()) {
       // Out of the home screen: the level's own bounds, zoom and camera again, put on him at once.
       if (titleShown) showLevel(game.level, x, y);
       const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
@@ -1873,6 +1926,7 @@ export async function startLook(
     }
     titleShown = !!home;
     scene.update(dt);
+    const hallBack = hallUp() ? hallFrame(alpha, simDt, dt) : undefined;
     // The home screen's scene drawn a couple of frames: the shell lets the key art go.
     titleFrames = home && views.has(game.level.id) && shown === game.level.id ? titleFrames + 1 : 0;
     if (titleFrames === 3) opts.onTitleScene?.();
@@ -1884,7 +1938,11 @@ export async function startLook(
     // On the home screen the title stands behind him: his thoughts rise on his far side, over the scene, not under the words.
     const titled = game.mode === "title" && !!game.level.home;
     bubbles.update(simDt, { crown: at.crown, face, facing: titled ? (-h.facing as 1 | -1) : h.facing, view: titled ? titleView() : scene.view() });
-    speech.update(simDt, (id) => (id === PIG_ID ? pigView.crown() : id === BOSS_ID && bossView.crown ? { ...bossView.crown, facing: 1 as const } : cast.crownOf(id)), face, scene.view());
+    const hallCrown = (id: number) => {
+      const at = hallUp() ? hallCrowns.get(id) : null;
+      return at ? { ...at, facing: 1 as const } : null;
+    };
+    speech.update(simDt, (id) => hallCrown(id) ?? (id === PIG_ID ? pigView.crown() : id === BOSS_ID && bossView.crown ? { ...bossView.crown, facing: 1 as const } : cast.crownOf(id)), face, scene.view());
     particles.update(simDt, face);
     vignette.width = scene.width;
     vignette.height = scene.height;
@@ -1893,7 +1951,7 @@ export async function startLook(
       window.__next.run = runProbe();
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
-      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip, walkOut: { ...walkOut } };
+      window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip: hallBack?.clip ?? clip, walkOut: { ...walkOut } };
       window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
@@ -1902,7 +1960,8 @@ export async function startLook(
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();
-      window.__next.faceScreen = faceOnScreen;
+      // His back has no face: only his profile does, while it shows.
+      window.__next.faceScreen = hallBack ? null : faceOnScreen;
       window.__next.bubbleScreen = bubbles.box && screenRect(bubbles.box);
       window.__next.art = {
         heads: Object.keys(registry.hammer.heads).length,

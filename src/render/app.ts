@@ -81,7 +81,8 @@ export type NextProbe = {
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
   /** His face box on screen, CSS px: nothing in the shell may cover it. */
-  faceScreen?: { x: number; y: number; w: number; h: number };
+  /** His face on the screen; null while only his back shows, in the hall. */
+  faceScreen?: { x: number; y: number; w: number; h: number } | null;
   /** His thought bubble's box on screen, CSS px, while one shows. */
   bubbleScreen?: { x: number; y: number; w: number; h: number } | null;
   /** `products`: how many of the three pickups have their real pictures. */

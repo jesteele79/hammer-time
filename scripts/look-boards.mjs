@@ -95,6 +95,35 @@ try {
     await page.screenshot({ path: resolve(out, "supervisor-3.png") });
     count += 3;
   }
+  // The hall in the running game: its three stretches, and his back through the swing, slowed to be seen.
+  if (want("hallway")) {
+    await page.goto(`${base}?next=1&dev=1&level=hallway`);
+    await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });
+    for (const [i, x] of [200, 3000, 7800].entries()) {
+      await page.evaluate((at) => window.__next.dev.teleport(at, 0), x);
+      await page.waitForTimeout(900);
+      await page.screenshot({ path: resolve(out, `hallway-look-${i + 1}.png`) });
+      count++;
+    }
+  }
+  if (want("back")) {
+    await page.goto(`${base}?next=1&dev=1&level=hallway`);
+    await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => {
+      window.__next.dev.teleport(2200, 0);
+      window.__next.dev.slowmo(0.03, 120);
+    });
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: resolve(out, "back-1.png") });
+    await page.keyboard.down("KeyH");
+    await page.waitForTimeout(200);
+    await page.keyboard.up("KeyH");
+    for (const [i, u] of [0.2, 0.42, 0.62, 0.85].entries()) {
+      await page.waitForFunction((want) => window.__next.moves.u > want, u, { timeout: 30000, polling: 10 });
+      await page.screenshot({ path: resolve(out, `back-${i + 2}.png`) });
+    }
+    count += 5;
+  }
   if (want("hallway-flat")) {
     await page.goto(`${base}?next=1&dev=1&level=hallway&flat=1`);
     await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });

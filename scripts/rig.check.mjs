@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { BACK_CLIPS } from "../src/sim/rig/back-clips.ts";
 import { FAR_FLOOR, HERO_HEIGHT, JOINTS, NECK_REST_Y, REST_POSE } from "../src/sim/rig/skeleton.ts";
 import { groundShift } from "../src/sim/rig/ground.ts";
 import { CLIPS, blend } from "../src/sim/rig/clips.ts";
@@ -921,4 +922,26 @@ test("the gate's stance between throws: a towel wipe begun as a throw eases back
           const [butt, tip] = scalpelOf(s);
           assert.ok(segmentClear(s, butt, tip, 8), `idle ${a / 5}, wipe ${wipeU}, easing ${w}, head ${headScale}: the scalpel`);
         }
+});
+
+test("his back's clips stand on the floor and move without a jump; the swing raises the mallet over his head", () => {
+  const cut = JSON.parse(readFileSync("art/cuts/hammer-back.json", "utf8"));
+  const skel = skeletonFrom({ joints: cut.rig.joints, sole: cut.rig.sole, rootX: cut.rig.rootX }, cut.rig.match);
+  const solved = (p) => solve(p, -1, 0.26, undefined, skel);
+  for (const [name, clip] of Object.entries(BACK_CLIPS)) {
+    let last = null;
+    for (let k = 0; k <= 60; k++) {
+      const s = solved(clip(k / 60).pose);
+      const dy = groundShift(s, "planted");
+      const sole = Math.max(s.joints.toeNear.y, s.joints.heelNear.y, s.joints.toeFar.y, s.joints.heelFar.y) + dy;
+      assert.ok(Math.abs(sole) <= 12, `${name} at ${k}: his lowest sole is ${sole} from the floor`);
+      const hand = { x: s.joints.handNear.x, y: s.joints.handNear.y + dy };
+      if (last) assert.ok(Math.hypot(hand.x - last.x, hand.y - last.y) < 120, `${name} at ${k}: the mallet jumps`);
+      last = hand;
+    }
+  }
+  const rest = solved(BACK_CLIPS.swing(0).pose);
+  const top = solved(BACK_CLIPS.swing(0.42).pose);
+  assert.ok(top.joints.handNear.y < rest.joints.neck.y, `the mallet's head at ${top.joints.handNear.y}, over his neck at ${rest.joints.neck.y}`);
+  assert.ok(rest.joints.handNear.y > rest.joints.pelvis.y, "and at his side before it");
 });
