@@ -540,6 +540,35 @@ tray knocks it up, the plates landing at Hammer's end (he is off for 3 s). The c
 cart the to-go box's. COMPED reads OFFERT. Its best is `hammer-time-best-french`, the round's score
 alone, and "The brasserie" joins the Side quests row once 3-2 is finished.
 
+## The 14:02 (3-3)
+
+Left to right (`src/sim/levels/train.ts`), "13:41. Gare de Lyon. Voie 23 is not on the board." The station runs on its own
+two-minute clock: the hall under the big clock and the departure board, a ticket barrier at x 1800 that stops his head and that a
+slide goes under, eight travelers who shove (a jump clears them), the platform and the train's flank. At 1:00 the board lights
+"Voie 23"; in the last twenty seconds the doors beep and the music hurries. If the clock runs out: "The train left at 14:02. It
+always does.", a life, and two minutes again from the hall. Boarding at x 4000 pays what is left at 50 points a second, sets its
+own checkpoint and starts the level's 420 seconds.
+
+Then eighteen coaches, 18 down to 1, each a room 768 px wide under a 404 px ceiling. A jump under the ceiling tucks him: his
+collider drops to the crouch's as his head would meet it, so he reaches a rack (170 px up, a crouched route) or a seat back
+(110 px up, in every coach but the bistro) and clears the stroller. Travelers stand up into him as he nears them; the mallet sits
+them down. Coach 14 is the quiet car: "Shh!" at a swing or a lecture, and a lecture there, before his first round, brings the
+conductor at once ("This is the quiet car."). Coach 12 has the tunnel: the windows black for three seconds, fields before it and
+hills after. Coach 10 is the bistro: a punch clock, a counter and a fridge the mallet opens. Coach 7 is the family car: a stroller
+and two kids who rush him with no pip. Coach 4 has the bikes, one swinging at head height. Coach 1 has his seat, which ends the
+level when he reaches it: "Basel SBB. 17:06. On time. They always are."
+
+**The conductor** holds the doors of coaches 13, 7 and 2, each a wall until he has lost it: nine hits, three a door. Within 400 px he
+blocks ("Billet, s'il vous plaît.", and Hammer's "Mobile ticket failed."); in reach he winds up (0.4, 0.3, then 0.2 s a door) and
+punches. The punch meets Hammer in reach, on his feet and under 90 px off the floor; a duck, a jump or a step back all miss, and
+only the stagger a miss leaves (0.8, 0.6, then 0.45 s) can be hit. Three hits and he goes back through the door to the next. A lost
+life keeps the doors won; Try again is the whole level again.
+
+The walls are the owner's paintings over the game's Blender renders (`scripts/blender/train.py`, `station.py`), one a room, shown
+at half scale in a coach and 1.3 in the station so he stands on what is painted; the rooms name their own wall, so three coach
+paintings serve eighteen rooms. The game draws the countryside in their flat panes, the hands on the blank clock and the lit row on
+the blank board (`src/render/backdrop.ts`, `src/render/venue-train.ts`). Until the train's sheet is in, its six pieces are drawn in code.
+
 ## Hungry Hungry Hammer (the BUFFET door)
 
 The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
@@ -988,12 +1017,13 @@ built stop, the side quests') after the art changes, and
 The story (`src/sim/story.ts`) is fifteen stops in order: SAT (the prologue),
 1-1 to 1-4 (Act 1, The Trip: the hotel's four venues as built), 2-1 to 2-4
 (Act 2, Status Crusade) and 3-1 to 3-6 (Act 3, The Last Tour), with the cards
-that come before and after them. SAT and Acts 1 and 2 are built, nine stops: a fresh
+that come before and after them. SAT, Acts 1 and 2 and Act 3 as far as the train are built, twelve stops: a fresh
 journey's Clock in opens on the email from the Basel office, then SAT. Act 2 starts
 clean on "11:40 pm. The same lobby.", carries his keycards through its four levels,
 and ends on the Bonvoy review ("TITANIUM. Lifetime.") and its act card with his
-status; 3-1 then reads "Coming" and Clock in "Act 3 is coming". Act 2's header has no
-straight-through run yet (`STRAIGHT_BUILT`). A
+status. Act 3 starts clean on the flight, lands in Paris ("Paris. 13 July. 06:40. No Southwest, no A-List, no ice."), takes
+the French table on the way, and ends for now on "Basel SBB. 17:06. On time. They always are."; 3-4 then reads "Coming" and Clock
+in "Basel is coming". Acts 2 and 3 have no straight-through run yet (`STRAIGHT_BUILT`). A
 journey begun before SAT was built has it finished with no best; it replays
 from the strip, and New game plays it in order.
 
@@ -1103,6 +1133,7 @@ node scripts/hallway-browser.check.mjs http://127.0.0.1:8090/
 node scripts/suite-browser.check.mjs http://127.0.0.1:8090/
 node scripts/flight-browser.check.mjs http://127.0.0.1:8090/
 node scripts/paris-browser.check.mjs http://127.0.0.1:8090/
+node scripts/train-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 

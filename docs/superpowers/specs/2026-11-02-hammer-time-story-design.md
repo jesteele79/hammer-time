@@ -950,6 +950,27 @@ Approved by the owner in the Phase 3 brainstorm, section by section:
 - **Paris's tally line** shows while the clock drains, on the level's own card.
 - **The landing card** came forward to 3a from Phase 3b's list, so 3-1 ends as the spec has it from the first.
 
+### As built (Phase 3b, 2026-11-05)
+
+- **The conductor's punch is a rule, not a band:** it meets him in reach (150 px), on his feet and less than 90 px off the floor.
+  A duck, a jump or a step back all miss, and the miss is the only opening. Under the coaches' ceiling the plan's "jump over it"
+  at y -300 was inside the ceiling. A punch that lands throws him out of reach; the conductor holds his door, so he walks back up.
+- **The doors won** live on the run (`bossDoors`): a lost life keeps them, Try again and the next level clear them. His door is a
+  wall from floor to ceiling while he holds it. The driver ducks where the plan's jumped: at the third door the stagger ends
+  before a jump lands, and a jump near a door can land on the last seat back, where the ceiling keeps him tucked.
+- **Under the coaches' ceiling he tucks** (`Stage.low`): his collider drops to the crouch's as his head would meet it, so a jump
+  reaches a rack or clears the stroller. His feet top out near 184 px. Off the coaches nothing changes.
+- **Racks** run 110 to 620 px of a coach, at the level's 170 px, which is 1.09 m in the paint, with the windows above them at 1.28
+  to 2.0 m. **Seat backs** are in every coach but the bistro, 68 and not 60: the family and bike cars show the standard coach's
+  painted seats, and a painted seat he falls through reads as a bug.
+- **The crowd's eighth is the nurse** and the kids take the office role with a `rush` trick: a student cannot be bonked by the
+  mallet. The fridge is not a solid; the mallet opens it. The quiet car's two say "Shh!" at most every 1.5 s.
+- **The board** reads "14:02 Basel SBB" from the start, its platform blank until "Voie 23" lights at 1:00. **The hall's clock**
+  reads 13:58 to 14:02 as the stretch runs out. Boarding sets its own checkpoint and draws no punch clock.
+- **The coaches play at zoom 1.3** (at 1.0 the 404 px coach filled under half the frame), and the camera stops at the hall's first
+  wall and the end of coach 1. The card says "The train left at 14:02. It always does." over "Back from your break".
+- **After 3-3** the run goes on: Basel is not an act's first stop, so the save keeps it, as every other stop's does.
+
 ## 10. Basel
 
 ### 10.1 3-4 Basel, Tattoo week
@@ -1243,6 +1264,12 @@ Levels that are relit or small (2-1, 2-2, 3-2's hotel) are painted straight.
 - 74 to 80 fps at 1920 by 1080 in the cabin, the governor settled at medium, on the laptop's integrated card. The RTX 4070 is
   still unmeasured: the headless checks do not use it.
 
+### As built (Phase 3b, 2026-11-05)
+
+- **The train is flat, not a 3D level,** as §9's plan has it. Its walls are the owner's paintings over the game's Blender renders
+  (`scripts/blender/train.py`, `station.py`), one wall a room at the suite's pattern, a room's `wall` naming its own: the same three
+  coach paintings serve eighteen rooms. The countryside is drawn over each flat pane and clipped by hand to it, not masked.
+
 ## 13. Music and sound
 
 All on the game's own synth (`src/game/audio.ts`'s `Song` and `SONGS`, the
@@ -1318,6 +1345,11 @@ drone's buzz. The crowd never speaks aloud.
   The waltzes' drum rows are twelve steps a bar. The cabin's hurry is `hurryFor`'s forced flag, from the seatbelt sign. Nobody has
   heard these songs but the owner: they were measured for loudness only.
 - New cues: `belt`, `tune`, `buzz`, `flutter`, `beep`, `horn`, on the events the plan names.
+
+### As built (Phase 3b, 2026-11-05)
+
+- `train` plays on its level, the music hurrying with the station's last twenty seconds. New cues on the plan's events: `boarded`,
+  `doorsBeep`, `stretchOut`, `shoved`, `board`, `tunnel`, `bogie` (and a jolt of about 2 px), `doorOpen`, `bossStagger`, `summon`.
 
 ## 14. Settings and the controller
 
@@ -1437,6 +1469,16 @@ hold the paste-ready prompts.
 - **Phase 3:** the cabin's Blender set; `cast/purser.png`, `cast/attendant.png`; Paris (`backdrops/paris-far-1..3.png`, mid and fore pieces, `cast/concierge.png`, `cast/parisian.png`, `cast/garcon.png`, `props/french-sheet.png`, `backdrops/brasserie.png`); the train (the station hall and a carriage from Blender renders painted over, `backdrops/station.png`, `backdrops/train-far-1..3.png`, `cast/conductor.png`, `props/train-sheet.png`).
 - **Phase 4:** Basel (the bridge and the Marktplatz from Blender renders painted over, `backdrops/basel-far-1..4.png`, `cast/piper.png`, `cast/drummer.png`, `cast/drill.png`, `cast/drum-major.png`, `props/basel-sheet.png`); the office (`backdrops/lab-far-1..3.png`, `cast/tech.png`, `cast/resident.png`, `cast/admin.png`, `props/lab-sheet.png`, the scrubs costume layer `hammer/body-scrubs.png`); the training room (`backdrops/training-room.png`, `cast/replacement.png`, `props/training-sheet.png`: the ring light, the lectern, the drone, the tablet, the selfie stick, the screen).
 - **Phase 5:** the epilogue's backdrops (the airport's hall from a Blender render, SAT at dusk, the highway sign, the Buc-ee's booth, the credits' training room); `art/incoming/brand/key-art.png` if the owner wants a painted first frame.
+
+### As built (Phase 3b, 2026-11-05)
+
+- **The station's two walls and the three coaches are painted and in** (`art/incoming/backdrops/station-1..2.png`,
+  `train-far-1..3.png`, from prompt 5), each floor at 768, the panes where the render has them. The clock's center is measured
+  from the painting (`art/cuts/wall-station-1.json`). The bistro has no racks, as the level has none.
+- **Still drawn or borrowed until their paintings land:** the train's sheet (the drawn stroller, bicycle, trolley, suitcase, barrier
+  and quiet sign stand in), the conductor (the bellhop's painting in navy), the kids (the student's at child size), and Phase 3a's.
+- A recolor with no mask in its painting's cut is silently ignored: the art check now covers the Flight, Paris and the Train, and
+  every stand-in's color has its mask.
 
 ### As built (Phase 1b, 2026-11-02)
 

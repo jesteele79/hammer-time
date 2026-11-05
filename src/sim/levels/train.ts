@@ -66,7 +66,7 @@ export const TRAIN: Level = {
   ],
   // The ticket barrier: his head stops at it; a slide goes under its paddles.
   passes: [{ x: 1800, y: -1000, w: 150, h: 780, kind: "barrier" }],
-  bounds: { x: -400, y: -1400, w: 18600, h: 2000 },
+  bounds: { x: 0, y: -1400, w: coachX(1) + 768, h: 2000 },
   crates: [{ id: "fridge", kind: "can", x: coachX(BISTRO) + 600, y: -140, look: "fridge" }],
   doors: [],
   signs: [{ x: coachX(QUIET) + 384, y: -300, label: "Shh" }],

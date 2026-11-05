@@ -1170,7 +1170,10 @@ test("the station's and coaches' renders are committed with their windows", asyn
     assert.ok(reg.walls[n], n);
   }
   assert.deepEqual(reg.walls["train-far-2"].windows, w["train-far-2"]);
-  assert.deepEqual(reg.walls["station-1"].clock, w.clock);
+  // The painting's clock, measured; within a little of the render's.
+  const clock = reg.walls["station-1"].clock;
+  assert.deepEqual(clock, JSON.parse(readFileSync("art/cuts/wall-station-1.json", "utf8")).clock);
+  assert.ok(clock.every((v, i) => Math.abs(v - w.clock[i]) <= 12), `${clock}`);
 });
 test("the train sheet cuts six pieces by name, the lists agree", async () => {
   const { TRAIN_PIECES } = await import("../src/art/registry.ts");

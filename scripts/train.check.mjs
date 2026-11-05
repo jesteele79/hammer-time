@@ -248,3 +248,8 @@ test("the scripted rider beats the conductor at all three doors and takes his se
   assert.deepEqual([g.world.boss.door, g.mode, g.run.lives >= 1], [3, "walkoff", true]);
   const m = train(); play(m); m.run.stretch = null; Object.assign(m.world.hero, { x: coachX(13) - 300 }); until(m, (x) => x.mode === "over", 420, { hammer: true, right: true }); assert.deepEqual([m.mode, m.world.boss.hp], ["over", 9]);
 });
+
+test("the camera stops at the hall's first wall and the end of coach 1: nothing past the rooms shows", () => {
+  const rooms = TRAIN.rooms;
+  assert.deepEqual([TRAIN.bounds.x, TRAIN.bounds.x + TRAIN.bounds.w], [rooms[0].x0, rooms[rooms.length - 1].x1]);
+});

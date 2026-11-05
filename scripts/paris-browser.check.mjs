@@ -105,13 +105,12 @@ try {
   assert.match(await page.locator(".next-veil").textContent(), /Lunch took three hours\. It is 13:40\. The train leaves at 14:02\./);
   const best = await page.evaluate(() => Number(localStorage.getItem("hammer-time-best-french")));
   assert.equal(best, round, "the best holds the round's score alone");
-  const until = Date.now() + 30000;
-  while (Date.now() < until && (await page.evaluate(() => window.__next.run.mode)) !== "title") {
-    await page.keyboard.press("Enter");
-    await page.waitForTimeout(250);
-  }
-  assert.equal(await page.evaluate(() => window.__next.run.mode), "title");
-  assert.ok(await page.getByRole("button", { name: "The 14:02 is coming" }).isDisabled(), "Clock in names the stop");
+  // 3-3 is built: on to its card; home by a fresh page.
+  await waitMode("card", 30000);
+  assert.equal(await page.evaluate(() => window.__next.run.level), "train", "on to 3-3's card");
+  await page.goto(`${base}?dev=1`);
+  await waitMode("title", 60000);
+  assert.ok(await page.getByRole("button", { name: "Clock in" }).isEnabled(), "3-3 is built: Clock in plays it");
   assert.equal(await page.locator(".next-start__quest").count(), 4, "four side quests");
   assert.ok(await page.getByRole("button", { name: "Play The brasserie" }).isVisible());
   await page.close();
