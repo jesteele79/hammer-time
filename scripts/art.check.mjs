@@ -1135,3 +1135,9 @@ test("the SAT sheet's six pieces are named in the brief's order; five or seven r
   assert.throws(() => nameSatPieces([...Array(5).keys()].map(piece)), /5 pieces, not 6/);
   assert.throws(() => nameSatPieces([...Array(7).keys()].map(piece)), /7 pieces, not 6/);
 });
+
+test("the cabin's set is committed and under 8 MB, as the hall's is", async () => {
+  const { statSync } = await import("node:fs");
+  for (const f of ["public/sets/cabin.glb", "public/sets/hallway.glb"]) assert.ok(statSync(f).size < 8e6, f);
+  assert.ok(existsSync("art/blender/cabin.blend"));
+});

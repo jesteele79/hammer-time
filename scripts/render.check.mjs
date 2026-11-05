@@ -10,6 +10,8 @@ import { placeWord, wordBox } from "../src/render/words.ts";
 import { hangTowel, palmTurn, towelAtFace, towelChain } from "../src/render/towel.ts";
 import { ACTIONS } from "../src/sim/rig/actions.ts";
 import { pose } from "../src/sim/rig/pose.ts";
+import { SETS } from "../src/render/3d/sets.ts";
+import { HALLWAY } from "../src/sim/levels/hallway.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
   assert.equal(shouldStepDown({ workMs: 2, intervalMs: 16.7, refreshMs: 16.7 }), false);
@@ -1637,4 +1639,11 @@ test("on a touch screen the hints name the pad's buttons, SAT's lessons first", 
   ])
     assert.doesNotMatch(touchHint(h), keys, h);
   assert.equal(touchHint("GATE B7 · walk in to board"), "GATE B7 · walk in to board");
+});
+
+test("the 3D sets: the hall and the cabin, each with its file, length and lamps", () => {
+  assert.deepEqual([SETS.hallway.file, SETS.cabin.file, SETS.hallway.length, SETS.cabin.length], ["/sets/hallway.glb", "/sets/cabin.glb", 80, 40]);
+  assert.deepEqual(SETS.cabin.lamps, { first: 1.5, every: 3, height: 2.0, strength: 1.2 });
+  assert.deepEqual([SETS.cabin.names.curtain, SETS.cabin.names.sign], ["curtain", "sign"]);
+  assert.equal(HALLWAY.hall.set, "hallway");
 });

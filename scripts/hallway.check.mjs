@@ -20,7 +20,7 @@ const until = (g, done, seconds = 10, held = {}) => { const evs = []; for (let i
 const hall = (opts = {}, cast = false) => { const g = createGame({ lobby: LOBBY, stash: STASH }, 41, { cast, title: true }); g.newRun(41, 0, { shift: [HALLWAY], journey: true, ...opts }); return g; };
 
 test("the hall is 80 m long and 3 m wide: W walks him forward, S back without turning, A and D step him within 1.1 m of the middle", () => {
-  assert.deepEqual([HALLWAY.id, HALLWAY.world, HALLWAY.length, HALLWAY.hall, HALLWAY.time], ["hallway", "2-3", 8000, { width: 3, keep: 0.4 }, 300]);
+  assert.deepEqual([HALLWAY.id, HALLWAY.world, HALLWAY.length, HALLWAY.hall, HALLWAY.time], ["hallway", "2-3", 8000, { width: 3, keep: 0.4, set: "hallway" }, 300]);
   const g = hall();
   play(g);
   const h = g.world.hero;

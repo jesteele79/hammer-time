@@ -14,7 +14,7 @@ export const HALLWAY: Level = {
   spawn: { x: 100, y: 0 },
   time: 300,
   music: "hallway",
-  hall: { width: 3, keep: 0.4 },
+  hall: { width: 3, keep: 0.4, set: "hallway" },
   hints: { early: 0 },
   floor: [{ x0: 0, x1: 8000, y0: 0, y1: 0, kind: "carpet" }],
   platforms: [],

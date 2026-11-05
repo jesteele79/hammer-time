@@ -38,6 +38,7 @@ import type { Registry } from "../../art/registry";
 import { HallPeople } from "./hall-people";
 import type { HallState } from "./hall-state";
 import { createInkPass } from "./ink-pass";
+import type { SetSpec } from "./sets";
 
 const NEAR = 0.1;
 const FAR = 120;
@@ -45,10 +46,8 @@ const FAR = 120;
 const CHASE = { back: 3, height: 1.6, follow: 0.55, aim: 0.3, ahead: 5, aimHeight: 1.15, rate: 8 } as const;
 /** A wide view of the hall; an upright phone needs more of it. */
 const FOV = { wide: 62, upright: 78 } as const;
-/** How bright a lamp may be: Blender's emission is far too much for the bloom. */
-const LAMP_MAX = 1.6;
-const LAMP_EVERY = 6;
-const LAMP_FIRST = 3;
+/** How bright the pools under the lamps are at a lamp's strength of 1. */
+const POOL_STRENGTH = 2;
 /** The camera's layer for what the ink should not outline: blob shadows, the puddle. */
 export const CUTOUT_LAYER = 1;
 /** How many frames of the 3D view to average its work over. */
@@ -85,6 +84,10 @@ export class ThreeView {
   private height = 1;
   private visible = false;
   private frames: number[] = [];
+  private set: SetSpec | null = null;
+  /** The set's nodes that change with the level's state, where it has them. */
+  private curtain: Object3D | null = null;
+  private readonly signs: MeshToonMaterial[] = [];
 
   constructor(
     private readonly host: HTMLElement,
@@ -94,8 +97,9 @@ export class ThreeView {
     this.quality = quality;
   }
 
-  /** The renderer, the set and the passes. Anything that fails rejects here, and nothing is left behind. */
-  async load(): Promise<void> {
+  /** The renderer, the level's set and the passes. Anything that fails rejects here, and `destroy` frees what was made. */
+  async load(spec: SetSpec): Promise<void> {
+    this.set = spec;
     if (typeof WebGL2RenderingContext === "undefined") throw new Error("no WebGL2");
     const renderer = new WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
     this.renderer = renderer;
@@ -115,14 +119,13 @@ export class ThreeView {
     draco.setDecoderPath("/draco/");
     const gltf = new GLTFLoader();
     gltf.setDRACOLoader(draco);
-    const set = (await gltf.loadAsync("/sets/hallway.glb")).scene;
-    draco.dispose();
-    this.dress(set);
+    const set = await gltf.loadAsync(spec.file).then((g) => g.scene).finally(() => draco.dispose());
+    this.dress(set, spec);
     this.scene.add(set);
     this.people = new HallPeople(this.scene, this.peopleScene);
     this.camera.layers.enable(CUTOUT_LAYER);
     this.camera.position.set(0, CHASE.height, CHASE.back);
-    this.light();
+    this.light(spec);
 
     const size = this.drawSize();
     this.normalTarget = new WebGLRenderTarget(size.x, size.y, { depthTexture: new DepthTexture(size.x, size.y) });
@@ -148,27 +151,33 @@ export class ThreeView {
   }
 
   /** Three-step toon materials over the glTF's colors, the carpet's pattern repeating, the lamps capped. */
-  private dress(set: Object3D) {
+  private dress(set: Object3D, spec: SetSpec) {
     const steps = new DataTexture(new Uint8Array([90, 170, 255]), 3, 1, RedFormat);
     steps.minFilter = steps.magFilter = NearestFilter;
     steps.needsUpdate = true;
     set.traverse((o) => {
       const mesh = o as Mesh;
       if (!mesh.isMesh) return;
-      mesh.castShadow = mesh.name !== "ceiling" && mesh.name !== "carpet";
+      mesh.castShadow = mesh.name !== spec.names.ceiling && mesh.name !== spec.names.floor;
       mesh.receiveShadow = true;
       const m = mesh.material as MeshStandardMaterial;
       if (m.map) {
         m.map.wrapS = m.map.wrapT = RepeatWrapping;
         m.map.anisotropy = 8;
       }
-      mesh.material = new MeshToonMaterial({ color: m.color, map: m.map, gradientMap: steps, emissive: m.emissive, emissiveIntensity: Math.min(m.emissiveIntensity, LAMP_MAX) });
+      const toon = new MeshToonMaterial({ color: m.color, map: m.map, gradientMap: steps, emissive: m.emissive, emissiveIntensity: Math.min(m.emissiveIntensity, spec.lamps.strength) });
+      mesh.material = toon;
       m.dispose();
+      if (spec.names.curtain && mesh.name === spec.names.curtain) this.curtain = mesh;
+      if (spec.names.sign && mesh.name.startsWith(spec.names.sign)) {
+        toon.emissiveIntensity = 0;
+        this.signs.push(toon);
+      }
     });
   }
 
   /** One key light from behind him, a dim fill, and the lamps nearest him as soft pools. */
-  private light() {
+  private light(spec: SetSpec) {
     this.scene.add(new HemisphereLight(0xfff0dc, 0x4a3020, 1.1));
     const key = new DirectionalLight(0xffe6c4, 1.1);
     key.shadow.mapSize.set(2048, 2048);
@@ -178,7 +187,7 @@ export class ThreeView {
     this.key = key;
     this.scene.add(key, key.target);
     for (let i = 0; i < 3; i++) {
-      const p = new PointLight(0xffd9a6, 3.2, 8, 1.8);
+      const p = new PointLight(0xffd9a6, POOL_STRENGTH * spec.lamps.strength, 8, 1.8);
       this.pools.push(p);
       this.scene.add(p);
     }
@@ -242,12 +251,14 @@ export class ThreeView {
     cam.x += (lx * CHASE.follow - cam.x) * k;
     cam.y = CHASE.height;
     // The hall runs along three.js's -z: the camera looks down it, with +x on the screen's right.
-    cam.z = -z + CHASE.back;
+    cam.z = Math.min(-z + CHASE.back, (this.set?.behind ?? CHASE.back) - 0.1);
     this.camera.lookAt(lx * CHASE.aim, CHASE.aimHeight, -z - CHASE.ahead);
     this.key?.position.set(lx + 0.8, 2.6, -z + 3.5);
     this.key?.target.position.set(lx, 0, -z - 3);
-    const lamp = Math.round((z - LAMP_FIRST) / LAMP_EVERY);
-    this.pools.forEach((p, i) => p.position.set(0, 2.55, -(LAMP_FIRST + (lamp + i - 1) * LAMP_EVERY)));
+    const lamps = this.set?.lamps;
+    if (!lamps) return;
+    const lamp = Math.round((z - lamps.first) / lamps.every);
+    this.pools.forEach((p, i) => p.position.set(0, lamps.height, -(lamps.first + (lamp + i - 1) * lamps.every)));
   }
 
   /** Where a point of the hall falls on the screen, in CSS px. */

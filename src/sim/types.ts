@@ -7,6 +7,9 @@ import type { Pig } from "./pig";
 import type { HeatZone, SwingDoor } from "./hazards";
 import type { Puddle, Snot } from "./snot";
 import type { HallCart, HallDoor } from "./hall";
+
+/** The 3D sets a level can stand in (src/render/3d/sets.ts). */
+export type SetName = "hallway" | "cabin";
 import type { Sample } from "./samples";
 
 export type Point = { x: number; y: number };
@@ -28,8 +31,8 @@ export type Stage = {
   bounds: Rect;
   /** Flat-tops and the walk-in: heat on or off a second while he stands in one (R3). */
   heat?: HeatZone[];
-  /** A hall under the chase camera: its width in meters and how near a wall he may stand. */
-  hall?: { width: number; keep: number };
+  /** A hall under the chase camera: its width in meters, how near a wall he may stand, and the 3D set it is drawn in. */
+  hall?: { width: number; keep: number; set: SetName };
 };
 
 /** What a cart carries: the lobby's cases, a busser's dirty dishes, or the dock's trash. */

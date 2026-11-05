@@ -70,6 +70,7 @@ import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { backClipOf, backCycle, hallStateOf } from "./3d/hall-state";
 import type { ThreeView } from "./3d/three-view";
+import { SETS } from "./3d/sets";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
@@ -1071,8 +1072,9 @@ export async function startLook(
   const loadThree = () => {
     if (threeLoad) return threeLoad;
     const gen = ++threeGen;
+    const hall = game.level.hall;
     return (threeLoad = (async () => {
-      if (threeLost) return;
+      if (threeLost || !hall) return;
       const { ThreeView } = await import("./3d/three-view");
       const host = app.canvas.parentElement;
       if (!host) throw new Error("the game's canvas has no host");
@@ -1088,7 +1090,7 @@ export async function startLook(
         threeOff();
       };
       try {
-        await view.load();
+        await view.load(SETS[hall.set]);
         if (gen === threeGen) await view.loadPeople(registry, game.level);
       } catch (err) {
         view.destroy();

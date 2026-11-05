@@ -1,6 +1,7 @@
 import { Container, Graphics } from "pixi.js";
 import { HALL, type HallCart, type HallDoor } from "../sim/hall";
 import type { Level } from "../sim/level";
+import { rowX } from "../sim/levels/flight";
 import { INK, THIN } from "./ink";
 import { tones } from "./palette";
 
@@ -10,8 +11,39 @@ const CEILING = -420;
 const EVERY_DOOR = 300;
 const RAIL = -150;
 
-/** The corridor seen from the side: wall, wainscot and carpet, a door frame every 3 m, the alcove, the lobby and room 1417. */
+/** The flat cabin's colors. */
+const CABIN = { wall: "#d8d2c2", bin: "#cfc8b6", seam: "#8a8678", seat: "#2b3a6a", head: "#b8bcc6", window: "#bcd6f2", floor: "#1b2340", lav: "#b9b4a8", curtain: "#1d2a58", business: "#946a42" } as const;
+const SEAT_EVERY = 77;
+/** Where the floor's far edge meets the near row's seats: the aisle's depth on the page. */
+const CABIN_NEAR = 340;
+
+/** The cabin seen from the side: bins and windows on the far wall, the far row against it, the near row across the bottom. */
+function drawCabinFlat(g: Graphics, level: Level) {
+  const len = level.length;
+  g.rect(-400, CEILING - 800, len + 800, 800).fill(tones(CABIN.wall).shadow);
+  g.rect(-400, CEILING, len + 800, -CEILING).fill(CABIN.wall);
+  g.rect(-400, CEILING, len + 800, 110).fill(CABIN.bin);
+  g.rect(-400, CEILING + 110, len + 800, 4).fill(CABIN.seam);
+  g.rect(-400, 0, len + 800, CABIN_NEAR + 200).fill(CABIN.floor);
+  for (let row = 56; row >= 1; row--) {
+    const x = rowX(row);
+    const cloth = row <= 3 ? CABIN.business : CABIN.seat;
+    g.rect(x, CEILING, 2, 110).fill(CABIN.seam);
+    g.roundRect(x + 14, -250, 40, 70, 12).fill(CABIN.window).roundRect(x + 14, -250, 40, 70, 12).stroke(THIN);
+    g.roundRect(x + 8, -150, 26, 150, 6).fill(cloth).roundRect(x + 8, -150, 26, 150, 6).stroke(THIN);
+    g.rect(x + 8, -150, 26, 34).fill(CABIN.head);
+    g.rect(x + 30, -60, SEAT_EVERY - 34, 60).fill(tones(cloth).shadow);
+    g.roundRect(x + 8, CABIN_NEAR - 90, SEAT_EVERY - 12, 90, 8).fill(cloth).roundRect(x + 8, CABIN_NEAR - 90, SEAT_EVERY - 12, 90, 8).stroke(THIN);
+    g.rect(x + 8, CABIN_NEAR, SEAT_EVERY - 12, 200).fill(tones(cloth).shadow);
+  }
+  const lav = rowX(30);
+  g.rect(lav - 75, -320, 150, 320).fill(CABIN.lav).rect(lav - 75, -320, 150, 320).stroke(INK);
+  g.rect(lav - 45, -280, 90, 280).fill(tones(CABIN.lav).shadow).rect(lav - 45, -280, 90, 280).stroke(THIN);
+}
+
+/** A hall from the side: the cabin's way or the corridor's: wall, wainscot and carpet, a door frame every 3 m, the alcove, the lobby and room 1417. */
 export function drawHallFlat(g: Graphics, level: Level) {
+  if (level.hall?.set === "cabin") return drawCabinFlat(g, level);
   const len = level.length;
   g.rect(-400, CEILING - 800, len + 800, 800).fill(tones(C.wall).shadow);
   g.rect(-400, CEILING, len + 800, -CEILING).fill(C.wall);

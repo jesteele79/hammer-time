@@ -2,7 +2,7 @@ import type { SongId } from "../game/audio";
 import type { HeatZone } from "./hazards";
 import type { QuestId } from "./quests/quest";
 import type { MoverSpec } from "./movers";
-import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, Stage } from "./types";
+import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, SetName, Stage } from "./types";
 
 export type { CartLoad };
 
@@ -228,8 +228,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   keycards?: Point[];
   /** A tall level (the tower): how far apart its floors stand; the HUD reads the floor he is on. */
   floors?: { every: number };
-  /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand. */
-  hall?: { width: number; keep: number };
+  /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand, the 3D set it is drawn in. */
+  hall?: { width: number; keep: number; set: SetName };
   /** A level of rooms (the suite): a painted wall each, the camera on the room the boss is in. */
   rooms?: { id: string; x0: number; x1: number }[];
   /** Housekeeping carts rolling across it from the door at `z` meters, on `side`: first at `at` s, then every `every`. */
