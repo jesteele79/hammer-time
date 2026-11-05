@@ -399,6 +399,58 @@ try {
   assert.equal(await page.locator(".next-start__quest").count(), 3, "three side quests");
   assert.equal((await run()).level, "lobby-night", "the home scene stays the lobby at night");
 
+  // 6c. Act 3 as far as it goes: 3-1, the landing, 3-2 and its lunch, 3-3, Basel on time, and home with Basel coming.
+  const rowX = (row) => Math.round(100 * (0.5 + (52 - row) * 0.77));
+  const coachX = (n) => 4000 + (18 - n) * 768;
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await waitMode("card");
+  assert.match(await veil(), /Seat 52E\. Middle\./);
+  await waitMode("play");
+  await page.evaluate(() => window.__next.dev.boss({ state: "down" }));
+  await tp(rowX(1) - 50);
+  await waitMode("story");
+  assert.match(await veil(), /Paris\. 13 July\. 06:40\. No Southwest, no A-List, no ice\./);
+  await cardFits("landing");
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await enter();
+  await waitMode("card");
+  assert.equal((await run()).level, "paris", "on to 3-2's card");
+  await waitMode("play");
+  await tp(10200);
+  await page.waitForTimeout(400);
+  await page.keyboard.press("ArrowDown");
+  await waitMode("questCard", 8000);
+  await page.keyboard.press("Enter");
+  await waitMode("quest", 8000);
+  await page.evaluate(() => window.__next.dev.questSkip());
+  await waitMode("questTally", 8000);
+  await page.getByRole("button", { name: /Continue|Back|On/ }).first().click();
+  await waitMode("tally", 8000);
+  assert.match(await page.locator(".next-veil").textContent(), /Lunch took three hours\. It is 13:40\. The train leaves at 14:02\./);
+  await waitMode("card", 20000);
+  assert.equal((await run()).level, "train", "on to 3-3's card");
+  await waitMode("play");
+  await tp(3990);
+  await page.keyboard.down("KeyD");
+  await page.waitForFunction(() => /Coach 18/i.test(document.querySelector(".next-hud__venue")?.textContent ?? ""), null, { timeout: 5000 });
+  await page.keyboard.up("KeyD");
+  await page.evaluate(() => window.__next.dev.boss({ door: 3 }));
+  await tp(coachX(1) + 550);
+  await page.keyboard.down("KeyD");
+  await waitMode("story", 30000);
+  await page.keyboard.up("KeyD");
+  assert.match(await veil(), /Basel SBB\. 17:06\. On time\. They always are\./);
+  await cardFits("basel-on-time");
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await enter();
+  await waitMode("title", 20000);
+  const strip3 = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, [e.dataset.state, e.dataset.coming ?? null]])));
+  assert.deepEqual(strip3["3-4"], ["next", "true"], JSON.stringify(strip3));
+  assert.ok(await page.getByRole("button", { name: "Basel is coming" }).isDisabled(), "Clock in names the stop");
+  assert.equal(await page.locator(".next-start__quest").count(), 4, "four side quests");
+  s = await save();
+  assert.deepEqual([s.next, s.done.length, !!s.run], ["basel", 12, true], "Act 3 so far in the save, the run going on to Basel");
+
   // 7. A broken save: the start screen opens on a new journey, and nothing errs.
   await page.evaluate(() => localStorage.setItem("hammer-time-journey", "{broken"));
   await page.goto(home);

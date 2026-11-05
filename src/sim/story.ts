@@ -74,7 +74,7 @@ export const STORY: readonly StoryStop[] = [
   },
   { id: "flight", code: "3-1", name: "Row 52", act: "act3", after: [{ kind: "caption", text: "Paris. 13 July. 06:40. No Southwest, no A-List, no ice." }] },
   { id: "paris", code: "3-2", name: "Paris", act: "act3" },
-  { id: "train", code: "3-3", name: "The 14:02", act: "act3" },
+  { id: "train", code: "3-3", name: "The 14:02", act: "act3", after: [{ kind: "caption", text: "Basel SBB. 17:06. On time. They always are." }] },
   { id: "basel", code: "3-4", name: "Basel, Tattoo week", act: "act3" },
   { id: "lab", code: "3-5", name: "The Basel office", act: "act3" },
   { id: "replacement", code: "3-6", name: "The replacement", act: "act3" },

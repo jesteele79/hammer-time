@@ -374,3 +374,54 @@ test("the landing card comes after 3-1; Paris has none, its tally line is the le
   assert.deepEqual(stopOf("flight").after, [{ kind: "caption", text: "Paris. 13 July. 06:40. No Southwest, no A-List, no ice." }]);
   assert.equal(stopOf("paris").after, undefined);
 });
+
+import { FLIGHT } from "../src/sim/levels/flight.ts";
+import { PARIS } from "../src/sim/levels/paris.ts";
+import { TRAIN } from "../src/sim/levels/train.ts";
+import { STOP_LEVELS } from "../src/sim/levels/index.ts";
+import { drive } from "../src/sim/drive.ts";
+
+test("the cards: the landing after 3-1, Basel after 3-3, none on Paris", () => {
+  assert.deepEqual(stopOf("flight").after, [{ kind: "caption", text: "Paris. 13 July. 06:40. No Southwest, no A-List, no ice." }]);
+  assert.deepEqual(stopOf("train").after, [{ kind: "caption", text: "Basel SBB. 17:06. On time. They always are." }]);
+  assert.equal(stopOf("paris").after, undefined);
+});
+test("finishing 3-3 leaves Basel next and the act open", () => {
+  let j = newJourney();
+  for (const id of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight", "paris", "train"]) j = finishLevel(j, id, 1000, snap(1000));
+  assert.equal(j.next, "basel");
+  assert.equal(playableNext(j, builtStops(STOP_LEVELS)), null);
+  assert.equal(comingLabel("basel", builtStops(STOP_LEVELS)), "Basel is coming");
+});
+test("the three drivers play their levels start to finish", () => {
+  const ride = (level, seconds) => {
+    const g = createGame({ lobby: LOBBY, stash: STASH }, 81, { cast: true, title: true });
+    g.newRun(81, 0, { shift: [level], journey: true });
+    const evs = [];
+    for (let t = 0; t < seconds && !["questCard", "story", "over"].includes(g.mode); t += STEP) {
+      g.step(drive(g.level, g.world.hero, level.id, g.world));
+      evs.push(...g.events);
+    }
+    return { g, evs };
+  };
+  const f = ride(FLIGHT, 320);
+  assert.equal(of(f.evs, "levelDone")[0]?.id, "flight", `the flight ended in ${f.g.mode} at ${f.g.world.hero.x}`);
+  const p = ride(PARIS, 420);
+  assert.equal(p.g.mode, "questCard", `Paris ended in ${p.g.mode} at ${p.g.world.hero.x}`);
+  const r = ride(TRAIN, 560);
+  assert.equal(of(r.evs, "levelDone")[0]?.id, "train", `the train ended in ${r.g.mode} at ${r.g.world.hero.x}`);
+  assert.equal(r.g.world.boss.door, 3);
+});
+test("a save at the 14:02's card keeps its run: the station's clock is a number", () => {
+  const j = { ...newJourney(), next: "train", run: { ...createRun(7), score: 900, stretch: 120 } };
+  const back = parseJourney(serializeJourney(j));
+  assert.deepEqual([back.run?.score, back.run?.stretch], [900, 120]);
+  assert.equal(parseJourney(serializeJourney({ ...j, run: { ...j.run, stretch: null } })).run.stretch, null);
+  assert.equal(parseJourney(serializeJourney({ ...j, run: { ...j.run, stretch: "soon" } })).run, null);
+});
+test("the doors won on the train do not follow him: a level from a saved run starts with them shut", () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 81, { cast: true, title: true });
+  g.newRun(81, 0, { shift: [TRAIN], journey: true, snapshot: { run: { ...createRun(81), score: 5000, bossDoors: 3 }, carry: { charge: 0, patience: 2, hot: false, doggy: false, flop: false, boxes: 0 } } });
+  play(g);
+  assert.deepEqual([g.run.score, g.run.bossDoors, g.world.boss.door, g.world.boss.hp], [5000, 0, 0, 9]);
+});

@@ -394,7 +394,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     thought.clear();
     game.runs++;
     // A snapshot is the run at a card: no punch clock of the level before it counts here.
-    game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, checkpointAt: undefined, punched: [] } : createRun(s);
+    game.run = snap ? { ...structuredClone(snap.run), checkpoint: null, checkpointAt: undefined, punched: [], bossDoors: 0 } : createRun(s);
     stashStock = null;
     begin(snap ? { ...snap.carry } : { charge: 0, patience: RUN.patience }, (game.events = []));
     atCard();
@@ -857,6 +857,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.run.checkpoint = null;
     game.run.checkpointAt = undefined;
     game.run.punched = [];
+    game.run.bossDoors = 0;
     begin(carry, ev);
     atCard();
     ev.push({ type: "venue", id: game.level.id });

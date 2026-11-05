@@ -41,6 +41,9 @@ function runOf(raw: unknown): Run | null {
     const got = raw[k];
     if (Array.isArray(v)) {
       if (!Array.isArray(got) || !got.every((s) => typeof s === "string")) return null;
+    } else if (k === "stretch") {
+      // The station's clock: its seconds, or none.
+      if (got !== null && typeof got !== "number") return null;
     } else if (v === null) {
       // `checkpoint`: a punch clock's id or none.
       if (got !== null && typeof got !== "string") return null;
