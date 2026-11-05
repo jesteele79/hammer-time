@@ -129,3 +129,4 @@ Final: Ruling: &noart=1 in 3D has Hammer invisible — a dev flag no player can 
 Final: Ruling: balance numbers (key reach, grace, cart speeds, the two-second grace after moving rooms) stand until the owner plays them — they read fair to the scripted player and no one else has played — cost if wrong: numbers to change.
 Final: Ruling: his back painting, the boards and the songs are the owner's eyes and ears; no session can judge them — cost if wrong: a repaint or a rewrite of a song.
 Final: Ruling: after a lost context the hall stays flat for the session — the spec's fallback, and a player keeps playing — cost if wrong: a reload brings 3D back.
+Task 17: complete (commits 044f952..743460d, tests: npm run test:next → # duration_ms 96833.3042)
