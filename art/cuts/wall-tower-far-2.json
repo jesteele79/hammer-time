@@ -1,0 +1,5 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/tower-far-2.png (the ice machine's alcove, the vending nook, the pipes). Each edge holds a whole cream pillar, outlined on both sides (15 to 85, 1452 to 1522), so the seams are their middles. The floor line is where the grey landing starts. Stacked a floor at a time: the top row is the underside of the landing above.",
+  "floor": 787,
+  "seams": [55, 1487]
+}

@@ -1,0 +1,11 @@
+Edit Image 1, the finished lounge food atlas, keeping its EXACT native 1254 x 1254 PNG SQUARE canvas and unchanged FOUR BY FOUR equal-cell layout, high three-quarter camera and dish sizes.
+Retain EXACTLY SIXTEEN whole separate dishes in the SAME reading order:
+ROW 1: cheese cubes on white plate; carrot/celery crudités cup; exactly THREE meatballs each with toothpick on plate; exactly TWO sliders on plate.
+ROW 2: small oval hot casserole with connected spoon; hummus with ONE pita wedge touching bowl; crackers fanned on plate; exactly TWO cookies on plate.
+ROW 3: exactly TWO brownies on plate; fruit cup; yogurt parfait glass; ONE cheesecake slice on plate.
+ROW 4: pretzel bowl; tiny BLANK water bottle; closed BLANK white to-go box; ONE glass of red wine.
+Do not add, omit, swap, duplicate or change a dish. Keep all dishes and toothpicks/spoon whole, green gaps and edge margins unchanged. No text, labels, logos, numbers, grid lines or symbols.
+Make ONLY a background/finish correction: every green pixel including gaps becomes ONE constant uniform opaque RGB(0,255,0), #00FF00, without texture, noise, grain, border vignette, gradient, floor, cast shadow or reflections. Keep clean ink/cel finish of original food sheet; avoid airbrush/gradients.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+No signatures or watermarks. Same native square PNG, no subsequent crop, resize or upscale.

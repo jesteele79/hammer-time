@@ -1,0 +1,8 @@
+Edit Image 1, the finished hotel night lounge FAR WALL, preserving EXACT native 1536 x 1024 PNG landscape canvas and whole composition: long dark wooden back-wall bar, unlabeled lit bottle shelves, exactly TWO warm pendant lamps, one BLANK GOLD plaque, and the right window with city lights at NIGHT. No added objects, no table, chairs, stools, people or anything on the floor.
+Targeted finish/framing corrections:
+1. Each cream side pillar must be WHOLE, with both vertical black outlines and its complete capital/base inside the image. Inset them slightly from the side edges and allow a small visible margin above the capital so no pillar corner is clipped.
+2. Keep warm amber flat highlights on shelves/lamps, but use a restrained DEEP NAVY-BLUE flat shadow tone on dark wood panels/counter. Warm lamp light with blue shadows, exactly one flat shadow and one flat highlight per material.
+3. The plain carpet below the level wall-base boundary (about y=760, three-quarters down) must be ONE flat dark navy/blue-grey base field, no gradient, pattern, texture, shadows or reflections. Keep the full foreground empty.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+Strict front elevation, all horizontal lines level, no corners or side walls. Signs, bottle labels and plaque entirely BLANK, no text, letters, numbers, logos, hotel names, signature or watermark. Keep native 1536x1024, no later crop, resize or upscale.

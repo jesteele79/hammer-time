@@ -1,0 +1,5 @@
+{
+  "note": "Coordinates are pixels of art/incoming/backdrops/tower-far-1.png (the fire door, the floor plate, the alarm and the map frame). Each edge holds a whole cream pillar, outlined on both sides (15 to 95, 1441 to 1521), so the seams are their middles. The floor line is where the grey landing starts. Stacked a floor at a time: the top row is the underside of the landing above.",
+  "floor": 786,
+  "seams": [55, 1481]
+}

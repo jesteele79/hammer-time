@@ -1,0 +1,8 @@
+Edit Image 1, the hotel's service stairwell landing FAR WALL. Keep EXACT native 1536 x 1024 PNG (3:2), same square-on camera, complete cream edge pillars with both outlines/gold-trimmed bases, beige block wall, grey steel fire door at left with blank small window/push bar, blank black floor plate beside it, unmarked red alarm pull, blank evacuation-map frame at right and one whole caged ceiling light.
+Make these precise corrections:
+1. The entire TOP UNDERSIDE-OF-LANDING field, including the ENTIRE top row, is ONE uniform flat neutral grey RGB(120,120,124), no tonal variation, noise, gradient or texture. Preserve the complete small light mount/cage below this band and no objects clipped at top.
+2. Raise the one horizontal wall-base/landing line about 22 pixels, from y≈790 to y=768. Shorten lower wall/door/pillar bases so everything remains WHOLE and finishes at this level line. Entire bottom quarter y=768..1024 PLAIN empty GREY CARPET, one flat neutral grey field, no pattern, vignette, texture, shadow or reflection. No objects on floor.
+3. Beige block fields use flat base/shadow/highlight colors, no cloudy airbrush or gradients.
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one shadow tone and one highlight tone, small white specular glints, saturated but natural colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same artist and same style as the reference images.
+Every horizontal level, orthographic front elevation, no side walls/corners, no stairs, rails, furniture, people or freestanding objects. All map/plate/door/pull surfaces blank, no text, letters, numbers, logos, symbols, signature or watermark. Native 1536x1024, no resize/upscale afterward.
