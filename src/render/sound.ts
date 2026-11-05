@@ -10,7 +10,13 @@ import { flies } from "../sim/missiles";
 
 type Cue = keyof AudioBus & string;
 
-const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
+export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
+  keycard: ["chime"],
+  tier: ["fanfare"],
+  chute: ["slide"],
+  bossWave: ["rattle"],
+  flash: ["glint"],
+  stunned: ["bump"],
   jump: ["jump"],
   slide: ["slide"],
   flop: ["slide", "thud"],
@@ -149,7 +155,7 @@ export function heard(e: GameEvent, view: { x: number; w: number }): boolean {
 export function cuesFor(e: GameEvent): Cue[] {
   switch (e.type) {
     case "hit":
-      return e.by === "mallet" ? ["bonk"] : e.by === "shield" ? ["kick"] : e.by === "snot" ? ["splat"] : [];
+      return e.by === "mallet" ? ["bonk"] : e.by === "shield" ? ["kick"] : e.by === "snot" ? ["splat"] : e.by === "cart" ? ["rattle"] : [];
     case "land":
       return e.speed >= HARD_LANDING ? ["thud"] : [];
     // A scalpel sticks with a thunk; a booking's pass prints with a ding.
@@ -212,11 +218,11 @@ export function cuesFor(e: GameEvent): Cue[] {
 }
 
 /**
- * A side quest's song (owner, 2026-10-25): the banquet's galop, faster for the last frenzy; the gate's bossa, faster
- * while he is on a streak.
+ * A side quest's song (owner, 2026-10-25): the banquet's galop, faster for the last frenzy; the lounge's piano likewise;
+ * the gate's bossa, faster while he is on a streak.
  */
-export function questMusic(q: Quest): { theme: "banquet" | "gate"; hurry: boolean } {
-  return q.id === "hungry" ? { theme: "banquet", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
+export function questMusic(q: Quest): { theme: "banquet" | "lounge" | "gate"; hurry: boolean } {
+  return q.id === "hungry" ? { theme: q.menu === "lounge" ? "lounge" : "banquet", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
 }
 
 /**

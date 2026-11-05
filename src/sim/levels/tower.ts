@@ -66,7 +66,7 @@ export const TOWER: Level = {
   length: 2400,
   spawn: { x: 350, y: 0 },
   time: 420,
-  music: "lobby",
+  music: "tower",
   card: "The elevator stops at every floor. I don't.",
   floors: { every: EVERY },
   // A floor at a time up the stairwell, alternating the fire door and the machines' alcoves; the far plane slides slowly behind the flights.

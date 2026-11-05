@@ -10,7 +10,7 @@ export const LOBBY_NIGHT: Level = {
   id: "lobby-night",
   name: "The lobby, 11:40 pm",
   world: "2-1",
-  music: "lobby",
+  music: "lobby-night",
   ambient: "night",
   card: "Front desk has you as MEMBER. System error.",
   thoughts: [{ x: 1100, text: "TITANIUM. Look again." }],

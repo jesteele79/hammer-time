@@ -8,7 +8,7 @@ import {
 } from "./taunts";
 
 /** Every place's song (story spec §13): the home screen's, each level's, the stash's and the two side quests'. */
-export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate";
+export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite";
 export type Theme = SongId;
 /** The music's level, and the share of it left under the cards (plan decision 12's quiet). */
 export const MUSIC = { level: 0.07, quiet: 0.4 } as const;
@@ -33,6 +33,8 @@ export type Song = {
   bassLen: number;
   kick: string;
   snare: string;
+  /** The snare's level, if not the full kit's: brushes. */
+  snareGain?: number;
   hat: string;
   gags: Record<number, "whistle" | "honk" | "chime" | "jet">;
 };
@@ -40,6 +42,13 @@ const bars = (...b: number[][]) => b.flat();
 /** A bossa-nova bar: the root, the fifth on the and of two and on three, the root again at the end. */
 const bossa = (root: number, fifth: number) => [root, 0, 0, 0, 0, 0, fifth, 0, fifth, 0, 0, 0, 0, 0, root, 0];
 const midi = (n: number) => 440 * 2 ** ((n - 69) / 12);
+/** The tower's lead: one bar's motif, a semitone higher each bar of the fourteen. */
+const CLIMB_MOTIF = [60, 0, 64, 0, 67, 0, 64, 0, 72, 0, 67, 0, 64, 0, 67, 0];
+const climbing = (motif: number[], bars: number) => Array.from({ length: bars }, (_, k) => motif.map((n) => (n ? n + k : 0))).flat();
+/** Its bass under it, a square on the root and fifth, climbing with it. */
+const CLIMB_BASS = [36, 0, 36, 0, 43, 0, 36, 0, 36, 0, 36, 0, 43, 0, 41, 0];
+/** Every sixteen steps of a song this many bars long: the elevator's ding through the tower. */
+const everyBar = (count: number): Record<number, "chime"> => Object.fromEntries(Array.from({ length: count }, (_, k) => [k * 16, "chime" as const]));
 
 export const SONGS: Record<SongId, Song> = {
   // The home screen's title tune (story spec §13): four bars of brass fanfare, the lead doubled a fifth below on a
@@ -323,6 +332,152 @@ export const SONGS: Record<SongId, Song> = {
     hat: "x.x.x.x.x.x.x.x.",
     gags: { 0: "chime", 64: "chime", 96: "jet" },
   },
+  // 2-1's jazz trio at twenty to midnight: a walking bass through B flat's two-five-ones, a sparse sine over it, brushes.
+  "lobby-night": {
+    step: 0.19,
+    lead: bars(
+      [75, 0, 0, 74, 0, 0, 0, 0, 70, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 72, 0, 75, 0, 0, 0, 77, 0, 0, 75, 0, 0, 0, 0],
+      [74, 0, 0, 0, 0, 0, 0, 0, 69, 0, 70, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 74, 0, 77, 0, 0, 0, 79, 0, 0, 77, 0, 0],
+      [75, 0, 0, 0, 72, 0, 0, 0, 0, 0, 70, 0, 67, 0, 0, 0],
+      [0, 0, 69, 0, 72, 0, 75, 0, 0, 74, 0, 0, 72, 0, 0, 0],
+      [70, 0, 0, 0, 0, 0, 0, 0, 74, 0, 77, 0, 81, 0, 0, 0],
+      [0, 0, 82, 0, 0, 81, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "sine",
+    leadLen: 2.6,
+    bass: bars(
+      [36, 0, 39, 0, 43, 0, 46, 0, 48, 0, 46, 0, 43, 0, 40, 0],
+      [41, 0, 45, 0, 48, 0, 51, 0, 53, 0, 51, 0, 48, 0, 45, 0],
+      [46, 0, 45, 0, 41, 0, 38, 0, 34, 0, 38, 0, 41, 0, 42, 0],
+      [43, 0, 46, 0, 50, 0, 46, 0, 43, 0, 41, 0, 38, 0, 37, 0],
+      [36, 0, 38, 0, 39, 0, 41, 0, 43, 0, 41, 0, 39, 0, 40, 0],
+      [41, 0, 43, 0, 45, 0, 46, 0, 48, 0, 46, 0, 45, 0, 40, 0],
+      [46, 0, 41, 0, 38, 0, 34, 0, 36, 0, 38, 0, 39, 0, 40, 0],
+      [41, 0, 45, 0, 48, 0, 45, 0, 41, 0, 39, 0, 38, 0, 35, 0],
+    ),
+    bassWave: "triangle",
+    bassLen: 1.9,
+    kick: "................",
+    snare: "....x.......x...",
+    snareGain: 0.02,
+    hat: "x.x.x.x.x.x.x.x.",
+    gags: {},
+  },
+  // The M CLUB lounge's cocktail piano: a triangle and a sine an octave up for its hammers, F major's changes, no drums.
+  lounge: {
+    step: 0.22,
+    lead: bars(
+      [77, 0, 81, 0, 84, 0, 88, 0, 84, 0, 81, 0, 0, 0, 0, 0],
+      [74, 0, 77, 0, 81, 0, 84, 0, 86, 0, 84, 81, 0, 0, 0, 0],
+      [79, 0, 82, 0, 86, 0, 89, 0, 86, 82, 0, 79, 0, 0, 0, 0],
+      [72, 0, 76, 0, 79, 0, 82, 0, 84, 0, 82, 0, 79, 0, 76, 0],
+      [77, 0, 81, 84, 0, 0, 88, 0, 89, 0, 88, 0, 84, 0, 0, 0],
+      [86, 0, 84, 0, 81, 0, 77, 0, 74, 0, 77, 0, 81, 0, 0, 0],
+      [82, 0, 81, 0, 79, 0, 77, 0, 76, 0, 79, 0, 84, 0, 82, 0],
+      [81, 0, 0, 0, 77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "triangle",
+    leadLen: 2.4,
+    double: { from: 0, to: 128, shift: 12, wave: "sine" },
+    bass: bars(
+      [41, 0, 0, 0, 48, 0, 0, 0, 41, 0, 0, 0, 48, 0, 0, 0],
+      [38, 0, 0, 0, 45, 0, 0, 0, 38, 0, 0, 0, 45, 0, 0, 0],
+      [43, 0, 0, 0, 50, 0, 0, 0, 43, 0, 0, 0, 50, 0, 0, 0],
+      [36, 0, 0, 0, 43, 0, 0, 0, 36, 0, 0, 0, 43, 0, 0, 0],
+      [41, 0, 0, 0, 48, 0, 0, 0, 41, 0, 0, 0, 48, 0, 0, 0],
+      [38, 0, 0, 0, 45, 0, 0, 0, 38, 0, 0, 0, 45, 0, 0, 0],
+      [36, 0, 0, 0, 43, 0, 0, 0, 36, 0, 0, 0, 43, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    bassWave: "triangle",
+    bassLen: 3.4,
+    kick: "................",
+    snare: "................",
+    hat: "................",
+    gags: {},
+  },
+  // 2-2's climb: the lead up a semitone a bar for the fourteen floors and back down to the first, the square bass under it,
+  // the elevator he is not using dinging past every bar.
+  tower: {
+    step: 0.16,
+    lead: climbing(CLIMB_MOTIF, 14),
+    leadWave: "square",
+    leadLen: 1.5,
+    bass: climbing(CLIMB_BASS, 14),
+    bassWave: "square",
+    bassLen: 1.6,
+    kick: "x...x...x...x...",
+    snare: "....x.......x...",
+    hat: "x.x.x.x.x.x.x.x.",
+    gags: everyBar(14),
+  },
+  // 2-3's fourteenth-floor corridor: the hum of the place, a low sine, a muffled note every fourth bar, the ice machine down the hall.
+  hallway: {
+    step: 0.24,
+    lead: bars(
+      Array(16).fill(0),
+      Array(16).fill(0),
+      Array(16).fill(0),
+      [64, 0, 0, 0, 65, 0, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0],
+      Array(16).fill(0),
+      Array(16).fill(0),
+      Array(16).fill(0),
+      [64, 0, 0, 0, 67, 0, 0, 0, 0, 0, 65, 0, 64, 0, 0, 0],
+    ),
+    leadWave: "sine",
+    leadLen: 0.3,
+    bass: bars(
+      [40, ...Array(15).fill(0)],
+      [40, ...Array(15).fill(0)],
+      [41, ...Array(15).fill(0)],
+      [40, ...Array(15).fill(0)],
+      [40, ...Array(15).fill(0)],
+      [40, ...Array(15).fill(0)],
+      [41, ...Array(15).fill(0)],
+      [38, ...Array(15).fill(0)],
+    ),
+    bassWave: "sine",
+    bassLen: 16,
+    kick: "................",
+    snare: "................",
+    hat: "................",
+    gags: { 0: "honk", 64: "honk" },
+  },
+  // 2-3's suite, the second boss theme: a driving sawtooth bass, four on the floor, and in A minor one lead, then two.
+  suite: {
+    step: 0.14,
+    lead: bars(
+      [69, 0, 72, 0, 76, 0, 72, 0, 74, 0, 77, 0, 81, 0, 77, 0],
+      [76, 0, 79, 0, 83, 0, 79, 0, 81, 0, 79, 0, 76, 0, 72, 0],
+      [69, 0, 72, 0, 76, 0, 72, 0, 74, 0, 77, 0, 81, 0, 84, 0],
+      [83, 0, 81, 0, 79, 0, 76, 0, 72, 0, 74, 0, 76, 0, 0, 0],
+      [81, 81, 0, 84, 0, 81, 0, 79, 77, 77, 0, 81, 0, 77, 0, 76],
+      [74, 74, 0, 77, 0, 74, 0, 72, 71, 71, 0, 74, 0, 79, 0, 83],
+      [81, 81, 0, 84, 0, 88, 0, 84, 86, 86, 0, 84, 0, 81, 0, 79],
+      [77, 0, 76, 0, 74, 0, 72, 0, 71, 0, 72, 0, 74, 0, 76, 0],
+    ),
+    leadWave: "square",
+    leadLen: 1.3,
+    double: { from: 64, to: 128, shift: -12, wave: "sawtooth" },
+    bass: bars(
+      [33, 0, 33, 0, 45, 0, 33, 0, 33, 0, 33, 0, 45, 0, 33, 0],
+      [31, 0, 31, 0, 43, 0, 31, 0, 31, 0, 31, 0, 43, 0, 31, 0],
+      [29, 0, 29, 0, 41, 0, 29, 0, 29, 0, 29, 0, 41, 0, 29, 0],
+      [28, 0, 28, 0, 40, 0, 28, 0, 28, 0, 28, 0, 40, 0, 28, 0],
+      [33, 0, 33, 0, 45, 0, 33, 0, 33, 0, 33, 0, 45, 0, 33, 0],
+      [31, 0, 31, 0, 43, 0, 31, 0, 31, 0, 31, 0, 43, 0, 31, 0],
+      [29, 0, 29, 0, 41, 0, 29, 0, 29, 0, 29, 0, 41, 0, 29, 0],
+      [28, 0, 28, 0, 40, 0, 28, 0, 28, 0, 40, 0, 28, 0, 40, 0],
+    ),
+    bassWave: "sawtooth",
+    bassLen: 1.5,
+    kick: "x...x...x...x...",
+    snare: "....x.......x...",
+    hat: "..x...x...x...x.",
+    gags: {},
+  },
 };
 
 export class AudioBus {
@@ -597,6 +752,12 @@ export class AudioBus {
   glint() {
     [2093, 3136].forEach((f, i) => this.blip(f, 0.07, "sine", 0.05, undefined, i * 0.06));
   }
+  /** A housekeeping cart's loose wheels: a burst of band-passed noise and three clatters. */
+  rattle() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    this.hit(this.ctx.currentTime, 0.25, 0.12, 900, "bandpass", this.sfxGain);
+    for (const i of [0, 1, 2]) this.blip(420 - i * 60, 0.04, "square", 0.05, undefined, i * 0.06);
+  }
   slip() {
     this.blip(920, 0.26, "sine", 0.12, 260);
   }
@@ -780,7 +941,7 @@ export class AudioBus {
       if (s.bass[i]) this.tone(midi(s.bass[i]), t, step * s.bassLen, s.bassWave, 0.08, bus);
       const k = i % 16;
       if (s.kick[k] === "x") this.tone(140, t, 0.12, "sine", 0.16, bus, 45);
-      if (s.snare[k] === "x") this.hit(t, 0.08, 0.07, 1800, "bandpass", bus);
+      if (s.snare[k] === "x") this.hit(t, 0.08, s.snareGain ?? 0.07, 1800, "bandpass", bus);
       if (s.hat[k] === "x") this.hit(t, 0.03, 0.025, 7000, "highpass", bus);
       const gag = s.gags[i];
       if (gag) this.gag(gag, t, bus);

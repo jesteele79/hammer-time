@@ -3,7 +3,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { SONGS, AudioBus } from "../src/game/audio.ts";
-import { musicFor } from "../src/render/sound.ts";
+import { CUES, musicFor, questMusic } from "../src/render/sound.ts";
+import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
+import { TOWER } from "../src/sim/levels/tower.ts";
 import { LOBBY } from "../src/sim/levels/lobby.ts";
 import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
 import { CAMPUS } from "../src/sim/levels/campus.ts";
@@ -11,7 +13,7 @@ import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
 import { STASH } from "../src/sim/levels/stash.ts";
 import { SAT } from "../src/sim/levels/sat.ts";
 
-const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate"];
+const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate", "lobby-night", "lounge", "tower", "hallway", "suite"];
 test("every place has a song in the side quests' form", () => {
   assert.deepEqual(Object.keys(SONGS).sort(), [...IDS].sort());
   for (const id of IDS) {
@@ -20,6 +22,29 @@ test("every place has a song in the side quests' form", () => {
     assert.ok(s.lead.length % 16 === 0 && s.bass.length % 16 === 0, `${id} bars`);
     assert.ok(s.kick.length === s.snare.length && s.hat.length === s.kick.length, `${id} drum rows`);
   }
+});
+test("the night's songs: each level names its own, the elevator chimes through the tower every bar, the climb goes up a step a bar, the lounge's quest plays its piano", () => {
+  assert.deepEqual([LOBBY_NIGHT, TOWER].map((l) => l.music), ["lobby-night", "tower"]);
+  const chimes = Object.entries(SONGS.tower.gags).filter(([, g]) => g === "chime").map(([k]) => Number(k));
+  assert.ok(chimes.length >= 2 && chimes.every((k) => k % 16 === 0), "the elevator");
+  assert.equal(SONGS.tower.lead.length, 14 * 16, "fourteen bars");
+  const first = (bar) => SONGS.tower.lead[bar * 16];
+  for (let bar = 1; bar < 14; bar++) assert.ok(first(bar) > first(bar - 1), `bar ${bar} climbs`);
+  assert.equal(questMusic({ id: "hungry", menu: "lounge", time: 0 }).theme, "lounge");
+  assert.equal(questMusic({ id: "hungry", menu: "banquet", time: 0 }).theme, "banquet");
+  assert.equal(SONGS.lounge.kick + SONGS.lounge.snare + SONGS.lounge.hat, ".".repeat(48), "no drums at the piano");
+  assert.ok(SONGS.lounge.double, "two hands");
+  assert.ok(SONGS.hallway.bass.some(Boolean) && SONGS.hallway.lead.slice(0, 48).every((n) => n === 0), "the hum, and a note only every fourth bar");
+  assert.equal(SONGS.suite.kick, "x...x...x...x...", "four on the floor");
+});
+test("the night's cues: the keycard's chime, the tier's fanfare, the chute's slide, her carts' rattle, the torch's glint, the stun's bump", () => {
+  assert.ok(CUES.keycard.includes("chime"));
+  assert.ok(CUES.tier.includes("fanfare"));
+  assert.ok(CUES.chute.includes("slide"));
+  assert.ok(CUES.bossWave.includes("rattle"));
+  assert.ok(CUES.flash.includes("glint"));
+  assert.ok(CUES.stunned.includes("bump"));
+  assert.equal(typeof new AudioBus().rattle, "function");
 });
 test("every level names its song; the boarding chime comes every eight bars at SAT", () => {
   assert.deepEqual([LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, STASH, SAT].map((l) => l.music), ["lobby", "restaurant", "campus", "arena", "cellar", "sat"]);
