@@ -10,7 +10,7 @@ export type Crate = {
   id: string;
   kind: CrateKind;
   /** Drawn as something of the place: the tower's ice machine, its hose cabinet. */
-  look?: "ice" | "cabinet";
+  look?: "ice" | "cabinet" | "bin";
   x: number;
   y: number;
   used: boolean;

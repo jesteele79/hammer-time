@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 const flag = (v: unknown): true | undefined => (v === true || v === 1 || v === "1" ? true : undefined);
-const LEVELS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite"] as const;
+const LEVELS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight"] as const;
 type LevelChoice = (typeof LEVELS)[number];
 /** `&level=` (or the old `&venue=`) starts that level fresh, for the checks. */
 const levelOf = (v: unknown): LevelChoice | undefined => ((LEVELS as readonly unknown[]).includes(v) ? (v as LevelChoice) : undefined);

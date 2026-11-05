@@ -10,6 +10,7 @@ import { Diner } from "./quests/diner";
 const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; size: number }> = {
   supervisor: { person: "housekeeper-1", recolor: "#1f2c4d", size: 1.05 },
   titanium: { person: "titanium", recolor: null, size: 1 },
+  purser: { person: "purser", recolor: null, size: 1 },
 };
 
 /** A boss standing in the level: their painting (or stand-in), posed by their state, always behind him. */

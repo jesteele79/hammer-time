@@ -4,7 +4,7 @@ import type { Level } from "./level";
 import type { HeroState, Stage } from "./types";
 
 /** The hall's numbers: how fast he sidesteps, how the carts cross it, how a door's handle warns and its leaf stands open. */
-export const HALL = { strafe: 2, cartSpeed: 2.4, wall: 1.5, cartReach: 90, cartLane: 0.6, handle: 0.5, open: 1.5, leaf: 0.3, leafMargin: 20, swing: 0.5 } as const;
+export const HALL = { strafe: 2, cartSpeed: 2.4, wall: 1.5, cartReach: 90, cartLane: 0.6, handle: 0.5, open: 1.5, leaf: 0.3, leafMargin: 20, swing: 0.5, laneEase: 0.18 } as const;
 /** How far ahead of the end of a swing the key door's reader answers it. */
 export const KEY_REACH = 136;
 
@@ -17,8 +17,20 @@ export type HallDoor = { z: number; side: 1 | -1; every: number; next: number; t
 export const createHallCarts = (level: Pick<Level, "hallCarts">): HallCart[] => (level.hallCarts ?? []).map((c) => ({ z: c.z, side: c.side, every: c.every, next: c.at, t: 0, live: false, lx: c.side * HALL.wall, dir: (c.side > 0 ? -1 : 1) as 1 | -1, struck: false }));
 export const createHallDoors = (level: Pick<Level, "hallDoors">): HallDoor[] => (level.hallDoors ?? []).map((d) => ({ z: d.z, side: d.side, every: d.every, next: d.at, t: 0, phase: "shut" as const, open: 0 }));
 
-/** His sidestep this step, clamped to the walls' reach; standing still leaves him where he is. */
-export function stepLateral(h: Pick<HeroState, "lx">, strafe: number, dt: number, hall: NonNullable<Stage["hall"]>): void {
+/**
+ * His sidestep this step, clamped to the walls' reach; standing still leaves him where he is. With snapped lanes a press
+ * moves him one lane, a held key no further, and he eases there at a lane's width in `laneEase` s.
+ */
+export function stepLateral(h: Pick<HeroState, "lx" | "lane" | "laneHeld">, strafe: number, dt: number, hall: NonNullable<Stage["hall"]>): void {
+  const lanes = hall.lanes;
+  if (lanes) {
+    if (strafe && strafe !== h.laneHeld) h.lane = Math.max(0, Math.min(lanes.length - 1, h.lane + strafe));
+    h.laneHeld = strafe;
+    const want = lanes[h.lane];
+    const most = (Math.abs(lanes[1] - lanes[0]) * dt) / HALL.laneEase;
+    h.lx += Math.max(-most, Math.min(most, want - h.lx));
+    return;
+  }
   if (!strafe) return;
   const most = hall.width / 2 - hall.keep;
   h.lx = Math.max(-most, Math.min(most, h.lx + strafe * HALL.strafe * dt));

@@ -6,10 +6,13 @@ import type { Move } from "./moves";
 import type { Pig } from "./pig";
 import type { HeatZone, SwingDoor } from "./hazards";
 import type { Puddle, Snot } from "./snot";
+import type { FlightState } from "./flight";
 import type { HallCart, HallDoor } from "./hall";
 
 /** The 3D sets a level can stand in (src/render/3d/sets.ts). */
 export type SetName = "hallway" | "cabin";
+/** `lanes`: snapped places across it in place of free width (a tap moves him one); `run`: he always moves forward; `pace`: his speed against the 2D levels'. */
+export type HallSpec = { width: number; keep: number; set: SetName; lanes?: number[]; run?: boolean; pace?: number };
 import type { Sample } from "./samples";
 
 export type Point = { x: number; y: number };
@@ -32,7 +35,7 @@ export type Stage = {
   /** Flat-tops and the walk-in: heat on or off a second while he stands in one (R3). */
   heat?: HeatZone[];
   /** A hall under the chase camera: its width in meters, how near a wall he may stand, and the 3D set it is drawn in. */
-  hall?: { width: number; keep: number; set: SetName };
+  hall?: HallSpec;
 };
 
 /** What a cart carries: the lobby's cases, a busser's dirty dishes, or the dock's trash. */
@@ -44,6 +47,9 @@ export type HeroMotion = "idle" | "walk" | "run" | "jump" | "fall" | "land" | "c
 export type HeroState = {
   /** Meters across a hall from its middle, + his right. */
   lx: number;
+  /** Which of a hall's snapped lanes he is in or going to, and the sideways key that moved him there, until it is let go. */
+  lane: number;
+  laneHeld: number;
   x: number;
   y: number;
   w: number;
@@ -124,4 +130,4 @@ export type Target = {
   spilled: boolean;
 };
 
-export type Snapshot = { hallCarts: HallCart[]; hallDoors: HallDoor[]; time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null };
+export type Snapshot = { flight: FlightState | null; hallCarts: HallCart[]; hallDoors: HallDoor[]; time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null };

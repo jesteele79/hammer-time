@@ -2,7 +2,8 @@ import type { SongId } from "../game/audio";
 import type { HeatZone } from "./hazards";
 import type { QuestId } from "./quests/quest";
 import type { MoverSpec } from "./movers";
-import type { CartLoad, FloorSegment, Pass, Platform, Point, Rect, SetName, Stage } from "./types";
+import type { PickupKind } from "./rewards";
+import type { CartLoad, FloorSegment, HallSpec, Pass, Platform, Point, Rect, Stage } from "./types";
 
 export type { CartLoad };
 
@@ -39,7 +40,7 @@ export type LevelFloor = FloorSegment & { kind: FloorKind };
 export type LevelPlatform = Platform & { kind: PlatformKind; bounce?: number };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
-export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" };
+export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" | "bin" };
 export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest" | "gate";
 /**
  * `closed` doors say what opens them; a `quest` door opens a side quest once a shift (the BUFFET's banquet, R4 §7); a
@@ -107,7 +108,7 @@ export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]
  * A level's boss: the gift shop's pig (where it sleeps and the arena he is held in once it wakes, R3 §3.3, §5.1), the
  * tower's supervisor (where she stands, her flight's top and foot, `y` her landing).
  */
-export type BossSpec = { kind: "pig" | "supervisor" | "titanium"; x: number; arena: [number, number]; y?: number; room?: number };
+export type BossSpec = { kind: "pig" | "supervisor" | "titanium" | "purser"; x: number; arena: [number, number]; y?: number; room?: number };
 /** Drawn only: what he collides with is in the floors, platforms, solids and passes. */
 export type Furniture = { kind: FurnitureKind; x: number; y: number; w: number; h: number };
 /** `follow: "up"`: a tall level's climb: no look-ahead, the floor line kept as he rises. */
@@ -132,7 +133,9 @@ export type CastPerson =
   | "bartender-1"
   | "guard-1"
   | "titanium"
-  | "housekeeper-1";
+  | "housekeeper-1"
+  | "purser"
+  | "attendant-1";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
@@ -160,7 +163,8 @@ export type CastSpawn = {
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
-export type CastTrick = "water" | "replyAll" | "wander";
+/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, takes no part. */
+export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated";
 export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
@@ -174,6 +178,14 @@ export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: 
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
 export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway" | "suite" | "flight" | "paris" | "train";
+/** The cabin's numbers (story spec §9.1): the drinks cart, the turbulence, the reclined seats, the legs and the tablet by row. */
+export type FlightSpec = {
+  cart: { first: number; every: number; speed: number; shove: number };
+  turbulence: { first: number; every: number; warn: number; fall: number; sign: number; bagEvery: number };
+  recliners: { row: number; lane: 0 | 2 }[];
+  legs: number[];
+  tablet: { row: number };
+};
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
@@ -228,8 +240,14 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   keycards?: Point[];
   /** A tall level (the tower): how far apart its floors stand; the HUD reads the floor he is on. */
   floors?: { every: number };
-  /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand, the 3D set it is drawn in. */
-  hall?: { width: number; keep: number; set: SetName };
+  /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand, the 3D set it is drawn in, its lanes. */
+  hall?: HallSpec;
+  /** The cabin's cart, turbulence and rows (story spec §9.1). */
+  flight?: FlightSpec;
+  /** Reaching it with the boss down sits him and ends the level. */
+  seat?: { x: number };
+  /** What he thinks as he takes a pickup of this kind in this level: the first time each. */
+  pickupThoughts?: Partial<Record<PickupKind, string>>;
   /** A level of rooms (the suite): a painted wall each, the camera on the room the boss is in. */
   rooms?: { id: string; x0: number; x1: number }[];
   /** Housekeeping carts rolling across it from the door at `z` meters, on `side`: first at `at` s, then every `every`. */

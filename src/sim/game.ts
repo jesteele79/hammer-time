@@ -12,6 +12,7 @@ import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { PIG, createPig } from "./pig";
+import { createFlight, stepFlight } from "./flight";
 import { createHallCarts, createHallDoors, KEY_REACH } from "./hall";
 import { TITANIUM } from "./titanium";
 import { collectPickups, dropPickup, keycardsOf, laneRewards, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
@@ -101,6 +102,8 @@ export type Game = {
   newQuest(seed: number, id?: QuestId): void;
   /** Continue on a door's tally: what he ate comes home with him, and he stands at the door (R4 §7). */
   finishQuest(): void;
+  /** The checks' levers on a level's clocks. */
+  dev: { turbulence(): void; cart(): void };
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
@@ -188,7 +191,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let feetFrom = 0;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   /** Keys held through a card down a hall: not a step until they are let go. */
-  const heldThrough = { up: false, down: false };
+  const heldThrough = { up: false, down: false, side: false };
   /** How many times the mallet has met 1417's reader this life. */
   let keyHits = 0;
   let onSlip: unknown = null;
@@ -223,6 +226,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     snapshot: null,
     continueStory,
     levelScore: () => game.run.score - scoreAtCard,
+    dev: {
+      turbulence() {
+        if (world.flight) world.flight.nextTurb = world.flight.turbT;
+      },
+      cart() {
+        if (world.flight) world.flight.cart.next = world.flight.cart.t;
+      },
+    },
     titleT: 0,
     runs: 0,
     titleStep,
@@ -274,6 +285,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.boss = level.boss && level.boss.kind !== "pig" ? createBoss(level.boss, level.boss.y ?? 0) : null;
     world.hallCarts = createHallCarts(level);
     world.hallDoors = createHallDoors(level);
+    world.flight = createFlight(level, game.run.seed);
     keyHits = 0;
     world.hero.lx = 0;
     world.zone = null;
@@ -549,6 +561,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function take(kind: PickupKind, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
+    const line = game.level.pickupThoughts?.[kind];
+    if (line && !thought.has(`${game.level.id}:pickup:${kind}`)) {
+      thought.add(`${game.level.id}:pickup:${kind}`);
+      ev.push({ type: "think", text: line, seconds: THINK.seconds });
+    }
     if (kind === "keycard") takeKeycard(ev);
     else if (kind === "can") h.heat = Math.max(0, h.heat - addCans(run, 1, ev));
     else if (kind === "nuts") {
@@ -587,13 +604,14 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const ctx = { patience: h.patience, star: game.run.star > 0, hot: h.hot };
     const hit = (c: Crate, how: CrateHit) => hitCrate(c, how, ctx, out);
     const live = game.crates.filter((c) => !c.broken);
+    const mallet = live.filter((c) => c.look !== "bin");
     for (const e of world.events) {
       if (e.type === "bump") {
         const c = live.find((k) => near(e, crateRect(k), 1));
         if (c) hit(c, "bump");
       } else if (e.type === "burst") {
         // The slam shakes everything over the floor within its reach, crates hung at head-bump height included.
-        for (const c of live) if (Math.abs(c.x - e.x) <= BURST_R && e.y - c.y <= SMASH_UP && c.y <= e.y + 1) hit(c, "burst");
+        for (const c of mallet) if (Math.abs(c.x - e.x) <= BURST_R && e.y - c.y <= SMASH_UP && c.y <= e.y + 1) hit(c, "burst");
       }
     }
     if (h.move !== swingMove) {
@@ -603,7 +621,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     const bell = game.level.furniture.find((f) => f.kind === "bell");
     for (const p of world.swing) {
-      for (const c of live)
+      for (const c of mallet)
         // A crate still locked from a bump does not spend the swing: it keeps trying until the lock ends.
         if (!swingHit.has(c.id) && near(p, crateRect(c), MALLET_R) && hit(c, "mallet")) swingHit.add(c.id);
       if (bell && !bellRung && near(p, bell, MALLET_R)) {
@@ -873,7 +891,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     thinkFrom = h.x;
     towerTraps(ev);
     feetFrom = h.y;
+    if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
+    if (takeSeat(ev)) return;
     if (titaniumStep(ev)) return;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
@@ -989,6 +1009,19 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
   }
 
+  /** The level ends at a seat, once the boss standing before it is down: he sits, and the level walks off. */
+  function takeSeat(ev: GameEvent[]): boolean {
+    const seat = game.level.seat;
+    const h = world.hero;
+    if (!seat || h.x < seat.x || (world.boss && world.boss.state !== "down")) return false;
+    world.hits = [];
+    h.vx = 0;
+    ev.push({ type: "sit", x: h.x, y: h.y });
+    ev.push({ type: "exit" });
+    setMode("walkoff", ev, RUN.walkoffT);
+    return true;
+  }
+
   /** The mallet on 1417's reader: it fails, and fails, and on the last swing the door gives. True once the level is ending. */
   function keyDoor(ev: GameEvent[]): boolean {
     const key = game.level.keyDoor;
@@ -1012,15 +1045,27 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** A hall's keys as the sim's: W forward, S back, A and D his sidestep, and no slide; a key held through a card is not a step. */
   function hallInput(given: Input): Input {
     const { held, pressed } = given;
+    const side = held.left || held.right;
     if (game.mode !== "play") {
       heldThrough.up = held.up;
       heldThrough.down = held.down;
+      heldThrough.side = side;
     } else {
       if (!held.up) heldThrough.up = false;
       if (!held.down) heldThrough.down = false;
+      if (!side) heldThrough.side = false;
     }
     const forward = held.up && !heldThrough.up;
     const back = held.down && !heldThrough.down;
+    // The cabin is a run: forward without a key, W the sprint, ↓ under the seats, and only the cart moves him back.
+    if (game.level.hall?.run) {
+      const crouched = back && !forward;
+      return {
+        held: { ...held, right: true, left: false, up: false, down: back, run: forward && !crouched },
+        pressed: { ...pressed, right: false, left: false, up: false, down: pressed.down && back },
+        strafe: heldThrough.side ? 0 : (((held.right ? 1 : 0) - (held.left ? 1 : 0)) as -1 | 0 | 1),
+      };
+    }
     return {
       held: { ...held, right: forward, left: back, down: false, up: false },
       pressed: { ...pressed, right: pressed.up && forward, left: pressed.down && back, down: false, up: false },

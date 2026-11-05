@@ -30,6 +30,7 @@ import { CAMPUS } from "../sim/levels/campus";
 import { GIFTSHOP } from "../sim/levels/giftshop";
 import { SAT } from "../sim/levels/sat";
 import { LOBBY_NIGHT } from "../sim/levels/lobby-night";
+import { FLIGHT } from "../sim/levels/flight";
 import { HALLWAY } from "../sim/levels/hallway";
 import { SUITE } from "../sim/levels/suite";
 import { TOWER } from "../sim/levels/tower";
@@ -98,7 +99,7 @@ const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** How far past a room's walls the camera may see, and how much of the view is kept round him if he has left the room. */
 const ROOM_MARGIN = 200;
 const ROOM_KEEP = 0.8;
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE].map((l) => [l.id, l]));
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */

@@ -75,6 +75,8 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   // Lifetime Titanium guy: a navy suit, a pale shirt, a lanyard (his stand-in is the fallback only).
   titanium: { height: 350, head: 0.22, build: 1.1, skin: "#e8bf9c", hair: "#7a6a5a", hairStyle: "short", top: "#1f2c4d", sleeves: "top", tie: "#9cc4ec", bottom: "#1f2c4d", shoes: "#5a3a1e", lanyard: true },
   // The tower's housekeeper: a grey uniform and a feather duster (her stand-in is the fallback only).
+  purser: { height: 330, head: 0.22, build: 0.95, skin: "#e2b48f", hair: "#3b2a22", hairStyle: "bun", top: "#1b2748", sleeves: "top", tie: "#b8282e", bottom: "#1b2748", shoes: "#141414" },
+  "attendant-1": { height: 320, head: 0.22, build: 0.85, skin: "#ebc9a9", hair: "#2a1d16", hairStyle: "ponytail", top: "#f4f3ee", sleeves: "skin", vest: "#1b2748", bottom: "#1b2748", shoes: "#141414" },
   "housekeeper-1": { height: 310, head: 0.22, build: 0.95, skin: "#d9a98b", hair: "#9a9a9a", hairStyle: "bun", top: "#7d8087", sleeves: "top", apron: true, bottom: "#7d8087", shoes: "#141414" },
   // The night's guard: navy and a flashlight (his stand-in is the fallback only).
   "guard-1": { height: 340, head: 0.22, build: 1.1, skin: "#d7a27a", hair: "#1c1612", hairStyle: "short", top: "#1f2c4d", sleeves: "top", bottom: "#141a2c", shoes: "#141414", mustache: true },

@@ -5,11 +5,11 @@ import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
 import type { HeroState, Point, Stage } from "./types";
 
-export type MissileKind = "plane" | "coffee" | "pan" | "coaster" | "water" | "apple" | "bottle";
+export type MissileKind = "plane" | "coffee" | "pan" | "coaster" | "water" | "apple" | "bottle" | "bag";
 /** What flies like a paper plane (held up while fast, swatted for points): the plane, and the bartender's coaster. */
 export const flies = (kind: MissileKind): boolean => kind === "plane" || kind === "coaster";
 /** Something thrown at him: `phase` seeds a plane's wobble, `from` is the thrower. */
-export type Missile = { lx?: number; gravity?: number; batted?: boolean; id: number; kind: MissileKind; x: number; y: number; vx: number; vy: number; spin: number; life: number; phase: number; from: number };
+export type Missile = { lx?: number; gravity?: number; batted?: boolean; landed?: boolean; id: number; kind: MissileKind; x: number; y: number; vx: number; vy: number; spin: number; life: number; phase: number; from: number };
 
 /** A paper plane: launched level, held up by lift while it is fast, dipping as drag bleeds the speed. */
 export const PLANE = { speed: 520, gravity: 900, lift: 900 / (520 * 520), drag: 0.35, life: 2.4, r: 22, wobble: 40, aimUp: -150, aimDown: 250, hand: 0.75 } as const;
@@ -87,13 +87,21 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       w.hits.push(m.x);
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y: m.y, floor: false, hero: true });
-      if (!flies(m.kind) && m.kind !== "apple") puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y, SPILLED[m.kind] ?? "coffee");
+      if (!flies(m.kind) && m.kind !== "apple" && m.kind !== "bag") puddleAt(w, h.x, floorAt(w.stage, h.x, h.y - 24) ?? h.y, SPILLED[m.kind] ?? "coffee");
       continue;
     }
     const floor = floorAt(w.stage, m.x, a.y);
     const onFloor = floor !== null && m.y >= floor;
     const plat = w.stage.platforms.find((p) => m.x >= p.x0 && m.x <= p.x1 && a.y <= p.y && m.y >= p.y);
     const wall = [...w.stage.solids, ...w.stage.passes].find((s) => overlapsRect({ x: m.x - r, y: m.y - r, w: 2 * r, h: 2 * r }, s));
+    // A bag lies in its lane a moment, where it can still be walked into; it leaves nothing on the floor.
+    if (m.kind === "bag" && onFloor) {
+      m.y = floor!;
+      m.vy = 0;
+      if (!m.landed) events.push({ type: "missileHit", kind: m.kind, x: m.x, y: m.y, floor: true, hero: false });
+      m.landed = true;
+      continue;
+    }
     if (onFloor || plat || wall) {
       m.life = 0;
       const y = onFloor ? floor! : plat ? plat.y : m.y;

@@ -34,7 +34,7 @@ export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart
 
 export type CastJob = CastJobName;
 /** The people whose painting's name is their whole job, with no number. */
-const JOBS_WHOLE: readonly string[] = ["nurse"];
+const JOBS_WHOLE: readonly string[] = ["nurse", "purser"];
 /** Who a person is: the painting's name less its number ("cook-1" is a cook). */
 export const jobOf = (p: CastPerson): CastJob => (JOBS_WHOLE.includes(p) ? p : p.slice(0, -2)) as CastJob;
 /** Which of the lobby's four fights each job fights (R3 §4). */
@@ -57,6 +57,9 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   housekeeper: "bellhop",
   // A guest on the fourteenth floor, in her scrubs: she wanders as the drunk guest does.
   nurse: "office",
+  // The cabin's crew walk their aisle as the guests do; the purser is a boss, and this is only her painting's job.
+  attendant: "office",
+  purser: "office",
 };
 /** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
 export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };
@@ -239,7 +242,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       trick: s.trick ?? null,
       rng: s.trick ? seededRandom((seed + Math.imul(k + 1, 7919)) >>> 0) : null,
       replied: false,
-      maxHits: CAST_HITS[job] ?? c.hits,
+      maxHits: s.trick === "queue" ? 1 : (CAST_HITS[job] ?? c.hits),
     };
   });
 }
@@ -266,7 +269,7 @@ const STANDING: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice
 export const standing = (n: Npc): boolean => n.alive && STANDING.has(n.act);
 const UNHITTABLE: ReadonlySet<CastAct> = new Set<CastAct>(["fly", "slide", "leave", "flee", "getup", "slip", "hide"]);
 /** Can be hit now: alive, not flying, sliding, leaving, fleeing, getting up, slipping or hidden; a downed one only while he will get up again (the bellhop's first hit). */
-export const hittable = (n: Npc): boolean => n.alive && !UNHITTABLE.has(n.act) && !(n.out && n.act === "down");
+export const hittable = (n: Npc): boolean => n.alive && n.trick !== "seated" && !UNHITTABLE.has(n.act) && !(n.out && n.act === "down");
 
 export type StrikeWorld = { puddles: Puddle[]; stage: Stage };
 /** The hits that throw hard: the spec's staff knockback. */

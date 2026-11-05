@@ -155,7 +155,7 @@ export const CAST_LINES = {
 } as const;
 
 
-export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper";
+export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -221,6 +221,9 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
     ambush: none,
     frozen: "Fascinating. Go on.",
   },
+  // The cabin's crew (story spec §9.1): what they say is the flight's own; a bump is the one line more.
+  attendant: { notice: none, bump: ["Sir, you need to return to your seat."], down: ["Sir."], fall: "Siiir", shove: none, warn: ["Sir, the seatbelt sign is on."], skid: none, march: none, ambush: none, frozen: "Sir." },
+  purser: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
   // SAT's people (story spec §6.2).
   skycap: {
     notice: ["Checking bags, sir?", "Skycap, sir?"],

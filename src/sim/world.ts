@@ -4,6 +4,7 @@ import { STEP } from "./constants";
 import { damage } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
+import type { FlightState } from "./flight";
 import { stepHall, stepLateral, type HallCart, type HallDoor } from "./hall";
 import { superBurst, swingContact } from "./hits";
 import { emptyInput, type Input } from "./input";
@@ -54,6 +55,8 @@ export type World = {
   movers: Mover[];
   /** The boss beside the pig: the tower's supervisor. */
   boss: Boss | null;
+  /** The cabin's cart, turbulence and sign; null off a flight. */
+  flight: FlightState | null;
   /** The hall's carts and doors. */
   hallCarts: HallCart[];
   hallDoors: HallDoor[];
@@ -88,6 +91,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     pig: opts.pig ?? null,
     movers: [],
     boss: null,
+    flight: null,
     hallCarts: [],
     hallDoors: [],
     still: false,
@@ -153,6 +157,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         pig: world.pig && { ...world.pig, arena: [world.pig.arena[0], world.pig.arena[1]] },
         movers: world.movers.map((m) => ({ ...m, top: { ...m.top } })),
         boss: world.boss && { ...world.boss },
+        flight: world.flight && { ...world.flight, cart: { ...world.flight.cart } },
         hallCarts: world.hallCarts.map((c) => ({ ...c })),
         hallDoors: world.hallDoors.map((d) => ({ ...d })),
       };

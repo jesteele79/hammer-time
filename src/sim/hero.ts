@@ -38,6 +38,8 @@ export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
     lx: 0,
     x: spawn.x,
     y: spawn.y,
+    lane: 1,
+    laneHeld: 0,
     w: HERO_W,
     h: HERO_H,
     vx: 0,
@@ -122,7 +124,7 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   } else {
     // Boiled over he cannot run until he cools; hotter, he is slower either way.
     const running = held.run && !h.boiled;
-    const cap = h.crouch ? CROUCH_WALK : (running ? RUN : WALK) * tiredFactor(h.heat);
+    const cap = (h.crouch ? CROUCH_WALK : (running ? RUN : WALK) * tiredFactor(h.heat)) * (stage.hall?.pace ?? 1);
     if (dir !== 0 && Math.abs(h.vx) <= cap) {
       h.vx = approach(h.vx, dir * cap, (h.onGround ? ACCEL_GROUND : ACCEL_AIR) * dt);
     } else if (h.onGround) {

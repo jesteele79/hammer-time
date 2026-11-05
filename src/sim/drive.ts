@@ -2,8 +2,10 @@ import { TITANIUM } from "./titanium";
 import { ROLLING, hittable, npcRect, standing } from "./cast";
 import { attacking } from "./cast-behavior";
 import { overlapsRect } from "./geometry";
+import { STEP } from "./constants";
 import { emptyInput, type Input } from "./input";
 import { stageOf, type Level } from "./level";
+import { rowX } from "./levels/flight";
 import { lectureReach } from "./moves";
 import { floorAt } from "./physics";
 import { PIG } from "./pig";
@@ -22,10 +24,11 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
   if (route === "hall") return hallway(level, h, i, world);
+  if (route === "flight") return flying(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   if (world && fightTitanium(world, h, i)) return i;
@@ -116,6 +119,44 @@ function hallway(level: Level, h: HeroState, i: Input, world?: World): Input {
   else if (!h.onGround) i.held.jump = true;
   const staff = world.cast.some((n) => n.alive && hittable(n) && ahead(n.x, HALL_DRIVE.staff) && Math.abs(n.lx - h.lx) <= HALL_DRIVE.lane);
   if (staff && !h.move) i.held.hammer = i.pressed.hammer = true;
+  return i;
+}
+
+/** How the flyer looks ahead, in px: at a cart, a seat or a leg, a bag, and how near someone it swings. */
+const FLY = { cart: 280, seat: 150, legs: 100, bag: 240, staff: 240, towel: 75 } as const;
+/**
+ * The flyer: W down the aisle, into a row lane as a cart comes and back, ↓ under a reclined seat in its lane, a jump over
+ * legs, out of a lane a bag is in, the mallet at whoever stands in its way, and at the purser to a row lane while her cart is
+ * out and back to bonk her in her rest.
+ */
+function flying(level: Level, h: HeroState, i: Input, w?: World): Input {
+  i.held.up = true;
+  const f = w?.flight;
+  const spec = level.flight;
+  if (!w || !f || !spec) return i;
+  const ahead = (x: number, within: number) => x - h.x > -40 && x - h.x < within;
+  const seatIn = (lane: number) => spec.recliners.some((r) => r.lane === lane && ahead(rowX(r.row), FLY.seat * 2));
+  const boss = w.boss?.kind === "purser" && w.boss.state !== "down" ? w.boss : null;
+  const cart = f.cart.live && f.cart.z * 100 - h.x < FLY.cart + 60 && f.cart.z * 100 - h.x > -100;
+  const bagIn = (lane: number) => w.missiles.some((m) => m.kind === "bag" && m.lx === level.hall?.lanes?.[lane] && ahead(m.x, FLY.bag));
+  // Out of the aisle for a cart or her push, on the side with no seat coming; else the aisle, and out of a bag's way.
+  const pushing = !!boss && boss.awake && (boss.state === "push" || boss.timer < 0.4);
+  let want = 1;
+  if (cart || pushing) want = seatIn(0) ? 2 : 0;
+  if (bagIn(want)) want = [want, 0, 1, 2].find((l) => !bagIn(l) && !((cart || pushing) && l === 1)) ?? want;
+  // A tap, let go the next step: a key held through a card moves him nowhere until it is let go.
+  if (Math.round(w.time / STEP) % 2 === 0 && h.lane !== want) i.held[h.lane < want ? "right" : "left"] = true;
+  if (seatIn(h.lane) && spec.recliners.some((r) => r.lane === h.lane && ahead(rowX(r.row), FLY.seat))) {
+    i.held.down = true;
+    i.held.up = false;
+  }
+  const legs = h.lane === 1 && spec.legs.some((row) => ahead(rowX(row), FLY.legs));
+  if (legs && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  else if (!h.move && h.heat >= FLY.towel && !cart && !boss) i.held.towel = i.pressed.towel = true;
+  const staff = w.cast.some((n) => n.alive && hittable(n) && !n.out && ahead(n.x, FLY.staff) && Math.abs(n.lx - h.lx) <= HALL_DRIVE.lane);
+  const bonk = boss && boss.state === "rest" && h.lane === 1 && Math.abs(h.lx) < 0.2 && boss.x - h.x < FLY.staff && boss.hurtT <= 0;
+  if ((staff || bonk) && !h.move && h.onGround) i.held.hammer = i.pressed.hammer = true;
   return i;
 }
 

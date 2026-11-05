@@ -379,7 +379,8 @@ function stepOffice(n: Npc, w: CastWorld, events: GameEvent[]): void {
   if (n.trick === "replyAll" && replyAll(n, w, events)) return;
   if (n.trick === "wander") {
     // The drunk guest: never leaps, never throws, ambles toward him once he has seen him, along his stretch.
-    if (n.noticed && n.rest <= 0 && marchLevel(n, h) && Math.abs(h.x - n.x) <= c.notice) {
+    // The cabin's crew keep to their stretch of the aisle.
+    if (n.job !== "attendant" && n.noticed && n.rest <= 0 && marchLevel(n, h) && Math.abs(h.x - n.x) <= c.notice) {
       n.facing = toward(n, h);
       n.vx = n.facing * c.march;
       n.act = "walk";
@@ -548,6 +549,11 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
     default:
       break;
   }
+  // The cabin's queue and its seated travelers stand as they are, whoever comes.
+  if (n.trick === "queue" || n.trick === "seated") {
+    n.vx = 0;
+    return;
+  }
   if (notice(n, w, events)) return;
   if (n.role === "server") stepServer(n, w, events);
   else if (n.role === "office") stepOffice(n, w, events);
@@ -613,7 +619,7 @@ const LATERAL_BLAST = 1.2;
 /** Down a hall whoever has seen him closes on his lane, at a walk: within this of it they can reach him. */
 const LANE = { speed: 1, near: 0.3 } as const;
 function keepToHim(n: Npc, w: CastWorld, dt: number): void {
-  if (!w.stage.hall || !n.noticed || !hittable(n)) return;
+  if (!w.stage.hall || !n.noticed || !hittable(n) || n.job === "attendant") return;
   const gap = w.hero.lx - n.lx;
   if (Math.abs(gap) > LANE.near) n.lx += Math.sign(gap) * Math.min(LANE.speed * dt, Math.abs(gap));
 }
@@ -632,6 +638,8 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
   }
   if (!overlapsRect(bodyRect(h), npcRect(n))) return;
   const dir: 1 | -1 = toward(n, h) === 1 ? -1 : 1;
+  // The queue is a wall to him (the flight's rule), and takes no offense at it.
+  if (n.trick === "queue" && !(h.vy > 0 && prevHeroY <= n.y - n.h + STOMP.tolerance)) return;
   // Walked into by the drunk guest: pushed along, no pip, and he takes a moment.
   if (n.trick === "wander" && n.rest <= 0 && h.invuln <= 0 && !(h.vy > 0 && prevHeroY <= n.y - n.h + STOMP.tolerance)) {
     h.vx = -dir * WANDER_PUSH;

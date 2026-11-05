@@ -154,6 +154,17 @@ export type GameEvent =
   | { type: "bossWave"; x: number; y: number; n: number }
   | { type: "bossHit"; by: "bonk" | "snot"; x: number; y: number; hp: number }
   | { type: "bossDown"; x: number; y: number; points: number }
+  /** What a boss says, in a bubble at their head. */
+  | { type: "bossSay"; text: string; seconds: number }
+  /** The cabin: the drinks cart comes out, shoves him back so many rows, leaves its tray; the seatbelt chime and a bag; the kid's tablet; the curtain pulled back; he takes his seat. */
+  | { type: "cartOut" }
+  | { type: "shove"; rows: number; x: number; y: number }
+  | { type: "tray"; kind: PickupKind; x: number; y: number }
+  | { type: "seatbelt" }
+  | { type: "bagDrop"; x: number; lx: number }
+  | { type: "tablet" }
+  | { type: "curtain" }
+  | { type: "sit"; x: number; y: number }
   /** Down a laundry chute: a floor lost, and the slide's seconds. */
   | { type: "chute"; x: number; y: number }
   /** He hit a wet floor: spun back, a moment without control. */
