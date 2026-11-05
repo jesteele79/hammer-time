@@ -36,13 +36,16 @@ const heroX = () => page.evaluate(() => window.__next.hero.x);
 const screenX = () => page.evaluate(() => window.__next.heroScreenX / innerWidth);
 /** From in front of 1417: three swings of the mallet and the level is over. */
 const openTheDoor = async () => {
-  await tp(7850);
+  await tp(7790);
   await page.waitForTimeout(400);
-  for (let i = 0; i < 3 && (await page.evaluate(() => window.__next.run.mode)) === "play"; i++) {
+  for (let i = 0; i < 6 && (await page.evaluate(() => window.__next.run.events.keyOpen ?? 0)) === 0; i++) {
+    // A press while a swing is still under way is no new swing: this waits for his hands to be free.
+    await page.waitForFunction(() => !window.__next.moves.move, null, { timeout: 8000 });
     await page.keyboard.press("KeyH");
+    await page.waitForFunction((n) => (window.__next.run.events.swing ?? 0) > n, await page.evaluate(() => window.__next.run.events.swing ?? 0) - 1, { timeout: 3000 }).catch(() => undefined);
     await page.waitForTimeout(800);
-    if (i < 2) assert.equal(await page.evaluate(() => window.__next.run.events.keyFail), i + 1, `the reader fails ${i + 1}`);
   }
+  assert.equal(await page.evaluate(() => window.__next.run.events.keyFail), 2, "the reader fails twice");
   assert.equal(await page.evaluate(() => window.__next.run.events.keyOpen), 1, "the door gives on the third");
   await page.waitForFunction(() => window.__next.run.mode !== "play", null, { timeout: 8000 });
 };

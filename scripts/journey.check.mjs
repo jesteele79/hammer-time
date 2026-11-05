@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { STEP } from "../src/sim/constants.ts";
-import { STORY, ACTS, stopOf, nextOf, actOf, firstOfAct, builtStops, shiftFrom } from "../src/sim/story.ts";
+import { STORY, ACTS, STRAIGHT_BUILT, stopOf, nextOf, actOf, firstOfAct, builtStops, shiftFrom } from "../src/sim/story.ts";
 import { LOBBY } from "../src/sim/levels/lobby.ts";
 import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
 import { CAMPUS } from "../src/sim/levels/campus.ts";
@@ -340,4 +340,24 @@ test("every run is told apart for the lifetime count: a fresh run, a replay and 
   g.newRun(8, 0, { snapshot: g.snapshot });
   ids.push(g.runs);
   assert.equal(new Set(ids).size, 4, `ids ${ids}`);
+});
+
+test("Act 2's cards: the night's caption before 2-1, the suite's after 2-3, the Bonvoy review and the act card after 2-4", () => {
+  assert.deepEqual(stopOf("lobby-night").before, [{ kind: "caption", text: "11:40 pm. The same lobby." }]);
+  assert.deepEqual(stopOf("hallway").after, [{ kind: "caption", text: "The suite. Someone is in it." }]);
+  assert.deepEqual(stopOf("suite").after, [
+    { kind: "phone", app: "Marriott Bonvoy", text: "Your status has been reviewed: TITANIUM. Lifetime.", thought: "Lifetime." },
+    { kind: "act", act: "act2" },
+  ]);
+});
+test("finishing 2-4 ends the act: the next stop is 3-1, the run cleared, the act's total the sum of its four bests", () => {
+  let j = { ...newJourney(), next: "lobby-night", done: ["sat", "lobby", "restaurant", "campus", "arena"] };
+  const snapshot = { run: { score: 1 }, carry: {} };
+  for (const [id, score] of [["lobby-night", 1000], ["tower", 2000], ["hallway", 3000], ["suite", 4000]]) j = finishLevel(j, id, score, snapshot);
+  assert.equal(j.next, "flight");
+  assert.equal(j.run, null);
+  assert.equal(actTotal(j, "act2"), 10000);
+});
+test("Act 2's header offers no straight-through run in this phase", () => {
+  assert.deepEqual([...STRAIGHT_BUILT], ["act1"]);
 });

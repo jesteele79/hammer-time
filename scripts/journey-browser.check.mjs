@@ -267,7 +267,11 @@ try {
   assert.deepEqual([s.next, s.done, s.run], ["lobby-night", ["sat", "lobby", "restaurant", "campus", "arena"], null], "Act 1 done, Act 2 starts clean");
   await cardFits("act");
   await enter();
-  // 2-1 is built: Continue plays on to the lobby at night, clean; the way home from a level's card is a fresh page.
+  // 2-1 is built: Continue plays on to the lobby at night, clean, its caption first; the way home from a level's card is a fresh page.
+  await waitMode("story");
+  assert.match(await veil(), /11:40 pm\. The same lobby\./);
+  await cardFits("night-caption");
+  await enter();
   await waitMode("card");
   r = await run();
   assert.deepEqual([r.level, r.score, r.lives], ["lobby-night", 0, 3], "Act 2 starts clean");
@@ -303,6 +307,92 @@ try {
   assert.deepEqual([s.next, s.run, s.done], [before.next, before.run, before.done], "a replay moves nothing");
   assert.ok(s.best.campus >= before.best.campus, "a replay never lowers a best");
 
+  // Act 2 from its first card to its last: the keycards to Titanium, the stairs, the tower, the hall in 3D, the suite.
+  await page.evaluate((j) => localStorage.setItem("hammer-time-journey", JSON.stringify(j)), { v: 1, next: "lobby-night", done: ["sat", "lobby", "restaurant", "campus", "arena"], best: { sat: 900, lobby: 4000, restaurant: 4000, campus: 4000, arena: 4000 }, bonked: 7, run: null, carry: null, credits: false });
+  await page.goto(home);
+  await waitMode("title");
+  assert.equal((await run()).level, "lobby-night", "the home scene is the lobby at night");
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await waitMode("story");
+  assert.match(await veil(), /11:40 pm\. The same lobby\./);
+  await enter();
+  await waitMode("card");
+  assert.match(await veil(), /Front desk has you as MEMBER\. System error\./);
+  await waitMode("play");
+  for (let i = 0; i < 8; i++) {
+    await page.evaluate(() => window.__next.dev.give("keycard"));
+    await page.waitForFunction((w) => window.__next.run.keycards >= w, i + 1, { timeout: 4000 });
+  }
+  await tp(6400, 0);
+  await page.waitForTimeout(300);
+  await page.keyboard.press("ArrowDown");
+  await waitFor((x) => x.mode !== "play", 8000);
+  // Its tally, then 2-2's card with his status on it.
+  await page.waitForFunction(() => window.__next.run.level === "tower", null, { timeout: 30000 });
+  await waitMode("card");
+  text = await page.locator(".next-veil").textContent();
+  assert.ok(/2-2/.test(text) && /TITANIUM/.test(text), `2-2's card with his status: ${text}`);
+  s = await save();
+  assert.deepEqual([s.next, s.done.includes("lobby-night")], ["tower", true], "2-1 in the save");
+  await waitMode("play");
+  await page.evaluate(() => {
+    window.__next.dev.boss({ state: "down" });
+    window.__next.dev.heal();
+  });
+  await tp(240, -7020);
+  await page.keyboard.down("ArrowLeft");
+  await waitFor((x) => x.mode !== "play", 8000);
+  await page.keyboard.up("ArrowLeft");
+  await page.waitForFunction(() => window.__next.run.level === "hallway", null, { timeout: 30000 });
+  await waitMode("card");
+  assert.match(await veil(), /2-3/);
+  await waitMode("play");
+  await page.waitForFunction(() => window.__next.three?.canvas, null, { timeout: 15000 });
+  await tp(7790, 0);
+  await page.waitForTimeout(400);
+  for (let i = 0; i < 6 && (await page.evaluate(() => window.__next.run.events.keyOpen ?? 0)) === 0; i++) {
+    // A press while a swing is still under way is no new swing: this waits for his hands to be free.
+    await page.waitForFunction(() => !window.__next.moves.move, null, { timeout: 8000 });
+    await page.keyboard.press("KeyH");
+    await page.waitForFunction((n) => (window.__next.run.events.swing ?? 0) > n, await page.evaluate(() => window.__next.run.events.swing ?? 0) - 1, { timeout: 3000 }).catch(() => undefined);
+    await page.waitForTimeout(800);
+  }
+  await waitMode("story", 20000);
+  assert.match(await veil(), /The suite\. Someone is in it\./);
+  await cardFits("suite-caption");
+  await enter();
+  await waitMode("card");
+  text = await veil();
+  assert.ok(/2-4/.test(text) && /The suite/i.test(text), `2-4's card: ${text}`);
+  await waitMode("play");
+  await page.waitForTimeout(600);
+  assert.equal(await page.evaluate(() => window.__next.three?.drawing), false, "the 3D view is off in the suite");
+  await page.evaluate(() => window.__next.dev.boss({ state: "down" }));
+  await waitMode("story", 20000);
+  text = await veil();
+  assert.match(text, /TITANIUM\. Lifetime\./);
+  assert.match(text, /Lifetime\./);
+  await cardFits("bonvoy-2");
+  await enter();
+  await page.waitForFunction(() => /Status Crusade · complete/.test(document.querySelector(".next-veil__card")?.textContent ?? ""), null, { timeout: 8000 });
+  text = await veil();
+  assert.match(text, /Act 2 · Status Crusade · complete/);
+  assert.match(text, /TITANIUM/);
+  s = await save();
+  const act2 = ["lobby-night", "tower", "hallway", "suite"].reduce((t, id) => t + (s.best[id] ?? 0), 0);
+  assert.ok(text.includes(String(act2).padStart(6, "0")), `the act's total on its card: ${act2} in ${text}`);
+  assert.deepEqual([s.next, s.done.length, s.run], ["flight", 9, null], "Act 2 in the save");
+  await cardFits("act-2");
+  await enter();
+  await waitMode("title");
+  const strip2 = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, e.dataset.state])));
+  assert.equal(strip2["3-1"], "next", JSON.stringify(strip2));
+  assert.ok(await page.getByRole("button", { name: "Act 3 is coming" }).isDisabled(), "Act 3 is coming");
+  assert.equal(await page.locator(".next-strip__act[data-act='act2'] > b").textContent(), String(act2).padStart(6, "0"), "Act 2's total on its header");
+  assert.equal(await page.locator(".next-strip__act[data-act='act2'] .next-strip__straight").count(), 0, "no straight-through run on Act 2 in this phase");
+  assert.equal(await page.locator(".next-start__quest").count(), 3, "three side quests");
+  assert.equal((await run()).level, "lobby-night", "the home scene stays the lobby at night");
+
   // 7. A broken save: the start screen opens on a new journey, and nothing errs.
   await page.evaluate(() => localStorage.setItem("hammer-time-journey", "{broken"));
   await page.goto(home);
@@ -315,7 +405,7 @@ try {
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
   console.log("PASS: Clock in on a fresh journey, the cards between levels, the save at every card and exit and after a reload, Hammer down and Try again on the snapshot, Act 1's Bonvoy and act cards, a replay's Clocked out, a broken save; the cards fit three shapes clear of his face.");
 } catch (err) {
-  console.error("Journey check failure", errors);
+  console.error("Journey check failure", errors, JSON.stringify(await page?.evaluate(() => ({ run: window.__next.run, hero: window.__next.hero, moves: window.__next.moves.move })).catch(() => null)));
   await page?.screenshot({ path: resolve(out, "journey-failure.png") });
   throw err;
 } finally {

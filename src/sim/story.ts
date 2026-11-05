@@ -33,6 +33,9 @@ export const ACTS: Record<ActId, { title: string; straight: string | null; strai
   epilogue: { title: "Epilogue", straight: null, straightKey: null },
 };
 
+/** The acts whose straight-through run is built: the strip offers the button only for these (Phase 5 adds the rest). */
+export const STRAIGHT_BUILT: readonly ActId[] = ["act1"];
+
 /** The fifteen stops in the order they are played. Later phases add the other stops' cards. */
 export const STORY: readonly StoryStop[] = [
   {
@@ -56,10 +59,19 @@ export const STORY: readonly StoryStop[] = [
       { kind: "act", act: "act1" },
     ],
   },
-  { id: "lobby-night", code: "2-1", name: "The lobby at night", act: "act2" },
+  { id: "lobby-night", code: "2-1", name: "The lobby at night", act: "act2", before: [{ kind: "caption", text: "11:40 pm. The same lobby." }] },
   { id: "tower", code: "2-2", name: "The tower", act: "act2" },
-  { id: "hallway", code: "2-3", name: "The fourteenth floor", act: "act2" },
-  { id: "suite", code: "2-4", name: "The suite", act: "act2" },
+  { id: "hallway", code: "2-3", name: "The fourteenth floor", act: "act2", after: [{ kind: "caption", text: "The suite. Someone is in it." }] },
+  {
+    id: "suite",
+    code: "2-4",
+    name: "The suite",
+    act: "act2",
+    after: [
+      { kind: "phone", app: "Marriott Bonvoy", text: "Your status has been reviewed: TITANIUM. Lifetime.", thought: "Lifetime." },
+      { kind: "act", act: "act2" },
+    ],
+  },
   { id: "flight", code: "3-1", name: "Row 52", act: "act3" },
   { id: "paris", code: "3-2", name: "Paris", act: "act3" },
   { id: "train", code: "3-3", name: "The 14:02", act: "act3" },

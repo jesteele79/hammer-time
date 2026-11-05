@@ -89,7 +89,7 @@ test("a door swings open ahead after its handle turns and stops him for 1.5 s; t
   assert.ok(evs.some((e) => e.type === "hallDoor" && e.phase === "handle"));
   until(g, () => false, 0.5, { up: true });
   assert.ok(h.x < 900, `stopped by the door at ${h.x}`);
-  Object.assign(h, { x: 7850, lx: 0, onGround: true, move: null });
+  Object.assign(h, { x: 7790, lx: 0, onGround: true, move: null });
   const fails = [];
   for (let i = 0; i < 3; i++) {
     g.step(input({}, { hammer: true }));

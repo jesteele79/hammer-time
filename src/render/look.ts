@@ -1116,6 +1116,7 @@ export async function startLook(
     for (const name of LAYER_ORDER) if (name !== "fx" && name !== "play") scene.layers[name].visible = !on;
     app.renderer.background.alpha = on ? 0 : 1;
     three?.setVisible(on);
+    if (!on && window.__next?.three) window.__next.three = { ...window.__next.three, drawing: false };
     if (!on) {
       character.container.visible = true;
       cast.container.visible = props.container.visible = true;
