@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { journeyTotal, playableNext, type Journey } from "@/sim/journey";
 import type { QuestId } from "@/sim/quests/quest";
-import { ACTS, actOf, type ActId, type StoryId } from "@/sim/story";
+import { comingLabel, type ActId, type StoryId } from "@/sim/story";
 import { NextStrip } from "./next-strip";
 
 const pad = (n: number) => String(n).padStart(6, "0");
@@ -152,7 +152,7 @@ export function NextStart({
             <span>Bonk the staff. Dodge the paper.</span> <span>Get to Basel.</span>
           </p>
           <button type="button" className="next-start__go" onClick={clockIn} aria-busy={waiting} disabled={!live || coming}>
-            {coming ? `${ACTS[actOf(chosen)].title.split(" · ")[0]} is coming` : waiting ? "Getting Hammer ready…" : "Clock in"}
+            {coming ? comingLabel(chosen, built) : waiting ? "Getting Hammer ready…" : "Clock in"}
           </button>
         </div>
       </section>

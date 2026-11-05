@@ -173,7 +173,7 @@ export type ThoughtSpec = { x: number; text: string; y?: number };
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
-export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway" | "suite";
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway" | "suite" | "flight" | "paris" | "train";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
@@ -236,8 +236,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   hallCarts?: { z: number; side: 1 | -1; every: number; at: number }[];
   /** Room doors that swing out across their half of it, on the same clock. */
   hallDoors?: { z: number; side: 1 | -1; at: number; every: number }[];
-  /** The ice alcove's leak, in meters along it: a wet floor. */
-  puddle?: { z0: number; z1: number };
+  /** The ice alcove's leak, in meters along it and across it: a wet floor where it is drawn. */
+  puddle?: { z0: number; z1: number; lx0: number; lx1: number };
   /** The door the level ends at: how many swings of the mallet it takes, and what he thinks of each. */
   keyDoor?: { x: number; hits: number; fails: string[] };
   /** Carts that roll along a landing. */

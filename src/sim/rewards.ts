@@ -129,7 +129,7 @@ export function stepPickups(pickups: Pickup[], stage: Stage, dt: number): void {
     } else {
       b.vx = CRATE.slide * b.dir;
       b.vy += GRAVITY_DOWN * dt;
-      moveBody(b, stage, dt);
+      moveBody(b, stage, dt, undefined, true);
       if (b.vx === 0) b.dir = -b.dir;
     }
     p.x = b.x;

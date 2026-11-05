@@ -31,6 +31,10 @@ export type Supervisor = {
   flight: { x0: number; x1: number; y0: number; y1: number };
   /** Seconds of her flinch, for the view. */
   flinch: number;
+  /** How many carts she has sent: their ids. */
+  carts: number;
+  /** She is down and her last cart has not been sent: however the last hit landed. */
+  ride: boolean;
 };
 
 export const SUPERVISOR = { hp: 3, gap: 0.5, windup: 0.8, waves: 3, cartEvery: 4, cartSpeed: 300, cartW: 180, cartH: 150, rideSpeed: 140, points: 2500, waiting: 3, w: 100, h: 330, flinch: 0.4 } as const;
@@ -58,6 +62,8 @@ export const createSupervisor = (b: BossSpec, floor: number): Supervisor => {
     wake: y + every + 10,
     flight: { x0: b.arena[0], x1: b.arena[1], y0: y, y1: y + every },
     flinch: 0,
+    carts: 0,
+    ride: false,
   };
 };
 
@@ -65,16 +71,22 @@ export const supervisorRect = (s: Supervisor): Rect => ({ x: s.x - s.w / 2, y: s
 
 export type SupervisorWorld = { hero: HeroState; movers: Mover[]; stage: Stage; swing: Point[] };
 
-let carts = 0;
 function sendCart(s: Supervisor, w: SupervisorWorld, speed: number, dir: 1 | -1, once: boolean): void {
   const { x0, x1, y0, y1 } = s.flight;
   const at = dir > 0 ? x0 + 60 : x1 - 60;
-  const m = createMover({ id: `wave-${++carts}`, x: at, y: y0 + ((y1 - y0) * (at - x0)) / (x1 - x0), x0: x0 + 40, x1: once ? x1 + 170 : x1 - 40, w: SUPERVISOR.cartW, h: SUPERVISOR.cartH, speed });
+  const m = createMover({ id: `wave-${++s.carts}`, x: at, y: y0 + ((y1 - y0) * (at - x0)) / (x1 - x0), x0: x0 + 40, x1: once ? x1 + 170 : x1 - 40, w: SUPERVISOR.cartW, h: SUPERVISOR.cartH, speed });
   m.dir = dir;
   m.onSlope = { x0, x1, y0, y1 };
   m.once = once;
   w.movers.push(m);
   w.stage.platforms = [...w.stage.platforms, m.top];
+}
+
+/** The cart is his to ride up the flight, once. */
+function sendRide(s: Supervisor, w: SupervisorWorld): void {
+  if (!s.ride) return;
+  s.ride = false;
+  sendCart(s, w, SUPERVISOR.rideSpeed, -1, false);
 }
 
 /** A hit on her: only while she waits between her waves, one in half a second; at the last she goes down and her last cart is his to ride. */
@@ -86,6 +98,7 @@ export function hitSupervisor(s: Supervisor, by: "bonk" | "snot", events: GameEv
   events.push({ type: "bossHit", by, x: s.x, y: s.y - s.h * 0.6, hp: s.hp });
   if (s.hp > 0) return true;
   s.state = "down";
+  s.ride = true;
   events.push({ type: "bossDown", x: s.x, y: s.y - s.h, points: SUPERVISOR.points });
   events.push({ type: "think", text: "Do not disturb THIS.", seconds: 2.4 });
   return true;
@@ -95,7 +108,7 @@ export function hitSupervisor(s: Supervisor, by: "bonk" | "snot", events: GameEv
 export function stepSupervisor(s: Supervisor, w: SupervisorWorld, dt: number, events: GameEvent[]): void {
   s.hurtT = Math.max(0, s.hurtT - dt);
   s.flinch = Math.max(0, s.flinch - dt);
-  if (s.state === "down") return;
+  if (s.state === "down") return sendRide(s, w);
   const h = w.hero;
   if (!s.awake) {
     if (h.y > s.wake) return;
@@ -118,11 +131,7 @@ export function stepSupervisor(s: Supervisor, w: SupervisorWorld, dt: number, ev
   if (burst && Math.hypot(s.x - burst.x, s.y - s.h / 2 - burst.y) <= BURST_R) hitSupervisor(s, "bonk", events);
   const lecture = events.find((e) => e.type === "lecture") as Extract<GameEvent, { type: "lecture" }> | undefined;
   if (lecture && overlapsRect(lecture.reach, r)) events.push({ type: "castLine", id: BOSS_ID, text: "Guests use the elevator.", seconds: 1.6 });
-  if ((s.state as SupervisorState) === "down") {
-    // The cart is his to ride up the flight.
-    sendCart(s, w, SUPERVISOR.rideSpeed, -1, false);
-    return;
-  }
+  if ((s.state as SupervisorState) === "down") return sendRide(s, w);
   s.timer -= dt;
   if (s.timer > 0) return;
   if (s.state === "windup") {

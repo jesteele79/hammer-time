@@ -233,3 +233,13 @@ test("a life lost while he owes him cans gives them back: the fight restarts, th
   until(g, (x) => (x.world.boss?.phase ?? 0) === 1, 8);
   assert.deepEqual([g.world.boss.phase, g.world.boss.owed, g.run.cans, g.run.score], [1, 0, 25, score], "no points for cans he already had");
 });
+
+test("a keycard dropped on the bed settles on it, and never pogoes", () => {
+  const g = suite(); play(g);
+  const bed = SUITE.platforms.find((p) => p.bounce);
+  const x = (bed.x0 + bed.x1) / 2;
+  const p = { id: 9001, kind: "keycard", x, y: bed.y - 200, taken: false, body: { x, y: bed.y - 165, w: 60, h: 70, vx: 0, vy: 300, onGround: false, emerge: 0, dir: 0, top: bed.y - 165 } };
+  g.pickups.push(p);
+  until(g, () => false, 1);
+  assert.deepEqual([p.body.vy, p.body.y], [0, bed.y]);
+});

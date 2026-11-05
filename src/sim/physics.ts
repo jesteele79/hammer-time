@@ -51,9 +51,10 @@ export function canStand(body: { x: number; y: number; w: number }, stage: Stage
 
 /**
  * Integrates x then y, pushing out of solids and passes, landing on floors and platforms.
- * `onBump` hears each solid or pass his head meets from below; platforms are ignored while `dropT` runs.
+ * `onBump` hears each solid or pass his head meets from below; platforms are ignored while `dropT` runs. A `settle` body
+ * (a pickup) lands on a bed and stays.
  */
-export function moveBody(body: Body, stage: Stage, dt: number, onBump?: (s: Rect) => void): void {
+export function moveBody(body: Body, stage: Stage, dt: number, onBump?: (s: Rect) => void, settle = false): void {
   const wasOnGround = body.onGround;
   const prevX = body.x;
   const prevY = body.y;
@@ -99,7 +100,7 @@ export function moveBody(body: Body, stage: Stage, dt: number, onBump?: (s: Rect
         body.y = p.y;
         // A bed sends him back up harder than he can jump.
         const bounce = (p as { bounce?: number }).bounce;
-        if (bounce && body.vy > BOUNCE_FROM) {
+        if (bounce && !settle && body.vy > BOUNCE_FROM) {
           body.vy = -bounce * JUMP_V0;
           body.onGround = false;
           (body as { bounced?: boolean }).bounced = true;

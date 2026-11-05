@@ -295,3 +295,21 @@ test("the boss bar names her, and the pig keeps its own", () => {
   g.step(input());
   assert.deepEqual([hudOf(g, null, false, null).boss?.name, hudOf(g, null, false, null).boss?.max], ["Housekeeping", 3]);
 });
+
+test("a snot rocket as the supervisor's last hit gives the ride cart too, as a bonk does", async () => {
+  const { hitBoss } = await import("../src/sim/boss.ts");
+  const g = tower(); play(g);
+  const s = g.world.boss;
+  Object.assign(s, { awake: true, state: "waiting", hp: 1, hurtT: 0, timer: 9 });
+  assert.equal(hitBoss(s, "snot", g.events), true);
+  g.step(input());
+  assert.equal(s.state, "down");
+  assert.equal(g.world.movers.filter((m) => m.speed === 140 && m.onSlope).length, 1);
+  g.step(input());
+  assert.equal(g.world.movers.filter((m) => m.speed === 140 && m.onSlope).length, 1, "one cart, not one a step");
+});
+test("the supervisor's carts are numbered on her own object, not on the module", () => {
+  const g = tower(); play(g);
+  const a = g.world.boss;
+  assert.equal(a.carts, 0);
+});

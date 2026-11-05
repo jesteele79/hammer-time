@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { actTotal, playableNext, type Journey } from "@/sim/journey";
-import { ACTS, STORY, STRAIGHT_BUILT, type ActId, type StoryId, type StoryStop } from "@/sim/story";
+import { ACTS, STORY, STRAIGHT_BUILT, comingLabel, type ActId, type StoryId, type StoryStop } from "@/sim/story";
 
 const pad = (n: number) => String(n).padStart(6, "0");
 const ACT_ORDER: ActId[] = ["prologue", "act1", "act2", "act3", "epilogue"];
@@ -91,6 +91,7 @@ export function NextStrip({
         data-coming={coming || undefined}
         style={{ ["--i" as string]: i } as CSSProperties}
         aria-label={label}
+        title={coming ? comingLabel(s.id, built) : undefined}
         aria-pressed={playable ? chosen === s.id : undefined}
         disabled={!live || !playable}
         onClick={() => onChoose(s.id)}

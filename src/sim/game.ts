@@ -278,6 +278,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.hero.lx = 0;
     world.zone = null;
     world.cast = opts.cast === false ? [] : createCast(level, world.targets, game.run.seed);
+    // A keycard already dropped this run stays dropped: he comes back without it.
+    for (const n of world.cast) if (n.carry === "keycard" && game.run.spots.includes(`cast:${n.spawn}`)) n.carry = null;
     world.missiles = [];
     world.nextMissile = 0;
     world.snot = [];
@@ -806,6 +808,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       if (!n?.carry) continue;
       game.pickups.push(dropPickup(++nextPickup, n.carry, e.x, e.y));
       ev.push({ type: "castDrop", id: n.id, kind: n.carry, x: e.x, y: e.y });
+      if (n.carry === "keycard") game.run.spots.push(`cast:${n.spawn}`);
       n.carry = null;
     }
   }
@@ -1041,7 +1044,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "chute", x: h.x, y: chute.y });
     }
     const wet = game.level.puddle;
-    const slip = game.level.slips?.find((s) => Math.abs(h.y - s.y) < 4 && Math.abs(h.x - s.x) < 70) ?? (wet && h.x >= wet.z0 * 100 && h.x <= wet.z1 * 100 ? wet : null);
+    const slip = game.level.slips?.find((s) => Math.abs(h.y - s.y) < 4 && Math.abs(h.x - s.x) < 70) ?? (wet && h.x >= wet.z0 * 100 && h.x <= wet.z1 * 100 && h.lx >= wet.lx0 && h.lx <= wet.lx1 ? wet : null);
     slipCool = Math.max(0, slipCool - STEP);
     if (slip && slip !== onSlip && slipCool <= 0 && h.onGround && Math.abs(h.vx) > TOWER_TRAPS.slipSpeed && h.invuln <= 0) {
       h.vx = -h.vx;

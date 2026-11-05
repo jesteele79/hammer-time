@@ -51,7 +51,7 @@ export const HALLWAY: Level = {
     { z: 57, side: -1, at: 6, every: 9 },
     { z: 69, side: 1, at: 4, every: 11 },
   ],
-  puddle: { z0: 29, z1: 31 },
+  puddle: { z0: 29, z1: 31, lx0: -1.6, lx1: 0.8 },
   keyDoor: { x: 7900, hits: 3, fails: ["Mobile key failed.", "Mobile key failed AGAIN.", "Elite members don't wait."] },
   cast: [
     { id: "guest-1", person: "office-2", x: 1500, y: 0, x0: 1200, x1: 1900, recolor: "#d9c7b8", trick: "wander", lx: 0.5 },

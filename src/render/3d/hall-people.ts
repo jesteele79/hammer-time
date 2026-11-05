@@ -301,12 +301,12 @@ export class HallPeople {
       leaf.pivot.rotation.y = d.side * LEAF_TURN * d.open;
     }
     if (state.puddle && !this.puddle) {
-      const { z0, z1 } = state.puddle;
+      const { z0, z1, lx0, lx1 } = state.puddle;
       // A spreading wet patch, soft at its edge, leaking out of the alcove.
       this.puddle = new Mesh(new CircleGeometry(0.5, 32), new MeshBasicMaterial({ map: wetPatch(), transparent: true, depthWrite: false, toneMapped: false }));
       this.puddle.rotation.x = -Math.PI / 2;
-      this.puddle.scale.set(2.4, z1 - z0, 1);
-      this.puddle.position.set(-0.4, 0.01, -(z0 + z1) / 2);
+      this.puddle.scale.set(lx1 - lx0, z1 - z0, 1);
+      this.puddle.position.set((lx0 + lx1) / 2, 0.01, -(z0 + z1) / 2);
       this.puddle.layers.set(1);
       this.setScene.add(this.puddle);
     }

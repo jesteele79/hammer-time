@@ -1061,37 +1061,60 @@ export async function startLook(
   let three: ThreeView | null = null;
   let threeSettled = false;
   let threeLoad: Promise<void> | null = null;
-  const loadThree = () =>
-    (threeLoad ??= (async () => {
+  /** Which load is the live one: a view that finishes loading after the level moved on, or after a lost context, is freed. */
+  let threeGen = 0;
+  /** A context lost once: the browser is short of them, and the halls play flat for the session. */
+  let threeLost = false;
+  const threeOff = () => {
+    if (window.__next) window.__next.three = { canvas: false, quality: render.quality, density: 0, fps: 0, drawing: false };
+  };
+  const loadThree = () => {
+    if (threeLoad) return threeLoad;
+    const gen = ++threeGen;
+    return (threeLoad = (async () => {
+      if (threeLost) return;
       const { ThreeView } = await import("./3d/three-view");
       const host = app.canvas.parentElement;
       if (!host) throw new Error("the game's canvas has no host");
       // The game's canvas over the hall's, for his profile, his thoughts and the words.
       Object.assign(app.canvas.style, { position: "relative", zIndex: "1" });
       const view = new ThreeView(host, render.quality, window.__next?.gpu ?? "");
+      view.onContextLost = () => {
+        threeLost = true;
+        threeGen++;
+        hallLost();
+        three = null;
+        view.destroy();
+        threeOff();
+      };
       try {
         await view.load();
+        if (gen === threeGen) await view.loadPeople(registry, game.level);
       } catch (err) {
         view.destroy();
         throw err;
       }
-      if (stopped) {
+      if (gen !== threeGen) {
         view.destroy();
         return;
       }
-      await view.loadPeople(registry, game.level);
       three = view;
-      view.onContextLost = () => {
-        hallLost();
-        three = null;
-        view.destroy();
-        if (window.__next) window.__next.three = { canvas: false, quality: render.quality, density: 0, fps: 0, drawing: false };
-      };
     })()
       .catch((err) => console.warn("the hall plays flat:", err))
       .then(() => {
-        threeSettled = true;
+        if (gen === threeGen || threeLost) threeSettled = true;
       }));
+  };
+  /** Frees the 3D view: off a hall, or as the game stops. The next hall loads its own. */
+  const freeThree = () => {
+    if (!threeLoad) return;
+    threeGen++;
+    three?.destroy();
+    three = null;
+    threeLoad = null;
+    threeSettled = false;
+    threeOff();
+  };
   /** The checks' controller, in place of a real one. */
   let devPad: Pad | null = null;
   let hallShown = false;
@@ -1722,6 +1745,7 @@ export async function startLook(
     // The home screen is the scene itself, live behind the start screen.
     app.stage.visible = true;
     // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
+    if (!game.level.hall) freeThree();
     const holding = !views.has(game.level.id) || (inBanquet() && !(atLounge() ? loungeLoaded : banquetLoaded)) || (inGate() && !gateLoaded) || (!!game.level.hall && !opts.flat && !threeSettled);
     if (holding) {
       void prepare(game.level);
@@ -2349,6 +2373,7 @@ export async function startLook(
   const look: Look = {
     stop() {
       stopped = true;
+      freeThree();
       app.ticker.remove(tick);
       delete window.__nextBoard;
       window.removeEventListener("keydown", onKey);

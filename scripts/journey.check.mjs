@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { STEP } from "../src/sim/constants.ts";
-import { STORY, ACTS, STRAIGHT_BUILT, stopOf, nextOf, actOf, firstOfAct, builtStops, shiftFrom } from "../src/sim/story.ts";
+import { STORY, ACTS, STRAIGHT_BUILT, stopOf, nextOf, actOf, firstOfAct, builtStops, shiftFrom, comingLabel } from "../src/sim/story.ts";
 import { LOBBY } from "../src/sim/levels/lobby.ts";
 import { RESTAURANT } from "../src/sim/levels/restaurant.ts";
 import { CAMPUS } from "../src/sim/levels/campus.ts";
@@ -360,4 +360,12 @@ test("finishing 2-4 ends the act: the next stop is 3-1, the run cleared, the act
 });
 test("Act 2's header offers no straight-through run in this phase", () => {
   assert.deepEqual([...STRAIGHT_BUILT], ["act1"]);
+});
+
+test("the strip's label names the act until one of its stops is built, then the stop", () => {
+  const act2 = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite"];
+  assert.equal(comingLabel("flight", act2), "Act 3 is coming");
+  assert.equal(comingLabel("basel", [...act2, "flight", "paris", "train"]), "Basel is coming");
+  assert.equal(comingLabel("paris", [...act2, "flight"]), "Paris is coming");
+  assert.equal(comingLabel("train", [...act2, "flight", "paris"]), "The 14:02 is coming");
 });

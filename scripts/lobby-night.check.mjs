@@ -199,8 +199,22 @@ test("a bonked night bellhop drops a keycard, and it counts", () => {
   assert.ok(Math.abs(p.x - n.x) < 300);
   Object.assign(g.world.hero, { x: p.x, y: p.y, onGround: true }); g.step(input());
   assert.ok(p.taken);
-  assert.equal(g.run.keycards - g.run.spots.length, 1, "the dropped card counts, beyond any fixed one he stood on");
+  assert.equal(g.run.keycards - g.run.spots.filter((s) => !s.startsWith("cast:")).length, 1, "the dropped card counts, beyond any fixed one he stood on");
 });
 test("the guard's numbers: he sees far, flashes within 600 px, rests three seconds", () => {
   assert.deepEqual([CAST.guard.notice, CAST.guard.windup, CAST.guard.flash, CAST.guard.reach, CAST.guard.rest, CAST.guard.hits], [900, 0.6, 0.25, 600, 3, 2]);
+});
+
+test("a bellhop bonked in a lost life carries no keycard when he comes back; one who was not still carries his", () => {
+  const g = crewed(); play(g);
+  const n = person(g, "bellhop-night-1");
+  n.hits = 2; n.act = "idle"; n.noticed = true; n.rest = 9;
+  Object.assign(g.world.hero, { x: n.x - 180, y: 0, facing: 1, onGround: true, vx: 0, move: null });
+  g.step(input({ hammer: true }, { hammer: true }));
+  until(g, () => g.pickups.some((p) => p.kind === "keycard" && p.body), 2);
+  assert.ok(g.run.spots.includes("cast:bellhop-night-1"));
+  knockOut(g);
+  until(g, (x) => of(x.events, "respawn").length > 0, 6);
+  assert.equal(person(g, "bellhop-night-1").carry, null);
+  assert.equal(person(g, "bellhop-night-2").carry, "keycard");
 });

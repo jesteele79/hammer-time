@@ -156,3 +156,14 @@ test("the scripted player walks the hall to 1417, sidestepping and jumping the c
   }
   assert.deepEqual([g.mode, g.run.lives >= 2, g.run.punched], ["walkoff", true, ["elevators"]]);
 });
+
+test("the puddle slips him only across its painted breadth", () => {
+  assert.deepEqual(HALLWAY.puddle, { z0: 29, z1: 31, lx0: -1.6, lx1: 0.8 });
+  const g = hall(); play(g);
+  const h = g.world.hero;
+  Object.assign(h, { x: 2700, lx: 1, onGround: true });
+  assert.equal(of(until(g, () => h.x > 3150, 8, { up: true }), "slip").length, 0);
+  const b = hall(); play(b);
+  Object.assign(b.world.hero, { x: 2700, lx: 0.5, onGround: true });
+  assert.equal(of(until(b, () => b.world.hero.x > 3150, 8, { up: true }), "slip").length, 1);
+});

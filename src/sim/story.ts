@@ -92,6 +92,15 @@ export const actOf = (id: StoryId): ActId => stopOf(id).act;
  * the prologue flows into it: the boxes from the gate are what he carries into Act 1 (plan decision 1).
  */
 export const firstOfAct = (id: StoryId): boolean => id === "sat" || id === "lobby-night" || id === "flight";
+/**
+ * What Clock in and the strip say of a stop not built yet: its act until one of the act's stops is built, then the stop's
+ * own name up to its first comma ("Act 3 is coming", then "The 14:02 is coming", "Basel is coming").
+ */
+export const comingLabel = (id: StoryId, built: readonly StoryId[]): string => {
+  const act = actOf(id);
+  const named = STORY.some((s) => s.act === act && built.includes(s.id)) ? stopOf(id).name.split(",")[0] : ACTS[act].title.split(" · ")[0];
+  return `${named} is coming`;
+};
 /** The stops in story order whose level exists in `levels`. */
 export const builtStops = (levels: ReadonlyMap<string, unknown>): StoryId[] => STORY.filter((s) => levels.has(s.id)).map((s) => s.id);
 

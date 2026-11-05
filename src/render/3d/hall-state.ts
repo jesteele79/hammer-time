@@ -16,7 +16,7 @@ export type HallState = {
   pickups: { id: number; kind: string; lx: number; z: number; y: number; taken: boolean }[];
   carts: { lx: number; z: number; dir: 1 | -1 }[];
   doors: { z: number; side: 1 | -1; open: number }[];
-  puddle: { z0: number; z1: number } | null;
+  puddle: { z0: number; z1: number; lx0: number; lx1: number } | null;
 };
 
 /** The sim's world is in px, 100 to the meter. */
