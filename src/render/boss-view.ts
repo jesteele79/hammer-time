@@ -12,6 +12,8 @@ const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; si
   titanium: { person: "titanium", recolor: null, size: 1 },
   // Navy, in the housekeeper's painting, until her own is cut.
   purser: { person: "purser", recolor: "#1b2748", size: 1 },
+  // Navy too, in the bellhop's, until his own is cut.
+  conductor: { person: "conductor", recolor: "#1b2748", size: 1 },
 };
 
 /** A boss standing in the level: their painting (or stand-in), posed by their state, always behind him. */
@@ -57,7 +59,7 @@ export class BossView {
 
   /** Drawn where the boss stands, or hidden when the level has none. */
   sync(b: Boss | null, time: number): void {
-    this.container.visible = !!b && !!this.figure && this.kind === b.kind && !(b.kind === "titanium" && b.state === "down");
+    this.container.visible = !!b && !!this.figure && this.kind === b.kind && !((b.kind === "titanium" || b.kind === "conductor") && b.state === "down");
     if (!b || !this.figure || this.kind !== b.kind) return;
     if (b.kind === "titanium") {
       const flying = b.state === "pool";
@@ -74,6 +76,11 @@ export class BossView {
       const pose = castPose({ role: "office", act: b.state === "push" ? "attack" : b.flinch > 0 ? "bumped" : "idle", t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
       // Down, she has pulled the curtain back and stands to the far side of it.
       this.figure.pose(pose, -1, { x: b.state === "down" ? b.x + 120 : b.x, y: b.y }, b.flinch > 0, time, "planted");
+      return;
+    }
+    if (b.kind === "conductor") {
+      const act = b.state === "windup" ? "windup" : b.state === "punch" ? "attack" : b.state === "stagger" || b.state === "hurt" ? "bumped" : b.state === "retreat" ? "walk" : "idle";
+      this.figure.pose(castPose({ role: "office", act, t: time % 1, speed: b.state === "retreat" ? 400 : 0, onGround: true, sit: false, spin: 0, hits: 0 }), b.facing, { x: b.x, y: b.y }, b.flinch > 0, time, "planted");
       return;
     }
     const act = b.state === "down" ? "down" : b.state === "windup" ? "windup" : b.state === "wave" ? "attack" : "idle";

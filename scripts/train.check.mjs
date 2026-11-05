@@ -11,6 +11,8 @@ import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { drive } from "../src/sim/drive.ts";
 import { hudOf, hintOf } from "../src/render/hud.ts";
 import { strikeNpc } from "../src/sim/cast.ts";
+import { hitBoss, BOSS_NAMES } from "../src/sim/boss.ts";
+import { CONDUCTOR, conductorWall } from "../src/sim/conductor.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -164,4 +166,85 @@ test("a kid who is bonked runs off and is back; a traveler who is bonked walks o
   assert.ok(k.out);
   until(g, () => !k.out && k.alive, 12);
   assert.deepEqual([k.out, k.alive], [false, true]);
+});
+
+/** Ducked under his punch: the stagger it leaves him in. */
+const dodge = (g, seconds = 1.5) => until(g, (x) => x.world.boss.state === "stagger", seconds, { down: true });
+test("the conductor waits at the door of coach 13 as a wall, blocks within 400 px with his line and Hammer's failed ticket, punches with a 0.4 s telegraph and staggers when it misses", () => {
+  assert.equal(BOSS_NAMES.conductor, "The conductor");
+  const g = train(); play(g); const h = g.world.hero; g.run.stretch = null; const c = g.world.boss;
+  assert.deepEqual([c.kind, c.hp, c.door, c.x, conductorWall(c)], ["conductor", 9, 0, coachX(13), { x: coachX(13) - 12, y: -404, w: 24, h: 404 }]);
+  Object.assign(h, { x: coachX(13) - 600, y: 0 });
+  const seen = until(g, (x) => of(x.events, "bossWindup").length > 0, 5, { right: true });
+  assert.ok(of(seen, "bossSay").some((e) => e.text === "Billet, s'il vous plaît.") && of(seen, "think").some((e) => e.text === "Mobile ticket failed."));
+  assert.ok(h.x < coachX(13), "the door holds him");
+  assert.equal(hitBoss(c, "bonk", g.events), false, "not while he winds up");
+  Object.assign(h, { patience: 2, invuln: 0 }); until(g, (x) => x.world.hero.patience < 2, 1); assert.equal(h.patience, 1);
+  until(g, (x) => x.world.boss.state === "rest", 1); assert.equal(hitBoss(c, "bonk", g.events), false, "a punch that lands never staggers him");
+  // The punch threw him back: up to the door again.
+  Object.assign(h, { invuln: 9 }); until(g, (x) => x.world.boss.state === "windup", 3, { right: true });
+  const st = dodge(g); assert.deepEqual([of(st, "bossStagger").length, h.patience, hitBoss(c, "bonk", g.events)], [1, 1, true]);
+});
+test("a jump over the punch, or stepping out of its reach, misses too; a punch in his grace still lands", () => {
+  const over = train(); play(over); over.run.stretch = null; const h = over.world.hero; Object.assign(h, { x: coachX(13) - 120, y: 0, onGround: true, invuln: 0 });
+  until(over, (x) => x.world.boss.state === "windup" && x.world.boss.timer < 0.12, 3);
+  over.step(input({ jump: true }, { jump: true }));
+  const st = until(over, (x) => x.world.boss.state === "stagger" || x.world.boss.state === "rest", 1, { jump: true });
+  assert.equal(over.world.boss.state, "stagger", "over it");
+  assert.equal(of(st, "hurt").length, 0);
+  const back = train(); play(back); back.run.stretch = null; const k = back.world.hero; Object.assign(k, { x: coachX(13) - 120, y: 0, onGround: true, invuln: 0 });
+  until(back, (x) => x.world.boss.state === "windup", 3);
+  Object.assign(k, { x: coachX(13) - 400 });
+  until(back, (x) => x.world.boss.state === "stagger" || x.world.boss.state === "rest", 1);
+  assert.equal(back.world.boss.state, "stagger", "out of reach");
+  const grace = train(); play(grace); grace.run.stretch = null; const g = grace.world.hero; Object.assign(g, { x: coachX(13) - 120, y: 0, onGround: true, invuln: 9 });
+  until(grace, (x) => x.world.boss.state === "windup", 3);
+  until(grace, (x) => x.world.boss.state === "stagger" || x.world.boss.state === "rest", 1.5);
+  assert.equal(grace.world.boss.state, "rest", "standing there is no miss, whatever his grace");
+});
+test("three hits at a door send him back a coach and open it; a won door stays open across a lost life; he is quicker at each door; the ninth hit is the win", () => {
+  const g = train(); play(g); const h = g.world.hero; g.run.stretch = null; const c = g.world.boss;
+  // Boarded, for the checkpoint he comes back to.
+  g.run.checkpoint = "board";
+  Object.assign(h, { x: coachX(13) - 120, y: 0, invuln: 99 });
+  const hitInStagger = (n) => { for (let i = 0; i < n; i++) { until(g, (x) => x.world.boss.state === "windup", 6); dodge(g); assert.equal(hitBoss(c, "bonk", g.events), true); if (i < n - 1) until(g, (x) => x.world.boss.hurtT <= 0 && x.world.boss.state !== "hurt", 2); } };
+  hitInStagger(3); const r = until(g, (x) => x.world.boss.door === 1, 3); assert.deepEqual([of(r, "doorOpen")[0].door, c.hp, conductorWall(c).x], [0, 6, coachX(7) - 12]);
+  until(g, () => false, 1, { right: true }); assert.ok(h.x > coachX(13));
+  Object.assign(h, { invuln: 0, patience: 1 }); g.world.hit(h.x + 100); until(g, (x) => of(x.events, "respawn").length > 0, 4);
+  assert.deepEqual([g.world.boss.door, g.world.boss.hp, conductorWall(g.world.boss).x], [1, 6, coachX(7) - 12]);
+  assert.deepEqual([CONDUCTOR.windup, CONDUCTOR.stagger], [[0.4, 0.3, 0.2], [0.8, 0.6, 0.45]]);
+  const d = g.world.boss;
+  const again = (n) => { for (let i = 0; i < n; i++) { until(g, (x) => x.world.boss.state === "windup", 6); dodge(g); assert.equal(hitBoss(d, "bonk", g.events), true); if (i < n - 1) until(g, (x) => x.world.boss.hurtT <= 0 && x.world.boss.state !== "hurt", 2); } };
+  Object.assign(h, { x: coachX(7) - 120, y: 0, invuln: 99 }); again(3); until(g, (x) => x.world.boss.door === 2, 3);
+  Object.assign(h, { x: coachX(2) - 120, y: 0, invuln: 99 }); again(3); const win = until(g, (x) => x.world.boss.state === "down", 3); assert.deepEqual([of(win, "bossDown")[0].points, d.door, conductorWall(d)], [1000, 3, null]);
+  assert.equal(g.run.bossDoors, 3);
+});
+test("Try again after Hammer down at the second door puts him back at the first", () => {
+  const g = train(); play(g); const h = g.world.hero; g.run.stretch = null; g.run.checkpoint = "board";
+  g.dev.bossDoor(1);
+  assert.deepEqual([g.world.boss.door, g.world.boss.hp], [1, 6]);
+  for (let i = 0; i < 40000 && g.mode !== "over"; i++) { if (g.mode === "play") knockOut(g); g.step(input()); }
+  g.newRun(81, g.venue, { snapshot: g.snapshot }); play(g);
+  assert.deepEqual([g.world.boss.door, g.world.boss.hp, g.run.bossDoors, g.run.stretch, h.x], [0, 9, 0, 120, 150]);
+});
+test("the level cannot end at the seat while a door stands", () => {
+  const g = train(); play(g); const h = g.world.hero; g.run.stretch = null;
+  g.dev.bossDoor(2);
+  Object.assign(h, { x: coachX(1) + 550, y: 0 });
+  const evs = until(g, () => false, 1.2, { right: true });
+  assert.deepEqual([of(evs, "sit").length, g.mode], [0, "play"]);
+});
+test("a lecture in the quiet car brings him at once, only before his first round", () => {
+  const g = train(); play(g); const h = g.world.hero; g.run.stretch = null; Object.assign(h, { x: coachX(14) + 200, y: 0, onGround: true });
+  const evs = until(g, (x) => of(x.events, "summon").length > 0, 1, {}, (x) => x.step(input({}, { lecture: true })));
+  assert.deepEqual([evs.length > 0, g.world.boss.state, g.world.boss.x, of(evs, "bossSay").some((e) => e.text === "This is the quiet car.")], [true, "block", h.x + 300, true]);
+  assert.equal(conductorWall(g.world.boss).x, coachX(13) - 12, "the wall stays at his door");
+  const later = train(); play(later); const k = later.world.hero; later.run.stretch = null; later.dev.bossDoor(1); Object.assign(k, { x: coachX(14) + 200, y: 0, onGround: true });
+  const none = until(later, () => false, 1, {}, (x) => x.step(input({}, { lecture: true })));
+  assert.equal(of(none, "summon").length, 0);
+});
+test("the scripted rider beats the conductor at all three doors and takes his seat; a masher who never jumps never lands a hit and is finished", () => {
+  const g = train(); play(g); g.run.stretch = null; Object.assign(g.world.hero, { x: 4100 }); let t = 0; while (!["walkoff", "tally", "over"].includes(g.mode) && t < 410) { g.step(drive(g.level, g.world.hero, "train", g.world)); t += STEP; }
+  assert.deepEqual([g.world.boss.door, g.mode, g.run.lives >= 1], [3, "walkoff", true]);
+  const m = train(); play(m); m.run.stretch = null; Object.assign(m.world.hero, { x: coachX(13) - 300 }); until(m, (x) => x.mode === "over", 420, { hammer: true, right: true }); assert.deepEqual([m.mode, m.world.boss.hp], ["over", 9]);
 });

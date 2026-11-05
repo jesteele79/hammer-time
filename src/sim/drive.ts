@@ -164,7 +164,7 @@ function strolling(level: Level, h: HeroState, i: Input, w?: World): Input {
 }
 
 /** How the runner looks ahead, in px: at the barrier, and at a traveler. */
-const RIDE = { barrier: 220, crowd: 200 } as const;
+const RIDE = { barrier: 220, crowd: 200, stand: 280, stroller: 230, bike: 200, towel: 75, fight: 520, near: 70, duck: 0.12 } as const;
 /**
  * The runner: flat out for the doors, down into a slide under the barrier, over whoever is hurrying his way.
  */
@@ -176,10 +176,36 @@ function riding(level: Level, h: HeroState, i: Input, w?: World): Input {
     i.held.down = true;
     return i;
   }
+  if (fightConductor(w, h, i)) return i;
+  const ahead = (x: number, within: number) => x - h.x > -30 && x - h.x < within;
+  // A bike swinging at head height: under it until well past; a traveler getting up or a kid: the mallet first.
+  if (w.movers.some((m) => m.id.startsWith("bike") && Math.abs(m.x - h.x) < RIDE.bike)) {
+    i.held.down = true;
+    i.held.run = false;
+    return i;
+  }
+  const bonk = w.cast.some((n) => n.alive && !n.out && hittable(n) && (n.trick === "stand" || n.trick === "rush") && ahead(n.x, RIDE.stand));
+  if (bonk && !h.move && h.onGround && !h.crouch) i.held.hammer = i.pressed.hammer = true;
   const crowd = w.cast.some((n) => n.alive && n.trick === "shove" && !n.out && n.x - h.x > 0 && n.x - h.x < RIDE.crowd);
-  if (crowd && h.onGround) i.held.jump = i.pressed.jump = true;
+  const stroller = w.movers.some((m) => m.id === "stroller" && ahead(m.x, RIDE.stroller));
+  if ((crowd || stroller) && h.onGround) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
+  else if (!h.move && h.heat >= RIDE.towel) i.held.towel = i.pressed.towel = true;
   return i;
+}
+
+/**
+ * The conductor: up to him, clear of the last seat back, whose ceiling would keep him tucked; under his fist as the wind-up
+ * ends; the mallet while he staggers. True while the fight has him: nothing else steers.
+ */
+function fightConductor(w: World, h: HeroState, i: Input): boolean {
+  const c = w.boss;
+  if (c?.kind !== "conductor" || c.state === "down" || c.state === "retreat" || c.x - h.x > RIDE.fight || c.x - h.x < -60) return false;
+  i.held.run = false;
+  i.held.right = c.x - h.x > RIDE.near;
+  if (c.state === "windup" && c.timer < RIDE.duck) i.held.down = true;
+  if (c.state === "stagger" && !h.move && !h.crouch && h.onGround) i.held.hammer = i.pressed.hammer = true;
+  return true;
 }
 
 /** How the flyer looks ahead, in px: at a cart, a seat or a leg, a bag, and how near someone it swings. */

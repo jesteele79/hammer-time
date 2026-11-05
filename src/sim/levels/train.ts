@@ -84,6 +84,7 @@ export const TRAIN: Level = {
   tunnel: { x: coachX(12) },
   shakes: seams,
   seat: { x: coachX(1) + 600 },
+  boss: { kind: "conductor", x: coachX(13), arena: [coachX(14), coachX(13) + 300], doors: [coachX(13), coachX(7), coachX(2)] },
   furniture: [],
   carts: [],
   lights: [],

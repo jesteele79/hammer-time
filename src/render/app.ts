@@ -155,7 +155,7 @@ export type NextProbe = {
     event(e: GameEvent): void;
     charge(): void;
     give(kind: "can" | "nuts" | "bucees" | "pepper" | "keycard"): void;
-    boss(o: { hp?: number; state?: string }): void;
+    boss(o: { hp?: number; state?: string; door?: number }): void;
     pad(o: { axes?: number[]; buttons?: { pressed: boolean }[] } | null): void;
     three(o: { frameMs?: number; lose?: boolean }): void;
     /** The cabin's turbulence and its cart, now. */

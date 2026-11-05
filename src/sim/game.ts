@@ -21,6 +21,7 @@ import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tier
 import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
 import { createBoss } from "./boss";
+import { atDoor, conductorWall, summonConductor } from "./conductor";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
@@ -106,7 +107,7 @@ export type Game = {
   /** The line the next card shows in place of the level's, for that card only: the train that left. */
   cardLine: string | null;
   /** The checks' levers on a level's clocks. */
-  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void };
+  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void };
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
@@ -203,6 +204,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   /** Keys held through a card down a hall: not a step until they are let go. */
   const heldThrough = { up: false, down: false, side: false };
+  /** Where the conductor's door stands in the stage, for when he leaves it. */
+  let doorWall: number | null = null;
   /** The train: the tunnel gone through this life; where he stood last step, for the seams he crosses; the next Shh!. */
   let tunnelDone = false;
   let trainFrom = 0;
@@ -249,6 +252,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     levelScore: () => game.run.score - scoreAtCard,
     cardLine: null,
     dev: {
+      bossDoor(door) {
+        if (world.boss?.kind !== "conductor") return;
+        atDoor(world.boss, door);
+        game.run.bossDoors = door;
+        restage();
+      },
       stretch(seconds) {
         if (game.run.stretch !== null) game.run.stretch = seconds;
       },
@@ -272,6 +281,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   const restage = () => {
     const gate = game.level.bonjour && !world.bonjourDone ? [game.level.bonjour.wall] : [];
+    const door = world.boss?.kind === "conductor" ? conductorWall(world.boss) : null;
+    if (door) gate.push(door);
+    doorWall = door?.x ?? null;
     const stage = stageOf(game.level, [...crateSolids(game.crates), ...gate]);
     // The carts' tops are platforms he can ride; a window hanging open is none.
     const fixed = stage.platforms.filter((p) => !(p as LevelPlatform).tip || world.tip.out <= 0);
@@ -314,6 +326,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // The gift shop's pig sleeps at its spot, fresh, each time the venue is laid out.
     world.pig = level.boss?.kind === "pig" ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
     world.boss = level.boss && level.boss.kind !== "pig" ? createBoss(level.boss, level.boss.y ?? 0) : null;
+    // The doors he has won stay won across a lost life.
+    if (world.boss?.kind === "conductor") atDoor(world.boss, game.run.bossDoors);
+    restage();
     world.hallCarts = createHallCarts(level);
     world.hallDoors = createHallDoors(level);
     world.flight = createFlight(level, game.run.seed);
@@ -936,6 +951,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     parisStep(ev);
     if (game.level.stretch && run.stretch !== null && h.x >= game.level.stretch.x1) board(game.level.stretch, ev);
     if (game.level.coaches) coachStep(ev);
+    conductorStep(ev);
     if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;
@@ -1057,7 +1073,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function takeSeat(ev: GameEvent[]): boolean {
     const seat = game.level.seat;
     const h = world.hero;
-    if (!seat || h.x < seat.x || (world.boss && world.boss.state !== "down")) return false;
+    if (!seat || h.x < seat.x || (world.boss && (world.boss.kind === "conductor" ? world.boss.door < world.boss.doors.length : world.boss.state !== "down"))) return false;
     world.hits = [];
     h.vx = 0;
     ev.push({ type: "sit", x: h.x, y: h.y });
@@ -1121,6 +1137,19 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function upJumps(given: Input): Input {
     if (!given.held.up && !given.pressed.up) return given;
     return { ...given, held: { ...given.held, jump: given.held.jump || given.held.up }, pressed: { ...given.pressed, jump: given.pressed.jump || given.pressed.up } };
+  }
+
+  /** What the conductor's fight asks of the game: his punch landing, the door he left, the doors won, his points. */
+  function conductorStep(ev: GameEvent[]) {
+    const c = world.boss;
+    if (c?.kind !== "conductor") return;
+    const punch = world.events.find((e) => e.type === "conductorPunch");
+    if (punch?.type === "conductorPunch") damage(world.hero, world.stage, punch.fromX, ev);
+    for (const e of world.events) if (e.type === "doorOpen") game.run.bossDoors = e.door + 1;
+    const q = game.level.quiet;
+    if (q && world.hero.x >= q.x0 && world.hero.x <= q.x1 && world.events.some((e) => e.type === "lectureStart")) summonConductor(c, world.hero, ev);
+    const wall = conductorWall(c);
+    if ((wall?.x ?? null) !== doorWall) restage();
   }
 
   /** On board: the seams underfoot, the tunnel's mouth, a swing or a lecture in the quiet car. */

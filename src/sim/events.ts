@@ -164,6 +164,7 @@ export type GameEvent =
   | { type: "bogie" }
   | { type: "doorOpen"; door: number }
   | { type: "bossStagger"; x: number; y: number }
+  | { type: "conductorPunch"; fromX: number }
   | { type: "summon" }
   /** Paris: the gate opened; the window tipping him off; a scooter out; the pigeons up. */
   | { type: "bonjour" }

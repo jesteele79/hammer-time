@@ -66,13 +66,15 @@ export type Run = {
   perks: string[];
   /** The keycard spots taken this run: a life lost does not put them back. */
   spots: string[];
+  /** The conductor's doors won this level: they stay open across a lost life. */
+  bossDoors: number;
   /** The stretch's own clock while he is in it (3-3's station), null otherwise: the level's clock waits. */
   stretch: number | null;
   /** Where Ambassador set the checkpoint, while `checkpoint` names it. */
   checkpointAt?: Point;
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [], keycards: 0, perks: [], spots: [], stretch: null });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [], keycards: 0, perks: [], spots: [], stretch: null, bossDoors: 0 });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);

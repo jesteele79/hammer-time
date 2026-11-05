@@ -892,7 +892,7 @@ export async function startLook(
         particles.emit("impact", e.x, e.y, 14);
         break;
       case "bossDown":
-        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : cur.boss?.kind === "purser" ? "BUSINESS SELECT" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
+        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : cur.boss?.kind === "purser" ? "BUSINESS SELECT" : cur.boss?.kind === "conductor" ? "ON TIME" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
         break;
       case "bossPhase":
         scene.camera.trauma = Math.max(scene.camera.trauma, 0.3);
@@ -2399,8 +2399,9 @@ export async function startLook(
       cart() {
         game.dev.cart();
       },
-      boss(o: { hp?: number; state?: string }) {
+      boss(o: { hp?: number; state?: string; door?: number }) {
         if (world.boss?.kind === "titanium") setTitanium(world.boss, o, game.events);
+        else if (world.boss?.kind === "conductor" && o.door !== undefined) game.dev.bossDoor(o.door);
         else if (world.boss) Object.assign(world.boss, o);
       },
       /** The running round: its clock, dishes on a rival's plate, his line locked on a rival's plate, dishes landed on his. */

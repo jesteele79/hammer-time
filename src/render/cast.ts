@@ -77,6 +77,7 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   // The tower's housekeeper: a grey uniform and a feather duster (her stand-in is the fallback only).
   // A kid wears the student's painting; his spawn's size is what makes him one.
   "kid-1": { height: 315, head: 0.22, build: 0.8, skin: "#e8bf9c", hair: "#3b2a22", hairStyle: "short", top: "#c0392b", sleeves: "top", bottom: "#3a3d44", shoes: "#f4f3ee" },
+  conductor: { height: 345, head: 0.22, build: 1, skin: "#e2b48f", hair: "#3b2a22", hairStyle: "short", top: "#1b2748", sleeves: "top", tie: "#b8282e", bottom: "#1b2748", shoes: "#141414" },
   concierge: { height: 320, head: 0.22, build: 0.85, skin: "#ebc9a9", hair: "#3b2a22", hairStyle: "bun", top: "#6b6f78", sleeves: "top", bottom: "#6b6f78", shoes: "#141414" },
   garcon: { height: 335, head: 0.22, build: 0.8, skin: "#e2b48f", hair: "#1c1612", hairStyle: "short", top: "#f4f3ee", sleeves: "skin", vest: "#1a1a1a", apron: true, bottom: "#1a1a1a", shoes: "#141414" },
   "parisian-1": { height: 325, head: 0.22, build: 0.85, skin: "#e8bf9c", hair: "#2b2320", hairStyle: "short", top: "#1b2748", sleeves: "top", tie: "#b8282e", bottom: "#3a3d44", shoes: "#3a2312" },
