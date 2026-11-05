@@ -14,7 +14,7 @@ export const PARIS: Level = {
   length: 10600,
   spawn: { x: 200, y: 0 },
   time: 420,
-  music: "lobby",
+  music: "paris",
   card: "13 July. 06:40. The hotel has one lift.",
   tally: "Lunch took three hours. It is 13:40. The train leaves at 14:02.",
   canScale: 0.7,

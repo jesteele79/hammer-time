@@ -12,8 +12,10 @@ import { CAMPUS } from "../src/sim/levels/campus.ts";
 import { GIFTSHOP } from "../src/sim/levels/giftshop.ts";
 import { STASH } from "../src/sim/levels/stash.ts";
 import { SAT } from "../src/sim/levels/sat.ts";
+import { FLIGHT } from "../src/sim/levels/flight.ts";
+import { PARIS } from "../src/sim/levels/paris.ts";
 
-const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate", "lobby-night", "lounge", "tower", "hallway", "suite"];
+const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate", "lobby-night", "lounge", "tower", "hallway", "suite", "flight", "paris", "french", "train"];
 test("every place has a song in the side quests' form", () => {
   assert.deepEqual(Object.keys(SONGS).sort(), [...IDS].sort());
   for (const id of IDS) {
@@ -120,4 +122,34 @@ test("back after a hidden tab (or the mute) the song picks up where the clock is
   ctx.currentTime = 600;
   bus.tick();
   assert.ok(notes - first < 20, `${notes - first} notes at once after ten minutes away`);
+});
+
+test("the way to Basel's songs: each place names its own, the French table its quick cousin, the musette in three, the cabin's hurry when the sign is on", () => {
+  assert.deepEqual([FLIGHT.music, PARIS.music], ["flight", "paris"]);
+  assert.equal(musicFor("play", "flight", null).theme, "flight");
+  assert.equal(questMusic({ id: "hungry", menu: "french", time: 0 }).theme, "french");
+  assert.equal(questMusic({ id: "hungry", menu: "lounge", time: 0 }).theme, "lounge");
+  assert.equal(hurryFor("play", 300, 200, true), true);
+  assert.equal(hurryFor("play", 300, 200), false);
+  assert.equal(hurryFor("tally", 300, 200, true), false);
+  assert.equal(SONGS.paris.kick.length, 12, "a waltz");
+  assert.equal(SONGS.paris.lead.length % 12, 0);
+  assert.ok(Math.abs(SONGS.paris.step / SONGS.french.step - 1.4) < 0.01, "1.4 times the tempo");
+  assert.ok(SONGS.french.snareGain !== undefined, "a brush snare");
+  assert.deepEqual(SONGS.french.lead, SONGS.paris.lead);
+  assert.ok(Math.abs(60 / (SONGS.flight.step * 4) - 92) < 1, "92 bpm");
+  assert.ok(Math.abs(60 / (SONGS.train.step * 4) - 128) < 1, "128 bpm");
+  assert.ok(new Set(SONGS.train.lead.filter(Boolean).map((n) => n % 12)).size === 2, "a two-note lead");
+});
+test("the way to Basel's cues: the seatbelt chime, the cart's rattle, the tablet's tune, the scooter's buzz, the doors' beep, the horn", () => {
+  assert.deepEqual(CUES.seatbelt, ["belt"]);
+  assert.deepEqual(CUES.cartOut, ["rattle"]);
+  assert.deepEqual(CUES.shove, ["rattle", "bump"]);
+  assert.deepEqual(CUES.tablet, ["tune"]);
+  assert.deepEqual(CUES.scooter, ["buzz"]);
+  assert.deepEqual(CUES.pigeons, ["flutter"]);
+  assert.deepEqual(CUES.doorsBeep, ["beep"]);
+  assert.deepEqual(CUES.tunnel, ["horn"]);
+  assert.deepEqual(CUES.boarded, ["beep", "coin"]);
+  for (const k of ["belt", "tune", "buzz", "flutter", "beep", "horn"]) assert.equal(typeof AudioBus.prototype[k], "function", k);
 });

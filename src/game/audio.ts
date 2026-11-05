@@ -8,7 +8,7 @@ import {
 } from "./taunts";
 
 /** Every place's song (story spec §13): the home screen's, each level's, the stash's and the two side quests'. */
-export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite";
+export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite" | "flight" | "paris" | "french" | "train";
 export type Theme = SongId;
 /** The music's level, and the share of it left under the cards (plan decision 12's quiet). */
 export const MUSIC = { level: 0.07, quiet: 0.4 } as const;
@@ -47,10 +47,119 @@ const CLIMB_MOTIF = [60, 0, 64, 0, 67, 0, 64, 0, 72, 0, 67, 0, 64, 0, 67, 0];
 const climbing = (motif: number[], bars: number) => Array.from({ length: bars }, (_, k) => motif.map((n) => (n ? n + k : 0))).flat();
 /** Its bass under it, a square on the root and fifth, climbing with it. */
 const CLIMB_BASS = [36, 0, 36, 0, 43, 0, 36, 0, 36, 0, 36, 0, 43, 0, 41, 0];
+/** The musette's waltz (story spec §13), twelve steps a bar: A minor, an accordion's turn at the end of each four. */
+const WALTZ_LEAD = bars(
+  [76, 0, 0, 0, 72, 0, 0, 0, 69, 0, 0, 0],
+  [71, 0, 72, 0, 74, 0, 0, 0, 76, 0, 0, 0],
+  [77, 0, 0, 0, 74, 0, 0, 0, 69, 0, 0, 0],
+  [72, 0, 74, 0, 77, 0, 0, 0, 81, 0, 0, 0],
+  [80, 0, 0, 0, 76, 0, 0, 0, 71, 0, 0, 0],
+  [74, 0, 76, 0, 80, 0, 0, 0, 83, 0, 0, 0],
+  [81, 0, 79, 0, 77, 0, 76, 0, 74, 0, 72, 0],
+  [71, 0, 0, 0, 69, 0, 0, 0, 0, 0, 0, 0],
+  [72, 0, 76, 0, 79, 0, 0, 0, 84, 0, 0, 0],
+  [83, 0, 0, 0, 79, 0, 0, 0, 74, 0, 0, 0],
+  [72, 0, 76, 0, 81, 0, 0, 0, 84, 0, 0, 0],
+  [83, 0, 0, 0, 80, 0, 0, 0, 76, 0, 0, 0],
+  [77, 0, 81, 0, 86, 0, 0, 0, 84, 0, 81, 0],
+  [84, 0, 81, 0, 76, 0, 0, 0, 72, 0, 0, 0],
+  [71, 0, 74, 0, 76, 0, 80, 0, 83, 0, 80, 0],
+  [81, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+);
+/** A waltz's bass, a bar in twelve: the root low on one, its octave on two and three. */
+const oomPah = (root: number) => [root, 0, 0, 0, root + 12, 0, 0, 0, root + 12, 0, 0, 0];
+const WALTZ_BASS = bars(...[45, 45, 38, 38, 40, 40, 45, 45, 48, 43, 45, 40, 38, 45, 40, 45].map(oomPah));
 /** Every sixteen steps of a song this many bars long: the elevator's ding through the tower. */
 const everyBar = (count: number): Record<number, "chime"> => Object.fromEntries(Array.from({ length: count }, (_, k) => [k * 16, "chime" as const]));
 
 export const SONGS: Record<SongId, Song> = {
+  // 3-1, the safety video's muzak: two chords, a marimba's short notes, brushed hats, 92 to the minute.
+  flight: {
+    step: 60 / 92 / 4,
+    lead: bars(
+      [72, 0, 0, 76, 0, 0, 79, 0, 0, 0, 76, 0, 0, 0, 0, 0],
+      [77, 0, 0, 74, 0, 0, 70, 0, 0, 0, 74, 0, 0, 0, 0, 0],
+      [72, 0, 0, 76, 0, 0, 79, 0, 81, 0, 79, 0, 76, 0, 0, 0],
+      [77, 0, 0, 81, 0, 0, 82, 0, 81, 0, 77, 0, 74, 0, 0, 0],
+      [84, 0, 0, 81, 0, 0, 79, 0, 0, 0, 76, 0, 0, 0, 0, 0],
+      [82, 0, 0, 77, 0, 0, 74, 0, 0, 0, 70, 0, 0, 0, 0, 0],
+      [72, 0, 76, 0, 79, 0, 76, 0, 72, 0, 0, 0, 0, 0, 0, 0],
+      [70, 0, 74, 0, 77, 0, 74, 0, 70, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "triangle",
+    leadLen: 1.5,
+    bass: bars(
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0],
+      [41, 0, 0, 0, 0, 0, 0, 0, 48, 0, 0, 0, 0, 0, 0, 0],
+      [46, 0, 0, 0, 0, 0, 0, 0, 46, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    bassWave: "sine",
+    bassLen: 6,
+    kick: "x.......x.......",
+    snare: "................",
+    hat: "x.x.x.x.x.x.x.x.",
+    gags: {},
+  },
+  // 3-2, a musette: two saws a hair apart for the accordion, a waltz bass in three, 150 to the minute.
+  paris: {
+    step: 0.1,
+    lead: WALTZ_LEAD,
+    leadWave: "sawtooth",
+    leadLen: 3,
+    double: { from: 0, to: WALTZ_LEAD.length, shift: 0.12, wave: "sawtooth" },
+    bass: WALTZ_BASS,
+    bassWave: "triangle",
+    bassLen: 3,
+    kick: "x...........",
+    snare: "............",
+    hat: "....x...x...",
+    gags: {},
+  },
+  // The French table: the musette's quick cousin, the same tune 1.4 times the speed, with a brush snare.
+  french: {
+    step: 0.1 / 1.4,
+    lead: WALTZ_LEAD,
+    leadWave: "sawtooth",
+    leadLen: 3,
+    double: { from: 0, to: WALTZ_LEAD.length, shift: 0.12, wave: "sawtooth" },
+    bass: WALTZ_BASS,
+    bassWave: "triangle",
+    bassLen: 3,
+    kick: "x...........",
+    snare: "....x...x...",
+    snareGain: 0.05,
+    hat: "x.x.x.x.x.x.",
+    gags: {},
+  },
+  // 3-3, a rail clatter in four at 128: the wheels on the kick, a low drone, two notes over it. The horn is the tunnel's own cue.
+  train: {
+    step: 60 / 128 / 4,
+    lead: bars(
+      [69, 0, 0, 0, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 69, 0, 0, 0, 0, 0, 0, 0, 72, 0, 0, 0],
+      [69, 0, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 69, 0, 0, 0],
+      [0, 0, 0, 0, 72, 0, 0, 0, 69, 0, 0, 0, 0, 0, 0, 0],
+      [81, 0, 0, 0, 0, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 81, 0, 0, 0, 0, 0, 0, 0, 84, 0, 0, 0],
+      [81, 0, 0, 0, 0, 0, 84, 0, 0, 0, 0, 0, 81, 0, 0, 0],
+      [0, 0, 0, 0, 72, 0, 0, 0, 69, 0, 0, 0, 0, 0, 0, 0],
+    ),
+    leadWave: "square",
+    leadLen: 3,
+    bass: bars(...Array.from({ length: 8 }, (_, k) => [k % 4 === 3 ? 41 : 38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+    bassWave: "sawtooth",
+    bassLen: 16,
+    kick: "x.x.....x.x.....",
+    snare: "....x.......x...",
+    snareGain: 0.05,
+    hat: "x.xxx.xxx.xxx.xx",
+    gags: {},
+  },
   // The home screen's title tune (story spec §13): four bars of brass fanfare, the lead doubled a fifth below on a
   // sawtooth, landing on the title's jolt; then a slow swagger, a blues strut in C over a walking bass.
   title: {
@@ -766,6 +875,33 @@ export class AudioBus {
     this.blip(880, 0.08, "square", 0.12, 1320);
     this.blip(1320, 0.06, "square", 0.08, undefined, 0.07);
   }
+  /** The seatbelt sign: two soft tones, the cabin's bong. */
+  belt() {
+    this.blip(880, 0.22, "sine", 0.16);
+    this.blip(660, 0.26, "sine", 0.16, undefined, 0.16);
+  }
+  /** The kid's tablet at full volume: a tinny square nursery loop. */
+  tune() {
+    [72, 72, 79, 79, 81, 81, 79, 77, 77, 76, 76, 74, 74, 72].forEach((n, i) => this.blip(midi(n), 0.14, "square", 0.05, undefined, i * 0.18));
+  }
+  /** A scooter going by: a saw falling away. */
+  buzz() {
+    this.blip(310, 0.8, "sawtooth", 0.07, 140);
+  }
+  /** The pigeons going up. */
+  flutter() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    for (let i = 0; i < 7; i++) this.hit(this.ctx.currentTime + i * 0.07, 0.05, 0.05, 2400, "bandpass", this.sfxGain);
+  }
+  /** The train's doors: three short beeps. */
+  beep() {
+    for (const i of [0, 1, 2]) this.blip(1320, 0.1, "square", 0.07, undefined, i * 0.16);
+  }
+  /** The train's horn at the tunnel: two notes held. */
+  horn() {
+    this.blip(233, 1.2, "sawtooth", 0.09);
+    this.blip(277, 1.2, "sawtooth", 0.07);
+  }
   /** Cart wheels squealing on marble. */
   squeal() {
     this.noise(0.25, 0.08, 3200, "bandpass", 2400);
@@ -939,7 +1075,7 @@ export class AudioBus {
         if (d && i >= d.from && i < d.to) this.tone(midi(n + d.shift), t, step * s.leadLen, d.wave, 0.045, bus);
       }
       if (s.bass[i]) this.tone(midi(s.bass[i]), t, step * s.bassLen, s.bassWave, 0.08, bus);
-      const k = i % 16;
+      const k = i % s.kick.length;
       if (s.kick[k] === "x") this.tone(140, t, 0.12, "sine", 0.16, bus, 45);
       if (s.snare[k] === "x") this.hit(t, 0.08, s.snareGain ?? 0.07, 1800, "bandpass", bus);
       if (s.hat[k] === "x") this.hit(t, 0.03, 0.025, 7000, "highpass", bus);

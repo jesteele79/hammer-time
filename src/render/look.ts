@@ -2017,7 +2017,7 @@ export async function startLook(
     // The title tune on the home screen; the level's song (the stash has its own), quiet under its cards; a repeat changes nothing.
     const levelMusic = musicFor(game.mode, game.level.music, game.quest ? questMusic(game.quest).theme : null);
     sound.music(levelMusic.theme, levelMusic.quiet);
-    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time));
+    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time, (world.flight?.sign ?? 0) > 0));
 
     const cam = scene.camera;
     const home = game.mode === "title" ? game.level.home : undefined;

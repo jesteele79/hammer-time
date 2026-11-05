@@ -154,6 +154,17 @@ export type GameEvent =
   | { type: "bossWave"; x: number; y: number; n: number }
   | { type: "bossHit"; by: "bonk" | "snot"; x: number; y: number; hp: number }
   | { type: "bossDown"; x: number; y: number; points: number }
+  /** The train: aboard with what was left of the clock; the doors beeping; the clock out; a shove in the crowd; the board lit; the tunnel; a bogie underfoot; a connecting door opened; the conductor staggered and summoned. */
+  | { type: "boarded"; bonus: number }
+  | { type: "doorsBeep" }
+  | { type: "stretchOut" }
+  | { type: "shoved"; x: number; y: number }
+  | { type: "board" }
+  | { type: "tunnel" }
+  | { type: "bogie" }
+  | { type: "doorOpen"; door: number }
+  | { type: "bossStagger"; x: number; y: number }
+  | { type: "summon" }
   /** Paris: the gate opened; the window tipping him off; a scooter out; the pigeons up. */
   | { type: "bonjour" }
   | { type: "tip"; x: number; y: number }

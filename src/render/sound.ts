@@ -12,6 +12,28 @@ type Cue = keyof AudioBus & string;
 
 export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   bounce: ["jump"],
+  // The way to Basel (story spec §13).
+  seatbelt: ["belt"],
+  cartOut: ["rattle"],
+  shove: ["rattle", "bump"],
+  tray: ["coin"],
+  tablet: ["tune"],
+  curtain: ["swish"],
+  sit: ["cloth"],
+  bonjour: ["ding"],
+  tip: ["slip"],
+  scooter: ["buzz"],
+  pigeons: ["flutter"],
+  boarded: ["beep", "coin"],
+  doorsBeep: ["beep"],
+  stretchOut: ["sting"],
+  shoved: ["bump"],
+  board: ["ding"],
+  tunnel: ["horn"],
+  bogie: ["thunk"],
+  doorOpen: ["thunk"],
+  bossStagger: ["bonk"],
+  summon: ["whistle"],
   batted: ["bonk"],
   giveBack: ["coin"],
   pool: ["splash"],
@@ -227,8 +249,8 @@ export function cuesFor(e: GameEvent): Cue[] {
  * A side quest's song (owner, 2026-10-25): the banquet's galop, faster for the last frenzy; the lounge's piano likewise;
  * the gate's bossa, faster while he is on a streak.
  */
-export function questMusic(q: Quest): { theme: "banquet" | "lounge" | "gate"; hurry: boolean } {
-  return q.id === "hungry" ? { theme: q.menu === "banquet" ? "banquet" : "lounge", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
+export function questMusic(q: Quest): { theme: "banquet" | "lounge" | "french" | "gate"; hurry: boolean } {
+  return q.id === "hungry" ? { theme: q.menu, hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
 }
 
 /**
@@ -245,10 +267,10 @@ export function musicFor(mode: GameMode, level: SongId, quest: SongId | null): {
 
 /**
  * The clock's hurry (the music a fifth faster) while he plays with under `RUN.hurry` seconds left: never under the tally,
- * whose drain runs the clock down, nor the cards after it.
+ * whose drain runs the clock down, nor the cards after it. `forced`: the same while the cabin's seatbelt sign is on.
  */
-export function hurryFor(mode: GameMode, levelTime: number, timeLeft: number): boolean {
-  return (mode === "play" || mode === "dying") && levelTime > 0 && timeLeft < RUN.hurry;
+export function hurryFor(mode: GameMode, levelTime: number, timeLeft: number, forced = false): boolean {
+  return (mode === "play" || mode === "dying") && (forced || (levelTime > 0 && timeLeft < RUN.hurry));
 }
 
 /** The shipped game's sound effects for the rebuild's events. Silent until the first key unlocks it. */

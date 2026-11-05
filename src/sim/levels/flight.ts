@@ -29,7 +29,7 @@ export const FLIGHT: Level = {
   length: 4000,
   spawn: { x: 50, y: 0 },
   time: 300,
-  music: "hallway",
+  music: "flight",
   card: "Seat 52E. Middle.",
   hall: { width: 3.4, keep: 0.6, set: "cabin", lanes: [-0.9, 0, 0.9], run: true, pace: 0.5 },
   hints: { early: 0 },
