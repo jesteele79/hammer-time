@@ -30,6 +30,7 @@ import { CAMPUS } from "../sim/levels/campus";
 import { GIFTSHOP } from "../sim/levels/giftshop";
 import { SAT } from "../sim/levels/sat";
 import { LOBBY_NIGHT } from "../sim/levels/lobby-night";
+import { HALLWAY } from "../sim/levels/hallway";
 import { TOWER } from "../sim/levels/tower";
 import { STOP_LEVELS } from "../sim/levels";
 import type { Carry, Snapshot } from "../sim/journey";
@@ -39,7 +40,7 @@ import { BOSS_ID } from "../sim/boss";
 import { heatZoneAt } from "../sim/hazards";
 import type { HeroState, Point, Rect } from "../sim/types";
 import type { Quality, RenderApp } from "./app";
-import { TIERS } from "./quality";
+import { TIERS, shouldStepDown3d } from "./quality";
 import { groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
@@ -57,13 +58,15 @@ import { BossView } from "./boss-view";
 import { PaintedFigure } from "./cast-body";
 import { attackers } from "../sim/cast-behavior";
 import { Props } from "./props";
-import { HERO_SCREEN_FRACTION, PORTRAIT_ZOOM, createScene, floorFocus } from "./scene";
+import { HERO_SCREEN_FRACTION, LAYER_ORDER, PORTRAIT_ZOOM, createScene, floorFocus } from "./scene";
 import { createSound, heard, hurryFor, musicFor, questMusic, tauntFor } from "./sound";
 import { TOWEL_OUT } from "./towel";
 import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
+import { EMPTY_HALL, toMeters } from "./3d/hall-state";
+import type { ThreeView } from "./3d/three-view";
 import { loadSatPieces } from "./venue-sat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
 import { NO_PAD, readPad, type Pad } from "./gamepad";
@@ -87,7 +90,7 @@ import { questIdOf, type QuestId } from "../sim/quests/quest";
 /** The shift's venues in order (R3 §2): the lobby, the restaurant, the campus and the gift shop. */
 const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** SAT is the journey's first stop, never part of Work the whole shift. */
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER].map((l) => [l.id, l]));
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
@@ -194,6 +197,8 @@ export async function startLook(
   render: RenderApp,
   opts: {
     noart?: boolean;
+    /** The hall flat on the game's own canvas, as a browser without WebGL2 plays it. */
+    flat?: boolean;
     board?: boolean;
     dev?: boolean;
     nocast?: boolean;
@@ -1009,6 +1014,85 @@ export async function startLook(
     return { x: tl.x, y: tl.y, w: br.x - tl.x, h: br.y - tl.y };
   };
 
+  /** The 3D hall, loaded the first time a level asks for it: three.js stays out of the page until then. */
+  let three: ThreeView | null = null;
+  let threeSettled = false;
+  let threeLoad: Promise<void> | null = null;
+  const loadThree = () =>
+    (threeLoad ??= (async () => {
+      const { ThreeView } = await import("./3d/three-view");
+      const host = app.canvas.parentElement;
+      if (!host) throw new Error("the game's canvas has no host");
+      const view = new ThreeView(host, render.quality, window.__next?.gpu ?? "");
+      try {
+        await view.load();
+      } catch (err) {
+        view.destroy();
+        throw err;
+      }
+      if (stopped) {
+        view.destroy();
+        return;
+      }
+      three = view;
+      view.onContextLost = () => {
+        three = null;
+        view.destroy();
+        if (window.__next) window.__next.three = undefined;
+      };
+    })()
+      .catch((err) => console.warn("the hall plays flat:", err))
+      .then(() => {
+        threeSettled = true;
+      }));
+  let hallShown = false;
+  const hallUp = () => !!game.level.hall && !!three;
+  /** The 3D view under the game's canvas, which clears transparent and keeps only its comic words, thoughts and sparks. */
+  const showHall = (on: boolean) => {
+    hallShown = on;
+    for (const name of LAYER_ORDER) if (name !== "fx") scene.layers[name].visible = !on;
+    app.renderer.background.alpha = on ? 0 : 1;
+    three?.setVisible(on);
+    hallGov.settle = 2;
+    hallGov.t = hallGov.n = 0;
+  };
+  /** The hall's own governor: a window of a second steps its tier down, never up; the game's own tier is untouched. */
+  const THREE_ORDER: Quality[] = ["ultra", "high", "medium", "low"];
+  const hallGov = { settle: 2, t: 0, n: 0 };
+  const governHall = (dt: number) => {
+    if (!three || game.mode === "pause" || dt <= 0) return;
+    if (hallGov.settle > 0) {
+      hallGov.settle -= dt;
+      return;
+    }
+    hallGov.t += dt;
+    hallGov.n++;
+    if (hallGov.t < 1) return;
+    const intervalMs = (hallGov.t / hallGov.n) * 1000;
+    hallGov.t = hallGov.n = 0;
+    if (!shouldStepDown3d({ workMs: three.frameMs, intervalMs })) return;
+    const next = THREE_ORDER[THREE_ORDER.indexOf(three.quality) + 1];
+    if (!next) return;
+    three.setQuality(next);
+    three.frameMs = 0;
+    hallGov.settle = 1;
+  };
+  const hallTick = (dt: number, simDt: number) => {
+    if (!three) return;
+    if (!hallShown) showHall(true);
+    const h = cur.hero;
+    const state = { ...EMPTY_HALL, hero: { ...EMPTY_HALL.hero, z: toMeters(h.x), y: -toMeters(h.y) } };
+    three.resize(scene.width, scene.height);
+    three.sync(state, dt);
+    three.render(dt);
+    governHall(dt);
+    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time));
+    if (window.__next) {
+      window.__next.run = runProbe();
+      window.__next.three = { canvas: true, quality: three.quality, density: three.density, fps: three.fps, drawing: three.drawing };
+    }
+  };
+
   /** The tail of every frame, the shift's and the banquet's: the mode's notice, the hurry, the notes' clocks and the HUD. */
   const afterFrame = (simDt: number, hurry: boolean) => {
     sound.setHurry(hurry);
@@ -1545,9 +1629,10 @@ export async function startLook(
     // The home screen is the scene itself, live behind the start screen.
     app.stage.visible = true;
     // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
-    const holding = !views.has(game.level.id) || (inBanquet() && !(atLounge() ? loungeLoaded : banquetLoaded)) || (inGate() && !gateLoaded);
+    const holding = !views.has(game.level.id) || (inBanquet() && !(atLounge() ? loungeLoaded : banquetLoaded)) || (inGate() && !gateLoaded) || (!!game.level.hall && !opts.flat && !threeSettled);
     if (holding) {
       void prepare(game.level);
+      if (game.level.hall && !opts.flat) void loadThree();
       if (inBanquet()) void (atLounge() ? loadLounge() : loadBanquet());
       if (inGate()) void loadGate();
     }
@@ -1592,6 +1677,11 @@ export async function startLook(
       return;
     }
     if (questShown) leaveQuest(world.hero.x, world.hero.y);
+    if (hallUp()) {
+      hallTick(dt, simDt);
+      return;
+    }
+    if (hallShown) showHall(false);
     const alpha = Math.min(1, frame.acc / STEP);
     const h = cur.hero;
     const x = prev.hero.x + (h.x - prev.hero.x) * alpha;

@@ -168,7 +168,7 @@ export type ThoughtSpec = { x: number; text: string; y?: number };
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
-export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower";
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway";
 export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   passes: LevelPass[];
   /** Flat-tops and the walk-in freezer (R3 §3.1). */
@@ -223,6 +223,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   keycards?: Point[];
   /** A tall level (the tower): how far apart its floors stand; the HUD reads the floor he is on. */
   floors?: { every: number };
+  /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand. */
+  hall?: { width: number; keep: number };
   /** Carts that roll along a landing. */
   movers?: MoverSpec[];
   /** Gaps that drop him one floor for the slide's seconds: `x` their left end, `y` the landing. */

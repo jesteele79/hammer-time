@@ -1483,8 +1483,20 @@ test("the camera's rest focus puts the walking line at 78 percent of the view in
 import { TIERS, firstTier, gpuClassOf, isDesktopGpu } from "../src/render/quality.ts";
 import { ambientOf, lightsOf } from "../src/render/lighting.ts";
 import { stackWalls } from "../src/render/backdrop.ts";
+import { TIERS3D, density3dFor } from "../src/render/quality.ts";
 import { PALETTE } from "../src/render/palette.ts";
 import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
+test("the 3D view's tiers: density, antialiasing, bloom and ink never rise going down; the sharpest density is an NVIDIA card's", () => {
+  const order = ["ultra", "high", "medium", "low"];
+  for (let i = 1; i < order.length; i++) {
+    const a = TIERS3D[order[i - 1]];
+    const b = TIERS3D[order[i]];
+    assert.ok(b.density <= a.density && b.aa <= a.aa && Number(b.bloom) <= Number(a.bloom) && Number(b.ink) <= Number(a.ink), `${order[i]} under ${order[i - 1]}`);
+  }
+  assert.equal(density3dFor("ultra", "NVIDIA GeForce RTX 4070"), 2);
+  assert.equal(density3dFor("ultra", "AMD Radeon 780M"), 1.5);
+  assert.equal(density3dFor("medium", "NVIDIA GeForce RTX 4070"), 1);
+});
 test("a housekeeper knocked down lies flat, her painted skirt out along the floor; everyone else sits", () => {
   const flat = solve(castPose({ role: "bellhop", act: "down", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0, flat: true }), 1, 0.26);
   const sat = solve(castPose({ role: "bellhop", act: "down", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 }), 1, 0.26);

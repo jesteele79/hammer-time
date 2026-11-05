@@ -67,6 +67,8 @@ export type NextProbe = {
       };
   /** Set by the look scene once it runs. */
   /** `walkOut`: out of the shuttle door, the seconds left of the can in his hand and the nuts spilling (R5 §8). */
+  /** The 3D hall while there is one: undefined when the level plays flat. */
+  three?: { canvas: boolean; quality: Quality; density: number; fps: number; drawing: boolean };
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
   heroScreenX?: number;
@@ -196,8 +198,11 @@ export async function createRenderApp(
     resolution: Math.min(window.devicePixelRatio || 1, DPR[quality]),
     resizeTo: host,
     background: "#0d1118",
+    // Under the hall the canvas clears transparent over the 3D view, which a context must be made able to do at the start.
+    backgroundAlpha: 0.999,
     powerPreference: "high-performance",
   });
+  app.renderer.background.alpha = 1;
   host.appendChild(app.canvas);
   const rendererType = app.renderer.type === RendererType.WEBGPU ? "webgpu" : "webgl";
   const probe: NextProbe = {

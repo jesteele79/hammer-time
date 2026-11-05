@@ -31,6 +31,22 @@ export const TIERS: Record<"ultra" | "high" | "medium" | "low", Tier> = {
   low: { dpr: 1, particles: 300, bloom: false, glows: false, rim: false },
 };
 
+/** The 3D view's own tiers (plan decision 14): it gives up density first, then antialiasing, then the bloom, the ink last. */
+export type Tier3d = { density: number; aa: number; bloom: boolean; ink: boolean };
+export const TIERS3D: Record<"ultra" | "high" | "medium" | "low", Tier3d> = {
+  ultra: { density: 1.5, aa: 4, bloom: true, ink: true },
+  high: { density: 1.25, aa: 4, bloom: true, ink: true },
+  medium: { density: 1, aa: 2, bloom: false, ink: true },
+  low: { density: 0.75, aa: 0, bloom: false, ink: false },
+};
+/** The density a tier draws at: only an NVIDIA card gets 2 at ultra (the spike's integrated card fell to 21 fps there). */
+export const density3dFor = (q: keyof typeof TIERS3D, gpu: string): number => (q === "ultra" && /NVIDIA|GeForce|RTX/i.test(gpu) ? 2 : TIERS3D[q].density);
+
+/** The rate the 3D view holds before it gives up a tier, whatever the display's own rate: a 120 Hz screen need not be matched. */
+export const THREE_FPS_FLOOR = 55;
+/** Whether a window asks the 3D view for the next tier down: too much work, or under its floor. */
+export const shouldStepDown3d = (sample: { workMs: number; intervalMs: number }): boolean => shouldStepDown({ workMs: sample.workMs, intervalMs: sample.intervalMs, refreshMs: 1000 / THREE_FPS_FLOOR / DROP_RATIO });
+
 /** A real video card by its adapter's or renderer's name (story spec §15): NVIDIA, AMD and Intel Arc. */
 export const isDesktopGpu = (name: string): boolean => /NVIDIA|GeForce|RTX|Radeon|AMD|Arc\b/i.test(name);
 /** The same from everything a browser tells of its card: WebGPU may say Intel Arc only as vendor "intel", architecture "xe-hpg". */

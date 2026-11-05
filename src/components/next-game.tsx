@@ -106,6 +106,7 @@ function useMedia(query: string) {
 export function NextGame({
   forceWebgl = false,
   noart = false,
+  flat = false,
   board = false,
   dev = false,
   nocast = false,
@@ -117,6 +118,8 @@ export function NextGame({
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
+  /** The hall flat on the game's own canvas. */
+  flat?: boolean;
   board?: boolean;
   /** The checks' switch: a practice hit on G and a teleport on the probe. */
   dev?: boolean;
@@ -333,7 +336,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, board, dev, nocast, level, title, home: homeNight ? "lobby-night" : homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
+      const started = await startLook(render, { noart, flat, board, dev, nocast, level, title, home: homeNight ? "lobby-night" : homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
       setLiveQuality(render.quality);
       if (cancelled) {
         started.stop();
@@ -353,7 +356,7 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, board, dev, nocast, level, title, journeyAll, homeNight, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
+  }, [forceWebgl, noart, flat, board, dev, nocast, level, title, journeyAll, homeNight, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
 
   // The save decides the home scene: finishing Act 1, or New game, changes it from the next visit home.
   useEffect(() => {

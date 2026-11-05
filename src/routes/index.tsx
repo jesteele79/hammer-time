@@ -12,6 +12,8 @@ export const Route = createFileRoute("/")({
     board: flag(search.board),
     dev: flag(search.dev),
     nocast: flag(search.nocast),
+    // ?flat=1 plays the hall flat on the game's own canvas, as a browser without WebGL2 does.
+    flat: flag(search.flat),
     // ?level= starts a level of the whole shift fresh, straight into play (the old ?venue= is its alias); ?journey=all opens
     // every stop of the journey for the page without saving (story spec §4.7).
     level: levelOf(search.level ?? search.venue),
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/")({
 });
 
 const flag = (v: unknown): true | undefined => (v === true || v === 1 || v === "1" ? true : undefined);
-const LEVELS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower"] as const;
+const LEVELS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway"] as const;
 type LevelChoice = (typeof LEVELS)[number];
 /** `&level=` (or the old `&venue=`) starts that level fresh, for the checks. */
 const levelOf = (v: unknown): LevelChoice | undefined => ((LEVELS as readonly unknown[]).includes(v) ? (v as LevelChoice) : undefined);
@@ -35,7 +37,7 @@ const QUESTS = ["hungry", "fares", "lounge"] as const;
 const questOf = (v: unknown): (typeof QUESTS)[number] | undefined => ((QUESTS as readonly unknown[]).includes(v) ? (v as (typeof QUESTS)[number]) : undefined);
 
 function Home() {
-  const { next, gl, noart, board, dev, nocast, level, journey, title, quest, home } = Route.useSearch();
+  const { next, gl, noart, board, dev, nocast, flat, level, journey, title, quest, home } = Route.useSearch();
   // A quest link holds the game on the start screen behind it: practice opens from there, ?next=1 or not.
-  return <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} level={level} journeyAll={!!journey} title={!next || !!title || !!quest} quest={quest} homeNight={home === "night"} />;
+  return <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} flat={!!flat} level={level} journeyAll={!!journey} title={!next || !!title || !!quest} quest={quest} homeNight={home === "night"} />;
 }
