@@ -1400,6 +1400,18 @@ export async function foodCells(png, cols = 4, rows = 4) {
  * `minShare` of the largest dropped (specks); left to right, each cropped with the margin to its own shapes only, its
  * base the middle of its lowest painted row.
  */
+/**
+ * The piece files among a folder's: a sheet (`lobby-mid.png`), cut into numbered pieces, or a single piece named as it is
+ * (`paris-mid-1.png`).
+ */
+export const pieceSheets = (files) =>
+  files.flatMap((file) => {
+    const sheet = /^(.*-(?:mid|fore))\.png$/.exec(file);
+    if (sheet) return [{ file, name: sheet[1], one: false }];
+    const single = /^(.*-(?:mid|fore)-\d+)\.png$/.exec(file);
+    return single ? [{ file, name: single[1], one: true }] : [];
+  });
+
 export async function sheetPieces(keyed, { join = 24, minShare = 0.02 } = {}) {
   const { data, info } = await sharp(keyed.png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const W = info.width,

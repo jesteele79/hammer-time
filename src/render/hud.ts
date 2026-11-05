@@ -156,6 +156,14 @@ export function hintOf(game: Game): string {
     if (game.level.keyDoor && h.x >= game.level.keyDoor.x - 400) return "H on the door · the key won't open it";
     return h.x < HALL_FIRST_HINT ? "W forward · A D sidestep" : "S back · Space jumps a cart · a turning handle swings its door out";
   }
+  // Paris's own business, past whatever is in his face.
+  const hotel = game.level.bonjour;
+  if (hotel) {
+    if (!game.world.bonjourDone) return "E in front of her desk · she wants her bonjour";
+    if (h.x < hotel.wall.x + 836 && h.y > -500) return "S on the lift · it takes one, crouched · or the stairs";
+    if (h.x < hotel.wall.x + 836) return "Out by the back stair · the street's shut";
+    return "Jump the scooters · mind the waiter · ↓ at the BRASSERIE";
+  }
   const lesson = game.level.lessons?.find((l) => h.x >= l.x0 && h.x < l.x1 && !game.run.learned.includes(l.move));
   if (lesson) return lesson.text;
   if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";

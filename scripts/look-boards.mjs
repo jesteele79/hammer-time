@@ -234,6 +234,24 @@ try {
     frames.forEach((f, i) => save(`lounge-look-${i + 1}.png`, f));
     count += frames.length;
   }
+  if (want("french")) {
+    // The French table: its first spread and the desserts.
+    await page.goto(`${base}?next=1&board=1&dev=1`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 30000 });
+    await page.waitForTimeout(800);
+    const frames = (await render("french")).split("\n");
+    frames.forEach((f, i) => save(`french-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
+  if (want("paris")) {
+    // Paris's stretches, in the running game's scene.
+    await page.goto(`${base}?next=1&board=1&dev=1&level=paris`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 60000 });
+    await page.waitForTimeout(1200);
+    const frames = (await render("venue")).split("\n");
+    frames.forEach((f, i) => save(`paris-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
   if (want("gate")) {
     // The gate (R5): its four moments from a replayed practice round, and his throw and lob up close.
     await page.goto(`${base}?next=1&board=1&dev=1`);

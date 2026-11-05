@@ -200,6 +200,7 @@ export type Carried = "glasses" | "food" | "cup" | "phone" | "pan" | "book" | "t
 export function carriedOf(job: CastJob): Carried[] {
   switch (job) {
     case "server":
+    case "garcon":
       return ["glasses"];
     case "lunch":
       return ["food"];

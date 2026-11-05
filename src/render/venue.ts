@@ -10,6 +10,7 @@ import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } 
 import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
 import { drawSatBelt, drawSatDressing, drawSatFurniture, satFloor, type SatPieces } from "./venue-sat";
 import { drawHallFlat } from "./venue-hall-flat";
+import { drawParis, drawParisStandIn, parisPlatform } from "./venue-paris";
 import { drawSuiteStandIn } from "./venue-suite";
 import { towerDressing, towerFloor, towerPlatform, type TowerPieces } from "./venue-tower";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
@@ -95,7 +96,11 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   const climb = !!level.floors;
   if (climb) towerDressing(back, level, tower);
   if (level.rooms && !suitePainted) drawSuiteStandIn(back, level);
-  for (const p of level.platforms) if (!level.rooms && !(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
+  if (level.bonjour) {
+    if (!suitePainted) drawParisStandIn(back, level);
+    drawParis(back, level);
+  }
+  for (const p of level.platforms) if (!level.rooms && !(level.bonjour && parisPlatform(mid, p)) && !(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
   const airport = level.id === "sat";
   for (const f of level.floor)
     if (!(level.rooms && suitePainted) && !(climb && towerFloor(front, f)) && !(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);

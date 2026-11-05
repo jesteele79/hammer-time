@@ -10,6 +10,7 @@ import { PARIS } from "../src/sim/levels/paris.ts";
 import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { drive } from "../src/sim/drive.ts";
 import { strikeNpc } from "../src/sim/cast.ts";
+import { hintOf } from "../src/render/hud.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -112,4 +113,16 @@ test("the scripted walker reaches the brasserie with time to spare; a masher who
   assert.deepEqual([g.mode, g.run.lives >= 1], ["questCard", true]);
   assert.ok(t < 200, `in ${t} s`);
   const m = paris(); play(m); Object.assign(m.world.hero, { x: 3200, y: 0 }); until(m, (x) => x.mode === "over", 420, { hammer: true, right: true }); assert.equal(m.mode, "over");
+});
+
+test("the hints say Paris's own business: her gate, the lift, the way out, the street", () => {
+  const g = paris(); play(g); const h = g.world.hero;
+  assert.match(hintOf(g), /E .*bonjour/i);
+  bonjour(g);
+  Object.assign(h, { x: 900, y: 0 });
+  assert.match(hintOf(g), /lift/i);
+  Object.assign(h, { x: 1200, y: -540 });
+  assert.match(hintOf(g), /back stair/i);
+  Object.assign(h, { x: 6000, y: 0 });
+  assert.match(hintOf(g), /scooter/i);
 });

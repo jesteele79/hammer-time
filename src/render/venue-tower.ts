@@ -4,6 +4,7 @@ import type { Level, LevelFloor, LevelPlatform } from "../sim/level";
 import type { Mover } from "../sim/movers";
 import { INK, THIN } from "./ink";
 import { PALETTE, tones } from "./palette";
+import { drawLift, drawScooter } from "./venue-paris";
 
 /** The stairwell's materials: grey carpet, painted steel, a rubber tread, the walls past its ends. */
 const C = { carpet: "#74767e", nosing: "#a9abb3", slab: "#55575f", deep: "#3c3d44", steel: "#8d939c", rail: "#c9a24a", concrete: "#6f7078", tread: "#3a3c44", tube: "#4c4f58", tubeIn: "#2c2e35", stripe: "#d8b13c", wall: "#3a3a42", machine: "#2b2e35", glass: "#f2e6c4", shelf: "#6b5a3a" } as const;
@@ -176,7 +177,12 @@ export class TowerCarts {
 
   private build(m: Mover): Container {
     const c = new Container();
-    if (this.art) {
+    if (m.loop || m.ride) {
+      const g = new Graphics();
+      if (m.ride) drawLift(g, m);
+      else drawScooter(g, m.w, m.h);
+      c.addChild(g);
+    } else if (this.art) {
       const s = new Sprite(this.art.texture);
       const k = (m.h * 1.05) / this.art.piece.height;
       s.anchor.set(this.art.piece.base.x / this.art.piece.width, this.art.piece.base.y / this.art.piece.height);
@@ -203,8 +209,9 @@ export class TowerCarts {
         this.views.set(m.id, v);
       }
       v.position.set(m.x, m.y);
+      v.visible = !m.loop || !!m.live;
       // The sheet's cart faces left.
-      v.scale.x = m.dir > 0 ? -1 : 1;
+      v.scale.x = (m.loop ?? (m.ride ? -1 : m.dir)) > 0 ? -1 : 1;
       const s = m.onSlope;
       v.rotation = s ? Math.atan2(s.y1 - s.y0, s.x1 - s.x0) : 0;
     }

@@ -1,4 +1,4 @@
-import { Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
+import { Assets, Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
 import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
 import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, GATE_GLOATS, GATE_INSULTS, GATE_PISSED, LECTURES, SAMPLE_LINES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import type { TauntTarget } from "../game/taunts";
@@ -50,7 +50,7 @@ import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
 import { createCharacter } from "./character";
 import { ambientOf, ambientTint, createLighting, lightsOf, multiplyTint, type Light } from "./lighting";
-import { drawCrate, loadProducts, Objects, productTexture } from "./objects";
+import { drawCrate, loadProducts, Objects, productTexture, setBreadPicture } from "./objects";
 import { PALETTE } from "./palette";
 import { Particles } from "./particles";
 import { CAST, HATTED, type CastRole } from "../sim/cast";
@@ -73,6 +73,7 @@ import { drawVenue, type VenueView } from "./venue";
 import { backClipOf, backCycle, hallStateOf } from "./3d/hall-state";
 import type { ThreeView } from "./3d/three-view";
 import { SETS } from "./3d/sets";
+import { ParisView } from "./venue-paris";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
@@ -285,6 +286,7 @@ export async function startLook(
   const bossView = new BossView(scene.layers.play, registry, !!opts.noart);
   const towerCarts = new TowerCarts(scene.layers.play);
   const hallFlat = new HallFlatView(scene.layers.play);
+  const parisView = new ParisView(scene.layers.play);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -311,7 +313,8 @@ export async function startLook(
           };
           objects.setLooks({ ice: looks("ice"), cabinet: looks("cabinet") });
         }
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.["suite-far-1"]);
+        if (level.pickups?.some((p) => p.kind === "bread") && !opts.noart && registry.french?.food?.[0]) setBreadPicture(await Assets.load<Texture>(ART_BASE + registry.french.food[0].file).catch(() => null));
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.bonjour ? "paris-far-1" : "suite-far-1"]);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -755,6 +758,9 @@ export async function startLook(
         break;
       case "castNotice":
         particles.emit("glint", e.x, e.y - 40, 3);
+        break;
+      case "pigeons":
+        parisView.scatter(e.x);
         break;
       case "bossSay":
         speech.say(BOSS_ID, e.text, e.seconds);
@@ -1882,6 +1888,9 @@ export async function startLook(
     towerCarts.container.zIndex = y - 0.65;
     towerCarts.sync(cur.movers);
     hallFlat.container.zIndex = y - 0.66;
+    parisView.container.zIndex = y - 0.67;
+    parisView.setVisible(!!game.level.bonjour);
+    if (game.level.bonjour) parisView.sync(game.level, time, simDt, world.bonjourDone, world.tip.out > 0);
     hallFlat.setVisible(!!game.level.hall && !hallUp());
     if (game.level.hall) {
       const purser = cur.boss?.kind === "purser" ? cur.boss : null;
@@ -1991,6 +2000,7 @@ export async function startLook(
       views.get(game.level.id)?.venue.setPunched(game.run.punched);
       snapCamera(x, y);
     }
+    objects.canScale = game.level.canScale ?? 1;
     objects.sync(game.pickups, game.crates, simDt);
     objects.carry(
       world.cast.flatMap((n) => {
@@ -2056,6 +2066,8 @@ export async function startLook(
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip: hallBack?.clip ?? clip, walkOut: { ...walkOut } };
+      window.__next.movers = cur.movers.map((m) => ({ id: m.id, x: m.x, y: m.y, live: m.live !== false }));
+      window.__next.level = { signs: game.level.signs.map((s) => ({ label: s.label })) };
       window.__next.flight = cur.flight ? { sign: cur.flight.sign, cartLive: cur.flight.cart.live, cartZ: cur.flight.cart.z, lane: cur.hero.lane } : undefined;
       window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
@@ -2431,6 +2443,7 @@ export async function startLook(
       pigView.destroy();
       bossView.destroy();
       towerCarts.destroy();
+      parisView.destroy();
       hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();

@@ -88,10 +88,23 @@ function productSprite(k: Product, height: number = PRODUCTS[k].height): Sprite 
   return s;
 }
 
+/** The French sheet's baguette, once it is cut: the drawn one stands until then. */
+let breadTexture: Texture | null = null;
+export const setBreadPicture = (t: Texture | null) => {
+  breadTexture = t;
+};
+function breadSprite(): Sprite | null {
+  if (!breadTexture) return null;
+  const s = new Sprite(breadTexture);
+  s.anchor.set(0.5);
+  s.scale.set(70 / breadTexture.frame.height);
+  return s;
+}
+
 /** A pickup about its middle: the real product where its picture loaded, the ink stand-in otherwise. */
 export function pickupView(kind: PickupKind): Container {
   const c = new Container();
-  const s = kind === "pepper" || kind === "keycard" || kind === "bread" ? null : productSprite(kind);
+  const s = kind === "bread" ? breadSprite() : kind === "pepper" || kind === "keycard" ? null : productSprite(kind);
   c.addChild(s ?? drawPickup(new Graphics(), kind));
   return c;
 }
@@ -252,6 +265,9 @@ export class Objects {
     layer.addChild(this.root);
   }
 
+  /** How big the can is drawn in this level: Coke Zero in France. */
+  canScale = 1;
+
   setLooks(looks: Partial<Record<"ice" | "cabinet", { texture: Texture; height: number; base: { x: number; y: number }; width: number }>>) {
     this.looks = looks;
   }
@@ -314,6 +330,7 @@ export class Objects {
       let view = this.pickups.get(p.id);
       if (!view) {
         const c = pickupView(p.kind);
+        if (p.kind === "can") c.scale.set(this.canScale);
         c.zIndex = PICKUP_Z;
         this.root.addChild(c);
         view = { c, taken: p.taken };

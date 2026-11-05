@@ -33,7 +33,7 @@ import { coilPose, divePose } from "../sim/rig/dive";
 import { blend, type Pose } from "../sim/rig/pose";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw" | "lounge" | "lounge-thumb";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw" | "lounge" | "lounge-thumb" | "french" | "french-thumb";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -63,6 +63,7 @@ const MOVE_FRAMES = 10;
 /** Each venue's six frames: where he stands, where the camera looks and how wide. */
 export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }[]>> = {
   flight: [{ x: 200, cx: 500 }, { x: 1700, cx: 2000 }, { x: 3700, cx: 3700 }],
+  paris: [{ x: 450, cx: 760, cy: -300 }, { x: 1150, y: -540, cx: 1000, cy: -720 }, { x: 2800, cx: 3100, cy: -300 }, { x: 6000, cx: 6200, cy: -300 }, { x: 10050, cx: 10150, cy: -300 }],
   // SAT: the curb, the TSA line, the gate.
   sat: [
     { x: 700, y: 0, cx: 1200 },
@@ -106,6 +107,7 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
 /** Each start's picture on the start screen: where he stands and where the camera looks. */
 export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }>> = {
   flight: { x: 400, cx: 700 },
+  paris: { x: 2800, cx: 3100, cy: -300 },
   sat: { x: 5900, y: 0, cx: 6500, zoom: 0.92 },
   lobby: { x: 1100, y: 0, cx: 1600 },
   restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },
@@ -238,7 +240,7 @@ export function createBoards(
   /** The level the game is in: the venue board frames it. */
   currentLevel: () => Level = () => LOBBY,
   /** The banquet's shots, drawn by the look's banquet view (R4). */
-  banquet?: { moments(): Promise<string[]>; thumb(): Promise<string>; food(): Promise<string>; lounge(): Promise<string[]>; loungeThumb(): Promise<string> },
+  banquet?: { moments(): Promise<string[]>; thumb(): Promise<string>; food(): Promise<string>; lounge(): Promise<string[]>; french(): Promise<string[]>; frenchThumb(): Promise<string>; loungeThumb(): Promise<string> },
   /** The gate's shots, drawn by the look's gate view (R5). */
   gate?: { moments(): Promise<string[]>; thumb(): Promise<string> },
 ): Boards {
@@ -815,6 +817,10 @@ export function createBoards(
           return (await banquet!.lounge()).join("\n");
         case "lounge-thumb":
           return banquet!.loungeThumb();
+        case "french":
+          return (await banquet!.french()).join("\n");
+        case "french-thumb":
+          return banquet!.frenchThumb();
         case "gate":
           return (await gate!.moments()).join("\n");
         case "gate-thumb":

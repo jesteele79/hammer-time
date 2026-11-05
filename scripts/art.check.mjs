@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { pieceSheets } from "./art-cut.mjs";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import {
@@ -1140,4 +1141,12 @@ test("the cabin's set is committed and under 8 MB, as the hall's is", async () =
   const { statSync } = await import("node:fs");
   for (const f of ["public/sets/cabin.glb", "public/sets/hallway.glb"]) assert.ok(statSync(f).size < 8e6, f);
   assert.ok(existsSync("art/blender/cabin.blend"));
+});
+
+test("a single mid or fore piece file is a one-piece sheet under its own name; a sheet's pieces are numbered", () => {
+  assert.deepEqual(pieceSheets(["lobby-mid.png", "paris-mid-1.png", "paris-fore-1.png", "paris-far-1.png", "paris-mid-1.prompt.txt", "gate.png"]), [
+    { file: "lobby-mid.png", name: "lobby-mid", one: false },
+    { file: "paris-mid-1.png", name: "paris-mid-1", one: true },
+    { file: "paris-fore-1.png", name: "paris-fore-1", one: true },
+  ]);
 });

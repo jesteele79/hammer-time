@@ -13,6 +13,9 @@ import { pose } from "../src/sim/rig/pose.ts";
 import { SETS } from "../src/render/3d/sets.ts";
 import { backClipOf, backCycle, hallStateOf } from "../src/render/3d/hall-state.ts";
 import { FLIGHT, rowX } from "../src/sim/levels/flight.ts";
+import { PARIS } from "../src/sim/levels/paris.ts";
+import { placementsOf } from "../src/render/backdrop.ts";
+import { screenGlow } from "../src/render/venue-paris.ts";
 import { HALLWAY } from "../src/sim/levels/hallway.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
@@ -1688,4 +1691,23 @@ test("his back crouches while ↓ is held, and the cabin's sprint shows his run 
   assert.equal(backClipOf({ ...h, vx: 390, onGround: true, move: null, hurtT: 0, stunT: 0 }, 0, 0.5).clip, "run");
   assert.equal(backClipOf({ ...h, vx: 200, onGround: true, move: null, hurtT: 0, stunT: 0 }, 0, 0.5).clip, "walk");
   assert.equal(backCycle({ vx: 390 }, 0.5) > backCycle({ vx: 200 }, 0.5), true);
+});
+
+test("a layout places the hotel's two floors over one wall and the street's walls after it, the lower floor cut at the floor above", () => {
+  const wall = (n) => ({ file: n, width: 1536, height: 1024, floor: 768, top: "#000000" });
+  const walls = wallsFor(PARIS, { walls: { "paris-far-1": wall("1"), "paris-far-2": wall("2"), "paris-far-3": wall("3"), "paris-far-4": wall("4") } });
+  const at = placementsOf(PARIS.backdrop, walls);
+  assert.equal(at.length, 8);
+  assert.deepEqual([at[0].x, at[0].y, at[0].above, at[1].x, at[1].y, at[1].above, at[2].x, at[2].y, at[2].above], [0, 0, 540, 0, -540, 768, 1536, 0, 768]);
+  assert.deepEqual(at.map((p) => p.wall.file), ["1", "2", "3", "4", "3", "4", "3", "4"]);
+  assert.equal(PARIS.backdrop.far.pan, 1, "the painted lift and desk stand where the sim's do");
+});
+test("the televisions flicker, never quite dark", () => {
+  const seen = new Set();
+  for (let t = 0; t < 4; t += 0.05) {
+    const a = screenGlow(t, 2);
+    assert.ok(a > 0.05 && a <= 1.01);
+    seen.add(Math.round(a * 10));
+  }
+  assert.ok(seen.size > 3);
 });

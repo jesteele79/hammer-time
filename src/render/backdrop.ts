@@ -127,6 +127,23 @@ export function stackWalls(level: Pick<Level, "bounds" | "floors">, walls: Pick<
   return rows;
 }
 
+/**
+ * A level's walls by its explicit layout (3-2): each at its `x` and floor `y`, and how much of it shows above that floor:
+ * as painted, or up to the floor of a wall stacked over it.
+ */
+export function placementsOf(backdrop: NonNullable<Level["backdrop"]>, walls: Wall[]): { wall: Wall; index: number; x: number; y: number; above: number }[] {
+  const scale = backdrop.far?.scale ?? 1;
+  const names = backdrop.walls;
+  const layout = backdrop.layout ?? [];
+  return layout.map((p) => {
+    const index = names.indexOf(p.wall);
+    const wall = walls[index];
+    const y = p.y ?? 0;
+    const over = layout.filter((o) => o.x === p.x && (o.y ?? 0) < y).map((o) => y - (o.y ?? 0));
+    return { wall, index, x: p.x, y, above: over.length ? Math.min(...over) : wall.floor * scale };
+  });
+}
+
 export type Backdrop = { setVisible(on: boolean): void; update(face: Rect | null, dt: number, ground: number | null): void };
 
 /**
@@ -169,7 +186,25 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   const walls = wallsFor(level, registry);
   // A wall that does not load leaves the venue its photo, never a gap in the row.
   const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
-  if (level.backdrop?.rooms && level.rooms && walls && textures) {
+  if (level.backdrop?.layout && walls && textures) {
+    const scale = level.backdrop.far?.scale ?? 1;
+    // The topmost first, so a wall stacked under it covers what it painted below its own floor.
+    for (const p of placementsOf(level.backdrop, walls).sort((a, b) => a.y - b.y)) {
+      const w = p.wall;
+      const cut = w.floor - p.above / scale;
+      const s = new Sprite(cut > 0 ? new Texture({ source: textures[p.index].source, frame: new Rectangle(0, cut, w.width, w.height - cut) }) : textures[p.index]);
+      s.position.set(p.x, p.y - p.above);
+      s.scale.set(scale);
+      s.tint = wallTint;
+      const above = new Graphics().rect(p.x, -4000, w.width * scale, 4000 + p.y - p.above).fill(w.top);
+      const below = new Graphics().rect(p.x, p.y + (w.height - w.floor) * scale - 2, w.width * scale, 4000).fill(w.bottom ?? w.top);
+      above.tint = below.tint = wallTint;
+      // A floor's stacked over this one: nothing of this wall carries on up.
+      if (p.above === w.floor * scale) grounded.far.addChild(above);
+      grounded.far.addChild(below, s);
+    }
+    planes.mid.addChild(new Graphics().rect(-20000, FLOOR.depth, 60000, 6000).fill(GROUND));
+  } else if (level.backdrop?.rooms && level.rooms && walls && textures) {
     // One wall a room, its width the room's, so its painted furniture stands where the room's platforms are.
     level.rooms.forEach((r, i) => {
       const w = walls[i];
@@ -259,7 +294,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     grounded.mid.addChild(s);
     mids++;
   }
-  if (!mids && level.id !== "stash" && !level.backdrop?.stack && !level.backdrop?.rooms && !level.hall) planes.mid.addChild(drawMid(level.length));
+  if (!mids && level.id !== "stash" && !level.backdrop?.stack && !level.backdrop?.rooms && !level.backdrop?.layout && !level.hall) planes.mid.addChild(drawMid(level.length));
   const fores: Sprite[] = [];
   for (const f of level.backdrop?.fore ?? []) {
     const s = await piece(f.name);
@@ -277,7 +312,8 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
       if (on) scene.farPan = farPan(level);
     },
     update(face, dt, ground) {
-      if (ground !== null) {
+      // Walls placed by a layout stand where the sim's floors are, whichever floor he is on.
+      if (ground !== null && !level.backdrop?.layout) {
         groundY = groundY === null ? ground : groundY + (ground - groundY) * Math.min(1, GROUND_EASE * dt);
         for (const c of Object.values(grounded)) c.y = groundY;
       }

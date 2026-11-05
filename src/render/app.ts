@@ -69,6 +69,9 @@ export type NextProbe = {
   /** `walkOut`: out of the shuttle door, the seconds left of the can in his hand and the nuts spilling (R5 §8). */
   /** The 3D hall while there is one: undefined when the level plays flat. */
   three?: { canvas: boolean; quality: Quality; density: number; fps: number; drawing: boolean };
+  /** The level's moving platforms and its signs, for the checks. */
+  movers?: { id: string; x: number; y: number; live: boolean }[];
+  level?: { signs: { label: string }[] };
   /** The cabin's state, while there is one. */
   flight?: { sign: number; cartLive: boolean; cartZ: number; lane: number };
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };

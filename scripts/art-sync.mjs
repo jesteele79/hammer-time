@@ -28,6 +28,7 @@ import {
   webpPaths,
   wallCrop,
   sheetPieces,
+  pieceSheets,
   nameGatePieces,
   nameSatPieces,
   nameTowerPieces,
@@ -218,7 +219,7 @@ async function bodies(registry) {
 
 const CAST_IN = "art/incoming/cast";
 // The bartender borrows server-1's painting (PAINTING_OF); the skycap and the TSA agent are cut when theirs arrive.
-const CAST_PERSONS = ["purser", "attendant-1", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1", "guard-1", "titanium", "housekeeper-1"];
+const CAST_PERSONS = ["purser", "attendant-1", "concierge", "garcon", "parisian-1", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1", "guard-1", "titanium", "housekeeper-1"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {
@@ -387,12 +388,11 @@ async function walls(registry) {
       console.log(`wall ${name}: ${w.width}x${w.height}, its floor at ${w.floor}${source === painted ? "" : " (the render)"}`);
     });
   }
-  for (const file of readdirSync(dir).filter((f) => /-(mid|fore)\.png$/.test(f))) {
-    const sheet = file.replace(/\.png$/, "");
+  for (const { file, name: sheet, one } of pieceSheets(readdirSync(dir))) {
     await tolerant(`pieces ${sheet}`, strict, async () => {
       const pieces = await sheetPieces(await keyOut(readFileSync(join(dir, file))));
-      pieces.forEach((p, i) => {
-        const name = `${sheet}-${i + 1}`;
+      (one ? pieces.slice(0, 1) : pieces).forEach((p, i) => {
+        const name = one ? sheet : `${sheet}-${i + 1}`;
         writeFileSync(join(OUT, `backdrops/${name}.png`), p.png);
         registry.pieces[name] = { file: `backdrops/${name}.png`, width: p.width, height: p.height, base: p.base };
       });

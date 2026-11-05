@@ -106,7 +106,7 @@ export const PARIS: Level = {
       { name: "paris-mid-2", x: 9900 },
     ],
     fore: [{ name: "paris-fore-1", x: 3600, scale: 0.55 }],
-    far: { pan: 0.25, scale: 1 },
+    far: { pan: 1, scale: 1 },
   },
   cast: [
     // She stays behind her desk: he answers her, or the gate stays shut.
