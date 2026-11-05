@@ -139,6 +139,8 @@ const BOSS_OVER = 1.5;
 export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60, slipAgain: 1.6 } as const;
 /** Paris's hotel: how often she says it, the window's slip, how long it hangs open, how near a flock lets him come. */
 const PARIS_HOTEL = { nag: 4, tipOut: 1.5, tipStun: 0.5, tipSlip: 320, pigeons: 300 } as const;
+/** How often the quiet car can say so, and how far in a step he can have walked over a seam. */
+const TRAIN_RULES = { shh: 1.5, step: 100 } as const;
 /** The station: under this many seconds the doors beep, this often. */
 export const STATION = { doors: 20, beep: 2 } as const;
 /** How near a tall level's punch clock he must pass, on its floor. */
@@ -201,6 +203,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   /** Keys held through a card down a hall: not a step until they are let go. */
   const heldThrough = { up: false, down: false, side: false };
+  /** The train: the tunnel gone through this life; where he stood last step, for the seams he crosses; the next Shh!. */
+  let tunnelDone = false;
+  let trainFrom = 0;
+  let shhCool = 0;
   /** The station: its board lit this life, and the seconds to the doors' next beep. */
   let boardLit = false;
   let doorsBeep = 0;
@@ -338,6 +344,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.run.stretch = level.stretch && at.x < level.stretch.x1 ? level.stretch.time : null;
     boardLit = false;
     doorsBeep = 0;
+    tunnelDone = false;
+    trainFrom = at.x;
+    shhCool = 0;
     timedOut = false;
     swingMove = null;
     lobbySave = null;
@@ -926,6 +935,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     feetFrom = h.y;
     parisStep(ev);
     if (game.level.stretch && run.stretch !== null && h.x >= game.level.stretch.x1) board(game.level.stretch, ev);
+    if (game.level.coaches) coachStep(ev);
     if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;
@@ -1111,6 +1121,26 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function upJumps(given: Input): Input {
     if (!given.held.up && !given.pressed.up) return given;
     return { ...given, held: { ...given.held, jump: given.held.jump || given.held.up }, pressed: { ...given.pressed, jump: given.pressed.jump || given.pressed.up } };
+  }
+
+  /** On board: the seams underfoot, the tunnel's mouth, a swing or a lecture in the quiet car. */
+  function coachStep(ev: GameEvent[]) {
+    const level = game.level;
+    const h = world.hero;
+    const from = trainFrom;
+    trainFrom = h.x;
+    // A seam walked over, not one a teleport went past.
+    for (const x of level.shakes ?? []) if (from < x && h.x >= x && h.x - from < TRAIN_RULES.step) ev.push({ type: "bogie" });
+    if (level.tunnel && !tunnelDone && from < level.tunnel.x && h.x >= level.tunnel.x) {
+      tunnelDone = true;
+      ev.push({ type: "tunnel" });
+    }
+    shhCool = Math.max(0, shhCool - STEP);
+    const q = level.quiet;
+    if (q && h.x >= q.x0 && h.x <= q.x1 && shhCool <= 0 && world.events.some((e) => e.type === "swing" || e.type === "lectureStart")) {
+      shhCool = TRAIN_RULES.shh;
+      for (const n of world.cast) if (n.spawn.startsWith("quiet")) ev.push({ type: "castLine", id: n.id, text: "Shh!", seconds: 1.4 });
+    }
   }
 
   /** The station's clock, its board and its doors. True once it has run out. */

@@ -64,11 +64,13 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   concierge: "office",
   garcon: "server",
   parisian: "office",
+  // The family car's kids wear the student's painting at child size; they run, and the mallet reaches them.
+  kid: "office",
 };
 /** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
 export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };
 /** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
-export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1", concierge: "office-2", garcon: "server-2", "parisian-1": "student-2" };
+export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1", concierge: "office-2", garcon: "server-2", "parisian-1": "student-2", "kid-1": "student-2" };
 export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
 /** Who wears a hat that flies off at the first hit. */
 export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook", "skycap"]);
@@ -246,7 +248,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       trick: s.trick ?? null,
       rng: s.trick ? seededRandom((seed + Math.imul(k + 1, 7919)) >>> 0) : null,
       replied: false,
-      maxHits: s.trick === "queue" || s.trick === "tray" || s.trick === "shove" ? 1 : (CAST_HITS[job] ?? c.hits),
+      maxHits: s.trick === "queue" || s.trick === "tray" || s.trick === "shove" || s.trick === "stand" || s.trick === "rush" ? 1 : (CAST_HITS[job] ?? c.hits),
     };
   });
 }

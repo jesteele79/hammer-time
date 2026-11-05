@@ -51,7 +51,7 @@ const productTextures = new Map<Product, Texture>();
 /** The can stencilled on the Coke Zero crate stands this tall. */
 const CRATE_CAN = 56;
 /** How tall the tower's pictured crates stand: taller than the crate they are, at their real size against him. */
-const LOOK_HEIGHT = { ice: 200, cabinet: 160, bin: 110 } as const;
+const LOOK_HEIGHT = { ice: 200, cabinet: 160, bin: 110, fridge: 110 } as const;
 
 /** Loads the product pictures once. Returns how many of the three pickups have theirs; the rest keep the drawn stand-in. */
 export async function loadProducts(): Promise<number> {
@@ -256,7 +256,7 @@ export class Objects {
   private dt = 0;
   private steam = 0;
   /** The pictures a crate with a look wears (the tower's ice machine, its hose cabinet); drawn crates without them. */
-  private looks: Partial<Record<"ice" | "cabinet" | "bin", { texture: Texture; height: number; base: { x: number; y: number }; width: number }>> = {};
+  private looks: Partial<Record<"ice" | "cabinet" | "bin" | "fridge", { texture: Texture; height: number; base: { x: number; y: number }; width: number }>> = {};
 
   constructor(
     layer: Container,

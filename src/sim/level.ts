@@ -37,14 +37,16 @@ export type PlatformKind =
   | "vending"
   | "sash"
   | "chair"
-  | "awning";
+  | "awning"
+  | "seat"
+  | "bike";
 export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt" | "carpet";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
 /** `tip`: stood on this long, it tips him off (the window of Paris's closet). */
 export type LevelPlatform = Platform & { kind: PlatformKind; bounce?: number; tip?: number };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
-export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" | "bin" };
+export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" | "bin" | "fridge" };
 export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest" | "gate";
 /**
  * `closed` doors say what opens them; a `quest` door opens a side quest once a shift (the BUFFET's banquet, R4 §7); a
@@ -145,7 +147,8 @@ export type CastPerson =
   | "attendant-1"
   | "concierge"
   | "garcon"
-  | "parisian-1";
+  | "parisian-1"
+  | "kid-1";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
@@ -173,8 +176,8 @@ export type CastSpawn = {
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
-/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip. */
-export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove";
+/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip; `stand`: seated until he is near, then up into him; `rush`: a kid who runs at him and shoves him along. */
+export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove" | "stand" | "rush";
 export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
@@ -273,8 +276,14 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   seat?: { x: number };
   /** What he thinks as he takes a pickup of this kind in this level: the first time each. */
   pickupThoughts?: Partial<Record<PickupKind, string>>;
-  /** A level of rooms (the suite): a painted wall each, the camera on the room the boss is in. */
-  rooms?: { id: string; x0: number; x1: number }[];
+  /** A level of rooms (the suite, the train): a painted wall each, the camera on the room the boss is in; `wall` the room's own, if not the list's by order. */
+  rooms?: { id: string; x0: number; x1: number; wall?: string }[];
+  /** The train's coaches, for the HUD's line and the low ceiling he tucks under. */
+  coaches?: { from: number; every: number; count: number };
+  /** The quiet car; the tunnel's mouth; the seams where the floor shakes. */
+  quiet?: { x0: number; x1: number };
+  tunnel?: { x: number };
+  shakes?: number[];
   /** Housekeeping carts rolling across it from the door at `z` meters, on `side`: first at `at` s, then every `every`. */
   hallCarts?: { z: number; side: 1 | -1; every: number; at: number }[];
   /** Room doors that swing out across their half of it, on the same clock. */
@@ -305,6 +314,7 @@ export function stageOf(level: Level, extraSolids: Rect[] = []): Stage {
     bounds: level.bounds,
     heat: level.heat,
     hall: level.hall,
+    low: level.coaches && { x0: level.coaches.from, x1: level.coaches.from + level.coaches.every * level.coaches.count },
   };
 }
 

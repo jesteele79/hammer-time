@@ -209,7 +209,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const q = game.quest;
   const quest = q ? (q.id === "hungry" ? banquetHud(q, !!game.questDoor) : gateHud(q, !!game.questDoor)) : null;
   return {
-    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.name,
+    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.coaches ? `Coach ${Math.max(1, game.level.coaches.count - Math.floor((h.x - game.level.coaches.from) / game.level.coaches.every))}` : game.level.name,
     name: game.level.name,
     world: game.level.world,
     card: game.cardLine ?? game.level.card ?? null,

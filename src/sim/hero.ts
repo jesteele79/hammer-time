@@ -100,6 +100,7 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   h.coyote = h.onGround ? COYOTE : Math.max(0, h.coyote - dt);
   h.buffer = pressed.jump && !locked ? BUFFER : locked ? 0 : Math.max(0, h.buffer - dt);
 
+  const under = !!stage.low && h.x >= stage.low.x0 && h.x <= stage.low.x1;
   if (h.onGround && h.slideT <= 0) {
     if (held.down && !h.crouch) {
       h.crouch = true;
@@ -124,7 +125,9 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   } else {
     // Boiled over he cannot run until he cools; hotter, he is slower either way.
     const running = held.run && !h.boiled;
-    const cap = (h.crouch ? CROUCH_WALK : (running ? RUN : WALK) * tiredFactor(h.heat)) * (stage.hall?.pace ?? 1);
+    // A tuck in the air under a low ceiling keeps his speed; on a rack he crawls.
+    const crawling = h.crouch && (h.onGround || !under);
+    const cap = (crawling ? CROUCH_WALK : (running ? RUN : WALK) * tiredFactor(h.heat)) * (stage.hall?.pace ?? 1);
     if (dir !== 0 && Math.abs(h.vx) <= cap) {
       h.vx = approach(h.vx, dir * cap, (h.onGround ? ACCEL_GROUND : ACCEL_AIR) * dt);
     } else if (h.onGround) {
@@ -147,9 +150,13 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
     h.slideT = 0;
   }
   const canJump = h.onGround || (h.coyote > 0 && h.state !== "jump");
-  if (h.buffer > 0 && canJump && (!h.crouch || canStand(h, stage, HERO_H))) {
-    h.crouch = false;
-    h.h = HERO_H;
+  const room = !h.crouch || canStand(h, stage, HERO_H);
+  if (h.buffer > 0 && canJump && (room || under)) {
+    // A hop from a rack stays tucked: there is no room to straighten up.
+    if (room) {
+      h.crouch = false;
+      h.h = HERO_H;
+    }
     h.slideT = 0;
     h.vy = -JUMP_V0;
     h.onGround = false;
@@ -168,6 +175,11 @@ export function stepHero(h: HeroState, stage: Stage, input: Input, dt: number, e
   if (h.onGround) {
     const belt = floorUnder(stage, h.x, h.y - SNAP)?.belt;
     if (belt) h.x += belt * dt;
+  }
+  // Under a low ceiling he tucks before his head meets it, and stays tucked till there is room to stand.
+  if (under && !h.crouch && !canStand({ x: h.x, y: h.y + Math.min(0, h.vy) * dt, w: h.w }, stage, HERO_H)) {
+    h.crouch = true;
+    h.h = HERO_CROUCH_H;
   }
   const falling = h.vy;
   moveBody(h, stage, dt, (s) => events.push({ type: "bump", x: Math.min(s.x + s.w, Math.max(s.x, h.x)), y: s.y + s.h }));

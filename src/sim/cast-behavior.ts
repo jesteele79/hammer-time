@@ -98,6 +98,24 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
 
 /** The station's crowd: their walk, how far a shove carries him, how long before they shove again, how high a jump clears them. */
 const SHOVE = { walk: 260, push: 150, rest: 1.2, over: 120 } as const;
+/** The kids: how far off they run at him, how fast, how long off after a bonk. */
+const RUSH = { from: 500, speed: 320, back: 3 } as const;
+/** A seated traveler: how near he gets them up, and how long past before they sit again. */
+const STAND = { near: 160, sits: 2 } as const;
+function stepStand(n: Npc, w: CastWorld, dt: number): void {
+  n.vx = 0;
+  const near = Math.abs(w.hero.x - n.x) <= STAND.near && sameLevel(n, w.hero);
+  if (near) {
+    n.sit = false;
+    n.mark = 0;
+    return;
+  }
+  if (n.sit) return;
+  n.mark += dt;
+  if (n.mark >= STAND.sits) n.sit = true;
+}
+/** How long after walking off they come back; null for those who do not. */
+const backAfter = (n: Npc): number | null => (n.trick === "tray" ? TRAY.back : n.trick === "rush" ? RUSH.back : null);
 /** The waiter's walk, and how long he is off walking once he is back up: about eight seconds from the bonk. */
 const TRAY = { walk: 200, back: 5 } as const;
 const trayBack = (n: Npc) => {
@@ -516,7 +534,7 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
       return;
     case "leave":
       n.vx = n.facing * T.leave;
-      if (n.trick === "tray" && n.actT >= TRAY.back) trayBack(n);
+      if (backAfter(n) !== null && n.actT >= backAfter(n)!) trayBack(n);
       return;
     case "flee":
       n.vx = n.facing * CAST.student.flee;
@@ -568,7 +586,20 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
     patrol(n, w, SHOVE.walk);
     return;
   }
-  // The cabin's queue and its seated travelers stand as they are, whoever comes.
+  if (n.trick === "stand") {
+    stepStand(n, w, dt);
+    return;
+  }
+  if (n.trick === "rush") {
+    const h = w.hero;
+    if (n.rest <= 0 && Math.abs(h.x - n.x) <= RUSH.from && sameLevel(n, h)) {
+      n.facing = toward(n, h);
+      n.vx = n.facing * RUSH.speed;
+      n.act = "walk";
+    } else patrol(n, w, SHOVE.walk);
+    return;
+  }
+  // The cabin's queue and its seated travelers, the quiet car's pair, stand as they are, whoever comes.
   if (n.trick === "queue" || n.trick === "seated") {
     n.vx = 0;
     return;
@@ -674,14 +705,20 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
     events.push({ type: "stomp", x: n.x, y: n.y - n.h, landed });
     return;
   }
-  // A traveler in a hurry: he goes the way they are going, no pip, unless he is over them or it would put him through a wall.
-  if (n.trick === "shove") {
+  // Up out of their seat and into him: a pip. In the seat they are nothing to walk into.
+  if (n.trick === "stand") {
+    if (n.sit || h.invuln > 0 || h.move?.kind === "tumble") return;
+    w.hits.push(n.x);
+    return;
+  }
+  // A traveler in a hurry or a kid: he goes the way they are going, no pip, unless he is over them or it would put him through a wall.
+  if (n.trick === "shove" || n.trick === "rush") {
     if (n.rest > 0 || h.y <= n.y - SHOVE.over) return;
     n.rest = SHOVE.rest;
     const to = { x: h.x + SHOVE.push * n.facing, y: h.y, w: h.w };
     if (canStand(to, w.stage, h.h)) h.x = to.x;
     h.vx = 0;
-    say(n, "Pardon.", events);
+    if (n.trick === "shove") say(n, "Pardon.", events);
     events.push({ type: "shoved", x: h.x, y: h.y - h.h / 2 });
     return;
   }
@@ -801,10 +838,11 @@ export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: 
   const burst = events.find((e) => e.type === "burst") as Extract<GameEvent, { type: "burst" }> | undefined;
   for (const n of w.cast) {
     if (!n.alive) {
-      // Walked off for good, except the waiter: there is always another plate.
-      if (n.trick !== "tray") continue;
+      // Walked off for good, except the waiter, for whom there is always another plate, and a kid.
+      const back = backAfter(n);
+      if (back === null) continue;
       n.actT += dt;
-      if (n.actT >= TRAY.back) trayBack(n);
+      if (n.actT >= back) trayBack(n);
       continue;
     }
     n.actT += dt;

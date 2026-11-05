@@ -36,6 +36,8 @@ export type Stage = {
   heat?: HeatZone[];
   /** A hall under the chase camera: its width in meters, how near a wall he may stand, and the 3D set it is drawn in. */
   hall?: HallSpec;
+  /** A stretch under a ceiling too low to stand and jump in: he tucks. */
+  low?: { x0: number; x1: number };
 };
 
 /** What a cart carries: the lobby's cases, a busser's dirty dishes, or the dock's trash. */
