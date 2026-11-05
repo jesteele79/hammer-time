@@ -34,6 +34,8 @@ export const toMeters = (px: number) => px / PX_PER_METER;
 
 const mix = (a: number, b: number, k: number) => a + (b - a) * k;
 
+/** How far past her the flat cabin hangs the curtain, in px. */
+const FLAT_CURTAIN = 60;
 /** How far she stands aside once she has pulled the curtain back. */
 const PURSER_ASIDE = 1.1;
 /** Where the purser's cart rests, in front of her. */
@@ -49,6 +51,13 @@ function bossView(cur: Snapshot): Pick<HallState, "boss" | "cart" | "curtain"> {
     cart: flown && f ? { lx: 0, z: f.cart.z, live: true } : down ? null : { lx: 0, z: p.cart.z, live: p.cart.live },
     curtain: down,
   };
+}
+
+/** What the flat cabin draws beyond the hall's own: the cart the 3D view would show, the curtain while she stands, the bags. */
+export function flatCabinOf(cur: Snapshot) {
+  const { cart } = bossView(cur);
+  const p = cur.boss?.kind === "purser" ? cur.boss : null;
+  return { cart, curtain: p && p.state !== "down" ? p.x + FLAT_CURTAIN : null, bags: cur.missiles.filter((m) => m.kind === "bag") };
 }
 
 /**

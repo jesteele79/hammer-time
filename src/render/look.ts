@@ -70,7 +70,7 @@ import { hudKey, hudOf, pickupNote, type HudPayload } from "./hud";
 import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
-import { backClipOf, backCycle, hallStateOf } from "./3d/hall-state";
+import { backClipOf, backCycle, flatCabinOf, hallStateOf } from "./3d/hall-state";
 import type { ThreeView } from "./3d/three-view";
 import { SETS } from "./3d/sets";
 import { ParisView } from "./venue-paris";
@@ -1892,10 +1892,7 @@ export async function startLook(
     parisView.setVisible(!!game.level.bonjour);
     if (game.level.bonjour) parisView.sync(game.level, time, simDt, world.bonjourDone, world.tip.out > 0);
     hallFlat.setVisible(!!game.level.hall && !hallUp());
-    if (game.level.hall) {
-      const purser = cur.boss?.kind === "purser" ? cur.boss : null;
-      hallFlat.sync(cur.hallCarts, cur.hallDoors, h, cur.flight ? { cart: purser?.cart.live || (purser && purser.state !== "down") ? { z: purser.cart.z, lx: 0, live: purser.cart.live } : cur.flight.cart.live ? { z: cur.flight.cart.z, lx: 0, live: true } : null, curtain: purser && purser.state !== "down" ? purser.x + 60 : null, bags: cur.missiles.filter((m) => m.kind === "bag") } : undefined);
-    }
+    if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h, cur.flight ? flatCabinOf(cur) : undefined);
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };

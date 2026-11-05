@@ -11,7 +11,7 @@ import { hangTowel, palmTurn, towelAtFace, towelChain } from "../src/render/towe
 import { ACTIONS } from "../src/sim/rig/actions.ts";
 import { pose } from "../src/sim/rig/pose.ts";
 import { SETS } from "../src/render/3d/sets.ts";
-import { backClipOf, backCycle, hallStateOf } from "../src/render/3d/hall-state.ts";
+import { backClipOf, backCycle, flatCabinOf, hallStateOf } from "../src/render/3d/hall-state.ts";
 import { FLIGHT, rowX } from "../src/sim/levels/flight.ts";
 import { PARIS } from "../src/sim/levels/paris.ts";
 import { placementsOf } from "../src/render/backdrop.ts";
@@ -1712,4 +1712,21 @@ test("the televisions flicker, never quite dark", () => {
     seen.add(Math.round(a * 10));
   }
   assert.ok(seen.size > 3);
+});
+
+test("the flat cabin draws the drinks cart too: while she waits it is the one rolling; hers at her hands while she is up; none once she is down", () => {
+  const { g } = flightGame();
+  const flat = () => flatCabinOf(g.world.snapshot());
+  assert.deepEqual([flat().cart.lx, Math.round(flat().cart.z * 100) / 100, flat().cart.live], [0, 37.53, false], "her cart at her hands, as she waits");
+  Object.assign(g.world.flight.cart, { live: true, z: 20 });
+  assert.deepEqual(flat().cart, { lx: 0, z: 20, live: true }, "the drinks cart while it rolls");
+  Object.assign(g.world.boss.cart, { live: true, z: 36.2 });
+  assert.deepEqual(flat().cart, { lx: 0, z: 36.2, live: true }, "hers while she pushes");
+  assert.equal(flat().curtain, 3883);
+  Object.assign(g.world.boss, { state: "down" });
+  g.world.boss.cart.live = false;
+  g.world.flight.cart.live = false;
+  assert.deepEqual([flat().cart, flat().curtain], [null, null]);
+  g.world.missiles.push({ id: 1, kind: "bag", x: 500, y: 0, vx: 0, vy: 0, spin: 0, life: 1, phase: 0, from: 0, lx: 0.9 }, { id: 2, kind: "plane", x: 500, y: 0, vx: 0, vy: 0, spin: 0, life: 1, phase: 0, from: 0 });
+  assert.equal(flat().bags.length, 1);
 });
