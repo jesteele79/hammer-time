@@ -100,7 +100,8 @@ test("phase 2 on the bed with bellhops every 10 s dropping 200-point keycards; p
   assert.deepEqual([g.run.cans, t.owed], [25, 0]);
   g.run.cans = 4;
   t.owed = 0;
-  Object.assign(g.world.hero, { x: t.x - 150, y: 0, onGround: true, invuln: 0, patience: 99 });
+  // Out of the bottles' way: one more shove and he is in the bedroom, where no lunge can reach him.
+  Object.assign(g.world.hero, { x: t.x - 150, y: 0, onGround: true, invuln: 99, patience: 99 });
   until(g, (x) => of(x.events, "grab").some((e) => e.phase === "take"), 9);
   assert.deepEqual([g.run.cans, t.owed], [0, 4]);
   t.hp = 1;
@@ -177,4 +178,34 @@ test("the grab never takes more than ten or below zero, and the hits give back j
   hitBoss(t, "bonk", g.events);
   g.step(input());
   assert.deepEqual([g.run.cans, t.owed], [3, 0], "a hit with nothing owed gives nothing");
+});
+test("he stays in his room: lured out of the living room he stops at its end, and every lunge on the balcony leaves him on it", () => {
+  const g = suite();
+  play(g);
+  const t = g.world.boss;
+  Object.assign(g.world.hero, { x: 3000, y: 0, onGround: true, invuln: 999 });
+  until(g, () => false, 12);
+  assert.ok(t.x <= SUITE.rooms[0].x1, `in the living room at ${t.x}`);
+  toBalcony(g, t);
+  assert.equal(t.phase, 3);
+  Object.assign(g.world.hero, { x: 2200, y: 0, onGround: true, invuln: 999, patience: 99 });
+  g.run.time = 300;
+  until(g, () => false, 40);
+  assert.ok(t.x >= SUITE.rooms[2].x0, `on the balcony at ${t.x}`);
+  assert.ok(t.x <= SUITE.rooms[2].x1, `on the balcony at ${t.x}`);
+});
+test("a life lost while he owes him cans gives them back: the fight restarts, the cans he took do not stay taken", () => {
+  const g = suite();
+  play(g);
+  const t = g.world.boss;
+  toBalcony(g, t);
+  g.run.cans = 25;
+  Object.assign(g.world.hero, { x: t.x - 150, y: 0, onGround: true, invuln: 99, patience: 99 });
+  until(g, (x) => of(x.events, "grab").some((e) => e.phase === "take"), 9);
+  assert.deepEqual([g.run.cans, t.owed], [15, 10]);
+  const score = g.run.score;
+  Object.assign(g.world.hero, { patience: 1, invuln: 0 });
+  g.world.hit(g.world.hero.x + 50);
+  until(g, (x) => (x.world.boss?.phase ?? 0) === 1, 8);
+  assert.deepEqual([g.world.boss.phase, g.world.boss.owed, g.run.cans, g.run.score], [1, 0, 25, score], "no points for cans he already had");
 });

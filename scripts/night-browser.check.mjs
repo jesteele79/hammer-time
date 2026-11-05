@@ -172,6 +172,9 @@ try {
   await page.goto(`${base}?dev=1`);
   await waitMode("title", 60000);
   await page.getByRole("button", { name: "Clock in" }).click();
+  await waitMode("story", 60000);
+  assert.match(await veil(), /11:40 pm\. The same lobby\./);
+  await enter();
   await waitMode("card", 60000);
   const atCard = await run();
   assert.deepEqual([atCard.level, atCard.keycards], ["lobby-night", 0]);

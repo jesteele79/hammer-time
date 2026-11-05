@@ -367,6 +367,8 @@ try {
   await waitMode("play");
   await page.waitForTimeout(600);
   assert.equal(await page.evaluate(() => window.__next.three?.drawing), false, "the 3D view is off in the suite");
+  // What the hall hid is all back on: the people, what they fling, his own figure.
+  assert.deepEqual(await page.evaluate(() => window.__next.drawn), { character: true, cast: true, props: true, flyers: true }, "everything the hall hid is drawn again");
   await page.evaluate(() => window.__next.dev.boss({ state: "down" }));
   await waitMode("story", 20000);
   text = await veil();

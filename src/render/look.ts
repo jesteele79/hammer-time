@@ -1105,7 +1105,7 @@ export async function startLook(
     app.renderer.background.alpha = 1;
     shown = null;
     character.container.visible = true;
-    cast.container.visible = props.container.visible = true;
+    cast.container.visible = props.container.visible = flyers.container.visible = true;
     objects.setVisible(true);
     scene.camera.bounds = game.level.bounds;
     hallFlat.setVisible(true);
@@ -1119,7 +1119,7 @@ export async function startLook(
     if (!on && window.__next?.three) window.__next.three = { ...window.__next.three, drawing: false };
     if (!on) {
       character.container.visible = true;
-      cast.container.visible = props.container.visible = true;
+      cast.container.visible = props.container.visible = flyers.container.visible = true;
       objects.setVisible(true);
       scene.camera.bounds = game.level.bounds;
     }
@@ -2003,6 +2003,7 @@ export async function startLook(
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.carrying = objects.carrying;
       window.__next.goo = { globs: cast.globs + pigView.globCount, splats: props.splats };
+      window.__next.drawn = { character: character.container.visible, cast: cast.container.visible, props: props.container.visible, flyers: flyers.container.visible };
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();

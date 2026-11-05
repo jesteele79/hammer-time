@@ -55,7 +55,9 @@ export const TITANIUM = {
   bellhops: { every: 10, first: 3 },
   bottles: { every: 2.4, speed: 760, up: -180 },
   grab: { windup: 0.6, lunge: 540, time: 0.5, reach: 160, takes: 10, every: 7, rest: 1.1 },
-  balcony: { x: 3900 },
+  /** Where he may stand in the two rooms he walks in: a lunge or a long chase never takes him out of the room he is in. */
+  living: { x0: 100, x1: 1500 },
+  balcony: { x: 3900, x0: 3300, x1: 4700 },
   phases: { two: 8, three: 4 },
   grace: 1.2,
   moved: 2,
@@ -223,7 +225,7 @@ function stepOne(t: Titanium, w: TitaniumWorld, dt: number, events: GameEvent[])
     t.state = "windup";
     t.timer = c.windup;
     events.push({ type: "bossWindup", x: t.x, y: t.y - t.h });
-  } else t.x += t.facing * TITANIUM.walk * dt;
+  } else t.x = Math.max(TITANIUM.living.x0, Math.min(TITANIUM.living.x1, t.x + t.facing * TITANIUM.walk * dt));
 }
 
 /** The bed: a bounce every 2.2 s, out of reach at the top of it. */
@@ -260,7 +262,7 @@ function stepThree(t: Titanium, w: TitaniumWorld, dt: number, events: GameEvent[
     return;
   }
   if (t.state === "lunge") {
-    t.x += t.vx * dt;
+    t.x = Math.max(TITANIUM.balcony.x0, Math.min(TITANIUM.balcony.x1, t.x + t.vx * dt));
     if (Math.abs(h.x - t.x) <= g.reach && Math.abs(h.y - t.y) < t.h) {
       // Only his cans: nothing of it costs a pip.
       events.push({ type: "grab", phase: "land", x: t.x, y: t.y - t.h * 0.6 });

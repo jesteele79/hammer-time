@@ -127,6 +127,25 @@ try {
   assert.ok(await page.locator(".next-hud__hint").isVisible(), "the HUD over it");
   assert.equal(await canvases(), 2, "two canvases");
   await shot("hallway-first.png");
+  // Its canvas is not made afresh every frame: that would throw away its buffer and cost a weak card its tier.
+  const sets = await page.evaluate(async () => {
+    const proto = HTMLCanvasElement.prototype;
+    const was = Object.getOwnPropertyDescriptor(proto, "width");
+    const hall = document.querySelector(".next-stage canvas");
+    let n = 0;
+    Object.defineProperty(proto, "width", {
+      configurable: true,
+      get: was.get,
+      set(v) {
+        if (this === hall) n++;
+        was.set.call(this, v);
+      },
+    });
+    await new Promise((r) => setTimeout(r, 1000));
+    Object.defineProperty(proto, "width", was);
+    return n;
+  });
+  assert.equal(sets, 0, `its canvas resized ${sets} times in a second at rest`);
 
   // His back, walking and swinging, with no face to keep clear; his profile when he is hit, on the screen.
   await tp(2200);

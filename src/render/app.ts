@@ -71,6 +71,7 @@ export type NextProbe = {
   three?: { canvas: boolean; quality: Quality; density: number; fps: number; drawing: boolean };
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
+  drawn?: { character: boolean; cast: boolean; props: boolean; flyers: boolean };
   heroScreenX?: number;
   /** His feet on the screen, CSS px from the top. */
   heroScreenY?: number;

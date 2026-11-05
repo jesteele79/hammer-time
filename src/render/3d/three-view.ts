@@ -143,7 +143,7 @@ export class ThreeView {
     this.bloom.setSize = (w: number, h: number) => fullSize(w / 2, h / 2);
     composer.addPass(this.bloom);
     composer.addPass(new OutputPass());
-    this.resize(this.host.clientWidth || 1, this.host.clientHeight || 1);
+    this.applySize(this.host.clientWidth || 1, this.host.clientHeight || 1);
     this.setQuality(this.quality);
   }
 
@@ -211,10 +211,15 @@ export class ThreeView {
     if (this.bloom) this.bloom.enabled = tier.bloom;
     if (this.ink) this.ink.enabled = tier.ink;
     if (this.key) this.key.castShadow = q === "ultra" || q === "high";
-    this.resize(this.width, this.height);
+    this.applySize(this.width, this.height);
   }
 
+  /** Called every frame: setting a canvas's size throws its drawing buffer away, so only a real change gets through. */
   resize(w: number, h: number) {
+    if (w !== this.width || h !== this.height) this.applySize(w, h);
+  }
+
+  private applySize(w: number, h: number) {
     this.width = w;
     this.height = h;
     this.camera.aspect = w / h;

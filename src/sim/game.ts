@@ -505,6 +505,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "over" });
       return;
     }
+    // The fight restarts with him at full health, so what he took comes back: no points, they were already his.
+    if (world.boss?.kind === "titanium") game.run.cans += world.boss.owed;
     begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy, flop: world.hero.flop, boxes: world.hero.boxes }, ev);
     world.hero.invuln = RUN.respawnGrace;
     ev.push({ type: "respawn" });
