@@ -745,6 +745,9 @@ export async function startLook(
       case "castNotice":
         particles.emit("glint", e.x, e.y - 40, 3);
         break;
+      case "bossSay":
+        speech.say(BOSS_ID, e.text, e.seconds);
+        break;
       case "castLine":
         speech.say(e.id, e.text, e.seconds);
         break;
@@ -871,7 +874,7 @@ export async function startLook(
         particles.emit("impact", e.x, e.y, 14);
         break;
       case "bossDown":
-        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
+        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : cur.boss?.kind === "purser" ? "BUSINESS SELECT" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
         break;
       case "bossPhase":
         scene.camera.trauma = Math.max(scene.camera.trauma, 0.3);
@@ -1180,9 +1183,10 @@ export async function startLook(
   const hallFrame = (alpha: number, simDt: number, dt: number) => {
     if (!three) return;
     const hNow = cur.hero;
-    hallPhase += simDt * backCycle(hNow);
-    const back = backClipOf(hNow, hallPhase);
-    const state = hallStateOf(prev, cur, alpha, game.pickups, game.level.puddle ?? null);
+    const pace = game.level.hall?.pace ?? 1;
+    hallPhase += simDt * backCycle(hNow, pace);
+    const back = backClipOf(hNow, hallPhase, pace);
+    const state = hallStateOf(prev, cur, alpha, game.pickups, game.level.puddle ?? null, { crates: game.crates, lift: game.level.hall ? SETS[game.level.hall.set].lift : 1 });
     three.resize(scene.width, scene.height);
     three.sync(state, back, dt);
     // The set's own view of him, then the game's camera on it: his height on the screen and his feet's place.
@@ -1201,6 +1205,10 @@ export async function startLook(
     for (const n of state.cast) {
       const at = three.project(n.lx, n.y + 1.85, n.z);
       hallCrowns.set(n.num, { x: cam.x + (at.x - scene.width / 2) / scene.scale, y: cam.y + (at.y - scene.height / 2) / scene.scale });
+    }
+    if (state.boss) {
+      const at = three.project(state.boss.lx, state.boss.y + 1.85, state.boss.z);
+      hallCrowns.set(BOSS_ID, { x: cam.x + (at.x - scene.width / 2) / scene.scale, y: cam.y + (at.y - scene.height / 2) / scene.scale });
     }
     character.container.visible = !back;
     three.render(dt);
@@ -1856,7 +1864,10 @@ export async function startLook(
     towerCarts.sync(cur.movers);
     hallFlat.container.zIndex = y - 0.66;
     hallFlat.setVisible(!!game.level.hall && !hallUp());
-    if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h);
+    if (game.level.hall) {
+      const purser = cur.boss?.kind === "purser" ? cur.boss : null;
+      hallFlat.sync(cur.hallCarts, cur.hallDoors, h, cur.flight ? { cart: purser?.cart.live || (purser && purser.state !== "down") ? { z: purser.cart.z, lx: 0, live: purser.cart.live } : cur.flight.cart.live ? { z: cur.flight.cart.z, lx: 0, live: true } : null, curtain: purser && purser.state !== "down" ? purser.x + 60 : null, bags: cur.missiles.filter((m) => m.kind === "bag") } : undefined);
+    }
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -1951,6 +1962,7 @@ export async function startLook(
         v.backdrop.setVisible(false);
       }
       cast.container.visible = props.container.visible = flyers.container.visible = false;
+      bossView.container.visible = false;
       objects.setVisible(false);
     }
     if (game.pickups !== shownPickups) {
@@ -2025,6 +2037,7 @@ export async function startLook(
       window.__next.starts = starts;
       window.__next.drawing = app.stage.visible;
       window.__next.hero = { state: h.state, x: h.x, y: h.y, vx: h.vx, onGround: h.onGround, flop: h.flop, boxes: h.boxes, stunT: h.stunT, clip: hallBack?.clip ?? clip, walkOut: { ...walkOut } };
+      window.__next.flight = cur.flight ? { sign: cur.flight.sign, cartLive: cur.flight.cart.live, cartZ: cur.flight.cart.z, lane: cur.hero.lane } : undefined;
       window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
@@ -2345,6 +2358,12 @@ export async function startLook(
         if (o.lose) three?.lose();
       },
       /** The level's boss set as the checks want it: `state: "down"` beats it. */
+      turbulence() {
+        game.dev.turbulence();
+      },
+      cart() {
+        game.dev.cart();
+      },
       boss(o: { hp?: number; state?: string }) {
         if (world.boss?.kind === "titanium") setTitanium(world.boss, o, game.events);
         else if (world.boss) Object.assign(world.boss, o);

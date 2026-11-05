@@ -64,7 +64,7 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
 /** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
 export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };
 /** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
-export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1" };
+export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1" };
 export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
 /** Who wears a hat that flies off at the first hit. */
 export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook", "skycap"]);

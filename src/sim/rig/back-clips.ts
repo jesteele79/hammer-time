@@ -1,10 +1,12 @@
 import { pose, type Pose } from "./pose";
 
 /** His back's clips: the rig's poses on the back painting's own skeleton, and how much each leg and arm is foreshortened. */
-export type BackClipName = "idle" | "walk" | "run" | "swing" | "jump";
+export type BackClipName = "idle" | "walk" | "run" | "swing" | "jump" | "crouch";
 /** A frame of his back: the pose, and each limb's foreshortening about its hip or shoulder (1 as painted). */
 export type BackFrame = { pose: Pose; legNear: number; legFar: number; armNear: number; armFar: number };
-export const BACK_SECONDS = { idle: 3, walk: 0.6, run: 0.42, swing: 0.42, jump: 1 } as const;
+export const BACK_SECONDS = { idle: 3, walk: 0.6, run: 0.42, swing: 0.42, jump: 1, crouch: 1 } as const;
+/** The crouch: how much of a leg his pelvis comes down, in rest units for his leg of 133. */
+const CROUCH = { leg: 0.65, drop: 133 * 0.35 } as const;
 
 const TAU = Math.PI * 2;
 const DEG = 180 / Math.PI;
@@ -61,6 +63,11 @@ export const BACK_CLIPS: Record<BackClipName, (u: number) => BackFrame> = {
       armNear: 1 - 0.28 * smooth(clamp01((u - SWING.peak) / (SWING.hit - SWING.peak))) * home,
       armFar: 1,
     };
+  },
+  // Under a reclined seat: knees bent, seen from behind as shorter legs with the pelvis down that much, his shoulders breathing.
+  crouch: (u) => {
+    const b = Math.sin(u * TAU);
+    return { pose: pose({ rot: { shoulderNear: UP * 8 + 1.5 * b, shoulderFar: 8 - 1.5 * b, elbowNear: -18, elbowFar: 18 }, root: { x: 0, y: -CROUCH.drop } }), legNear: CROUCH.leg, legFar: CROUCH.leg, armNear: 0.95, armFar: 0.95 };
   },
   // Both legs tucked, the arms out a little.
   jump: (u) => ({ pose: pose({ rot: { shoulderNear: UP * 14, shoulderFar: 14 } }), legNear: 1 - 0.2 * Math.sin(Math.PI * clamp01(u)), legFar: 1 - 0.2 * Math.sin(Math.PI * clamp01(u)), armNear: 1, armFar: 1 }),

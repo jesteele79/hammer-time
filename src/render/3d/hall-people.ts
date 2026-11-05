@@ -18,6 +18,7 @@ import { BACK_CLIPS, type BackClipName } from "../../sim/rig/back-clips";
 import type { CastAct } from "../../sim/cast";
 import { castPose } from "../../sim/rig/cast";
 import { solve } from "../../sim/rig/fk";
+import { rowX } from "../../sim/levels/flight";
 import { HERO_HEIGHT } from "../../sim/rig/skeleton";
 import { castHeadScale } from "../cast-art";
 import { loadBackArt, loadCastArt, type CastArt } from "../cast-body";
@@ -25,6 +26,7 @@ import { LOOKS } from "../cast";
 import { Cutout, picture } from "./cutout";
 import type { HallState } from "./hall-state";
 
+const rowZ = (row: number) => rowX(row) / 100;
 /** He stands 1.9 m in the hall; everyone's world px by that. */
 export const HERO_METERS = 1.9;
 const METERS = HERO_METERS / HERO_HEIGHT;
@@ -34,6 +36,17 @@ const PICKUP_LIFT = 0.45;
 const CART = { w: 1.2, h: 1.05 } as const;
 const LEAF = { w: 1.0, h: 2.2, t: 0.05, face: 1.5 } as const;
 const MISSILE = 0.3;
+/** A falling bag, and the drinks cart seen head on. */
+const BAG = 0.55;
+const TROLLEY = { w: 0.62, h: 1.05 } as const;
+/** How high a seated traveler sits, and the Buc-ee's sticker on the bin at its row. */
+const SIT_LIFT = 0.12;
+const STICKER = { lx: 0.72, y: 1.5, h: 0.32 } as const;
+/** The boss's stand-in color until her own painting is cut. */
+const BOSS_RECOLOR: Partial<Record<CastPerson, string>> = { purser: "#1b2748" };
+/** The reclined seat and the legs in the aisle, in the set so the ink finds them. */
+const RECLINE = { w: 1.05, h: 0.8, t: 0.12, y: 0.72, tilt: 0.55 } as const;
+const SHIN = { w: 0.14, h: 0.14, len: 0.5, from: 0.55, y: 0.22 } as const;
 /** Behind him this far they are between him and the camera: out of the picture, so nobody fills the screen. */
 const BEHIND = 0.8;
 /** How far the door's leaf swings, a quarter turn out across the hall. */
@@ -81,6 +94,24 @@ const missileTexture = (kind: string): CanvasTexture => {
     x.closePath();
     x.fill();
     x.stroke();
+  } else if (kind === "bag") {
+    // A carry-on: a hard shell, its handle and two seams.
+    x.fillStyle = "#5a3d24";
+    x.fillRect(10, 18, 44, 38);
+    x.strokeRect(10, 18, 44, 38);
+    x.beginPath();
+    x.moveTo(24, 18);
+    x.lineTo(24, 8);
+    x.lineTo(40, 8);
+    x.lineTo(40, 18);
+    x.stroke();
+    x.strokeStyle = "#2f1f12";
+    x.beginPath();
+    x.moveTo(22, 20);
+    x.lineTo(22, 54);
+    x.moveTo(42, 20);
+    x.lineTo(42, 54);
+    x.stroke();
   } else {
     x.fillStyle = kind === "water" ? "#9fd6ff" : "#6b3f1e";
     x.beginPath();
@@ -88,6 +119,41 @@ const missileTexture = (kind: string): CanvasTexture => {
     x.fill();
     x.stroke();
   }
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  return t;
+};
+
+/** The drinks trolley head on: steel, its drawers, a tray of cans on top. */
+const trolleyTexture = (): CanvasTexture => {
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 216;
+  const x = c.getContext("2d")!;
+  x.lineWidth = 5;
+  x.strokeStyle = "#0c0c0e";
+  x.fillStyle = "#a9aeb6";
+  x.fillRect(10, 30, 108, 170);
+  x.strokeRect(10, 30, 108, 170);
+  x.fillStyle = "#8b9099";
+  for (const y of [44, 96, 148]) {
+    x.fillRect(22, y, 84, 42);
+    x.strokeRect(22, y, 84, 42);
+  }
+  x.fillStyle = "#c8312b";
+  x.fillRect(58, 58, 12, 12);
+  x.fillRect(58, 110, 12, 12);
+  x.fillStyle = "#3a3d44";
+  x.fillRect(4, 22, 120, 10);
+  x.strokeRect(4, 22, 120, 10);
+  x.fillStyle = "#22242a";
+  for (const k of [18, 44, 70, 96]) {
+    x.fillRect(k, 6, 16, 16);
+    x.strokeRect(k, 6, 16, 16);
+  }
+  x.fillStyle = "#1a1a1d";
+  x.fillRect(16, 200, 18, 14);
+  x.fillRect(94, 200, 18, 14);
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   return t;
@@ -115,6 +181,9 @@ export class HallPeople {
   private readonly missileMaps = new Map<string, CanvasTexture>();
   private readonly leaves = new Map<string, { pivot: Group; mesh: Mesh }>();
   private puddle: Mesh | null = null;
+  private boss: { cut: Cutout; art: CastArt; person: CastPerson; k: number } | null = null;
+  private readonly trolley = new Mesh(new PlaneGeometry(TROLLEY.w, TROLLEY.h), new MeshBasicMaterial({ transparent: true, side: DoubleSide, depthTest: false, depthWrite: false, toneMapped: false }));
+  private sticker: Mesh | null = null;
   /** The back shown this frame: false while his profile is on the game's canvas. */
   heroShown = true;
 
@@ -142,12 +211,59 @@ export class HallPeople {
         this.cast.set(s.id, { cut, art: a, person: s.person, k: ((LOOKS[s.person]?.height ?? HERO_HEIGHT) * (s.size ?? 1) * METERS) / HERO_HEIGHT });
       }),
     );
+    if (level.boss?.kind === "purser") {
+      const a = await loadCastArt(registry, "purser");
+      if (a) {
+        const cut = await Cutout.make(a, BOSS_RECOLOR.purser ?? null);
+        this.people.add(cut.group);
+        this.boss = { cut, art: a, person: "purser", k: ((LOOKS.purser?.height ?? HERO_HEIGHT) * METERS) / HERO_HEIGHT };
+      }
+    }
+    if (level.flight) {
+      (this.trolley.material as MeshBasicMaterial).map = trolleyTexture();
+      this.trolley.visible = false;
+      this.people.add(this.trolley);
+      this.dressRows(level);
+    }
     const cart = registry.tower?.pieces?.cart;
     if (cart) this.cartPicture = await picture(cart.file).catch(() => null);
     await Promise.all(["can", "nuts", "bucees"].map(async (k) => {
       const t = await picture(`products/${k}.webp`).catch(() => null);
       if (t) this.products.set(k, t);
     }));
+  }
+
+  /** The cabin's fixed trouble, in the set: a seat leaned back across its row lane, and legs stuck out into the aisle. */
+  private dressRows(level: Level) {
+    const spec = level.flight;
+    const lanes = level.hall?.lanes;
+    if (!spec || !lanes) return;
+    const seat = new MeshToonMaterial({ color: 0x9c2f35 });
+    const head = new MeshToonMaterial({ color: 0xd9dbe0 });
+    const trousers = new MeshToonMaterial({ color: 0x2f3542 });
+    const shoe = new MeshToonMaterial({ color: 0x14110f });
+    for (const r of spec.recliners) {
+      const z = rowZ(r.row);
+      const back = new Mesh(new BoxGeometry(RECLINE.w, RECLINE.h, RECLINE.t), seat);
+      back.position.set(lanes[r.lane], RECLINE.y, -z);
+      back.rotation.x = RECLINE.tilt;
+      const rest = new Mesh(new BoxGeometry(RECLINE.w * 0.92, 0.22, RECLINE.t + 0.02), head);
+      rest.position.set(0, RECLINE.h / 2 - 0.05, 0);
+      back.add(rest);
+      back.castShadow = true;
+      this.setScene.add(back);
+    }
+    for (const row of spec.legs) {
+      const z = rowZ(row);
+      const side = row % 2 ? -1 : 1;
+      for (const dz of [-0.12, 0.12]) {
+        const shin = new Mesh(new BoxGeometry(SHIN.len, SHIN.h, SHIN.w), trousers);
+        shin.position.set(side * (SHIN.from - SHIN.len / 2), SHIN.y, -z + dz);
+        const foot = new Mesh(new BoxGeometry(0.2, 0.12, 0.13), shoe);
+        foot.position.set(side * (SHIN.from - SHIN.len - 0.06), SHIN.y + 0.02, -z + dz);
+        this.setScene.add(shin, foot);
+      }
+    }
   }
 
   private shadow(i: number, lx: number, z: number, size: number, opacity: number) {
@@ -193,14 +309,51 @@ export class HallPeople {
       if (!c || n.z < he.z - BEHIND) continue;
       seen.add(n.id);
       const facing: 1 | -1 = n.lx > he.lx + 0.1 ? -1 : n.lx < he.lx - 0.1 ? 1 : -1;
-      const pose = castPose({ role: n.role, act: n.clip as CastAct, t: n.u, speed: n.speed, onGround: n.y <= 0.01, sit: false, spin: n.spin, hits: n.hits, flat: n.person === "housekeeper-1" });
+      const pose = castPose({ role: n.role, act: n.clip as CastAct, t: n.u, speed: n.speed, onGround: n.y <= 0.01, sit: n.sit, spin: n.spin, hits: n.hits, flat: n.person === "housekeeper-1" });
       c.cut.apply(solve(pose, facing, castHeadScale(LOOKS[c.person]?.head ?? c.art.head.share, c.art.head), c.art.head, c.art.skeleton));
-      c.cut.place(n.lx, n.y, n.z, c.k);
+      c.cut.place(n.lx, n.y + (n.sit ? SIT_LIFT : 0), n.z, c.k);
       c.cut.setVisible(true);
       draw.push({ z: n.z, set: (o) => c.cut.setOrder(o) });
       this.shadow(shadowN++, n.lx, n.z, 1.3, 0.8);
     }
     for (const [id, c] of this.cast) if (!seen.has(id)) c.cut.setVisible(false);
+    if (this.boss) {
+      const b = state.boss;
+      const shown = !!b && b.z >= he.z - BEHIND;
+      this.boss.cut.setVisible(shown);
+      if (b && shown) {
+        const boss = this.boss;
+        const pose = castPose({ role: "office", act: b.clip, t: b.u, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
+        boss.cut.apply(solve(pose, -1, castHeadScale(LOOKS[boss.person]?.head ?? boss.art.head.share, boss.art.head), boss.art.head, boss.art.skeleton));
+        boss.cut.place(b.lx, b.y, b.z, boss.k);
+        draw.push({ z: b.z, set: (o) => boss.cut.setOrder(o) });
+        this.shadow(shadowN++, b.lx, b.z, 1.3, 0.8);
+      }
+    }
+    const trolley = state.cart;
+    this.trolley.visible = !!trolley && trolley.z >= he.z - BEHIND && (trolley.live || !!state.boss);
+    if (trolley && this.trolley.visible) {
+      this.trolley.position.set(trolley.lx, TROLLEY.h / 2, -trolley.z);
+      const mesh = this.trolley;
+      draw.push({ z: trolley.z, set: (o) => (mesh.renderOrder = o) });
+      this.shadow(shadowN++, trolley.lx, trolley.z, 1.1, 0.8);
+    }
+    if (state.bin && !state.bin.used) {
+      const map = this.products.get("bucees");
+      if (map && !this.sticker) {
+        const img = map.image as { width: number; height: number };
+        this.sticker = new Mesh(new PlaneGeometry((STICKER.h * img.width) / img.height, STICKER.h), flat(map));
+        this.sticker.geometry.scale(1, -1, 1);
+        this.people.add(this.sticker);
+      }
+      if (this.sticker) {
+        this.sticker.visible = state.bin.z >= he.z - BEHIND;
+        this.sticker.position.set(STICKER.lx, STICKER.y, -state.bin.z);
+        const mesh = this.sticker;
+        const z = state.bin.z;
+        if (mesh.visible) draw.push({ z, set: (o) => (mesh.renderOrder = o) });
+      }
+    } else if (this.sticker) this.sticker.visible = false;
     // The housekeeping carts and the bellhops' on their picture, turned the way they roll.
     state.carts.forEach((c, i) => {
       let m = this.carts[i];
@@ -264,7 +417,8 @@ export class HallPeople {
       }
       (m.material as MeshBasicMaterial).map = map;
       m.visible = true;
-      m.position.set(b.lx, Math.max(0.2, b.y), -b.z);
+      m.scale.setScalar(b.kind === "bag" ? BAG / MISSILE : 1);
+      m.position.set(b.lx, Math.max(b.kind === "bag" ? BAG / 2 : 0.2, b.y), -b.z);
       const mesh = m;
       draw.push({ z: b.z, set: (o) => (mesh.renderOrder = o) });
     });
@@ -315,6 +469,7 @@ export class HallPeople {
   destroy() {
     this.hero?.destroy();
     for (const c of this.cast.values()) c.cut.destroy();
+    this.boss?.cut.destroy();
     this.people.removeFromParent();
     this.shadowMap.dispose();
   }

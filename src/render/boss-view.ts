@@ -10,7 +10,8 @@ import { Diner } from "./quests/diner";
 const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; size: number }> = {
   supervisor: { person: "housekeeper-1", recolor: "#1f2c4d", size: 1.05 },
   titanium: { person: "titanium", recolor: null, size: 1 },
-  purser: { person: "purser", recolor: null, size: 1 },
+  // Navy, in the housekeeper's painting, until her own is cut.
+  purser: { person: "purser", recolor: "#1b2748", size: 1 },
 };
 
 /** A boss standing in the level: their painting (or stand-in), posed by their state, always behind him. */
@@ -69,6 +70,12 @@ export class BossView {
       return;
     }
     this.briefcase.visible = false;
+    if (b.kind === "purser") {
+      const pose = castPose({ role: "office", act: b.state === "push" ? "attack" : b.flinch > 0 ? "bumped" : "idle", t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
+      // Down, she has pulled the curtain back and stands to the far side of it.
+      this.figure.pose(pose, -1, { x: b.state === "down" ? b.x + 120 : b.x, y: b.y }, b.flinch > 0, time, "planted");
+      return;
+    }
     const act = b.state === "down" ? "down" : b.state === "windup" ? "windup" : b.state === "wave" ? "attack" : "idle";
     const pose = castPose({ role: "bellhop", act, t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0, flat: true });
     this.figure.pose(pose, b.facing, { x: b.x, y: b.y }, b.state === "down" || b.flinch > 0, time, b.state === "down" ? "body" : "planted");

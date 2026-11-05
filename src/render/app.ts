@@ -69,6 +69,8 @@ export type NextProbe = {
   /** `walkOut`: out of the shuttle door, the seconds left of the can in his hand and the nuts spilling (R5 §8). */
   /** The 3D hall while there is one: undefined when the level plays flat. */
   three?: { canvas: boolean; quality: Quality; density: number; fps: number; drawing: boolean };
+  /** The cabin's state, while there is one. */
+  flight?: { sign: number; cartLive: boolean; cartZ: number; lane: number };
   hero?: { state: string; x: number; y: number; vx: number; onGround: boolean; flop?: boolean; boxes?: number; stunT?: number; clip?: string; walkOut?: { can: number; nuts: number } };
   heroScreenHeight?: number;
   drawn?: { character: boolean; cast: boolean; props: boolean; flyers: boolean };
@@ -153,6 +155,9 @@ export type NextProbe = {
     boss(o: { hp?: number; state?: string }): void;
     pad(o: { axes?: number[]; buttons?: { pressed: boolean }[] } | null): void;
     three(o: { frameMs?: number; lose?: boolean }): void;
+    /** The cabin's turbulence and its cart, now. */
+    turbulence(): void;
+    cart(): void;
     /** Takes everything in the level he is in, as if he had cleaned it out. */
     clearShelves(): void;
     /** Sets his heat. */

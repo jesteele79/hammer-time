@@ -333,6 +333,14 @@ export function drawMissile(g: Graphics, m: Missile) {
     g.rotation = m.phase * 4;
     return;
   }
+  if (m.kind === "bag") {
+    g.roundRect(-34, -28, 68, 56, 6).fill("#5a3d24").stroke({ width: 3, color: INK });
+    g.rect(-14, -40, 28, 12).stroke({ width: 4, color: INK });
+    g.position.set(m.x, m.y - 28);
+    g.scale.set(1);
+    g.rotation = m.landed ? 0 : m.phase;
+    return;
+  }
   if (m.kind === "apple") {
     g.circle(0, 0, 15).fill("#c8312b").stroke({ width: 3, color: "#0c0c0e" });
     g.circle(-5, -5, 4).fill({ color: "#ffffff", alpha: 0.6 });

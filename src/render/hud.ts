@@ -120,6 +120,7 @@ export function hintOf(game: Game): string {
     return cleanedOut ? "Staff stash · cleaned out · ↓ at the cart to go back" : "Staff stash · ↓ at the cart to go back";
   }
   if (game.world.boss?.kind === "titanium") return "Lifetime Titanium guy · bonk him · jump what he throws · H bats an apple back";
+  if (game.world.boss?.kind === "purser" && bossUp(game.world.boss)) return "The purser · A or D out of the aisle while she pushes · bonk her between pushes";
   if (bossUp(game.world.boss)) return "Housekeeping · jump her carts or slide under · bonk her when she waits";
   const zone = heatZoneAt(game.world.stage, h);
   if (zone?.kind === "flattop") return "Flat-top · it heats you fast · step off it";
@@ -143,6 +144,11 @@ export function hintOf(game: Game): string {
   if (h.boxes > 0 && !game.run.lobbed) return BOX_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
   
+  if (game.level.hall?.lanes) {
+    if ((game.world.flight?.sign ?? 0) > 0) return "The seatbelt sign · bags are coming · A or D out of their lane";
+    if (game.world.flight?.cart.live) return "The drinks cart · A or D out of the aisle";
+    return h.x < HALL_FIRST_HINT ? "W runs · A D a lane · S ducks a seat · Space jumps the legs" : "H bonks the queue · a jump bumps the bin at row 10";
+  }
   if (game.level.hall) {
     if (game.level.keyDoor && h.x >= game.level.keyDoor.x - 400) return "H on the door · the key won't open it";
     return h.x < HALL_FIRST_HINT ? "W forward · A D sidestep" : "S back · Space jumps a cart · a turning handle swings its door out";

@@ -56,6 +56,15 @@ try {
     await page.addStyleTag({ content: ".next-hud { visibility: hidden !important; }" });
     await webp(await page.screenshot(), 640, "hallway.webp");
   }
+  // The cabin too, past the first rows.
+  if (want("flight")) {
+    await page.goto(`${base}?next=1&dev=1&level=flight`);
+    await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => window.__next.dev.teleport(1500, 0));
+    await page.waitForTimeout(600);
+    await page.addStyleTag({ content: ".next-hud { visibility: hidden !important; }" });
+    await webp(await page.screenshot(), 640, "flight.webp");
+  }
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).
   for (const [name, url, kind] of [
     ["banquet", `${base}?next=1&board=1&quest=hungry`, "banquet-thumb"],

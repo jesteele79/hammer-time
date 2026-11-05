@@ -106,6 +106,57 @@ try {
       count++;
     }
   }
+  // The cabin in the running game: its three stretches, and his back ducking under a seat.
+  if (want("flight")) {
+    await page.goto(`${base}?next=1&dev=1&level=flight`);
+    await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });
+    for (const [i, x] of [120, 1500, 3300].entries()) {
+      await page.evaluate((at) => window.__next.dev.teleport(at, 0), x);
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: resolve(out, `flight-look-${i + 1}.png`) });
+      count++;
+    }
+    await page.evaluate(() => window.__next.dev.teleport(2500, 0));
+    await page.keyboard.down("KeyS");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: resolve(out, "flight-look-crouch.png") });
+    await page.keyboard.up("KeyS");
+    count++;
+    await page.evaluate(() => window.__next.dev.turbulence());
+    await page.waitForTimeout(2600);
+    await page.screenshot({ path: resolve(out, "flight-look-bags.png") });
+    count++;
+  }
+  // The purser: pushing, resting, and down with the curtain back.
+  if (want("purser")) {
+    await page.goto(`${base}?next=1&dev=1&level=flight`);
+    await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => window.__next.dev.teleport(3350, 0));
+    await page.waitForFunction(() => window.__next.boss?.state === "push", null, { timeout: 10000 });
+    await page.keyboard.press("KeyA");
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: resolve(out, "purser-1.png") });
+    await page.waitForFunction(() => window.__next.boss?.state === "rest", null, { timeout: 5000 });
+    await page.keyboard.press("KeyD");
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: resolve(out, "purser-2.png") });
+    await page.evaluate(() => window.__next.dev.boss({ state: "down" }));
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.__next.dev.teleport(3600, 0));
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: resolve(out, "purser-3.png") });
+    count += 3;
+  }
+  if (want("flight-flat")) {
+    await page.goto(`${base}?next=1&dev=1&level=flight&flat=1`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    for (const [i, x] of [120, 1500, 3300].entries()) {
+      await page.evaluate((at) => window.__next.dev.teleport(at, 0), x);
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: resolve(out, `flight-flat-${i + 1}.png`) });
+      count++;
+    }
+  }
   if (want("back")) {
     await page.goto(`${base}?next=1&dev=1&level=hallway`);
     await page.waitForFunction(() => window.__next?.three?.drawing && window.__next.run.mode === "play", null, { timeout: 60000 });

@@ -30,9 +30,9 @@ export type Purser = {
   cart: { z: number; live: boolean };
 };
 
-export const PURSER = { hp: 3, notice: 6, push: { reach: 2, cover: 1.5, every: 4 }, rest: 2.5, flinch: 0.3, points: 1500, hurt: 0.45, w: 100, h: 330, block: 70, shove: 10 } as const;
+export const PURSER = { hp: 3, notice: 6, push: { reach: 2, cover: 1.5, every: 4 }, rest: 2.5, flinch: 0.3, points: 1500, hurt: 0.45, w: 100, h: 330, block: 70, shove: 10, home: 0.7, roll: 5 } as const;
 
-export const createPurser = (b: BossSpec): Purser => ({ kind: "purser", x: b.x, y: 0, lx: 0, w: PURSER.w, h: PURSER.h, facing: -1, state: "wait", hp: PURSER.hp, max: PURSER.hp, awake: false, pushes: 0, timer: 0, hurtT: 0, flinch: 0, cart: { z: b.x / 100 - PURSER.push.reach, live: false } });
+export const createPurser = (b: BossSpec): Purser => ({ kind: "purser", x: b.x, y: 0, lx: 0, w: PURSER.w, h: PURSER.h, facing: -1, state: "wait", hp: PURSER.hp, max: PURSER.hp, awake: false, pushes: 0, timer: 0, hurtT: 0, flinch: 0, cart: { z: b.x / 100 - PURSER.home, live: false } });
 
 export const purserRect = (p: Purser): Rect => ({ x: p.x - p.w / 2, y: p.y - p.h, w: p.w, h: p.h });
 
@@ -63,7 +63,6 @@ function push(p: Purser, events: GameEvent[]) {
   p.pushes++;
   p.timer = PURSER.push.cover;
   p.cart.live = true;
-  p.cart.z = p.x / 100 - PURSER.push.reach;
   events.push({ type: "bossWave", x: p.x, y: p.y - p.h / 2, n: p.pushes });
 }
 
@@ -97,10 +96,13 @@ export function stepPurser(p: Purser, w: PurserWorld, dt: number, events: GameEv
   if (burst && Math.hypot(p.x - burst.x, p.y - p.h / 2 - burst.y) <= BURST_R && !sideways(w.stage, h, p)) hitPurser(p, "bonk", events);
   if ((p.state as PurserState) === "down") return;
   p.timer -= dt;
+  // Her cart rolls out to its reach while she pushes, and back to her hands.
+  const homeZ = p.x / 100 - (p.state === "push" ? PURSER.push.reach : PURSER.home);
+  p.cart.z += Math.max(-PURSER.roll * dt, Math.min(PURSER.roll * dt, homeZ - p.cart.z));
   if (p.state === "push") {
     // The cart stands across the aisle from its reach back to her: in a row lane it passes.
     const z = h.x / 100;
-    if (z >= p.cart.z - CABIN.cartReach && laterallyNear(h, { lx: 0 }, CABIN.cartLane)) shove(h, w.stage, PURSER.shove, events);
+    if (z >= p.x / 100 - PURSER.push.reach - CABIN.cartReach && laterallyNear(h, { lx: 0 }, CABIN.cartLane)) shove(h, w.stage, PURSER.shove, events);
     if (p.timer > 0) return;
     p.cart.live = false;
     p.state = "rest";

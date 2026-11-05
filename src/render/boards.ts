@@ -62,6 +62,7 @@ const MOVE_FRAMES = 10;
  */
 /** Each venue's six frames: where he stands, where the camera looks and how wide. */
 export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }[]>> = {
+  flight: [{ x: 200, cx: 500 }, { x: 1700, cx: 2000 }, { x: 3700, cx: 3700 }],
   // SAT: the curb, the TSA line, the gate.
   sat: [
     { x: 700, y: 0, cx: 1200 },
@@ -104,6 +105,7 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
 
 /** Each start's picture on the start screen: where he stands and where the camera looks. */
 export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: number; cy?: number; zoom?: number }>> = {
+  flight: { x: 400, cx: 700 },
   sat: { x: 5900, y: 0, cx: 6500, zoom: 0.92 },
   lobby: { x: 1100, y: 0, cx: 1600 },
   restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },

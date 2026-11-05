@@ -46,8 +46,6 @@ const FAR = 120;
 const CHASE = { back: 3, height: 1.6, follow: 0.55, aim: 0.3, ahead: 5, aimHeight: 1.15, rate: 8 } as const;
 /** A wide view of the hall; an upright phone needs more of it. */
 const FOV = { wide: 62, upright: 78 } as const;
-/** How bright the pools under the lamps are at a lamp's strength of 1. */
-const POOL_STRENGTH = 2;
 /** The camera's layer for what the ink should not outline: blob shadows, the puddle. */
 export const CUTOUT_LAYER = 1;
 /** How many frames of the 3D view to average its work over. */
@@ -178,8 +176,8 @@ export class ThreeView {
 
   /** One key light from behind him, a dim fill, and the lamps nearest him as soft pools. */
   private light(spec: SetSpec) {
-    this.scene.add(new HemisphereLight(0xfff0dc, 0x4a3020, 1.1));
-    const key = new DirectionalLight(0xffe6c4, 1.1);
+    this.scene.add(new HemisphereLight(0xfff0dc, 0x4a3020, 1.1 * spec.ambient));
+    const key = new DirectionalLight(0xffe6c4, 1.1 * spec.ambient);
     key.shadow.mapSize.set(2048, 2048);
     key.shadow.bias = -0.0006;
     key.shadow.normalBias = 0.03;
@@ -187,7 +185,7 @@ export class ThreeView {
     this.key = key;
     this.scene.add(key, key.target);
     for (let i = 0; i < 3; i++) {
-      const p = new PointLight(0xffd9a6, POOL_STRENGTH * spec.lamps.strength, 8, 1.8);
+      const p = new PointLight(0xffd9a6, spec.pool, 8, 1.8);
       this.pools.push(p);
       this.scene.add(p);
     }
@@ -246,6 +244,8 @@ export class ThreeView {
   sync(state: HallState, back: { clip: BackClipName; u: number } | null, dt: number) {
     const { lx, z } = state.hero;
     this.people?.sync(state, back);
+    if (this.curtain) this.curtain.visible = !state.curtain;
+    for (const m of this.signs) m.emissiveIntensity = state.sign ? (this.set?.lamps.strength ?? 1) * 1.4 : 0;
     const k = 1 - Math.exp(-CHASE.rate * dt);
     const cam = this.camera.position;
     cam.x += (lx * CHASE.follow - cam.x) * k;

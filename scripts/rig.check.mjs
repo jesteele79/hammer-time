@@ -945,3 +945,14 @@ test("his back's clips stand on the floor and move without a jump; the swing rai
   assert.ok(top.joints.handNear.y < rest.joints.neck.y, `the mallet's head at ${top.joints.handNear.y}, over his neck at ${rest.joints.neck.y}`);
   assert.ok(rest.joints.handNear.y > rest.joints.pelvis.y, "and at his side before it");
 });
+
+test("his back's crouch lowers his pelvis by a third of his leg, with his soles held on the floor by the legs' foreshortening", () => {
+  const frame = BACK_CLIPS.crouch(0);
+  const s = solve(frame.pose, -1, 0.26);
+  const rest = solve(REST_POSE, -1, 0.26);
+  const leg = rest.joints.toeNear.y - rest.joints.hipNear.y;
+  const dropped = s.joints.hipNear.y - rest.joints.hipNear.y;
+  assert.ok(Math.abs(dropped - leg * 0.35) < leg * 0.04, `dropped ${dropped} of ${leg}`);
+  const sole = s.joints.hipNear.y + (s.joints.toeNear.y - s.joints.hipNear.y) * frame.legNear;
+  assert.ok(Math.abs(sole) < 6, `his sole at ${sole}`);
+});

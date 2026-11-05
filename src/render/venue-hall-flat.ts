@@ -12,7 +12,7 @@ const EVERY_DOOR = 300;
 const RAIL = -150;
 
 /** The flat cabin's colors. */
-const CABIN = { wall: "#d8d2c2", bin: "#cfc8b6", seam: "#8a8678", seat: "#2b3a6a", head: "#b8bcc6", window: "#bcd6f2", floor: "#1b2340", lav: "#b9b4a8", curtain: "#1d2a58", business: "#946a42" } as const;
+const CABIN = { wall: "#d8d2c2", bin: "#cfc8b6", seam: "#8a8678", seat: "#2b3a6a", head: "#b8bcc6", window: "#bcd6f2", floor: "#1b2340", lav: "#b9b4a8", curtain: "#1d2a58", business: "#946a42", recline: "#9c2f35", legs: "#2f3542", cart: "#a9aeb6" } as const;
 const SEAT_EVERY = 77;
 /** Where the floor's far edge meets the near row's seats: the aisle's depth on the page. */
 const CABIN_NEAR = 340;
@@ -35,6 +35,19 @@ function drawCabinFlat(g: Graphics, level: Level) {
     g.rect(x + 30, -60, SEAT_EVERY - 34, 60).fill(tones(cloth).shadow);
     g.roundRect(x + 8, CABIN_NEAR - 90, SEAT_EVERY - 12, 90, 8).fill(cloth).roundRect(x + 8, CABIN_NEAR - 90, SEAT_EVERY - 12, 90, 8).stroke(THIN);
     g.rect(x + 8, CABIN_NEAR, SEAT_EVERY - 12, 200).fill(tones(cloth).shadow);
+  }
+  const spec = level.flight;
+  if (spec) {
+    for (const r of spec.recliners) {
+      const x = rowX(r.row);
+      const y = r.lane === 0 ? 0 : CABIN_NEAR;
+      g.moveTo(x + 8, y).lineTo(x - 34, y - 150).stroke({ width: 26, color: CABIN.recline, cap: "round" });
+    }
+    for (const row of spec.legs) {
+      const x = rowX(row);
+      g.roundRect(x - 44, 34, 88, 24, 10).fill(CABIN.legs).roundRect(x - 44, 34, 88, 24, 10).stroke(THIN);
+      g.roundRect(x - 54, 80, 40, 22, 8).fill("#14110f");
+    }
   }
   const lav = rowX(30);
   g.rect(lav - 75, -320, 150, 320).fill(CABIN.lav).rect(lav - 75, -320, 150, 320).stroke(INK);
@@ -82,11 +95,21 @@ export class HallFlatView {
     parent.addChild(this.container);
   }
 
-  /** `lane`: how far along its width a meter of the hall's breadth draws, on the floor in front of the wall. */
-  sync(carts: readonly HallCart[], doors: readonly HallDoor[], hero: { x: number; lx: number }) {
+  /** `lane`: how far along its width a meter of the hall's breadth draws, on the floor in front of the wall. `cabin`: the flight's cart, the curtain still drawn at `curtain`, the bags. */
+  sync(carts: readonly HallCart[], doors: readonly HallDoor[], hero: { x: number; lx: number }, cabin?: { cart: { z: number; lx: number; live: boolean } | null; curtain: number | null; bags: readonly { x: number; lx?: number }[] }) {
     const g = this.g;
     g.clear();
     const down = (lx: number) => 30 + (lx + HALL.wall) * 30;
+    if (cabin) {
+      if (cabin.curtain !== null) g.rect(cabin.curtain - 14, CEILING, 28, -CEILING + CABIN_NEAR).fill(CABIN.curtain).rect(cabin.curtain - 14, CEILING, 28, -CEILING + CABIN_NEAR).stroke(THIN);
+      if (cabin.cart) {
+        const x = cabin.cart.z * 100;
+        g.roundRect(x - 60, down(cabin.cart.lx) - 170, 120, 170, 8).fill(CABIN.cart).roundRect(x - 60, down(cabin.cart.lx) - 170, 120, 170, 8).stroke(INK);
+        g.rect(x - 60, down(cabin.cart.lx) - 170, 120, 16).fill(tones(CABIN.cart).shadow);
+      }
+      // Where a bag will land: its shadow in its lane.
+      for (const b of cabin.bags) g.ellipse(b.x, down(b.lx ?? 0), 44, 10).fill({ color: "#000000", alpha: 0.45 });
+    }
     for (const c of carts) {
       const x = c.z * 100;
       for (let y = 30; y <= 120; y += 18) g.rect(x - 2, y, 4, 8).fill({ color: C.lane, alpha: 0.5 });

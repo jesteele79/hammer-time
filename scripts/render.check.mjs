@@ -11,6 +11,8 @@ import { hangTowel, palmTurn, towelAtFace, towelChain } from "../src/render/towe
 import { ACTIONS } from "../src/sim/rig/actions.ts";
 import { pose } from "../src/sim/rig/pose.ts";
 import { SETS } from "../src/render/3d/sets.ts";
+import { backClipOf, backCycle, hallStateOf } from "../src/render/3d/hall-state.ts";
+import { FLIGHT, rowX } from "../src/sim/levels/flight.ts";
 import { HALLWAY } from "../src/sim/levels/hallway.ts";
 
 test("a vsynced 60 Hz display with light work never steps down", () => {
@@ -1646,4 +1648,44 @@ test("the 3D sets: the hall and the cabin, each with its file, length and lamps"
   assert.deepEqual(SETS.cabin.lamps, { first: 1.5, every: 3, height: 2.0, strength: 1.2 });
   assert.deepEqual([SETS.cabin.names.curtain, SETS.cabin.names.sign], ["curtain", "sign"]);
   assert.equal(HALLWAY.hall.set, "hallway");
+});
+
+const flightGame = () => {
+  const g = createGame({ lobby: LOBBY, stash: STASH }, 61, { cast: true, title: true });
+  g.newRun(61, 0, { shift: [FLIGHT], journey: true });
+  const none = { held: {}, pressed: {} };
+  while (g.mode === "card") g.step(none);
+  return { g, step: (s) => { for (let i = 0; i < Math.round(s * 120); i++) g.step(none); } };
+};
+test("a flight world's hall state carries the purser, her cart, the curtain and the sign", () => {
+  const { g, step } = flightGame();
+  const of = () => { const s = g.world.snapshot(); return hallStateOf(s, s, 1, g.pickups, null, { crates: g.crates }); };
+  const a = of();
+  assert.deepEqual([a.boss.person, a.curtain, a.sign, a.cart && a.cart.live], ["purser", false, false, false]);
+  assert.deepEqual([a.bin.z, a.bin.used], [rowX(10) / 100, false]);
+  assert.ok(a.cast.filter((n) => n.sit).length === 8);
+  g.dev.turbulence();
+  step(2);
+  assert.equal(of().sign, true);
+  Object.assign(g.world.flight.cart, { live: true, z: 20 });
+  assert.deepEqual(of().cart, { lx: 0, z: 20, live: true });
+  Object.assign(g.world.boss, { state: "down" });
+  assert.equal(of().curtain, true);
+  assert.ok(Math.abs(of().boss.lx) > 0.5, "she has stood aside");
+});
+test("his jump in the cabin stays under its ceiling, by the set's lift", () => {
+  assert.deepEqual([SETS.hallway.lift, SETS.cabin.lift], [1, 0.35]);
+  const { g } = flightGame();
+  g.world.hero.y = -300;
+  const s = g.world.snapshot();
+  assert.equal(hallStateOf(s, s, 1, g.pickups, null).hero.y, 3);
+  assert.ok(Math.abs(hallStateOf(s, s, 1, g.pickups, null, { lift: SETS.cabin.lift }).hero.y - 1.05) < 1e-9);
+});
+test("his back crouches while ↓ is held, and the cabin's sprint shows his run at the cabin's pace", () => {
+  const { g } = flightGame();
+  const h = g.world.hero;
+  assert.equal(backClipOf({ ...h, crouch: true, onGround: true, move: null, hurtT: 0, stunT: 0 }, 0).clip, "crouch");
+  assert.equal(backClipOf({ ...h, vx: 390, onGround: true, move: null, hurtT: 0, stunT: 0 }, 0, 0.5).clip, "run");
+  assert.equal(backClipOf({ ...h, vx: 200, onGround: true, move: null, hurtT: 0, stunT: 0 }, 0, 0.5).clip, "walk");
+  assert.equal(backCycle({ vx: 390 }, 0.5) > backCycle({ vx: 200 }, 0.5), true);
 });

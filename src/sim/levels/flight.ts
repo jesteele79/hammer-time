@@ -63,7 +63,7 @@ export const FLIGHT: Level = {
     { id: "queue-1", person: "office-1", x: rowX(30), y: 0, lx: 0, facing: 1, trick: "queue" },
     { id: "queue-2", person: "prof-1", x: rowX(30) + 40, y: 0, lx: 0, facing: 1, trick: "queue" },
     { id: "queue-3", person: "lunch-1", x: rowX(30) + 80, y: 0, lx: 0, facing: 1, trick: "queue" },
-    { id: "attendant-1", person: "attendant-1", x: rowX(40), y: 0, x0: rowX(40) - 150, x1: rowX(40) + 150, lx: 0.9, trick: "wander" },
+    { id: "attendant-1", person: "attendant-1", x: rowX(40), y: 0, x0: rowX(40) - 150, x1: rowX(40) + 150, lx: 0.9, recolor: "#1b2748", trick: "wander" },
     { id: "attendant-2", person: "attendant-1", x: rowX(15), y: 0, x0: rowX(15) - 150, x1: rowX(15) + 150, lx: 0.9, recolor: "#3b4a6b", trick: "wander" },
     ...seated,
   ],
