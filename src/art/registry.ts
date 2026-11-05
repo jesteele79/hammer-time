@@ -75,6 +75,14 @@ export type Registry = {
     food?: { file: string; width: number; height: number }[];
   };
   /**
+   * The brasserie (story spec §9.2): its room placed as the ballroom is, and its sixteen tiles in the French sheet's order;
+   * the table is the banquet's. Missing while a painting is not in: the banquet's room stands in.
+   */
+  french?: {
+    room?: { file: string; width: number; height: number; table: Point; span: number };
+    food?: { file: string; width: number; height: number }[];
+  };
+  /**
    * Gate B7 (R5 §13): the room as painted, with the row where its wall meets the floor and its window band's top and
    * bottom rows; the plane that takes off behind the glass; the sheet's seven pieces by name. Missing from an older sync,
    * or while a painting is not in.

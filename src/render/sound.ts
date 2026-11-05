@@ -228,7 +228,7 @@ export function cuesFor(e: GameEvent): Cue[] {
  * the gate's bossa, faster while he is on a streak.
  */
 export function questMusic(q: Quest): { theme: "banquet" | "lounge" | "gate"; hurry: boolean } {
-  return q.id === "hungry" ? { theme: q.menu === "lounge" ? "lounge" : "banquet", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
+  return q.id === "hungry" ? { theme: q.menu === "banquet" ? "banquet" : "lounge", hurry: q.time >= HUNGRY.frenzy.from } : { theme: "gate", hurry: q.streak >= FARES.streak };
 }
 
 /**

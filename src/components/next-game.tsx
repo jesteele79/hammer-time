@@ -26,6 +26,7 @@ const BANQUET_BEST_KEY = "hammer-time-best-banquet";
 export const FARES_BEST_KEY = "hammer-time-best-fares";
 /** The M CLUB's best, door rounds and practice alike (story spec §8.1). */
 const LOUNGE_BEST_KEY = "hammer-time-best-lounge";
+const FRENCH_BEST_KEY = "hammer-time-best-french";
 const QUALITY_KEY = "hammer-time-quality";
 const QUALITIES: readonly Quality[] = ["ultra", "high", "medium", "low"];
 const TOUCH_QUERY = "(pointer: coarse), (max-width: 899px)";
@@ -148,6 +149,7 @@ export function NextGame({
   const [banquetBest, setBanquetBest] = useState(0);
   const [faresBest, setFaresBest] = useState(0);
   const [loungeBest, setLoungeBest] = useState(0);
+  const [frenchBest, setFrenchBest] = useState(0);
   const [bestBefore, setBestBefore] = useState(0);
   const [sound, setSoundState] = useState<SoundSettings>(DEFAULT_SOUND);
   const soundRef = useRef<SoundSettings>(DEFAULT_SOUND);
@@ -233,6 +235,7 @@ export function NextGame({
     setBanquetBest(readNumber(BANQUET_BEST_KEY));
     setFaresBest(readNumber(FARES_BEST_KEY));
     setLoungeBest(readNumber(LOUNGE_BEST_KEY));
+    setFrenchBest(readNumber(FRENCH_BEST_KEY));
     setQualityState(readQuality());
     const s = readSound();
     soundRef.current = s;
@@ -385,17 +388,17 @@ export function NextGame({
   }, [ready, pendingQuest]);
 
   // What a round's score must beat to be a new best: its own quest's best as the round's card showed.
-  const questId: QuestId | null = hud?.quest ? (hud.quest.id === "fares" ? "fares" : hud.quest.menu === "lounge" ? "lounge" : "hungry") : null;
+  const questId: QuestId | null = hud?.quest ? (hud.quest.id === "fares" ? "fares" : hud.quest.menu === "banquet" ? "hungry" : hud.quest.menu) : null;
   useEffect(() => {
-    if (mode === "questCard") setBestBefore(questId === "fares" ? faresBest : questId === "lounge" ? loungeBest : banquetBest);
-  }, [mode, questId, banquetBest, faresBest, loungeBest]);
+    if (mode === "questCard") setBestBefore(questId === "fares" ? faresBest : questId === "lounge" ? loungeBest : questId === "french" ? frenchBest : banquetBest);
+  }, [mode, questId, banquetBest, faresBest, loungeBest, frenchBest]);
 
   // A side quest's best, kept when its tally shows (a door's round and practice alike); the shift's best is not touched.
   const questResult = hud?.quest?.result ?? null;
   useEffect(() => {
     if (mode !== "questTally" || !questResult || !questId) return;
     const score = questResult.score;
-    const [key, set] = questId === "fares" ? [FARES_BEST_KEY, setFaresBest] : questId === "lounge" ? [LOUNGE_BEST_KEY, setLoungeBest] : [BANQUET_BEST_KEY, setBanquetBest];
+    const [key, set] = questId === "fares" ? [FARES_BEST_KEY, setFaresBest] : questId === "lounge" ? [LOUNGE_BEST_KEY, setLoungeBest] : questId === "french" ? [FRENCH_BEST_KEY, setFrenchBest] : [BANQUET_BEST_KEY, setBanquetBest];
     set((b) => {
       if (score <= b) return b;
       writeNumber(key, score);
@@ -491,6 +494,7 @@ export function NextGame({
     name: hud?.name ?? "Hotel lobby",
     world: hud?.world ?? "1-1",
     card: hud?.card ?? null,
+    tally: hud?.tally ?? null,
     status: hud?.status ?? null,
     score: hud?.score ?? 0,
     best,
@@ -502,6 +506,7 @@ export function NextGame({
     quest: hud?.quest ?? null,
     banquetBest,
     loungeBest,
+    frenchBest,
     faresBest,
     bestBefore,
     touch,
@@ -527,6 +532,7 @@ export function NextGame({
           banquetBest={banquetBest}
           faresBest={faresBest}
           loungeBest={loungeBest}
+          frenchBest={frenchBest}
           onSettings={() => openSettings(true)}
           onNewGame={() => setErasing(true)}
           onRecord={() => setRecord(true)}

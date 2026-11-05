@@ -60,6 +60,8 @@ export const HUNGRY = {
   server: { trip: 18, from: 15, to: 170, radius: 830, linger: 1.5, bus: 150, reach: 260, quiet: 6, away: 15, tray: 4 },
   /** The lounge's fourth figure (story spec §8.1): Lifetime Titanium guy on the server's walk at half her speed, a step behind her. */
   walker: { trip: 36, radius: 840, linger: 2, reach: 0.96, takes: 2, away: 8, bonk: 420 },
+  /** The French table's waiter (story spec §9.2): how often he clears, his hand on the rim first, what his tray holds, how long a spill sends him off; how near a hand draws his "Non.", and where a spill lands. */
+  waiter: { every: 12, hand: 0.6, hold: 4, away: 3, non: 90, spill: 150, spread: 70 },
 } as const;
 
 /** The waves from the chute (R4 §5); the cart's desserts and the frenzy come apart. */
@@ -141,6 +143,8 @@ export type Suitcase = Box & { t: number };
 export type Server = { s: number; dir: 1 | -1; away: number; quiet: number; wait: number; frozen: number };
 export type Cart = { x: number; y: number; crashed: boolean };
 /** Lifetime Titanium guy behind the table: `s` as the server's; `away` seconds at the far end after a bonk; `took` dishes off his plate this trip's end; `said` his arrival's line once a round. */
+/** The waiter: `t` the seconds in this phase, counting down while `away`; `target` the dish under his hand; `held` what his tray has cleared. */
+export type Waiter = { t: number; phase: "idle" | "hand" | "away"; target: number | null; held: FoodKind[]; non: boolean };
 export type Walker = { s: number; dir: 1 | -1; wait: number; away: number; frozen: number; took: number; there: boolean; said: boolean };
 export type Score = { plate: number; bonus: number; chain: number; best: number; last: number; togo: number; eaten: number; robbed: number; paper: number; slapped: number; specials: FoodKind[]; bill: boolean; split: number };
 export type HungryResult = {
@@ -177,6 +181,7 @@ export type Hungry = {
   menu: Menu;
   courses: Record<Course, FoodKind[]>;
   walker: Walker | null;
+  waiter: Waiter | null;
   rng: () => number;
   practice: boolean;
   time: number;
@@ -219,6 +224,13 @@ const LECTURED: Record<Menu, Record<RivalId | "server", readonly string[]>> = {
     nurse: ["I'm Platinum.", "Do you know who I am?", "I have status."],
     server: ["Members only, sir.", "I'll get my manager.", "Is Pepsi okay?"],
   },
+  // The brasserie's: three Parisians and the waiter.
+  french: {
+    student: ["Oh là là.", "Mais non.", "Monsieur!"],
+    bellhop: ["Monsieur!", "Oh là là.", "Comme vous voulez."],
+    nurse: ["Oh là là.", "Monsieur!", "C'est pas possible."],
+    server: ["Non.", "C'est fini?", "Monsieur."],
+  },
 };
 const SLAPS: Record<Menu, Record<RivalId, readonly string[]>> = {
   banquet: {
@@ -231,12 +243,20 @@ const SLAPS: Record<Menu, Record<RivalId, readonly string[]>> = {
     bellhop: ["Hands. Off.", "That's my briefcase's.", "Circle back to your own."],
     nurse: ["I'm Platinum.", "Members first!", "Get your own plate!"],
   },
+  french: {
+    student: ["Monsieur!", "Non, non, non.", "Oh là là."],
+    bellhop: ["Monsieur!", "C'est à moi.", "Oh là là."],
+    nurse: ["Oh là là.", "Monsieur!", "Non."],
+  },
 };
 /** A robbed rival's payback line: the student's paper, the bellhop's bag on the cloth, the nurse's offence. */
 const PAYBACKS: Record<Menu, Record<RivalId, string>> = {
   banquet: { student: "Heads up!", bellhop: "Your bag, sir.", nurse: "Excuse me?" },
   lounge: { student: "Sorry! Sorry!", bellhop: "My briefcase, thank you.", nurse: "I'm Platinum." },
+  french: { student: "Oh là là.", bellhop: "Monsieur!", nurse: "Monsieur!" },
 };
+/** What a grade reads on a table's tally: the brasserie comps in its own language. */
+export const gradeWord = (menu: Menu, grade: string): string => (menu === "french" && grade === "COMPED" ? "OFFERT" : grade);
 function eater<I extends EaterId>(id: I): Eater & { id: I } {
   return { id, dive: null, since: HUNGRY.cadence, stun: 0, plate: [] };
 }
@@ -253,6 +273,7 @@ export function createHungry(seed: number, opts: HungryOptions = {}): Hungry {
     menu,
     courses,
     walker: menu === "lounge" ? { s: 0, dir: 1, wait: 0, away: 0, frozen: 0, took: 0, there: false, said: false } : null,
+    waiter: menu === "french" ? { t: 0, phase: "idle", target: null, held: [], non: false } : null,
     rng,
     practice: !!opts.practice,
     time: 0,
@@ -870,6 +891,8 @@ function stepServer(q: Hungry, dt: number) {
     if (s.s >= 1) Object.assign(s, { s: 1, dir: -1, wait: S.linger });
     else if (s.s <= 0) Object.assign(s, { s: 0, dir: 1, wait: S.linger });
   }
+  // The French table's waiter clears by his own habit, not by passing.
+  if (q.waiter) return;
   const at = serverAt(q);
   const bused = q.dishes.filter((d) => settled(d) && Math.hypot(d.x, d.y) >= TABLE.r - S.bus && dist(d, at) <= S.reach);
   if (!bused.length) return;
@@ -879,6 +902,67 @@ function stepServer(q: Hungry, dt: number) {
     say(q, "server", "Are we still working on that?", 1.6);
     s.quiet = S.quiet;
   }
+}
+
+/**
+ * The waiter's habit: every so often his hand on the rim of the plate nearest Hammer's line ("C'est fini?"), and a moment
+ * later it is on his tray. Lectured, he stands and clears nothing.
+ */
+function stepWaiter(q: Hungry, dt: number) {
+  const w = q.waiter;
+  if (!w || q.server.frozen > 0) return;
+  const W = HUNGRY.waiter;
+  if (w.phase === "away") {
+    w.t -= dt;
+    if (w.t <= 0) Object.assign(w, { phase: "idle", t: 0 });
+    return;
+  }
+  w.t += dt;
+  if (w.phase === "idle") {
+    if (w.t < W.every) return;
+    const p = SEATS.hammer.plate;
+    const dir = dirOf(1, q.hammer.aim);
+    const near = (d: Dish) => onLine(sub(d, p), dir).off;
+    const d = q.dishes.filter(settled).sort((a, b) => near(a) - near(b))[0];
+    if (!d) return;
+    Object.assign(w, { phase: "hand", t: 0, target: d.id, non: false });
+    q.events.push({ type: "hhTray", x: d.x, y: d.y, phase: "hand" });
+    say(q, "server", "C'est fini?", 1.2);
+    return;
+  }
+  const d = q.dishes.find((x) => x.id === w.target);
+  if (!d) {
+    Object.assign(w, { phase: "idle", t: 0, target: null });
+    return;
+  }
+  if (!w.non && dist(handOf(q.hammer), d) <= W.non) {
+    w.non = true;
+    say(q, "server", "Non.", 1);
+  }
+  if (w.t < W.hand) return;
+  q.dishes = q.dishes.filter((x) => x !== d);
+  w.held.push(d.kind);
+  if (w.held.length > W.hold) w.held.shift();
+  q.events.push({ type: "hhBus", x: d.x, y: d.y, count: 1 });
+  Object.assign(w, { phase: "idle", t: 0, target: null });
+}
+
+/** A bonk on the waiter, who is at Hammer's elbow when his hand or his tray is out: it stops the hand, and sends what is on the tray onto Hammer's end. */
+function bonkWaiter(q: Hungry, w: Waiter): boolean {
+  const W = HUNGRY.waiter;
+  if (w.phase === "away" || (w.phase !== "hand" && !w.held.length)) return false;
+  Object.assign(w, { phase: "idle", t: 0, target: null });
+  if (!w.held.length) return true;
+  const p = SEATS.hammer.plate;
+  const n = Math.hypot(p.x, p.y) || 1;
+  const inward = { x: -p.x / n, y: -p.y / n };
+  w.held.forEach((kind, i) => {
+    const off = (i - (w.held.length - 1) / 2) * W.spread;
+    addDish(q, kind, p.x + inward.x * W.spill - inward.y * off, p.y + inward.y * W.spill + inward.x * off);
+  });
+  q.events.push({ type: "hhTray", x: p.x + inward.x * W.spill, y: p.y + inward.y * W.spill, phase: "spill" });
+  Object.assign(w, { phase: "away", t: W.away, held: [] });
+  return true;
 }
 
 /** Where a plane is on its way from the student's plate to his spot. */
@@ -927,7 +1011,9 @@ function bonkOthers(q: Hungry): boolean {
     hit = true;
   }
   const s = serverAt(q);
-  if (q.server.away <= 0 && dist(s, p) <= R) {
+  if (q.waiter) {
+    if (bonkWaiter(q, q.waiter)) hit = true;
+  } else if (q.server.away <= 0 && dist(s, p) <= R) {
     const n = Math.hypot(s.x, s.y);
     const inside = { x: (s.x / n) * (TABLE.r - 80), y: (s.y / n) * (TABLE.r - 80) };
     const course: Exclude<Course, "special"> = q.time < 25 ? "appetizer" : q.time < 42 ? "entree" : "dessert";
@@ -982,6 +1068,21 @@ export function land(q: Hungry, to: EaterId, kind: FoodKind, bonus = 0): void {
     think(q, "YOU picked up the bill?", 2);
     return;
   }
+  // The brasserie's bill: it costs him, the waiter says so, and he says it back.
+  if (kind === "bill") {
+    sc.plate += FOODS.bill.value;
+    sc.bill = true;
+    q.events.push({ type: "hhLand", who: "hammer", kind, points: FOODS.bill.value });
+    say(q, "server", "L'addition.", 1.4);
+    think(q, "L'ADDITION.", 2);
+    return;
+  }
+  // The carafe: nothing, and he has something to say about it.
+  if (kind === "carafe") {
+    q.events.push({ type: "hhLand", who: "hammer", kind, points: 0 });
+    think(q, "Still? Sparkling? NEITHER.", 2);
+    return;
+  }
   // The lounge's wine: it costs him, no combo in it.
   if (kind === "wine") {
     sc.plate += FOODS.wine.value;
@@ -991,7 +1092,7 @@ export function land(q: Hungry, to: EaterId, kind: FoodKind, bonus = 0): void {
   }
   if (kind === "water") think(q, "Points. Not the water.", 2);
   let points = FOODS[kind].value;
-  if (sc.togo > 0 && kind !== "togo") {
+  if (sc.togo > 0 && kind !== "togo" && kind !== "cheesecart") {
     points *= 2;
     sc.togo--;
   }
@@ -1004,8 +1105,8 @@ export function land(q: Hungry, to: EaterId, kind: FoodKind, bonus = 0): void {
   sc.eaten++;
   if (FOODS[kind].course === "special") {
     sc.specials.push(kind);
-    if (kind === "togo") sc.togo = HUNGRY.togo;
-    else think(q, "Room charge.");
+    if (kind === "togo" || kind === "cheesecart") sc.togo = HUNGRY.togo;
+    else think(q, kind === "tinycoke" ? "Thirty-three centiliters. That's a sample." : "Room charge.");
   }
   q.events.push({ type: "hhLand", who: "hammer", kind, points: (points + bonus) * mult });
 }
@@ -1048,12 +1149,13 @@ function finish(q: Hungry) {
     bill: sc.bill,
     doggy: grade === "COMPED",
     flop: grade === "COMPED",
-    cans: sc.specials.filter((k) => k === "coke").length,
+    cans: sc.specials.filter((k) => k === "coke" || k === "tinycoke").length,
     nuts: sc.specials.includes("nuts"),
     bucees: sc.specials.includes("bucees"),
     hot: sc.specials.includes("hotsauce"),
   };
   q.events.push({ type: "hhEnd", score, grade });
+  if (q.menu === "french") think(q, "Three hours. For LUNCH.", 3);
 }
 
 /** One step of the round. */
@@ -1064,6 +1166,7 @@ export function stepHungry(q: Hungry, input: Input, dt: number): void {
   schedule(q, dt);
   stepCart(q, dt);
   stepServer(q, dt);
+  stepWaiter(q, dt);
   stepWalker(q, dt);
   for (const s of q.suitcases) s.t -= dt;
   for (const s of q.suitcases.filter((b) => b.t <= 0)) q.events.push({ type: "hhSuitcase", x: s.x + s.w / 2, y: s.y + s.h / 2, on: false });
@@ -1082,15 +1185,19 @@ export function stepHungry(q: Hungry, input: Input, dt: number): void {
 /** Whose plate is whose, in the hint. */
 export const DINER_NAME: Record<RivalId, string> = { student: "student", bellhop: "bellhop", nurse: "nurse" };
 const LOUNGE_NAME: Record<RivalId, string> = { student: "intern", bellhop: "suit", nurse: "polo" };
+const FRENCH_NAME: Record<RivalId, string> = { student: "Parisian", bellhop: "Parisian", nurse: "Parisian" };
+const NAMES: Record<Menu, Record<RivalId, string>> = { banquet: DINER_NAME, lounge: LOUNGE_NAME, french: FRENCH_NAME };
 
 /** The hint line during the round (R4 §9), first match wins. */
 export function hungryHint(q: Hungry): string {
   if (q.planes.some((p) => !p.done)) return "Paper incoming · ↓ ducks, H swats";
   if (q.suitcases.length) return q.menu === "lounge" ? "Briefcase on the table · H clears it" : "Suitcase on the table · H clears it";
   if (q.walker && q.walker.away <= 0 && q.walker.dir > 0 && q.walker.s >= 0.8 && q.hammer.plate.length >= HUNGRY.walker.takes) return "Lifetime Titanium guy · H bonks him before he splits your plate";
+  if (q.waiter?.phase === "hand") return "C'est fini? · H stops his hand";
+  if (q.waiter?.held.length) return `The waiter has ${q.waiter.held.length} of your plates · H knocks his tray up`;
   if (q.hammer.stun > 0) return "Slapped · wait a second";
   if (q.score.togo > 0) return `To-go box · next ${q.score.togo} grabs double`;
   if (RIVALS.some((id) => q.rivals[id].frozen > 0)) return "Lectured · they're frozen, grab now";
-  if (q.hammer.lock) return `Hold Space to grab from the ${(q.menu === "lounge" ? LOUNGE_NAME : DINER_NAME)[q.hammer.lock]}'s plate · ← → picks another`;
-  return "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server";
+  if (q.hammer.lock) return `Hold Space to grab from the ${NAMES[q.menu][q.hammer.lock]}'s plate · ← → picks another`;
+  return q.waiter ? "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the waiter" : "Tap ← → to pick a plate · hold Space to grab · E lectures · H bonks the server";
 }

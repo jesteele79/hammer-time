@@ -7,6 +7,7 @@ import type { CarriedKind } from "../sim/level";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
 import { BOSS_NAMES, bossUp } from "../sim/boss";
+import type { Menu } from "../sim/quests/hungry/food";
 import { GRADES, HUNGRY, baseReach, hungryHint, type Hungry, type HungryResult } from "../sim/quests/hungry/hungry";
 import { FARES, faresHint, groupOf, type Fares, type FaresResult } from "../sim/quests/fares/fares";
 import { QUEST_NAMES } from "../sim/quests/quest";
@@ -26,6 +27,8 @@ export type HudPayload = {
   world: string;
   /** The line under the level's name on its card, when it has its own. */
   card: string | null;
+  /** The level's own line on its tally. */
+  tally: string | null;
   /** His status through Act 2 (story spec §8.1): MEMBER to AMBASSADOR; null outside it. */
   status: string | null;
   portrait: string | null;
@@ -74,7 +77,7 @@ export type HudPayload = {
   /** The run's id (`Game.runs`): a new one means a new run began, its bonks counted from where it stands. */
   run: number;
 };
-export type BanquetHud = { id: "hungry"; menu: "banquet" | "lounge"; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
+export type BanquetHud = { id: "hungry"; menu: Menu; score: number; time: number; reach: number; reachBase: number; reachMax: number; combo: number; mult: number; chomps: number; door: boolean; lecture: number; goal: number; result: HungryResult | null };
 /**
  * Fare Darts (R5 §12) while its card, its round or its tally is up: `left` scalpels still on the tray, `steady` seconds
  * left of the steady hand out of `steadyMax`, `towels` the towel-offs left that refill it, `position` his boarding group
@@ -193,6 +196,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     name: game.level.name,
     world: game.level.world,
     card: game.level.card ?? null,
+    tally: game.level.tally ?? null,
     status: game.shift[game.venue]?.world.startsWith("2-") ? statusName(game.run.keycards) : null,
     portrait,
     heat: clamp(h.heat, 0, 100),

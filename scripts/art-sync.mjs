@@ -471,8 +471,37 @@ async function banquet(registry) {
 }
 
 const LOUNGE = { room: "art/incoming/backdrops/lounge.png", food: "art/incoming/props/lounge-sheet.png" };
+const FRENCH = { room: "art/incoming/backdrops/brasserie.png", food: "art/incoming/props/french-sheet.png" };
 
 /** The M CLUB (story spec §8.1): its room placed by its cut as the ballroom is, its sheet cut into its sixteen tiles. */
+/** The brasserie, the lounge's way: its room placed by its cut, its sixteen tiles; missing, the banquet's stand in. */
+async function french(registry) {
+  registry.french = {};
+  mkdirSync(join(OUT, "french"), { recursive: true });
+  if (existsSync(FRENCH.room)) {
+    const file = "art/cuts/french.json";
+    if (!existsSync(file)) console.warn(`french: painted but not cut yet (no ${file}); the banquet's room stands in`);
+    else
+      await tolerant("french", strict, async () => {
+        const cut = JSON.parse(readFileSync(file, "utf8"));
+        const meta = await sharp(FRENCH.room).metadata();
+        writeFileSync(join(OUT, "french/room.png"), await sharp(FRENCH.room).png().toBuffer());
+        registry.french.room = { file: "french/room.png", width: meta.width, height: meta.height, table: { x: cut.table[0], y: cut.table[1] }, span: cut.span };
+        console.log(`french: ${meta.width}x${meta.height}, the table's middle at ${cut.table}, ${cut.span} px across`);
+      });
+  }
+  if (existsSync(FRENCH.food))
+    await tolerant("french sheet", strict, async () => {
+      const cells = await foodCells(readFileSync(FRENCH.food));
+      registry.french.food = cells.map((c, i) => {
+        const file = `french/food-${i + 1}.png`;
+        writeFileSync(join(OUT, file), c.png);
+        return { file, width: c.width, height: c.height };
+      });
+      console.log(`french sheet: ${cells.length} dishes`);
+    });
+}
+
 async function lounge(registry) {
   registry.lounge = {};
   mkdirSync(join(OUT, "lounge"), { recursive: true });
@@ -613,6 +642,7 @@ await backdrops(registry);
 await walls(registry);
 await banquet(registry);
 await lounge(registry);
+await french(registry);
 await tower(registry);
 await back(registry);
 await gate(registry);

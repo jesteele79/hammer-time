@@ -1,7 +1,7 @@
 import { Assets, Container, Graphics, Rectangle, Sprite, Texture } from "pixi.js";
 import { ART_BASE, type Registry } from "../../art/registry";
 import { HEAD_SCALE } from "../../sim/constants";
-import { DISH, FOODS, type FoodKind, type Menu } from "../../sim/quests/hungry/food";
+import { DISH, FOODS, onMenu, type FoodKind, type Menu } from "../../sim/quests/hungry/food";
 import { HUNGRY, baseReach, handOf, planeAt, serverAt, underLine, walkerAt, type Eater, type Hungry, type Rival } from "../../sim/quests/hungry/hungry";
 import { BANQUET_SCALE, RIVALS, SEATS, TABLE, dirOf, dist, floorOf, onScreen, sub, type EaterId, type RivalId } from "../../sim/quests/hungry/table";
 import { ACTIONS, displayU, overlay } from "../../sim/rig/actions";
@@ -38,6 +38,13 @@ const PERSON_OF: Record<Menu, Record<RivalId | "server", { person: CastPerson; r
     bellhop: { person: "office-1", recolor: "#5a5f6b" },
     nurse: { person: "office-2", recolor: "#2d6a4f" },
     server: { person: "server-1", recolor: null },
+  },
+  // The brasserie: three Parisians in their scarves and the waiter.
+  french: {
+    student: { person: "parisian-1", recolor: null },
+    bellhop: { person: "parisian-1", recolor: "#7a3b2e" },
+    nurse: { person: "parisian-1", recolor: "#2e5a7a" },
+    server: { person: "garcon", recolor: null },
   },
 };
 /** Where the chute's mouth hangs over the table's middle, world px: above his head as he dives under it at twice his size. */
@@ -130,10 +137,11 @@ export class BanquetView {
   /** The paintings (or their drawn stand-ins), the diners and his banquet bib: loaded once. */
   async load(): Promise<void> {
     const b = this.noart ? undefined : this.registry.banquet;
-    const own = this.noart ? undefined : this.registry.lounge;
+    const own = this.noart ? undefined : this.menu === "lounge" ? this.registry.lounge : this.menu === "french" ? this.registry.french : undefined;
     const lounge = this.menu === "lounge";
-    // The lounge's table is the banquet's painting; its room and its sheet are its own (the banquet's room, darkened, until its own is in).
-    await Promise.all([this.loadRoom(lounge ? { ...b, room: own?.room ?? b?.room } : b, lounge && !own?.room), this.loadTable(b), this.loadFood(lounge ? own?.food : b?.food)]);
+    const apart = this.menu !== "banquet";
+    // The lounge's and the brasserie's table is the banquet's painting; the room and the sheet are their own (the banquet's room, tinted, until theirs is in).
+    await Promise.all([this.loadRoom(apart ? { ...b, room: own?.room ?? b?.room } : b, apart && !own?.room), this.loadTable(b), this.loadFood(apart ? own?.food : b?.food)]);
     const who = PERSON_OF[this.menu];
     for (const id of [...RIVALS, "server"] as const) this.diners.set(id, new Diner(this.root, this.registry, who[id].person, who[id].recolor, this.noart));
     if (lounge) this.walker = new Diner(this.root, this.registry, "titanium", null, this.noart);
@@ -223,12 +231,12 @@ export class BanquetView {
     for (const kind of Object.keys(FOODS) as FoodKind[]) {
       const f = FOODS[kind];
       // Only this table's dishes: each sheet's cells are numbered for its own menu.
-      if (f.menu !== "both" && f.menu !== this.menu) continue;
+      if (!onMenu(f, this.menu)) continue;
       const cell = f.sheet !== null ? sheet?.[f.sheet] : undefined;
       const painted = cell ? await this.texture(cell.file) : null;
       if (painted) this.food.set(kind, painted);
       // Coke Zero, the nuts and Buc-ee's are the products' own pictures, as in the shift.
-      else if (kind === "coke" || kind === "nuts" || kind === "bucees") this.food.set(kind, (!this.noart && productTexture(kind === "coke" ? "can" : kind)) || this.drawnPlate(kind));
+      else if (kind === "coke" || kind === "tinycoke" || kind === "nuts" || kind === "bucees") this.food.set(kind, (!this.noart && productTexture(kind === "coke" || kind === "tinycoke" ? "can" : kind)) || this.drawnPlate(kind));
       else this.food.set(kind, this.drawnPlate(kind));
     }
   }
@@ -437,6 +445,14 @@ export class BanquetView {
 
   private drawCases(q: Hungry) {
     const g = this.cases.clear();
+    // The waiter's white glove on the rim of the plate he is about to clear.
+    const hand = q.waiter?.phase === "hand" ? q.dishes.find((d) => d.id === q.waiter?.target) : null;
+    if (hand) {
+      const c = onScreen(hand);
+      g.circle(c.x, c.y - 22, 64).stroke({ width: 7, color: 0xffffff, alpha: 0.85 });
+      g.roundRect(c.x + 36, c.y - 74, 72, 40, 16).fill(0xf7f4ec).stroke({ width: 5, color: PALETTE.outline });
+      for (const k of [0, 1, 2]) g.roundRect(c.x + 22 - k * 2, c.y - 70 + k * 12, 26, 11, 5).fill(0xf7f4ec).stroke({ width: 3, color: PALETTE.outline });
+    }
     for (const b of q.suitcases) {
       const tl = onScreen({ x: b.x, y: b.y + b.h });
       const br = onScreen({ x: b.x + b.w, y: b.y });

@@ -6,4 +6,4 @@ export type QuestId = "hungry" | "fares" | "lounge" | "french";
 export type Quest = Hungry | Fares;
 export const QUEST_NAMES: Record<QuestId, string> = { hungry: "Hungry Hungry Hammer", fares: "Fare Darts", lounge: "The M CLUB", french: "The brasserie" };
 /** Which side quest a round is: the lounge is the banquet's engine (`id` "hungry") under its own menu. */
-export const questIdOf = (q: Quest): QuestId => (q.id === "fares" ? "fares" : q.menu === "lounge" ? "lounge" : "hungry");
+export const questIdOf = (q: Quest): QuestId => (q.id === "fares" ? "fares" : q.menu === "banquet" ? "hungry" : q.menu);

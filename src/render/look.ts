@@ -84,7 +84,7 @@ import { DINER_ID } from "./quests/diner";
 import { banquetFrame } from "./quests/frame";
 import { HUNGRY, createHungry, land, stepHungry, type Hungry } from "../sim/quests/hungry/hungry";
 import { sharpPlayer } from "../sim/quests/hungry/drive";
-import { FOODS, type FoodKind } from "../sim/quests/hungry/food";
+import { FOODS, onMenu, type FoodKind, type Menu } from "../sim/quests/hungry/food";
 import { SEATS, TABLE, onScreen, screenDeg, sub, type RivalId } from "../sim/quests/hungry/table";
 import { GATE_ID, GateView } from "./quests/gate-scene";
 import { gateLayout } from "./quests/gate-layout";
@@ -368,6 +368,16 @@ export async function startLook(
       .catch((err) => console.warn("lounge:", err))
       .then(() => {
         loungeLoaded = true;
+      }));
+  const french = new BanquetView(render, scene, registry, !!opts.noart, "french");
+  let frenchLoaded = false;
+  let frenchLoad: Promise<void> | null = null;
+  const loadFrench = () =>
+    (frenchLoad ??= french
+      .load()
+      .catch((err) => console.warn("french:", err))
+      .then(() => {
+        frenchLoaded = true;
       }));
   // The rest of the shift loads one venue after another while he plays.
   void SHIFT.reduce((p, l) => p.then(() => (stopped ? undefined : prepare(l))), Promise.resolve())
@@ -1242,7 +1252,13 @@ export async function startLook(
   /** A side quest is up: its card, its round, its tally, or a break in its round. */
   const inQuest = () => !!game.quest && (game.mode === "questCard" || game.mode === "quest" || game.mode === "questTally" || game.mode === "pause");
   const inBanquet = () => inQuest() && game.quest?.id === "hungry";
-  const atLounge = () => game.quest?.id === "hungry" && game.quest.menu === "lounge";
+  /** The view of the round's table, and whether it has loaded. */
+  const tableOf = (q: Hungry) => (q.menu === "lounge" ? lounge : q.menu === "french" ? french : banquet);
+  const loadTableOf = (q: Hungry) => (q.menu === "lounge" ? loadLounge() : q.menu === "french" ? loadFrench() : loadBanquet());
+  const tableLoaded = () => {
+    const q = game.quest;
+    return q?.id !== "hungry" || (q.menu === "lounge" ? loungeLoaded : q.menu === "french" ? frenchLoaded : banquetLoaded);
+  };
   const inGate = () => inQuest() && game.quest?.id === "fares";
   /** Which quest's view is up in place of the shift's. */
   let questShown: QuestId | null = null;
@@ -1281,6 +1297,7 @@ export async function startLook(
     objects.setVisible(!on);
     banquet.setVisible(id === "hungry");
     lounge.setVisible(id === "lounge");
+    french.setVisible(id === "french");
     gate.setVisible(id === "fares");
     if (on) {
       beam.visible = false;
@@ -1352,7 +1369,7 @@ export async function startLook(
         break;
       }
       case "hhLand":
-        if (e.who === "hammer" && e.kind === "check") words.say("-400", crown.x + 160, crown.y, true, face, view);
+        if (e.who === "hammer" && (e.kind === "check" || e.kind === "bill")) words.say(e.kind === "bill" ? "-100" : "-400", crown.x + 160, crown.y, true, face, view);
         else if (e.who === "hammer" && (q.score.chain === HUNGRY.combo.double || q.score.chain === HUNGRY.combo.triple))
           words.say(q.score.chain === HUNGRY.combo.triple ? "COMBO x3!" : "COMBO x2!", crown.x + 220, crown.y - 40, true, face, view);
         break;
@@ -1425,8 +1442,9 @@ export async function startLook(
         break;
       }
       case "hhTray": {
+        if (e.phase === "hand") break;
         const p = onScreen(e);
-        words.say("BONK!", p.x, p.y - 200, true, face, view);
+        words.say(e.phase === "spill" ? "PARDON!" : "BONK!", p.x, p.y - 200, true, face, view);
         break;
       }
       default:
@@ -1439,7 +1457,7 @@ export async function startLook(
     const q = game.quest;
     if (q?.id !== "hungry") return;
     const key = questIdOf(q);
-    const table = q.menu === "lounge" ? lounge : banquet;
+    const table = tableOf(q);
     if (questShown !== key) enterQuest(key);
     // His dives this round, for the checks: a new round counts from nothing.
     if (q !== shownQuest) {
@@ -1758,11 +1776,11 @@ export async function startLook(
     app.stage.visible = true;
     // A venue still loading holds the game where it is, its card up; so does the banquet's card while the banquet loads.
     if (!game.level.hall) freeThree();
-    const holding = !views.has(game.level.id) || (inBanquet() && !(atLounge() ? loungeLoaded : banquetLoaded)) || (inGate() && !gateLoaded) || (!!game.level.hall && !opts.flat && !threeSettled);
+    const holding = !views.has(game.level.id) || (inBanquet() && !tableLoaded()) || (inGate() && !gateLoaded) || (!!game.level.hall && !opts.flat && !threeSettled);
     if (holding) {
       void prepare(game.level);
       if (game.level.hall && !opts.flat) void loadThree();
-      if (inBanquet()) void (atLounge() ? loadLounge() : loadBanquet());
+      if (inBanquet() && game.quest?.id === "hungry") void loadTableOf(game.quest);
       if (inGate()) void loadGate();
     }
     // A break stops everything that runs on game time; the camera and the screen still draw.
@@ -2132,8 +2150,8 @@ export async function startLook(
     };
     /** The banquet at `q`, 1920 by 1080, as a PNG data URL: shown and framed for one picture, then put back as it was. */
     const shootBanquet = async (q: Hungry): Promise<string> => {
-      await (q.menu === "lounge" ? loadLounge() : loadBanquet());
-      const table = q.menu === "lounge" ? lounge : banquet;
+      await loadTableOf(q);
+      const table = tableOf(q);
       const key = questIdOf(q);
       const cam = scene.camera;
       const saved = { w: scene.width, h: scene.height, x: cam.x, y: cam.y, zoom: cam.zoom, target: cam.target, bounds: cam.bounds, shake: { ...cam.shake }, stage: app.stage.visible };
@@ -2158,7 +2176,7 @@ export async function startLook(
       return out;
     };
     /** A practice round under the sharp player, run until `until` (or its end). */
-    const roundUntil = (until: (q: Hungry) => boolean, menu: "banquet" | "lounge" = "banquet") => {
+    const roundUntil = (until: (q: Hungry) => boolean, menu: Menu = "banquet") => {
       const q = createHungry(11, { practice: true, menu });
       const player = sharpPlayer();
       while (!until(q) && !q.result) stepHungry(q, player(q), STEP);
@@ -2181,13 +2199,16 @@ export async function startLook(
       thumb: () => shootBanquet(roundUntil((q) => q.time >= 26.5)),
       /** The M CLUB at a moment: its first spread, and Lifetime Titanium guy reaching Hammer's end. */
       lounge: async () => [await shootBanquet(roundUntil((q) => q.time >= 1.2, "lounge")), await shootBanquet(roundUntil((q) => q.time >= 26.5, "lounge"))],
+      /** The brasserie's picture for the Side quests row, and the round at the desserts. */
+      frenchThumb: () => shootBanquet(roundUntil((q) => q.time >= 26.5, "french")),
+      french: async () => [await shootBanquet(roundUntil((q) => q.time >= 1.2, "french")), await shootBanquet(roundUntil((q) => q.time >= 40, "french"))],
       /** The M CLUB's picture for the Side quests row. */
       loungeThumb: () => shootBanquet(roundUntil((q) => q.time >= 26.5, "lounge")),
       /** The sixteen dishes and the three products as the table draws them, named: the food sheet's board. */
       async food(): Promise<string> {
         await loadBanquet();
         const board = new Container();
-        const kinds = (Object.keys(FOODS) as FoodKind[]).filter((k) => FOODS[k].menu !== "lounge");
+        const kinds = (Object.keys(FOODS) as FoodKind[]).filter((k) => onMenu(FOODS[k], "banquet"));
         const cell = 260;
         const rows = Math.ceil(kinds.length / 5);
         board.addChild(new Graphics().rect(0, 0, 5 * cell, rows * cell).fill("#20242b"));
@@ -2413,6 +2434,7 @@ export async function startLook(
       hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();
+      french.destroy();
       gate.destroy();
       app.canvas.removeEventListener("pointerdown", onPointer);
       window.removeEventListener("pointerup", onPointer);
@@ -2487,6 +2509,7 @@ export async function startLook(
       forgetPresses();
       const which = id ?? (game.quest ? questIdOf(game.quest) : "hungry");
       if (which === "lounge") void loadLounge();
+      if (which === "french") void loadFrench();
       game.newQuest(newSeed(), which);
       for (const e of game.events) feel(e);
     },

@@ -32,7 +32,7 @@ const LEVELS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", 
 type LevelChoice = (typeof LEVELS)[number];
 /** `&level=` (or the old `&venue=`) starts that level fresh, for the checks. */
 const levelOf = (v: unknown): LevelChoice | undefined => ((LEVELS as readonly unknown[]).includes(v) ? (v as LevelChoice) : undefined);
-const QUESTS = ["hungry", "fares", "lounge"] as const;
+const QUESTS = ["hungry", "fares", "lounge", "french"] as const;
 /** `&quest=` opens a side quest's practice (R4 §8, R5 §11). */
 const questOf = (v: unknown): (typeof QUESTS)[number] | undefined => ((QUESTS as readonly unknown[]).includes(v) ? (v as (typeof QUESTS)[number]) : undefined);
 

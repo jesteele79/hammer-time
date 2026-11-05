@@ -28,6 +28,7 @@ export function NextStart({
   banquetBest,
   faresBest,
   loungeBest,
+  frenchBest,
   onSettings,
   onNewGame,
   onRecord,
@@ -49,6 +50,7 @@ export function NextStart({
   faresBest: number;
   /** The M CLUB's own best: its card shows once 2-1 is finished. */
   loungeBest: number;
+  frenchBest: number;
   /** The Settings: the volumes, the quality, the controller and the keys. */
   onSettings: () => void;
   /** New game: asks, then starts the journey over. */
@@ -194,6 +196,17 @@ export function NextStart({
             <b>The M CLUB</b>
             <small>
               <span className="next-start__where">Lounge table · </span>best {pad(loungeBest)}
+            </small>
+          </button>
+        )}
+        {journey.done.includes("paris") && (
+          <button type="button" className="next-start__quest" aria-label="Play The brasserie" onClick={() => leave(() => onQuest("french"))} disabled={!live}>
+            <span className="next-start__shot">
+              <img src="/start/french.webp" alt="" draggable={false} />
+            </span>
+            <b>The brasserie</b>
+            <small>
+              <span className="next-start__where">Brasserie · </span>best {pad(frenchBest)}
             </small>
           </button>
         )}

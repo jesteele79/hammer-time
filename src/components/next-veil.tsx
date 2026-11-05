@@ -3,7 +3,7 @@ import type { GameMode } from "@/sim/game";
 import { actTotal, type Journey } from "@/sim/journey";
 import { ACTS, stopOf, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
 import { FOODS } from "@/sim/quests/hungry/food";
-import { GRADES, HUNGRY } from "@/sim/quests/hungry/hungry";
+import { GRADES, HUNGRY, gradeWord } from "@/sim/quests/hungry/hungry";
 import type { FareClass, TagKind } from "@/sim/quests/fares/board";
 import { FARES, groupOf } from "@/sim/quests/fares/fares";
 
@@ -32,6 +32,8 @@ export type VeilInfo = {
   world: string;
   /** The level's own line on its card. */
   card: string | null;
+  /** The level's own line on its Clocked out card. */
+  tally: string | null;
   /** His status through Act 2, on every card of the act. */
   status: string | null;
   score: number;
@@ -49,6 +51,7 @@ export type VeilInfo = {
   banquetBest: number;
   /** The M CLUB's own best. */
   loungeBest: number;
+  frenchBest: number;
   /** Fare Darts' own best (R5). */
   faresBest: number;
   /** The side quest's best as it stood when its round's card showed: what the tally's score must beat. */
@@ -244,6 +247,7 @@ export function NextVeil({
         <section className="next-veil__card" role="dialog" aria-label="Clocked out">
           <p className="next-veil__eyebrow">{`${s.code} · ${s.name}`}</p>
           <h2 className="next-veil__title">Clocked out</h2>
+          {info.tally && <p className="next-veil__line">{info.tally}</p>}
           <dl className="next-veil__scores">
             <div>
               <dt>Score</dt>
@@ -343,6 +347,19 @@ export function NextVeil({
         </section>
       </div>
     );
+  if (mode === "questCard" && info.quest?.id === "hungry" && info.quest.menu === "french")
+    return (
+      <div className="next-veil next-veil--card" data-place={place}>
+        <section className="next-veil__card" aria-live="polite">
+          <p className="next-veil__eyebrow">{info.quest.door ? "One open in all of Paris" : "Side quest"}</p>
+          <h2 className="next-veil__title">The brasserie</h2>
+          <p className="next-veil__line">The French table</p>
+          <p className="next-veil__line next-veil__line--prize">
+            {info.quest.door ? `Get OFFERT (${GOAL}) to take home a doggy bag and the belly-flop` : `In a shift, OFFERT (${GOAL}) takes home a doggy bag and the belly-flop`}
+          </p>
+        </section>
+      </div>
+    );
   if (mode === "questCard" && info.quest?.id === "hungry" && info.quest.menu === "lounge")
     return (
       <div className="next-veil next-veil--card" data-place={place}>
@@ -371,7 +388,9 @@ export function NextVeil({
     );
   if (mode === "questTally" && info.quest?.id === "hungry" && info.quest.result) {
     const r = info.quest.result;
-    const best = Math.max(info.quest.menu === "lounge" ? info.loungeBest : info.banquetBest, r.score);
+    const menu = info.quest.menu;
+    const best = Math.max(menu === "lounge" ? info.loungeBest : menu === "french" ? info.frenchBest : info.banquetBest, r.score);
+    const comped = gradeWord(menu, "COMPED");
     const lines = [
       `Plate ${r.plate} from ${r.grabs} grabs`,
       `Combo bonus +${r.comboBonus} (best ${r.bestCombo} in a row)`,
@@ -380,19 +399,19 @@ export function NextVeil({
       ...(r.paper ? [`Paper to the face: ${r.paper} (-${r.paper * 150})`] : []),
       ...(r.slapped ? [`Slapped ${r.slapped} time${r.slapped > 1 ? "s" : ""} (-${r.slapped * HUNGRY.guard.cost})`] : []),
       ...(r.specials.length ? [`Specials: ${r.specials.map((k) => FOODS[k].name).join(", ")}`] : []),
-      ...(r.bill ? ["Picked up the check: -400"] : []),
+      ...(r.bill ? [menu === "french" ? "L'addition: -100" : "Picked up the check: -400"] : []),
       ...(r.full ? ["Full belly: the pepper on the way back"] : []),
     ];
     const prize = r.doggy
       ? info.quest.door
         ? "Doggy bag packed: it saves you from the next knockdown"
-        : `COMPED: from the ${info.quest.menu === "lounge" ? "M CLUB" : "BUFFET"} door that wins a doggy bag and the belly-flop`
-      : `COMPED (${GOAL}) wins a doggy bag and the belly-flop`;
+        : `${comped}: from the ${menu === "lounge" ? "M CLUB" : menu === "french" ? "BRASSERIE" : "BUFFET"} door that wins a doggy bag and the belly-flop`
+      : `${comped} (${GOAL}) wins a doggy bag and the belly-flop`;
     return (
       <div className="next-veil" data-place={place}>
-        <section className="next-veil__card next-veil__card--tally" role="dialog" aria-label={r.grade}>
+        <section className="next-veil__card next-veil__card--tally" role="dialog" aria-label={gradeWord(menu, r.grade)}>
           <p className="next-veil__eyebrow">Side quest</p>
-          <h2 className="next-veil__title">{r.grade}</h2>
+          <h2 className="next-veil__title">{gradeWord(menu, r.grade)}</h2>
           <dl className="next-veil__scores">
             <div>
               <dt>Score</dt>

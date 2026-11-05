@@ -26,6 +26,7 @@ import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
 import { createHungry, stepHungry, type HungryResult } from "./quests/hungry/hungry";
 import { createFares, stepFares, type FaresResult } from "./quests/fares/fares";
+import type { Menu } from "./quests/hungry/food";
 import type { Quest, QuestId } from "./quests/quest";
 import type { Carry, Snapshot } from "./journey";
 import { BONJOUR, HOME_INSULTS } from "../game/lines";
@@ -141,6 +142,8 @@ const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 
+/** Which table a side quest's door or practice sets. */
+const menuOf = (id: QuestId | undefined): Menu => (id === "lounge" || id === "french" ? id : "banquet");
 const near = (p: Point, r: Rect, pad: number) => p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad;
 
 /**
@@ -445,7 +448,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function newQuest(seed: number, id: QuestId = "hungry") {
     if (game.mode !== "title" && !(game.mode === "questTally" && !game.questDoor)) return;
     game.events = [];
-    openQuest(id === "fares" ? createFares(seed, { practice: true }) : createHungry(seed, { practice: true, menu: id === "lounge" ? "lounge" : "banquet" }), null, game.events);
+    openQuest(id === "fares" ? createFares(seed, { practice: true }) : createHungry(seed, { practice: true, menu: menuOf(id) }), null, game.events);
   }
 
   /** What the banquet pays (R4 §7): its score, a can, the smash, the shield, the pepper, and COMPED's doggy bag and belly-flop; no lives. */
@@ -487,8 +490,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const ev: GameEvent[] = (game.events = []);
     if (q.id === "fares") payFares(q.result, ev);
     else payHungry(q.result, ev);
-    // The gate's round is the level's set piece (spec §6.3): its tally pays in as the shuttle's does and ends the level.
-    if (d.kind === "gate") {
+    // The gate's round is the level's set piece (spec §6.3): its tally pays in as the shuttle's does and ends the level;
+    // so does the brasserie's.
+    if (d.kind === "gate" || d.ends) {
       game.quest = null;
       game.questDoor = null;
       game.door = null;
@@ -729,7 +733,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (d.kind === "quest") {
       game.run.spent.push(d.id);
       const seed = (game.run.seed ^ Math.imul(Math.round(d.x), 7919)) >>> 0;
-      openQuest(d.quest === "fares" ? createFares(seed) : createHungry(seed, { menu: d.quest === "lounge" ? "lounge" : "banquet" }), d, ev);
+      openQuest(d.quest === "fares" ? createFares(seed) : createHungry(seed, { menu: menuOf(d.quest) }), d, ev);
       return true;
     }
     if (d.kind === "stash") {

@@ -20,7 +20,8 @@ export type HungryEvent =
   | { type: "hhBonk"; x: number; y: number; hit: boolean }
   | { type: "hhStun"; who: RivalId; x: number; y: number }
   /** The server dropped her tray at his end. */
-  | { type: "hhTray"; x: number; y: number }
+  /** The server's tray: dumped by a bonk; on the French table `hand` his hand on the rim, `spill` his tray knocked up. */
+  | { type: "hhTray"; x: number; y: number; phase?: "hand" | "spill" }
   /** A diner slapped his hand away from their plate, at where his hand was; `curse` on every third, when he says it. */
   | { type: "hhSlap"; who: RivalId; x: number; y: number; curse: boolean }
   /** A tap of ← or → hopped his line onto a diner's plate. */

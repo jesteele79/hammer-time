@@ -201,8 +201,8 @@ export function NextHud({
         <header className="next-hud__head">
           {hud.portrait && <img className="next-hud__portrait" src={hud.portrait} alt="" />}
           <div>
-            <div className="next-hud__venue">{q ? (q.menu === "lounge" ? "The M CLUB" : "Hungry Hungry Hammer") : g ? "Fare Darts" : hud.venue}</div>
-            <div className="next-hud__mode">{q ? (q.menu === "lounge" ? "The lounge table" : "The Banquet") : g ? "Gate B7" : `World ${hud.world}${hud.status ? ` · ${hud.status}` : ""}`}</div>
+            <div className="next-hud__venue">{q ? (q.menu === "lounge" ? "The M CLUB" : q.menu === "french" ? "The brasserie" : "Hungry Hungry Hammer") : g ? "Fare Darts" : hud.venue}</div>
+            <div className="next-hud__mode">{q ? (q.menu === "lounge" ? "The lounge table" : q.menu === "french" ? "The French table" : "The Banquet") : g ? "Gate B7" : `World ${hud.world}${hud.status ? ` · ${hud.status}` : ""}`}</div>
           </div>
         </header>
         {g ? (
