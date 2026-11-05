@@ -246,7 +246,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       trick: s.trick ?? null,
       rng: s.trick ? seededRandom((seed + Math.imul(k + 1, 7919)) >>> 0) : null,
       replied: false,
-      maxHits: s.trick === "queue" || s.trick === "tray" ? 1 : (CAST_HITS[job] ?? c.hits),
+      maxHits: s.trick === "queue" || s.trick === "tray" || s.trick === "shove" ? 1 : (CAST_HITS[job] ?? c.hits),
     };
   });
 }

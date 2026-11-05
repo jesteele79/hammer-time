@@ -91,7 +91,7 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
     if (!drawSatFurniture(back, f, sat, over) && !restaurantFurniture(back, f) && !campusFurniture(back, f) && !giftshopFurniture(back, f)) drawFurniture(back, f);
   // The scanner's pass is its furniture.
   for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
-  else if (p.kind !== "scanner") drawPass(back, p, root);
+  else if (p.kind !== "scanner" && p.kind !== "barrier") drawPass(back, p, root);
   if (level.hall) drawHallFlat(back, level);
   const climb = !!level.floors;
   if (climb) towerDressing(back, level, tower);

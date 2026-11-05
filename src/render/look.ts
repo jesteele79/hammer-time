@@ -10,7 +10,7 @@ import { feelOf } from "../sim/feel";
 import { sweptHeadHits } from "../sim/hits";
 import { flies } from "../sim/missiles";
 import { KEY_BINDINGS, emptyInput, inputFrom, type Action } from "../sim/input";
-import { createGame, type GameMode } from "../sim/game";
+import { createGame, STATION, type GameMode } from "../sim/game";
 import { CHARGE_MAX, HEAT, moveU, type Move } from "../sim/moves";
 import { floorAt } from "../sim/physics";
 import { ACTIONS, displayU, overlay } from "../sim/rig/actions";
@@ -32,6 +32,7 @@ import { SAT } from "../sim/levels/sat";
 import { LOBBY_NIGHT } from "../sim/levels/lobby-night";
 import { FLIGHT } from "../sim/levels/flight";
 import { PARIS } from "../sim/levels/paris";
+import { TRAIN } from "../sim/levels/train";
 import { HALLWAY } from "../sim/levels/hallway";
 import { SUITE } from "../sim/levels/suite";
 import { TOWER } from "../sim/levels/tower";
@@ -101,7 +102,7 @@ const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** How far past a room's walls the camera may see, and how much of the view is kept round him if he has left the room. */
 const ROOM_MARGIN = 200;
 const ROOM_KEEP = 0.8;
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS].map((l) => [l.id, l]));
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS, TRAIN].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** How long a pickup's line stays in the hint. */
@@ -2014,7 +2015,7 @@ export async function startLook(
     // The title tune on the home screen; the level's song (the stash has its own), quiet under its cards; a repeat changes nothing.
     const levelMusic = musicFor(game.mode, game.level.music, game.quest ? questMusic(game.quest).theme : null);
     sound.music(levelMusic.theme, levelMusic.quiet);
-    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time, (world.flight?.sign ?? 0) > 0));
+    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time, (world.flight?.sign ?? 0) > 0 || (game.run.stretch !== null && game.run.stretch <= STATION.doors)));
 
     const cam = scene.camera;
     const home = game.mode === "title" ? game.level.home : undefined;
@@ -2391,6 +2392,9 @@ export async function startLook(
       /** The level's boss set as the checks want it: `state: "down"` beats it. */
       turbulence() {
         game.dev.turbulence();
+      },
+      stretch(seconds: number) {
+        game.dev.stretch(seconds);
       },
       cart() {
         game.dev.cart();

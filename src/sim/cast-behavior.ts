@@ -27,7 +27,7 @@ import type { GameEvent } from "./events";
 import { bodyRect, overlapsRect, sideways } from "./geometry";
 import { BURST_R, flopRect, flopping } from "./hits";
 import { flies, launchCoffee, launchPlane, type Missile } from "./missiles";
-import { floorAt, moveBody } from "./physics";
+import { canStand, floorAt, moveBody } from "./physics";
 import type { Puddle } from "./snot";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
 
@@ -96,6 +96,8 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   return true;
 }
 
+/** The station's crowd: their walk, how far a shove carries him, how long before they shove again, how high a jump clears them. */
+const SHOVE = { walk: 260, push: 150, rest: 1.2, over: 120 } as const;
 /** The waiter's walk, and how long he is off walking once he is back up: about eight seconds from the bonk. */
 const TRAY = { walk: 200, back: 5 } as const;
 const trayBack = (n: Npc) => {
@@ -557,9 +559,13 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
     default:
       break;
   }
-  // The waiter walks his pass with his tray, whoever comes.
+  // The waiter walks his pass with his tray, whoever comes; the crowd hurries for its train.
   if (n.trick === "tray") {
     patrol(n, w, TRAY.walk);
+    return;
+  }
+  if (n.trick === "shove") {
+    patrol(n, w, SHOVE.walk);
     return;
   }
   // The cabin's queue and its seated travelers stand as they are, whoever comes.
@@ -666,6 +672,17 @@ function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, eve
     h.vy = -(jumpHeld ? STOMP.held : STOMP.bounce);
     h.onGround = false;
     events.push({ type: "stomp", x: n.x, y: n.y - n.h, landed });
+    return;
+  }
+  // A traveler in a hurry: he goes the way they are going, no pip, unless he is over them or it would put him through a wall.
+  if (n.trick === "shove") {
+    if (n.rest > 0 || h.y <= n.y - SHOVE.over) return;
+    n.rest = SHOVE.rest;
+    const to = { x: h.x + SHOVE.push * n.facing, y: h.y, w: h.w };
+    if (canStand(to, w.stage, h.h)) h.x = to.x;
+    h.vx = 0;
+    say(n, "Pardon.", events);
+    events.push({ type: "shoved", x: h.x, y: h.y - h.h / 2 });
     return;
   }
   // Into the waiter on his pass: a pip, and he says so.

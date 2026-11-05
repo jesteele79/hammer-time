@@ -161,6 +161,8 @@ export type NextProbe = {
     /** The cabin's turbulence and its cart, now. */
     turbulence(): void;
     cart(): void;
+    /** The station's clock, set; refused once he has boarded. */
+    stretch(seconds: number): void;
     /** Takes everything in the level he is in, as if he had cleaned it out. */
     clearShelves(): void;
     /** Sets his heat. */

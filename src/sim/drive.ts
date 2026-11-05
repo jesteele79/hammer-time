@@ -24,12 +24,13 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
   if (route === "hall") return hallway(level, h, i, world);
   if (route === "flight") return flying(level, h, i, world);
   if (route === "paris") return strolling(level, h, i, world);
+  if (route === "train") return riding(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   if (world && fightTitanium(world, h, i)) return i;
@@ -158,6 +159,25 @@ function strolling(level: Level, h: HeroState, i: Input, w?: World): Input {
   const scooter = w.movers.some((m) => m.loop && m.live && m.x - h.x > -40 && m.x - h.x < STROLL.jump + 300);
   const waiter = w.cast.some((n) => n.trick === "tray" && n.alive && !n.out && n.x - h.x > 0 && n.x - h.x < STROLL.jump);
   if ((scooter || waiter || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  return i;
+}
+
+/** How the runner looks ahead, in px: at the barrier, and at a traveler. */
+const RIDE = { barrier: 220, crowd: 200 } as const;
+/**
+ * The runner: flat out for the doors, down into a slide under the barrier, over whoever is hurrying his way.
+ */
+function riding(level: Level, h: HeroState, i: Input, w?: World): Input {
+  i.held.right = i.held.run = true;
+  if (!w) return i;
+  const pass = level.passes.some((p) => p.x - h.x < RIDE.barrier && p.x + p.w - h.x > -60);
+  if (pass) {
+    i.held.down = true;
+    return i;
+  }
+  const crowd = w.cast.some((n) => n.alive && n.trick === "shove" && !n.out && n.x - h.x > 0 && n.x - h.x < RIDE.crowd);
+  if (crowd && h.onGround) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
   return i;
 }

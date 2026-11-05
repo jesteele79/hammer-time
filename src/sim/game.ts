@@ -103,8 +103,10 @@ export type Game = {
   newQuest(seed: number, id?: QuestId): void;
   /** Continue on a door's tally: what he ate comes home with him, and he stands at the door (R4 §7). */
   finishQuest(): void;
+  /** The line the next card shows in place of the level's, for that card only: the train that left. */
+  cardLine: string | null;
   /** The checks' levers on a level's clocks. */
-  dev: { turbulence(): void; cart(): void };
+  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void };
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
@@ -137,6 +139,8 @@ const BOSS_OVER = 1.5;
 export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60, slipAgain: 1.6 } as const;
 /** Paris's hotel: how often she says it, the window's slip, how long it hangs open, how near a flock lets him come. */
 const PARIS_HOTEL = { nag: 4, tipOut: 1.5, tipStun: 0.5, tipSlip: 320, pigeons: 300 } as const;
+/** The station: under this many seconds the doors beep, this often. */
+export const STATION = { doors: 20, beep: 2 } as const;
 /** How near a tall level's punch clock he must pass, on its floor. */
 const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
@@ -197,6 +201,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   /** Keys held through a card down a hall: not a step until they are let go. */
   const heldThrough = { up: false, down: false, side: false };
+  /** The station: its board lit this life, and the seconds to the doors' next beep. */
+  let boardLit = false;
+  let doorsBeep = 0;
   /** Seconds until she says it again; the flocks already up this life. */
   let bonjourNag = 0;
   const pigeonsUp = new Set<number>();
@@ -234,7 +241,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     snapshot: null,
     continueStory,
     levelScore: () => game.run.score - scoreAtCard,
+    cardLine: null,
     dev: {
+      stretch(seconds) {
+        if (game.run.stretch !== null) game.run.stretch = seconds;
+      },
       turbulence() {
         if (world.flight) world.flight.nextTurb = world.flight.turbT;
       },
@@ -324,6 +335,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // Gold's late checkout stays on the clock when he comes back in the level that gave it.
     game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
+    game.run.stretch = level.stretch && at.x < level.stretch.x1 ? level.stretch.time : null;
+    boardLit = false;
+    doorsBeep = 0;
     timedOut = false;
     swingMove = null;
     lobbySave = null;
@@ -867,7 +881,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   function playStep(input: Input, ev: GameEvent[]) {
     const h = world.hero;
     const run = game.run;
-    if (game.level.time > 0 && !timedOut) {
+    // The stretch's clock runs in the level's place; at zero the train has left.
+    if (run.stretch !== null) {
+      if (stepStretch(ev)) return;
+    } else if (game.level.time > 0 && !timedOut) {
       run.time = Math.max(0, run.time - STEP);
       if (run.time === 0) {
         timedOut = true;
@@ -908,6 +925,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     towerTraps(ev);
     feetFrom = h.y;
     parisStep(ev);
+    if (game.level.stretch && run.stretch !== null && h.x >= game.level.stretch.x1) board(game.level.stretch, ev);
     if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;
@@ -953,7 +971,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       dropCarried(bowled, ev);
     }
     if (!lethal)
-      for (const k of game.level.checkpoints)
+      for (const k of game.level.checkpoints.filter((c) => !c.auto))
         // A tall level's clocks count on their own floor, near them; a long level's as he passes them.
         if (!run.punched.includes(k.id) && (game.level.floors ? Math.abs(h.y - k.y) < 60 && Math.abs(h.x - k.x) <= CLOCK_REACH : h.x >= k.x)) {
           run.punched.push(k.id);
@@ -1095,6 +1113,44 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     return { ...given, held: { ...given.held, jump: given.held.jump || given.held.up }, pressed: { ...given.pressed, jump: given.pressed.jump || given.pressed.up } };
   }
 
+  /** The station's clock, its board and its doors. True once it has run out. */
+  function stepStretch(ev: GameEvent[]): boolean {
+    const run = game.run;
+    const spec = game.level.stretch;
+    if (!spec || run.stretch === null) return false;
+    run.stretch = Math.max(0, run.stretch - STEP);
+    const lit = game.level.board;
+    if (lit && !boardLit && run.stretch <= lit.lightAt) {
+      boardLit = true;
+      ev.push({ type: "board" });
+      ev.push({ type: "think", text: "Voie 23. VOIE. 23.", seconds: THINK.seconds });
+    }
+    if (run.stretch <= STATION.doors) {
+      doorsBeep -= STEP;
+      if (doorsBeep <= 0) {
+        doorsBeep = STATION.beep;
+        ev.push({ type: "doorsBeep" });
+      }
+    }
+    if (run.stretch > 0) return false;
+    ev.push({ type: "stretchOut" });
+    game.cardLine = spec.card;
+    die(ev);
+    return true;
+  }
+
+  /** Aboard: what was left of the clock pays once, the level's clock starts, and a life lost from here on comes back on board. */
+  function board(spec: NonNullable<Level["stretch"]>, ev: GameEvent[]) {
+    const run = game.run;
+    const bonus = Math.floor(run.stretch ?? 0) * spec.bonus;
+    addScore(run, bonus);
+    ev.push({ type: "boarded", bonus });
+    run.stretch = null;
+    run.time = game.level.time;
+    const k = game.level.checkpoints.find((c) => c.auto);
+    if (k) run.checkpoint = k.id;
+  }
+
   /** Paris's hotel and its street: her gate and what opens it, the window that tips, the pigeons going up. */
   function parisStep(ev: GameEvent[]) {
     const level = game.level;
@@ -1189,7 +1245,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.events = ev;
     if (game.mode === "card") {
       game.modeT -= STEP;
-      if (game.modeT <= 1e-9) setMode("play", ev);
+      if (game.modeT <= 1e-9) {
+        game.cardLine = null;
+        setMode("play", ev);
+      }
     } else if (game.mode === "dying") {
       game.modeT -= STEP;
       if (game.modeT <= 1e-9) loseLife(ev);

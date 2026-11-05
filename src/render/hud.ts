@@ -1,7 +1,7 @@
 import { ROLLING, npcRect, standing } from "../sim/cast";
 import { PATIENCE_MAX } from "../sim/damage";
 import { overlapsRect } from "../sim/geometry";
-import type { Game } from "../sim/game";
+import { STATION, type Game } from "../sim/game";
 import { heatZoneAt } from "../sim/hazards";
 import type { CarriedKind } from "../sim/level";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
@@ -27,6 +27,8 @@ export type HudPayload = {
   world: string;
   /** The line under the level's name on its card, when it has its own. */
   card: string | null;
+  /** The clock on the HUD is a stretch's own (3-3's station). */
+  stretch: boolean;
   /** The level's own line on its tally. */
   tally: string | null;
   /** His status through Act 2 (story spec §8.1): MEMBER to AMBASSADOR; null outside it. */
@@ -156,6 +158,13 @@ export function hintOf(game: Game): string {
     if (game.level.keyDoor && h.x >= game.level.keyDoor.x - 400) return "H on the door · the key won't open it";
     return h.x < HALL_FIRST_HINT ? "W forward · A D sidestep" : "S back · Space jumps a cart · a turning handle swings its door out";
   }
+  // The station's own business.
+  const stretch = game.level.stretch;
+  if (stretch && game.run.stretch !== null) {
+    const barrier = game.level.passes[0];
+    if (barrier && h.x < barrier.x + barrier.w) return "Shift and ↓ together slide under the barrier · the train won't wait";
+    return "To the doors at the far end · the crowd won't let you by · jump them";
+  }
   // Paris's own business, past whatever is in his face.
   const hotel = game.level.bonjour;
   if (hotel) {
@@ -196,14 +205,15 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const h = game.world.hero;
   const pig = game.world.pig;
   const clocked = game.level.time > 0;
-  const time = clocked ? Math.ceil(game.run.time) : null;
+  const time = game.run.stretch !== null ? Math.ceil(game.run.stretch) : clocked ? Math.ceil(game.run.time) : null;
   const q = game.quest;
   const quest = q ? (q.id === "hungry" ? banquetHud(q, !!game.questDoor) : gateHud(q, !!game.questDoor)) : null;
   return {
-    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.name,
+    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.name,
     name: game.level.name,
     world: game.level.world,
-    card: game.level.card ?? null,
+    card: game.cardLine ?? game.level.card ?? null,
+    stretch: game.run.stretch !== null,
     tally: game.level.tally ?? null,
     status: game.shift[game.venue]?.world.startsWith("2-") ? statusName(game.run.keycards) : null,
     portrait,
@@ -218,7 +228,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     cans: game.run.cans,
     lives: game.run.lives,
     time,
-    hurry: clocked && game.run.time < RUN.hurry,
+    hurry: game.run.stretch !== null ? game.run.stretch <= STATION.doors : clocked && game.run.time < RUN.hurry,
     star: Math.ceil(game.run.star),
     hot: h.hot,
     slowed: h.heat > STAMINA.from,

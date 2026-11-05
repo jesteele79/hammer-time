@@ -69,7 +69,8 @@ export type DoorSpec = {
 };
 /** A door with a tier opens at that many keycards; any other door has none to reach. */
 export const tierMet = (d: Pick<DoorSpec, "tier">, keycards: number): boolean => !d.tier || keycards >= d.tier;
-export type CheckpointSpec = { id: string; x: number; y: number };
+/** `auto`: set as he crosses a stretch's end, with no clock to punch and no bonus for it. */
+export type CheckpointSpec = { id: string; x: number; y: number; auto?: boolean };
 export type SignSpec = { x: number; y: number; label: string; note?: string };
 export type FurnitureKind =
   | "desk"
@@ -101,7 +102,7 @@ export type FurnitureKind =
   | "seats"
   | "podium";
 /** A low ceiling to slide under: the lobby's service corridor, the kitchen's heat-lamp gantry, or SAT's body scanner. */
-export type LevelPass = Pass & { kind?: "service" | "gantry" | "scanner" };
+export type LevelPass = Pass & { kind?: "service" | "gantry" | "scanner" | "barrier" };
 /** The kitchen's swinging door, and the spawn id of the server whose rush bangs it open. */
 export type SwingDoorSpec = { id: string; x: number; y: number; server: string };
 /**
@@ -172,8 +173,8 @@ export type CastSpawn = {
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
-/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up. */
-export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray";
+/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip. */
+export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove";
 export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
@@ -264,6 +265,10 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   canScale?: number;
   /** The level's own line on its tally. */
   tally?: string;
+  /** A first stretch on its own clock (3-3's station): up to `x1` it runs in the level's clock's place; at zero its `card` and a life; what is left at `x1` pays `bonus` a second. */
+  stretch?: { x1: number; time: number; card: string; bonus: number };
+  /** The station's departure board: its platform is lit when the stretch's clock reaches `lightAt`. */
+  board?: { x: number; y: number; lightAt: number };
   /** Reaching it with the boss down sits him and ends the level. */
   seat?: { x: number };
   /** What he thinks as he takes a pickup of this kind in this level: the first time each. */
