@@ -860,6 +860,75 @@ yourself." · "Mobile ticket failed." · "The train leaves when I'm ON it."
 The conductor: "Billet, s'il vous plaît." · "Monsieur. Your seat is in coach
 18." · "This is the quiet car." Travelers: "Shh!" · "Pardon."
 
+### As planned (Phase 3, 2026-11-05)
+
+Approved by the owner in the Phase 3 brainstorm, section by section:
+
+- **Two halves.** 3a: 3-1, 3-2 with the French table, and the act's four
+  songs. 3b: 3-3, the README, the as-built notes and the Phase 4 handoff.
+  After 3a the flight and Paris play from the strip; after 3b the whole way
+  to Basel, with 3-4's stop showing "Basel is coming" (the strip's label
+  names the stop once its act has a built level, since "Act 3 is coming"
+  would be false by then).
+- **3-1** is the hall's format (§12's as-built view over the fixed-step sim
+  with the lateral axis) with **three snapped lanes** in place of free width:
+  a tap of A or D moves him one lane, the aisle or the row on either side.
+  It is a **run**: he always moves forward; W sprints, S slows him to a walk,
+  and only the cart's shove moves him back. The cabin is the second Blender
+  set, loaded by the level's name. The purser is on the boss machinery with
+  her cart; the falling bags are a missile kind; the reclined seats are
+  ducked with ↓, so his back gains a crouch clip. The travelers are people
+  the game has; the two attendants are one painting recolored. Turbulence
+  comes about every 45 s from 30 s in. The cart's tray gives a Coke Zero and
+  a bag of pretzels by turns as it passes him in a row lane.
+- **3-2:** the hotel is two floors on stacked walls (the tower's rule); the
+  gate beside the desk opens when the lecture is pressed in front of the
+  concierge; the lift is a cabin ridden crouched, the spiral stairs a slope;
+  the window is a platform that tips him off with the wet-floor sign's slip;
+  the baguette is a pickup of 50 with its thought; a back stair takes him to
+  the street. The shutters' "Fermé · 14 juillet" signs are the game's; the
+  parade is a flicker the game draws on the painted televisions; the terrace
+  and the awning are painted pieces in front of the walls with platforms on
+  their chairs, tables and canvas; the waiter crosses the terrace as a cast
+  patrol who knocks him; the scooters are low one-way movers every few
+  seconds; the pigeons are drawn. **Coke Zero in France is the can's picture
+  at 0.7** ("Thirty-three centiliters. That's a sample."), on the street,
+  on the French table and on the train. **The brasserie's door ends the
+  level:** one round on the French table, whose points join the level's
+  score and set `hammer-time-best-french`; the round's tally line is the
+  level's.
+- **The French table** is the third menu of the banquet's engine; the waiter
+  is the server with the clearing habit of §9.2 and no one walks behind this
+  table; COMPED reads OFFERT; the sheet's Coke Zero cell is painted blank and
+  unused, the can's picture taking its place.
+- **3-3:** the station is a **stretch with its own 120 s clock** shown in the
+  level clock's place; the level's 420 s start when he boards; at zero the
+  card, a life, and the station again at 2:00; the leftover pays 50 a second
+  once. The barrier is passed by the slide; the crowd shoves him back without
+  a pip. **Eighteen coaches of 768 px each**, rooms painted at half scale
+  from three coach paintings (a standard coach, the bistro car, a first-class
+  coach); the quiet car is the standard coach with the game's "Shh" sign, the
+  family car the standard coach with a stroller mover and kids, the bike car
+  the standard coach with bikes from the sheet, one swinging. The countryside
+  scrolls in the window panes the cut names, the tunnel blacks them for 3 s,
+  the floor shakes at the coach ends. The racks are a crouched route. The
+  conductor is on the boss machinery: nine hits on one bar, three a door,
+  quicker at each. The kids are the student at child size in a new color.
+  Sitting in coach 1 ends the level.
+- **The paintings:** six people (`cast/purser.png`, `cast/attendant.png`,
+  `cast/concierge.png`, `cast/parisian.png`, `cast/garcon.png`,
+  `cast/conductor.png`); Paris painted straight (`backdrops/paris-far-1..4.png`:
+  the hotel's ground floor and first floor, the street's two blocks;
+  `backdrops/paris-mid-1.png` the terrace, `paris-mid-2.png` the awning,
+  `paris-fore-1.png` a lamppost; `backdrops/brasserie.png`;
+  `props/french-sheet.png`); the train over the session's renders
+  (`backdrops/station-1..2.png`, `backdrops/train-far-1..3.png`), asked for
+  at 3b's start the suite's way; `props/train-sheet.png` (a wheeled suitcase,
+  a stroller, a bicycle, a luggage trolley, the ticket barrier, a quiet sign).
+  This supersedes §16's `station.png` and `paris-far-1..3`.
+- **Phase 2's cheap leftovers** go into Phase 3's first task; Act 2 play notes
+  go to the build session as they come.
+
 ## 10. Basel
 
 ### 10.1 3-4 Basel, Tattoo week
@@ -1130,6 +1199,18 @@ Levels that are relit or small (2-1, 2-2, 3-2's hotel) are painted straight.
 - The verdict's pitfalls (the pass's cloned uniforms, the white mask over
   him, capped lamp strengths, no tone mapping, mipmaps on his textures) bind
   `ThreeView`'s build.
+
+### As planned (Phase 3, 2026-11-05)
+
+- **The cabin is the second set on the same view.** `ThreeView.load` takes
+  the level's set (`public/sets/cabin.glb` from `scripts/blender/cabin.py`,
+  under 8 MB, draco) and the set brings its own lamps; the cabin runs along
+  -z like the hall. The lanes are snapped `lx` values the level names; the
+  purser with her cart, the attendants and the travelers are cut-outs facing
+  him as the hall's cast are; the bags are cut-outs too. His back gains a
+  crouch clip, checked as the others are. The flat fallback draws the cabin
+  as it draws the hall. The governor, the tiers, the density rule and the
+  pitfalls are unchanged.
 
 ## 13. Music and sound
 
@@ -1455,3 +1536,14 @@ Every phase ends with all of these green, then the commit on the branch:
 21. (2026-11-04) The suite is one level with three camera stops; its three
     renders are asked for at 2b's start, painted over by the owner.
 22. (2026-11-04) 3-1's stop shows "Act 3 is coming" until Phase 3 builds it.
+23. (2026-11-05) Phase 3 is built in two halves: 3a the flight and Paris
+    with the French table and the four songs, 3b the train.
+24. (2026-11-05) The flight is a run with three snapped lanes: he never
+    stops, W sprints, S walks, the cart's shove is the only way back.
+25. (2026-11-05) The train's eighteen coaches are rooms of 768 px painted at
+    half scale from three coach paintings; the station is a stretch clock in
+    the level clock's place; its two walls and the coaches are painted over
+    the session's renders, asked for at 3b's start.
+26. (2026-11-05) The kids are the student at child size; the attendants are
+    one painting recolored; Coke Zero in France is the can's picture at 0.7;
+    the brasserie's round ends 3-2 and its points join the level's.
