@@ -21,19 +21,30 @@ All your Codex paintings from this round are cut in and in the game: the guard, 
 
 ## Decisions the plan took for you
 
-1. Hammer's back in the hall is animated from the one back painting you approved. No frame paintings are needed. (Second half.)
-2. The hall plays as the same 2D game with a sideways step added, and the 3D only draws it. Without 3D support it plays flat. (Second half.)
+1. Hammer's back in the hall is animated from the one back painting you approved. No frame paintings are needed.
+2. The hall plays as the same game with a sideways step added, and the 3D only draws it. Without 3D support it plays flat.
 3. Leaving 2-1 takes the down key, so walking past the stairs on the way to keycards never ends the level.
-4. The lounge reuses the banquet's table painting. Only the room and the food are new.
+4. The lounge reuses the banquet's table painting. Only the room and the food are new. The guests wear existing people: a grey suit, a polo, and the intern.
 5. The guard's flashlight is a telegraphed one-second stun that costs no patience.
+6. The night crew's tricks belong to the night level only, so Act 1's staff are unchanged.
+7. The supervisor and Lifetime Titanium guy are bosses of their own beside the pig, sharing one health bar on screen. The pig is untouched.
+8. Keycards in the suite are 200 points and no status. Status counts in 2-1 only.
+9. Playing Act 2 straight through is left for a later phase, so its header shows no such button yet.
+10. The tower's two walls stack upward, alternating a floor each.
+11. The suite is one set of rooms. Hammer may walk between them, and the camera pans to the room of the fight's phase.
+12. The hall has no baked shadows in its set, only simple shading, ink lines and lamp glow.
+13. Hammer's profile moves and the people in the hall are drawn once at load, never redrawn each frame.
+14. The hall's sharpest setting is kept for NVIDIA cards. Other cards start one step lower, and the 3D view lowers its own quality if it falls behind.
+15. W and the up arrow still jump in every 2D level, and walk forward in the hall.
+16. The home screen becomes the lobby at night once Act 1 is finished in your save.
 
-The plan's full list of sixteen is in the plan file under "Decisions taken for the owner". It is `docs/superpowers/plans/2026-11-04-story-phase-2.md`.
+Items 1, 2, 8, 11, 12, 13 and 14 take effect in the second half.
 
 ## Decisions I made while building it
 
 Each one is cheap to change if you disagree.
 
-- **Tower layout.** Each landing runs from one wall to the stairwell, and flights rise back to the middle. The plan's layout had floors that could not be walked.
+- **Tower layout.** Each landing runs from one wall to the stairwell, and flights rise back to the middle. With the plan's flights he never touched a landing, and with full-width landings his head went through the floor above.
 - **Cart size.** Carts are taller than planned, because the painted cart looked like a toy at the planned size. They stop at the height that can still be jumped uphill.
 - **Floor plates.** Every floor has a brass plate, placed where no flight runs.
 - **Housekeepers.** A knocked-out housekeeper falls flat on her back like a plank, because her painted skirt would go through the floor if she sat.
