@@ -159,8 +159,8 @@ test("the tray's Coke Zero and pretzels say their lines as he takes them", () =>
   until(g, (x) => of(x.events, "tray").length > 0, 15);
   const can = until(g, (x) => x.run.cans > 0, 3);
   assert.ok(of(can, "think").some((e) => e.text === "No ice. Of course."));
-  g.step(input()); g.dev.cart();
-  until(g, (x) => of(x.events, "tray").length > 0, 15);
+  g.step(input()); Object.assign(g.world.flight.cart, { live: true, z: h.x / 100 + 2, passed: false });
+  until(g, (x) => of(x.events, "tray").length > 0, 2);
   const bag = until(g, (x) => of(x.events, "pickup").some((e) => e.kind === "nuts"), 3);
   assert.ok(of(bag, "think").some((e) => e.text === "Pretzels. PRETZELS."));
 });
