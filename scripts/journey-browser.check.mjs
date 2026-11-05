@@ -385,11 +385,15 @@ try {
   assert.ok(text.includes(String(act2).padStart(6, "0")), `the act's total on its card: ${act2} in ${text}`);
   assert.deepEqual([s.next, s.done.length, s.run], ["flight", 9, null], "Act 2 in the save");
   await cardFits("act-2");
+  // 3-1 is built: on to its card, as Act 1's end goes on to 2-1's; home by a fresh page.
   await enter();
+  await waitMode("card");
+  assert.equal((await run()).level, "flight", "on to 3-1's card");
+  await page.goto(home);
   await waitMode("title");
   const strip2 = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, e.dataset.state])));
   assert.equal(strip2["3-1"], "next", JSON.stringify(strip2));
-  assert.ok(await page.getByRole("button", { name: "Act 3 is coming" }).isDisabled(), "Act 3 is coming");
+  assert.ok(await page.getByRole("button", { name: "Clock in" }).isEnabled(), "3-1 is built: Clock in plays it");
   assert.equal(await page.locator(".next-strip__act[data-act='act2'] > b").textContent(), String(act2).padStart(6, "0"), "Act 2's total on its header");
   assert.equal(await page.locator(".next-strip__act[data-act='act2'] .next-strip__straight").count(), 0, "no straight-through run on Act 2 in this phase");
   assert.equal(await page.locator(".next-start__quest").count(), 3, "three side quests");

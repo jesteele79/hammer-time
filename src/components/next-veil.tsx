@@ -266,6 +266,15 @@ export function NextVeil({
       </div>
     );
   }
+  // A level's own line while its clock drains: Paris's lunch.
+  if (mode === "tally" && info.tally)
+    return (
+      <div className="next-veil next-veil--card" data-place={place}>
+        <section className="next-veil__card" aria-live="polite">
+          <p className="next-veil__line">{info.tally}</p>
+        </section>
+      </div>
+    );
   if (mode === "card") {
     // In a journey the first stop of the hotel's shift starts it, and a replay starts its own; the rest go on.
     const line = info.back

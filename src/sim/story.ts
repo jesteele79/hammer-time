@@ -72,7 +72,7 @@ export const STORY: readonly StoryStop[] = [
       { kind: "act", act: "act2" },
     ],
   },
-  { id: "flight", code: "3-1", name: "Row 52", act: "act3" },
+  { id: "flight", code: "3-1", name: "Row 52", act: "act3", after: [{ kind: "caption", text: "Paris. 13 July. 06:40. No Southwest, no A-List, no ice." }] },
   { id: "paris", code: "3-2", name: "Paris", act: "act3" },
   { id: "train", code: "3-3", name: "The 14:02", act: "act3" },
   { id: "basel", code: "3-4", name: "Basel, Tattoo week", act: "act3" },

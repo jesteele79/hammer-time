@@ -929,6 +929,27 @@ Approved by the owner in the Phase 3 brainstorm, section by section:
 - **Phase 2's cheap leftovers** go into Phase 3's first task; Act 2 play notes
   go to the build session as they come.
 
+### As built (Phase 3a, 2026-11-05)
+
+- **3-1 runs at half pace.** At the 2D levels' speed the 40 m cabin takes 10 s, over before the cart's 12 s and the
+  turbulence's 30 s; `Level.hall.pace` 0.5 makes a walking player meet two carts and one turbulence, and a sprinter
+  gets through on nerve. His jump shows at 0.35 of its height, or he leaves the screen through a 2.2 m ceiling.
+- **Bags lie where they land** for over a second: falling from 2 m at 6 m/s, none could otherwise ever hit a walking
+  man. The bin hangs at y -360, under which he walks. The queue is a rule in the flight's step, not a solid, which would
+  wall the rows too; its three are people the mallet can bonk, one hit each. The attendants keep to their stretch.
+- **He does not pass the purser while she stands,** in any lane, and no drinks cart comes out once she has seen him.
+- **The reclined seats and the legs are the game's own,** in the set; the drinks cart is a drawn steel trolley, not the
+  tower's laundry cart. The purser and the attendants wear the housekeeper's and the server's paintings until theirs are cut.
+- **Paris's far plane pans at 1,** so the painted lift and desk stand where the sim's do; the ground wall is cut at the
+  floor above, keeping the hotel one wall wide. There is no ceiling under the first floor: floors are one-way, and the
+  spiral stairs rise through a hole. The terrace moved 400 px right, clear of the back stair. The lift keeps its rider
+  through the stairs' height.
+- **Parisians amble and bump** (the office role with the wander trick), since a student throws paper; the concierge takes
+  no part but her lines. A fixed pickup is once a run.
+- **The waiter can be bonked whenever his hand or his tray is out,** from wherever he stands: he has to be, in 0.6 s.
+- **Paris's tally line** shows while the clock drains, on the level's own card.
+- **The landing card** came forward to 3a from Phase 3b's list, so 3-1 ends as the spec has it from the first.
+
 ## 10. Basel
 
 ### 10.1 3-4 Basel, Tattoo week
@@ -1212,6 +1233,16 @@ Levels that are relit or small (2-1, 2-2, 3-2's hotel) are painted straight.
   as it draws the hall. The governor, the tiers, the density rule and the
   pitfalls are unchanged.
 
+### As built (Phase 3a, 2026-11-05)
+
+- `SETS` gained, beside the plan's fields, `lift`, `pool` and `ambient`: the plan's lamps alone burned the cabin's ceiling
+  white. The view is destroyed off a hall, on `stop()` and on a rejected people load; a context lost once keeps every hall
+  flat for the session, as Phase 2 ruled; any other failed load is tried again by the next hall.
+- **His back's crouch** is the pelvis down a third of his leg with both legs foreshortened by as much. Sprinting at a level's
+  pace shows his run clip at that pace.
+- 74 to 80 fps at 1920 by 1080 in the cabin, the governor settled at medium, on the laptop's integrated card. The RTX 4070 is
+  still unmeasured: the headless checks do not use it.
+
 ## 13. Music and sound
 
 All on the game's own synth (`src/game/audio.ts`'s `Song` and `SONGS`, the
@@ -1280,6 +1311,13 @@ drone's buzz. The crowd never speaks aloud.
   third swing, `ding`; a bed's `jump`; a batted apple's `bonk`; cans given back `coin`;
   the pool's `splash`. Nobody has heard these songs but the owner: they were measured
   for loudness only.
+
+### As built (Phase 3a, 2026-11-05)
+
+- Four songs: `flight`, `paris`, `french`, `train`, within 6 dB of the banquet through the game's bus (3.3, 3.3, 2.8 and 2.0 under).
+  The waltzes' drum rows are twelve steps a bar. The cabin's hurry is `hurryFor`'s forced flag, from the seatbelt sign. Nobody has
+  heard these songs but the owner: they were measured for loudness only.
+- New cues: `belt`, `tune`, `buzz`, `flutter`, `beep`, `horn`, on the events the plan names.
 
 ## 14. Settings and the controller
 

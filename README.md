@@ -130,7 +130,12 @@ the 3D view so that a world point at his feet is on the hall's floor under him.
   hides and the real 2D figure shows on the game's canvas, every face rule with it.
 - **Its own quality:** `TIERS3D` steps density, antialiasing, bloom and ink, in that
   order, one tier when a second falls under 55 fps; never up; the game's tier is apart.
-  A lost context falls back flat.
+  A lost context falls back flat, for the session.
+- **Its sets:** `src/render/3d/sets.ts` names each by the level's `hall.set`: the hall's, and
+  the cabin's (`scripts/blender/cabin.py`, `public/sets/cabin.glb`) with its own lamps, how
+  much of a jump it shows under its 2.2 m ceiling (`lift`), and the curtain and the seatbelt
+  sign as nodes the view changes. The view is freed the moment the level is not a hall, and
+  the next hall loads its own.
 
 ## Moves
 
@@ -478,6 +483,62 @@ behind.
   points, "Resort fee THIS.", and the level ends 1.5 s later. Once he is going, nothing
   can knock Hammer down: the win stands. A lost life restarts the fight, as the pig's,
   and gives back the cans he took.
+
+## Row 52 (3-1)
+
+The second level under the chase camera (`src/sim/levels/flight.ts`, the rules in
+`src/sim/flight.ts`): the cabin's 40 m, row 52 at the back to row 1, 300 seconds. It is a run:
+he moves forward without a key at half the 2D levels' pace, W sprints, S crouches, and only a
+cart moves him back. A and D move him a lane: three snapped places (`hall.lanes`), one a press
+however long it is held, 0.18 s across.
+
+- **The drinks cart:** out of the curtain at 12 s and every 20 s after, "Drinks?", at 3 m/s
+  down the aisle. In the aisle: a pip and ten rows back, never behind row 52. In a row lane it
+  passes and leaves a Coke Zero ("No ice. Of course."), then pretzels ("Pretzels. PRETZELS."),
+  by turns.
+- **Turbulence:** from 30 s, every 45 s: the chime, the sign lit 6 s and the music hurried; 2 s
+  later bags fall into random lanes for 4 s, each lying where it lands for a moment, a pip if
+  he is under it or walks into it.
+- **The rows:** reclined seats in the row lanes (duck, or take the aisle), legs in the aisle
+  (jump), the queue at row 30 (three travelers who block the aisle until bonked, a punch clock
+  with them), the tablet at row 20 (his thought), the Buc-ee's in the bin at row 10 (a jump's
+  head, not the mallet).
+- **The purser** (`src/sim/purser.ts`) stands at the curtain, row 3, and he does not pass her.
+  From 6 m she pushes her cart across the aisle for 1.5 s, rests 2.5 s; hittable only in the
+  rest; three hits: "Sir... please.", the curtain back. Row 1 then ends the level: "I AM
+  business select."; the card "Paris. 13 July. 06:40. No Southwest, no A-List, no ice."
+- **Drawn:** the cabin's set, her and the trolley as cut-outs, the seats and legs in the set,
+  his back's crouch clip. Flat as the hall is, from the side.
+
+## Paris (3-2)
+
+Left to right (`src/sim/levels/paris.ts`), 420 seconds. The hotel is two floors over one wall's
+width: the concierge's gate stops him at x 700 until he presses E within 300 px of her desk
+("...Bonjour."; "The lift takes one."). The lift rises only while he crouches on it; empty, it
+comes back down. The spiral stairs climb through a hole in the floor above. Upstairs the closet:
+the window tips him off after 0.4 s, the bed bounces, the tray's baguette is 50 points. A back
+stair goes down to the street.
+
+The street is shut on the 14th: "Fermé · 14 juillet", televisions flickering in the windows, a
+terrace with chairs and tables to stand on and a punch clock, the waiter walking his pass (a pip
+if he is in the way; a bonk sends him off for about 8 s), two Parisians who bump, scooters along
+the gutter (one way, jump them), pigeons going up. Coke Zero is the can at 0.7 ("Thirty-three
+centiliters. That's a sample."). ↓ at the BRASSERIE door runs the French table and ends the
+level: "Lunch took three hours. It is 13:40. The train leaves at 14:02."
+
+The walls are placed by the level's layout at a pan of 1, so what is painted stands where the
+sim's floors are; until they are painted the game draws its own (`src/render/venue-paris.ts`).
+
+## The brasserie (the French table)
+
+The banquet's engine on a third menu (`createHungry(seed, { menu: "french" })`): sixteen tiles in
+the sheet's order, three Parisians, nobody walking behind the table. The waiter is the server
+with a habit of his own: every 12 s his hand is on the rim of the plate nearest Hammer's line for
+0.6 s ("C'est fini?"), and it is on his tray; H in that moment stops him, and H with plates on the
+tray knocks it up, the plates landing at Hammer's end (he is off for 3 s). The carafe is nothing
+("Still? Sparkling? NEITHER."), the bill -100, the tiny Coke Zero the can's job at 0.7, the cheese
+cart the to-go box's. COMPED reads OFFERT. Its best is `hammer-time-best-french`, the round's score
+alone, and "The brasserie" joins the Side quests row once 3-2 is finished.
 
 ## Hungry Hungry Hammer (the BUFFET door)
 
@@ -976,7 +1037,9 @@ the campus's lo-fi, the gift shop's boss theme, the stash's cellar tune, and
 the two side quests' as built; through the night, the lobby's jazz trio (a walking
 bass and brushes), the M CLUB's cocktail piano, the tower's climb (up a semitone a
 bar for fourteen bars, the elevator he is not using dinging past), the fourteenth
-floor's hum and the suite's drive. What
+floor's hum and the suite's drive; on the way to Basel the safety video's muzak (the
+sign on, it hurries), the musette, a waltz of two saws a hair apart, and its quick cousin
+at the French table, 1.4 times the speed. What
 plays follows the mode (`musicFor` in
 `src/render/sound.ts`): the level's song quiet under its cards, the tallies
 and the break and full in play, a round's song the same way, silence under
@@ -1038,6 +1101,8 @@ node scripts/sat-browser.check.mjs http://127.0.0.1:8090/
 node scripts/night-browser.check.mjs http://127.0.0.1:8090/
 node scripts/hallway-browser.check.mjs http://127.0.0.1:8090/
 node scripts/suite-browser.check.mjs http://127.0.0.1:8090/
+node scripts/flight-browser.check.mjs http://127.0.0.1:8090/
+node scripts/paris-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 

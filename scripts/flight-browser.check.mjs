@@ -30,6 +30,16 @@ const open = async (url, size = [1920, 1080]) => {
 };
 const shot = (n) => page.screenshot({ path: resolve(out, n) });
 const waitMode = (m, timeout = 60000) => page.waitForFunction((want) => window.__next?.run?.mode === want, m, { timeout });
+/** Clocked in at a stop on a saved journey: the shell's cards and its way home are in play. */
+const STOPS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight", "paris", "train", "basel", "lab", "replacement"];
+const openStop = async (stop, extra = "") => {
+  await open(`${base}?dev=1${extra}`);
+  const done = STOPS.slice(0, STOPS.indexOf(stop));
+  await page.evaluate((j) => localStorage.setItem("hammer-time-journey", JSON.stringify(j)), { v: 1, next: stop, done, best: {}, bonked: 0, run: null, carry: null, credits: 0 });
+  await page.goto(`${base}?dev=1${extra}`);
+  await waitMode("title", 60000);
+  await page.getByRole("button", { name: "Clock in" }).click();
+};
 const canvases = () => page.locator(".next-stage canvas").count();
 const tp = (x, y = 0) => page.evaluate(([a, b]) => window.__next.dev.teleport(a, b), [x, y]);
 const heroX = () => page.evaluate(() => window.__next.hero.x);
@@ -115,7 +125,70 @@ try {
   await shot("flight-purser.png");
   await page.close();
 
-  // The rest of 3-1 (Task 9) goes below this line.
+  // The cart's shove: a pip gone, the row ten back.
+  await startPlaying(`${base}?next=1&dev=1&level=flight`);
+  await tp(2400);
+  await page.evaluate(() => window.__next.dev.cart());
+  const pipsBefore = await page.evaluate(() => window.__next.run.patience);
+  await page.waitForFunction(() => (window.__next.run.events.shove ?? 0) > 0, null, { timeout: 15000 });
+  assert.equal(await page.evaluate(() => window.__next.run.patience), pipsBefore - 1, "a pip");
+  await page.close();
+
+  // The purser down, row 1, the landing caption, then 3-2's card; in 3D, and flat with one canvas.
+  for (const flat of [false, true]) {
+    await openStop("flight", flat ? "&flat=1" : "");
+    await waitMode("card");
+    await waitMode("play");
+    if (flat) {
+      assert.equal(await canvases(), 1, "one canvas when flat");
+      await page.waitForTimeout(300);
+      await shot("flight-flat.png");
+    }
+    await tp(rowX(8));
+    await page.waitForFunction(() => window.__next.boss?.state !== "wait", null, { timeout: 5000 });
+    await page.evaluate(() => window.__next.dev.boss({ state: "down" }));
+    await tp(rowX(1) - 50);
+    await page.waitForFunction(() => (window.__next.run.events.sit ?? 0) > 0, null, { timeout: 5000 });
+    await waitMode("story", 30000);
+    const caption = "Paris. 13 July. 06:40. No Southwest, no A-List, no ice.";
+    // The Clocked out card and the caption, in either order the journey shows them.
+    const until = Date.now() + 40000;
+    let sawCaption = false;
+    while (Date.now() < until) {
+      const text = (await page.locator(".next-veil").textContent().catch(() => "")) ?? "";
+      if (text.includes(caption)) sawCaption = true;
+      if ((await page.evaluate(() => window.__next.run.mode)) === "card" && (await page.evaluate(() => window.__next.run.level)) === "paris") break;
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(250);
+    }
+    assert.ok(sawCaption, "the landing card");
+    assert.equal(await page.evaluate(() => window.__next.run.level), "paris", "on to 3-2's card");
+    await page.close();
+  }
+
+  // Try again after Hammer down at row 20: the clock and the lane as at the card.
+  await openStop("flight");
+  await waitMode("play");
+  await tp(rowX(20));
+  await tap("KeyD", 200);
+  for (let i = 0; i < 3; i++) {
+    // Past the grace he comes back with.
+    await page.waitForTimeout(i ? 2600 : 300);
+    await page.evaluate(() => {
+      window.__next.dev.patience(1);
+      window.__next.dev.hit();
+    });
+    await page.waitForFunction(() => window.__next.run.mode !== "play", null, { timeout: 8000 });
+    await page.waitForFunction(() => ["play", "over"].includes(window.__next.run.mode), null, { timeout: 12000 });
+  }
+  await waitMode("over");
+  await page.getByRole("button", { name: "Try again" }).click();
+  await waitMode("card");
+  const again = await page.evaluate(() => ({ time: window.__next.run.time, lane: window.__next.flight.lane, x: window.__next.hero.x }));
+  assert.deepEqual(again, { time: 300, lane: 1, x: 50 }, "Try again: as at the card");
+  await page.close();
+
+  // The rest of 3-1 is above this line.
   assert.deepEqual(errors, [], "no console errors");
   console.log(`PASS: the cabin at four sizes, forward without a key, A a lane left and D right, the sign, the purser's bar; ${JSON.stringify(rates)} fps.`);
 } finally {

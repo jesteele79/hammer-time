@@ -25,6 +25,16 @@ const open = async (url, size = [1920, 1080]) => {
 const shot = (n) => page.screenshot({ path: resolve(out, n) });
 const waitMode = (m, timeout = 60000) => page.waitForFunction((want) => window.__next?.run?.mode === want, m, { timeout });
 const tp = (x, y = 0) => page.evaluate(([a, b]) => window.__next.dev.teleport(a, b), [x, y]);
+/** Clocked in at a stop on a saved journey: the shell's cards and its way home are in play. */
+const STOPS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight", "paris", "train", "basel", "lab", "replacement"];
+const openStop = async (stop, extra = "") => {
+  await open(`${base}?dev=1${extra}`);
+  const done = STOPS.slice(0, STOPS.indexOf(stop));
+  await page.evaluate((j) => localStorage.setItem("hammer-time-journey", JSON.stringify(j)), { v: 1, next: stop, done, best: {}, bonked: 0, run: null, carry: null, credits: 0 });
+  await page.goto(`${base}?dev=1${extra}`);
+  await waitMode("title", 60000);
+  await page.getByRole("button", { name: "Clock in" }).click();
+};
 const hero = () => page.evaluate(() => window.__next.hero);
 
 try {
@@ -72,10 +82,89 @@ try {
   assert.equal(signs.filter((l) => l === "Fermé · 14 juillet").length, 3);
   await page.close();
 
-  // The rest of 3-2 (Task 9) goes below this line.
+  // The brasserie: the door, the round, its tally line, its own best; then home: 3-3 coming, the fourth card.
+  await openStop("paris");
+  await waitMode("play");
+  await tp(10200);
+  await page.waitForTimeout(400);
+  await page.keyboard.press("ArrowDown");
+  await waitMode("questCard", 8000);
+  assert.match(await page.locator(".next-veil").textContent(), /The brasserie/);
+  await waitMode("quest", 8000);
+  await page.evaluate(() => {
+    window.__next.dev.quest({ eat: ["steakfrites", "moules", "cremebrulee"] });
+    window.__next.dev.questSkip();
+  });
+  await waitMode("questTally", 8000);
+  const round = await page.evaluate(() => window.__next.quest.result.score);
+  assert.ok(round > 0, "the round scored");
+  await page.waitForFunction((want) => Number(localStorage.getItem("hammer-time-best-french")) === want, round, { timeout: 4000 });
+  assert.notEqual(round, 0);
+  await page.getByRole("button", { name: /Continue|Back|On/ }).first().click();
+  await waitMode("tally", 8000);
+  assert.match(await page.locator(".next-veil").textContent(), /Lunch took three hours\. It is 13:40\. The train leaves at 14:02\./);
+  const best = await page.evaluate(() => Number(localStorage.getItem("hammer-time-best-french")));
+  assert.equal(best, round, "the best holds the round's score alone");
+  const until = Date.now() + 30000;
+  while (Date.now() < until && (await page.evaluate(() => window.__next.run.mode)) !== "title") {
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(250);
+  }
+  assert.equal(await page.evaluate(() => window.__next.run.mode), "title");
+  assert.ok(await page.getByRole("button", { name: "The 14:02 is coming" }).isDisabled(), "Clock in names the stop");
+  assert.equal(await page.locator(".next-start__quest").count(), 4, "four side quests");
+  assert.ok(await page.getByRole("button", { name: "Play The brasserie" }).isVisible());
+  await page.close();
+
+  // Try again after Hammer down at the terrace: the gate stands again, as at the card.
+  await openStop("paris");
+  await waitMode("play");
+  await tp(450);
+  await page.waitForTimeout(500);
+  await page.keyboard.press("KeyE");
+  await page.waitForFunction(() => (window.__next.run.events.bonjour ?? 0) > 0, null, { timeout: 3000 });
+  await tp(3000);
+  await page.waitForTimeout(300);
+  for (let i = 0; i < 3; i++) {
+    await page.evaluate(() => {
+      window.__next.dev.patience(1);
+      window.__next.dev.hit();
+    });
+    await page.waitForFunction(() => window.__next.run.mode !== "play", null, { timeout: 8000 });
+    await page.waitForFunction(() => ["play", "over"].includes(window.__next.run.mode), null, { timeout: 12000 });
+    // Past the grace he comes back with.
+    await page.waitForTimeout(2600);
+  }
+  await waitMode("over");
+  await page.getByRole("button", { name: "Try again" }).click();
+  await waitMode("play", 20000);
+  await tp(450);
+  await page.keyboard.down("KeyD");
+  await page.waitForTimeout(1000);
+  await page.keyboard.up("KeyD");
+  assert.ok((await hero()).x < 700, "the gate stands again");
+  await page.close();
+
+  // The four sizes.
+  for (const [w, h] of SIZES) {
+    await open(`${base}?next=1&dev=1&level=paris`, [w, h]);
+    await waitMode("card");
+    await page.evaluate(() => window.__next.dev.slowmo(0.001, 60));
+    await page.waitForTimeout(300);
+    const card = await page.locator(".next-veil__card").boundingBox();
+    assert.ok(card.x >= -0.5 && card.y >= -0.5 && card.x + card.width <= w + 0.5 && card.y + card.height <= h + 0.5, `the card fits at ${w}x${h}: ${JSON.stringify(card)}`);
+    await page.evaluate(() => window.__next.dev.slowmo(1, 0));
+    await waitMode("play");
+    await tp(6000);
+    await page.waitForTimeout(500);
+    assert.ok((await page.evaluate(() => document.scrollingElement.scrollWidth)) <= w, `no sideways scrolling at ${w}x${h}`);
+    await shot(`paris-${w}x${h}.png`);
+    await page.close();
+  }
+
+  // The rest of 3-2 is above this line.
   assert.deepEqual(errors, [], "no console errors");
   console.log("PASS: Paris: the card, the gate, the lift, the window, the street.");
 } finally {
   await browser.close();
 }
-void SIZES;

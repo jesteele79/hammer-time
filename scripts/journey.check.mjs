@@ -369,3 +369,8 @@ test("the strip's label names the act until one of its stops is built, then the 
   assert.equal(comingLabel("paris", [...act2, "flight"]), "Paris is coming");
   assert.equal(comingLabel("train", [...act2, "flight", "paris"]), "The 14:02 is coming");
 });
+
+test("the landing card comes after 3-1; Paris has none, its tally line is the level's", () => {
+  assert.deepEqual(stopOf("flight").after, [{ kind: "caption", text: "Paris. 13 July. 06:40. No Southwest, no A-List, no ice." }]);
+  assert.equal(stopOf("paris").after, undefined);
+});

@@ -30,6 +30,16 @@ const open = async (url, size = [1920, 1080]) => {
 };
 const shot = (n) => page.screenshot({ path: resolve(out, n) });
 const waitMode = (m, timeout = 60000) => page.waitForFunction((want) => window.__next?.run?.mode === want, m, { timeout });
+/** Clocked in at a stop on a saved journey: the shell's cards and its way home are in play. */
+const STOPS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight", "paris", "train", "basel", "lab", "replacement"];
+const openStop = async (stop, extra = "") => {
+  await open(`${base}?dev=1${extra}`);
+  const done = STOPS.slice(0, STOPS.indexOf(stop));
+  await page.evaluate((j) => localStorage.setItem("hammer-time-journey", JSON.stringify(j)), { v: 1, next: stop, done, best: {}, bonked: 0, run: null, carry: null, credits: 0 });
+  await page.goto(`${base}?dev=1${extra}`);
+  await waitMode("title", 60000);
+  await page.getByRole("button", { name: "Clock in" }).click();
+};
 const canvases = () => page.locator(".next-stage canvas").count();
 const tp = (x, y = 0) => page.evaluate(([a, b]) => window.__next.dev.teleport(a, b), [x, y]);
 const heroX = () => page.evaluate(() => window.__next.hero.x);
@@ -206,6 +216,21 @@ try {
   assert.ok(await page.locator(".next-hud__hint").isVisible(), "the HUD still there");
   await shot("hallway-lost.png");
   await openTheDoor();
+  await page.close();
+
+  // Off the hall the 3D view is freed: one canvas on the next level's card.
+  await openStop("hallway");
+  await waitMode("play");
+  await page.waitForFunction(() => window.__next?.three?.canvas, null, { timeout: 15000 });
+  assert.equal(await canvases(), 2, "two down the hall");
+  await openTheDoor();
+  const leaving = Date.now() + 40000;
+  while (Date.now() < leaving && (await page.evaluate(() => window.__next.run.level)) === "hallway") {
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(250);
+  }
+  assert.equal(await page.evaluate(() => window.__next.run.level), "suite");
+  await page.waitForFunction(() => document.querySelectorAll(".next-stage canvas").length === 1, null, { timeout: 5000 });
   await page.close();
 
   // The door in 3D.
