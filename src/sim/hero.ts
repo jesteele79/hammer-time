@@ -35,6 +35,7 @@ export type HeroOptions = { heat?: number; charge?: number; hot?: boolean; patie
 
 export function createHero(spawn: Point, opts: HeroOptions = {}): HeroState {
   return {
+    lx: 0,
     x: spawn.x,
     y: spawn.y,
     w: HERO_W,

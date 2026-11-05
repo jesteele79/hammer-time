@@ -21,9 +21,10 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
+  if (route === "hall") return hallway(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   const stage = stageOf(level);
@@ -83,6 +84,36 @@ function climb(level: Level, h: HeroState, i: Input, world?: World): Input {
   else if (!h.onGround) i.held.jump = true;
   // Too hot to clear a gap at a walk: a towel on a clear stretch.
   else if (h.onGround && !h.move && h.heat >= CLIMB.towel) i.held.towel = i.pressed.towel = true;
+  return i;
+}
+
+/** How the hall's player looks ahead: how near a cart it jumps, how near a door it sidesteps, how near someone it swings. */
+const HALL_DRIVE = { cart: 150, door: 170, staff: 300, lane: 0.6, puddle: 110, key: 110 } as const;
+
+/**
+ * The hall's player: W down the middle, a jump over a cart coming across in front of it or the puddle, a sidestep to the
+ * far side of a door that is opening, a swing at whoever stands in its lane, and at the end the mallet on 1417's reader.
+ */
+function hallway(level: Level, h: HeroState, i: Input, world?: World): Input {
+  const key = level.keyDoor;
+  if (key && h.x >= key.x - HALL_DRIVE.key) {
+    if (!h.move) i.held.hammer = i.pressed.hammer = true;
+    return i;
+  }
+  i.held.up = true;
+  if (!world) return i;
+  const ahead = (x: number, within: number) => x - h.x > -30 && x - h.x < within;
+  // A door opening ahead: over to the far side until it is passed; back to the middle otherwise.
+  const door = world.hallDoors.find((d) => d.phase !== "shut" && ahead(d.z * 100, HALL_DRIVE.door));
+  const wanted = door ? -door.side * 0.8 : 0;
+  if (h.lx < wanted - 0.1) i.held.right = true;
+  else if (h.lx > wanted + 0.1) i.held.left = true;
+  const cart = world.hallCarts.some((c) => c.live && ahead(c.z * 100, HALL_DRIVE.cart) && Math.abs(c.lx - h.lx) < 1.2);
+  const wet = level.puddle && ahead(level.puddle.z0 * 100, HALL_DRIVE.puddle);
+  if ((cart || wet) && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  const staff = world.cast.some((n) => n.alive && hittable(n) && ahead(n.x, HALL_DRIVE.staff) && Math.abs(n.lx - h.lx) <= HALL_DRIVE.lane);
+  if (staff && !h.move) i.held.hammer = i.pressed.hammer = true;
   return i;
 }
 

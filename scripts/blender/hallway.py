@@ -19,6 +19,7 @@ ALCOVE = (29.0, 31.0)
 LOBBY = (48.0, 54.0)
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.context.preferences.filepaths.save_version = 0
 
 
 def carpet_image():

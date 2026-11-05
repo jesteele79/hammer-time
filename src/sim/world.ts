@@ -4,6 +4,7 @@ import { STEP } from "./constants";
 import { damage } from "./damage";
 import type { GameEvent } from "./events";
 import { createHero, stepHero, type HeroOptions } from "./hero";
+import { stepHall, stepLateral, type HallCart, type HallDoor } from "./hall";
 import { superBurst, swingContact } from "./hits";
 import { emptyInput, type Input } from "./input";
 import { stepMissiles, type Missile } from "./missiles";
@@ -53,6 +54,9 @@ export type World = {
   movers: Mover[];
   /** The boss beside the pig: the tower's supervisor. */
   boss: Boss | null;
+  /** The hall's carts and doors. */
+  hallCarts: HallCart[];
+  hallDoors: HallDoor[];
   /** The home screen's scene: the cast stands as it is and never notices him; his snot passes them and the carts by. */
   still: boolean;
   /** A hit from something at `fromX`, applied at the start of the next step. */
@@ -84,6 +88,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     pig: opts.pig ?? null,
     movers: [],
     boss: null,
+    hallCarts: [],
+    hallDoors: [],
     still: false,
     hit(fromX) {
       world.hits.push(fromX);
@@ -98,7 +104,14 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       startMove(h, input, world.snot.length, events);
       steerMove(h);
       const prevY = h.y;
+      const prevX = h.x;
       stepHero(h, world.stage, input, STEP, events);
+      if (world.stage.hall) {
+        // Down a hall he always faces it: S walks him back without turning him.
+        h.facing = 1;
+        stepLateral(h, input.strafe ?? 0, STEP, world.stage.hall);
+        stepHall(world, prevX, STEP, events);
+      }
       advanceMove(h, STEP, events);
       world.swing = swingContact(h, world, events);
       superBurst(h, world.targets, events);
@@ -135,6 +148,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         pig: world.pig && { ...world.pig, arena: [world.pig.arena[0], world.pig.arena[1]] },
         movers: world.movers.map((m) => ({ ...m, top: { ...m.top } })),
         boss: world.boss && { ...world.boss },
+        hallCarts: world.hallCarts.map((c) => ({ ...c })),
+        hallDoors: world.hallDoors.map((d) => ({ ...d })),
       };
     },
   };

@@ -1,6 +1,6 @@
 import { SPILL, type Npc } from "./cast";
 import type { GameEvent } from "./events";
-import { bodyRect, overlapsRect, sweptHeadHits } from "./geometry";
+import { bodyRect, overlapsRect, sideways, sweptHeadHits } from "./geometry";
 import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
 import type { HeroState, Point, Stage } from "./types";
@@ -9,7 +9,7 @@ export type MissileKind = "plane" | "coffee" | "pan" | "coaster" | "water";
 /** What flies like a paper plane (held up while fast, swatted for points): the plane, and the bartender's coaster. */
 export const flies = (kind: MissileKind): boolean => kind === "plane" || kind === "coaster";
 /** Something thrown at him: `phase` seeds a plane's wobble, `from` is the thrower. */
-export type Missile = { id: number; kind: MissileKind; x: number; y: number; vx: number; vy: number; spin: number; life: number; phase: number; from: number };
+export type Missile = { lx?: number; id: number; kind: MissileKind; x: number; y: number; vx: number; vy: number; spin: number; life: number; phase: number; from: number };
 
 /** A paper plane: launched level, held up by lift while it is fast, dipping as drag bleeds the speed. */
 export const PLANE = { speed: 520, gravity: 900, lift: 900 / (520 * 520), drag: 0.35, life: 2.4, r: 22, wobble: 40, aimUp: -150, aimDown: 250, hand: 0.75 } as const;
@@ -59,6 +59,8 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
   const heroRect = bodyRect(h);
   const open = h.invuln <= 0 && h.move?.kind !== "tumble";
   for (const m of w.missiles) {
+    // Down a hall it flies at the lane he stood in when it was thrown.
+    m.lx ??= h.lx;
     const a = { x: m.x, y: m.y };
     if (flies(m.kind)) {
       // Lift holds it up while it is fast; drag bleeds the speed, so it dips as it goes.
@@ -81,7 +83,7 @@ export function stepMissiles(w: MissileWorld, dt: number, events: GameEvent[]): 
       m.life = 0;
       continue;
     }
-    if (open && sweptHeadHits(a, m, r, heroRect)) {
+    if (open && !sideways(w.stage, h, m) && sweptHeadHits(a, m, r, heroRect)) {
       m.life = 0;
       w.hits.push(m.x);
       events.push({ type: "missileHit", kind: m.kind, x: m.x, y: m.y, floor: false, hero: true });

@@ -24,7 +24,7 @@ import {
 } from "./cast";
 import { GRAVITY_DOWN, STEP } from "./constants";
 import type { GameEvent } from "./events";
-import { bodyRect, overlapsRect } from "./geometry";
+import { bodyRect, overlapsRect, sideways } from "./geometry";
 import { BURST_R, flopRect, flopping } from "./hits";
 import { flies, launchCoffee, launchPlane, type Missile } from "./missiles";
 import { floorAt, moveBody } from "./physics";
@@ -205,7 +205,7 @@ function stepBellhop(n: Npc, w: CastWorld, events: GameEvent[]): void {
         return;
       }
       // No cart: the push lands on a man within arm's reach on his floor (not in grace, not already down).
-      if (sameLevel(n, h) && Math.abs(h.x - n.x) <= c.hold + h.w && h.invuln <= 0 && h.move?.kind !== "tumble") w.hits.push(n.x);
+      if (sameLevel(n, h) && Math.abs(h.x - n.x) <= c.hold + h.w && h.invuln <= 0 && h.move?.kind !== "tumble" && !sideways(w.stage, h, n)) w.hits.push(n.x);
       n.rest = c.rest;
     }
     return;
@@ -597,9 +597,19 @@ function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
  * Overlapping him: a stomp from above knocks them down and bounces him (students sidestep). His belly-flop knocks over
  * anyone on their feet it runs into, attack or no attack, and its bowling scores the chain like a runaway cart's.
  */
+/** How far across a hall the lecture and the slam reach, more than the mallet's lane. */
+const LATERAL_BLAST = 1.2;
+/** Down a hall whoever has seen him closes on his lane, at a walk: within this of it they can reach him. */
+const LANE = { speed: 1, near: 0.3 } as const;
+function keepToHim(n: Npc, w: CastWorld, dt: number): void {
+  if (!w.stage.hall || !n.noticed || !hittable(n)) return;
+  const gap = w.hero.lx - n.lx;
+  if (Math.abs(gap) > LANE.near) n.lx += Math.sign(gap) * Math.min(LANE.speed * dt, Math.abs(gap));
+}
+
 function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, events: GameEvent[]): void {
   const h = w.hero;
-  if (!hittable(n)) return;
+  if (!hittable(n) || sideways(w.stage, h, n)) return;
   if (flopping(h)) {
     if (n.act === "down" || !overlapsRect(flopRect(h), npcRect(n))) return;
     if (strikeNpc(n, "flop", h.facing, w, events, h.flopChain + 1)) {
@@ -686,7 +696,7 @@ function bowl(w: CastWorld, events: GameEvent[]): void {
     // closing on him hurts: one he overtakes running the same way is left behind.
     const hurt: Rect = { x: t.x - CART_HURT.w / 2, y: t.y - CART_HURT.h, w: CART_HURT.w, h: CART_HURT.h };
     const closing = (t.vx - h.vx) * Math.sign(t.vx) > 0;
-    if ((h.x - t.x) * Math.sign(t.vx) > 0 && closing && overlapsRect(hurt, bodyRect(h))) w.hits.push(t.x);
+    if ((h.x - t.x) * Math.sign(t.vx) > 0 && closing && !sideways(w.stage, h, t) && overlapsRect(hurt, bodyRect(h))) w.hits.push(t.x);
   }
   for (const s of w.cast) {
     if (!s.alive || Math.abs(s.vx) < ROLLING) continue;
@@ -701,7 +711,7 @@ function lectureOn(w: CastWorld, reach: Rect, events: GameEvent[]): void {
   let frozen = 0;
   const upright: ReadonlySet<CastAct> = new Set<CastAct>(["idle", "walk", "notice", "windup", "attack", "duck", "hop"]);
   for (const n of w.cast) {
-    if (!n.alive || !overlapsRect(reach, npcRect(n))) continue;
+    if (!n.alive || !overlapsRect(reach, npcRect(n)) || sideways(w.stage, w.hero, n, LATERAL_BLAST)) continue;
     if (n.role === "student") {
       if (n.out || !upright.has(n.act)) continue;
       n.vx = 0;
@@ -739,9 +749,10 @@ export function stepCast(w: CastWorld, dt: number, prevHeroY: number, jumpHeld: 
     n.rest = Math.max(0, n.rest - dt);
     n.bumpT += dt;
     // The slam sends everyone within its reach flying away from him.
-    if (burst && Math.hypot(n.x - burst.x, n.y - n.h / 2 - burst.y) <= BURST_R) strikeNpc(n, "burst", toward(n, w.hero) === 1 ? -1 : 1, w, events);
+    if (burst && Math.hypot(n.x - burst.x, n.y - n.h / 2 - burst.y) <= BURST_R && !sideways(w.stage, w.hero, n, LATERAL_BLAST)) strikeNpc(n, "burst", toward(n, w.hero) === 1 ? -1 : 1, w, events);
     stepAct(n, w, dt, events);
     physics(n, w, dt, events);
+    keepToHim(n, w, dt);
     contact(n, w, prevHeroY, jumpHeld, events);
     puddle(n, w, events);
   }

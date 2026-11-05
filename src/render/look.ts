@@ -68,6 +68,7 @@ import { drawVenue, type VenueView } from "./venue";
 import { EMPTY_HALL, toMeters } from "./3d/hall-state";
 import type { ThreeView } from "./3d/three-view";
 import { loadSatPieces } from "./venue-sat";
+import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
 import { NO_PAD, readPad, type Pad } from "./gamepad";
 import { Words } from "./words";
@@ -274,6 +275,7 @@ export async function startLook(
   const pigView = new PigView(scene.layers.play, particles);
   const bossView = new BossView(scene.layers.play, registry, !!opts.noart);
   const towerCarts = new TowerCarts(scene.layers.play);
+  const hallFlat = new HallFlatView(scene.layers.play);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -1150,6 +1152,7 @@ export async function startLook(
     character.container.visible = cast.container.visible = props.container.visible = flyers.container.visible = pigView.container.visible = !on;
     if (on) bossView.container.visible = false;
     towerCarts.container.visible = !on;
+    hallFlat.setVisible(!on && !!game.level.hall);
     objects.setVisible(!on);
     banquet.setVisible(id === "hungry");
     lounge.setVisible(id === "lounge");
@@ -1736,6 +1739,9 @@ export async function startLook(
     bossView.sync(cur.boss, time);
     towerCarts.container.zIndex = y - 0.65;
     towerCarts.sync(cur.movers);
+    hallFlat.container.zIndex = y - 0.66;
+    hallFlat.setVisible(!!game.level.hall);
+    if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h);
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -2240,6 +2246,7 @@ export async function startLook(
       pigView.destroy();
       bossView.destroy();
       towerCarts.destroy();
+      hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();
       gate.destroy();

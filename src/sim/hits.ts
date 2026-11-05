@@ -4,7 +4,7 @@ import type { GameEvent } from "./events";
 import { SWING_ACTIVE, moveU, type Move } from "./moves";
 import { ACTIONS } from "./rig/actions";
 import { solve } from "./rig/fk";
-import { sweptHeadHits } from "./geometry";
+import { sideways, sweptHeadHits } from "./geometry";
 import { COFFEE, PLANE, flies, type Missile } from "./missiles";
 import type { Puddle } from "./snot";
 import { knock } from "./targets";
@@ -67,7 +67,7 @@ export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): 
   // Only the arc in front of him lands: the windmill passes over his head and behind him on the way.
   const ahead = (p: Point) => (p.x - h.x) * h.facing > 0;
   for (const t of w.targets) {
-    if (m.victims.includes(t.id)) continue;
+    if (m.victims.includes(t.id) || sideways(w.stage, h, t)) continue;
     const r = rectOf(t);
     for (let k = 1; k < path.length; k++)
       if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, r)) {
@@ -79,7 +79,7 @@ export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): 
   }
   // Staff go down; a student ducks it, and the swing is done with him either way.
   for (const n of w.cast) {
-    if (m.victims.includes(n.id) || !hittable(n)) continue;
+    if (m.victims.includes(n.id) || !hittable(n) || sideways(w.stage, h, n)) continue;
     const r = npcRect(n);
     for (let k = 1; k < path.length; k++)
       if (ahead(path[k]) && sweptHeadHits(path[k - 1], path[k], MALLET_R, r)) {
@@ -90,7 +90,7 @@ export function swingContact(h: HeroState, w: SwingWorld, events: GameEvent[]): 
   }
   // A plane in the arc is swatted into confetti; a flung cup is batted down.
   for (const m of w.missiles) {
-    if (m.life <= 0) continue;
+    if (m.life <= 0 || sideways(w.stage, h, m)) continue;
     const r = flies(m.kind) ? PLANE.r : COFFEE.r;
     const box = { x: m.x - r, y: m.y - r, w: 2 * r, h: 2 * r };
     for (let k = 1; k < path.length; k++)

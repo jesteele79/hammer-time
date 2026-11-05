@@ -9,6 +9,7 @@ import { campusFloor, campusFurniture, campusPlatform, drawBeltTrays } from "./v
 import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
 import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
 import { drawSatBelt, drawSatDressing, drawSatFurniture, satFloor, type SatPieces } from "./venue-sat";
+import { drawHallFlat } from "./venue-hall-flat";
 import { towerDressing, towerFloor, towerPlatform, type TowerPieces } from "./venue-tower";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
@@ -89,6 +90,7 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   // The scanner's pass is its furniture.
   for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
   else if (p.kind !== "scanner") drawPass(back, p, root);
+  if (level.hall) drawHallFlat(back, level);
   const climb = !!level.floors;
   if (climb) towerDressing(back, level, tower);
   for (const p of level.platforms) if (!(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);

@@ -28,6 +28,18 @@ const open = async (url) => {
 const shot = (n) => page.screenshot({ path: resolve(out, n) });
 const waitMode = (m, timeout = 60000) => page.waitForFunction((want) => window.__next?.run?.mode === want, m, { timeout });
 const canvases = () => page.locator(".next-stage canvas").count();
+/** From in front of 1417: three swings of the mallet and the level is over. */
+const openTheDoor = async () => {
+  await page.evaluate(() => window.__next.dev.teleport(7850, 0));
+  await page.waitForTimeout(400);
+  for (let i = 0; i < 3 && (await page.evaluate(() => window.__next.run.mode)) === "play"; i++) {
+    await page.keyboard.press("KeyH");
+    await page.waitForTimeout(800);
+    if (i < 2) assert.equal(await page.evaluate(() => window.__next.run.events.keyFail), i + 1, `the reader fails ${i + 1}`);
+  }
+  assert.equal(await page.evaluate(() => window.__next.run.events.keyOpen), 1, "the door gives on the third");
+  await page.waitForFunction(() => window.__next.run.mode !== "play", null, { timeout: 8000 });
+};
 
 try {
   await open(`${base}?next=1&dev=1&level=hallway`);
@@ -46,6 +58,7 @@ try {
   assert.equal(three.drawing, true, "the 3D view is drawing");
   assert.ok(await page.locator(".next-hud__hint").isVisible(), "the HUD over it");
   await shot("hallway-first.png");
+  await openTheDoor();
   await page.close();
 
   await open(`${base}?next=1&dev=1&level=hallway&flat=1`);
@@ -53,6 +66,10 @@ try {
   assert.equal(await canvases(), 1, "one canvas when flat");
   assert.equal(await page.evaluate(() => window.__next.three), undefined, "no 3D view when flat");
   await shot("hallway-flat.png");
+  await page.evaluate(() => window.__next.dev.teleport(2700, 0));
+  await page.waitForTimeout(600);
+  await shot("hallway-flat-2.png");
+  await openTheDoor();
   await page.close();
 
   assert.deepEqual(errors, [], "no console errors");

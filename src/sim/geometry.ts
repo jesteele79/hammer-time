@@ -1,5 +1,9 @@
 import type { Point, Rect } from "./types";
 
+/** Whether two things down a hall are within reach of each other across it. */
+export const laterallyNear = (a: { lx?: number }, b: { lx?: number }, reach = 0.6): boolean => Math.abs((a.lx ?? 0) - (b.lx ?? 0)) <= reach;
+/** Whether two things are out of reach across the stage's hall; never off a hall. */
+export const sideways = (stage: { hall?: unknown }, a: { lx?: number }, b: { lx?: number }, reach = 0.6): boolean => !!stage.hall && !laterallyNear(a, b, reach);
 export const overlapsRect = (a: Rect, b: Rect): boolean => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 /** A body's collider: `x, y` is the feet point, `w` wide and `h` tall above it. */
 export const bodyRect = (b: { x: number; y: number; w: number; h: number }): Rect => ({ x: b.x - b.w / 2, y: b.y - b.h, w: b.w, h: b.h });

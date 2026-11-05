@@ -8,6 +8,8 @@ import type { HeroState, Point, Stage } from "./types";
 export type PickupKind = "can" | "nuts" | "bucees" | "pepper" | "keycard";
 /** A pickup: seeded ones stand still; one that came out of a crate has a body and moves. */
 export type Pickup = {
+  /** Meters across a hall. */
+  lx?: number;
   id: number;
   kind: PickupKind;
   x: number;
@@ -54,6 +56,16 @@ export const DROP = { pop: 1000 } as const;
  * the level's routes first takes one of each kind that fits its own anchors; then the rest of the Buc-ee's and nuts; then
  * a can in every SPREAD-wide stretch from his start to the exit that is still bare; then the rest of the cans.
  */
+/** How far across a hall he reaches a pickup. */
+const PICKUP_LANE = 0.5;
+/** Pickups down a hall stand in lanes across it, by the seed; the Buc-ee's is on the housekeeping cart by the wall at 44 m. */
+export function laneRewards(pickups: Pickup[], seed: number): void {
+  const rng = seededRandom(seed + 17);
+  for (const p of pickups) p.lx = p.kind === "bucees" ? 0.8 : rng() * 1.8 - 0.9;
+  const beaver = pickups.find((p) => p.kind === "bucees");
+  if (beaver) beaver.x = 4400;
+}
+
 export function seedRewards(level: Level, seed: number): Pickup[] {
   const anchors = rewardAnchors(level);
   const rng = seededRandom(seed);
@@ -126,11 +138,12 @@ export function stepPickups(pickups: Pickup[], stage: Stage, dt: number): void {
 }
 
 /** Everything his body overlaps is his, once an item is fully out of its crate. Returns the kinds taken. */
-export function collectPickups(h: Pick<HeroState, "x" | "y" | "w" | "h">, pickups: Pickup[], events: GameEvent[]): PickupKind[] {
+export function collectPickups(h: Pick<HeroState, "x" | "y" | "w" | "h"> & { lx?: number }, pickups: Pickup[], events: GameEvent[]): PickupKind[] {
   const got: PickupKind[] = [];
   const half = 35;
   for (const p of pickups) {
     if (p.taken || (p.body && p.body.emerge > 0)) continue;
+    if (Math.abs((h.lx ?? 0) - (p.lx ?? 0)) > PICKUP_LANE) continue;
     if (p.x + half < h.x - h.w / 2 || p.x - half > h.x + h.w / 2 || p.y + half < h.y - h.h || p.y - half > h.y) continue;
     p.taken = true;
     got.push(p.kind);

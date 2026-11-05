@@ -12,6 +12,8 @@ type Cue = keyof AudioBus & string;
 
 export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   keycard: ["chime"],
+  keyFail: ["thunk"],
+  keyOpen: ["thunk", "ding"],
   tier: ["fanfare"],
   chute: ["slide"],
   bossWave: ["rattle"],

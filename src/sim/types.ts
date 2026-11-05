@@ -6,6 +6,7 @@ import type { Move } from "./moves";
 import type { Pig } from "./pig";
 import type { HeatZone, SwingDoor } from "./hazards";
 import type { Puddle, Snot } from "./snot";
+import type { HallCart, HallDoor } from "./hall";
 import type { Sample } from "./samples";
 
 export type Point = { x: number; y: number };
@@ -27,6 +28,8 @@ export type Stage = {
   bounds: Rect;
   /** Flat-tops and the walk-in: heat on or off a second while he stands in one (R3). */
   heat?: HeatZone[];
+  /** A hall under the chase camera: its width in meters and how near a wall he may stand. */
+  hall?: { width: number; keep: number };
 };
 
 /** What a cart carries: the lobby's cases, a busser's dirty dishes, or the dock's trash. */
@@ -36,6 +39,8 @@ export type HeroMotion = "idle" | "walk" | "run" | "jump" | "fall" | "land" | "c
 
 /** `x, y` is the feet point; the collider is `w` wide and `h` tall above it. */
 export type HeroState = {
+  /** Meters across a hall from its middle, + his right. */
+  lx: number;
   x: number;
   y: number;
   w: number;
@@ -96,6 +101,8 @@ export type HeroState = {
 
 /** Something to hit: the lobby's practice luggage carts. `x, y` is the base center. */
 export type Target = {
+  /** Meters across a hall. */
+  lx?: number;
   id: number;
   kind: "cart";
   x: number;
@@ -114,4 +121,4 @@ export type Target = {
   spilled: boolean;
 };
 
-export type Snapshot = { time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null };
+export type Snapshot = { hallCarts: HallCart[]; hallDoors: HallDoor[]; time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null };

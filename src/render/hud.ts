@@ -94,6 +94,7 @@ const CARRY_HINT = { x: 700, y: 300 } as const;
 const CARRIED_NAME: Record<CarriedKind, string> = { can: "Coke Zero", nuts: "mixed nuts", bucees: "Buc-ee's", keycard: "a keycard" };
 
 /** The shipped game's hint (its engine's hint(), gone since R4), first match wins, without the cast's lines. */
+const HALL_FIRST_HINT = 900;
 export function hintOf(game: Game): string {
   const h = game.world.hero;
   const d = game.door;
@@ -138,6 +139,10 @@ export function hintOf(game: Game): string {
   if (h.flop && !game.run.flopped) return FLOP_HINT;
   if (h.boxes > 0 && !game.run.lobbed) return BOX_HINT;
   if (h.charge >= CHARGE_MAX) return "Super smash ready · Q";
+  if (game.level.hall) {
+    if (game.level.keyDoor && h.x >= game.level.keyDoor.x - 400) return "H on the door · the key won't open it";
+    return h.x < HALL_FIRST_HINT ? "W forward · A D sidestep" : "S back · Space jumps a cart · a turning handle swings its door out";
+  }
   const lesson = game.level.lessons?.find((l) => h.x >= l.x0 && h.x < l.x1 && !game.run.learned.includes(l.move));
   if (lesson) return lesson.text;
   if (h.x < (game.level.hints?.early ?? 0)) return "F snot rocket · jump into the ! crate for hot pepper";

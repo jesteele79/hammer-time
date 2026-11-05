@@ -152,6 +152,8 @@ export type CastSpawn = {
   load?: CartLoad;
   /** What they carry and drop when knocked out for good: the floor road's prize is a fight (owner, 2026-10-18). */
   carry?: CarriedKind;
+  /** Meters across a hall. */
+  lx?: number;
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
@@ -225,6 +227,14 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   floors?: { every: number };
   /** A hall under the chase camera (story spec §8.3): how wide in meters, how near a wall he may stand. */
   hall?: { width: number; keep: number };
+  /** Housekeeping carts rolling across it from the door at `z` meters, on `side`: first at `at` s, then every `every`. */
+  hallCarts?: { z: number; side: 1 | -1; every: number; at: number }[];
+  /** Room doors that swing out across their half of it, on the same clock. */
+  hallDoors?: { z: number; side: 1 | -1; at: number; every: number }[];
+  /** The ice alcove's leak, in meters along it: a wet floor. */
+  puddle?: { z0: number; z1: number };
+  /** The door the level ends at: how many swings of the mallet it takes, and what he thinks of each. */
+  keyDoor?: { x: number; hits: number; fails: string[] };
   /** Carts that roll along a landing. */
   movers?: MoverSpec[];
   /** Gaps that drop him one floor for the slide's seconds: `x` their left end, `y` the landing. */
@@ -246,6 +256,7 @@ export function stageOf(level: Level, extraSolids: Rect[] = []): Stage {
     passes: level.passes,
     bounds: level.bounds,
     heat: level.heat,
+    hall: level.hall,
   };
 }
 

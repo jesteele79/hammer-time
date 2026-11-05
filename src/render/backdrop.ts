@@ -236,7 +236,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     grounded.mid.addChild(s);
     mids++;
   }
-  if (!mids && level.id !== "stash" && !level.backdrop?.stack) planes.mid.addChild(drawMid(level.length));
+  if (!mids && level.id !== "stash" && !level.backdrop?.stack && !level.hall) planes.mid.addChild(drawMid(level.length));
   const fores: Sprite[] = [];
   for (const f of level.backdrop?.fore ?? []) {
     const s = await piece(f.name);

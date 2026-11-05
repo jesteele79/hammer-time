@@ -14,12 +14,14 @@ const BUTTONS: [number, Action][] = [
   [5, "run"],
   [6, "lecture"],
   [7, "super"],
-  [12, "jump"],
+  [12, "up"],
   [13, "down"],
   [14, "left"],
   [15, "right"],
 ];
 const START = 9;
+/** How far up the left stick counts as up: further than its other ways, as it jumps in a 2D level. */
+const STICK_UP = 0.6;
 
 /** One pad's state as actions: its buttons by the standard mapping, the left stick past `deadzone` as left, right and down. */
 export function mapPad(buttons: readonly { pressed: boolean }[], axes: readonly number[], deadzone = 0.35): Omit<Pad, "connected"> {
@@ -29,6 +31,7 @@ export function mapPad(buttons: readonly { pressed: boolean }[], axes: readonly 
   if (x <= -deadzone) held.add("left");
   if (x >= deadzone) held.add("right");
   if (y >= deadzone) held.add("down");
+  if (y <= -Math.max(deadzone, STICK_UP)) held.add("up");
   return { held, start: !!buttons[START]?.pressed };
 }
 

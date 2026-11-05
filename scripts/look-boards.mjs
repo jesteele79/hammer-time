@@ -95,6 +95,16 @@ try {
     await page.screenshot({ path: resolve(out, "supervisor-3.png") });
     count += 3;
   }
+  if (want("hallway-flat")) {
+    await page.goto(`${base}?next=1&dev=1&level=hallway&flat=1`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    for (const [i, x] of [600, 2800, 5100].entries()) {
+      await page.evaluate((at) => window.__next.dev.teleport(at, 0), x);
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: resolve(out, `hallway-flat-${i + 1}.png`) });
+      count++;
+    }
+  }
   for (const venue of ["sat", "restaurant", "campus", "arena", "lobby-night", "tower"]) {
     if (!want(venue)) continue;
     await page.goto(`${base}?next=1&board=1&venue=${venue}`);

@@ -1,6 +1,8 @@
 export type Action =
   | "left"
   | "right"
+  /** W and the up arrow: a jump in every 2D level, forward down a hall. */
+  | "up"
   | "jump"
   | "run"
   | "down"
@@ -10,10 +12,15 @@ export type Action =
   | "super"
   | "lecture" | "box";
 
-export const ACTIONS: Action[] = ["left", "right", "jump", "run", "down", "fire", "towel", "hammer", "super", "lecture", "box"];
+export const ACTIONS: Action[] = ["left", "right", "up", "jump", "run", "down", "fire", "towel", "hammer", "super", "lecture", "box"];
 
 /** `held` is the state this step; `pressed` is true only on the step an action went down. */
-export type Input = { held: Record<Action, boolean>; pressed: Record<Action, boolean> };
+export type Input = {
+  held: Record<Action, boolean>;
+  pressed: Record<Action, boolean>;
+  /** Down a hall: his sidestep this step, A and D. */
+  strafe?: -1 | 0 | 1;
+};
 
 const none = () => Object.fromEntries(ACTIONS.map((a) => [a, false])) as Record<Action, boolean>;
 
@@ -28,9 +35,9 @@ export const KEY_BINDINGS: Record<string, Action> = {
   ArrowRight: "right",
   KeyD: "right",
   Space: "jump",
-  KeyW: "jump",
+  KeyW: "up",
   KeyZ: "jump",
-  ArrowUp: "jump",
+  ArrowUp: "up",
   ShiftLeft: "run",
   ShiftRight: "run",
   KeyJ: "run",

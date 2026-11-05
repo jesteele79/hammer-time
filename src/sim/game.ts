@@ -12,7 +12,8 @@ import type { Missile } from "./missiles";
 import { CHARGE_MAX, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { PIG, createPig } from "./pig";
-import { collectPickups, dropPickup, keycardsOf, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
+import { createHallCarts, createHallDoors, KEY_REACH } from "./hall";
+import { collectPickups, dropPickup, keycardsOf, laneRewards, seedRewards, stepPickups, type Pickup, type PickupKind } from "./rewards";
 import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
@@ -122,6 +123,8 @@ export const THINK = { seconds: 3, reach: 160 } as const;
 const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", slide: "slide", swing: "swing", sniff: "snot", wipeStart: "wipe" };
 /** The seconds a laundry chute's slide costs him, and how long a wet floor holds him. */
 /** `slipAgain`: how long a stumble keeps him on his feet after it, long enough to walk off the wet stretch. */
+/** The key door among the mallet's victims: clear of the carts', the cast's and the bosses'. */
+const KEY_ID = 902;
 export const TOWER_TRAPS = { chute: 2, slip: 0.5, slipSpeed: 60, slipAgain: 1.6 } as const;
 /** How near a tall level's punch clock he must pass, on its floor. */
 const CLOCK_REACH = 120;
@@ -179,7 +182,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** How high his feet were at the end of the last step: a chute is fallen into from above it. */
   let feetFrom = 0;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
-  let onSlip: Point | null = null;
+  /** Keys held through a card down a hall: not a step until they are let go. */
+  const heldThrough = { up: false, down: false };
+  /** How many times the mallet has met 1417's reader this life. */
+  let keyHits = 0;
+  let onSlip: unknown = null;
   let slipCool = 0;
 
   const game: Game = {
@@ -246,6 +253,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // A level's layout is its own wherever the run began: seeded by its place in the whole shift (SAT after it).
     const place = wholeShift.indexOf(level);
     game.pickups = [...seedRewards(level, game.run.seed + (place >= 0 ? place : wholeShift.length) * VENUE_SEED), ...keycardsOf(level, game.run.spots)];
+    if (level.hall) laneRewards(game.pickups, game.run.seed);
     bonkedIds.clear();
     const k = level.checkpoints.find((c) => c.id === game.run.checkpoint);
     const set = game.run.checkpoint === AMBASSADOR_CHECKPOINT ? game.run.checkpointAt : undefined;
@@ -259,6 +267,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // The gift shop's pig sleeps at its spot, fresh, each time the venue is laid out.
     world.pig = level.boss?.kind === "pig" ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
     world.boss = level.boss && level.boss.kind !== "pig" ? createBoss(level.boss, level.boss.y ?? 0) : null;
+    world.hallCarts = createHallCarts(level);
+    world.hallDoors = createHallDoors(level);
+    keyHits = 0;
+    world.hero.lx = 0;
     world.zone = null;
     world.cast = opts.cast === false ? [] : createCast(level, world.targets, game.run.seed);
     world.missiles = [];
@@ -845,6 +857,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     thinkFrom = h.x;
     towerTraps(ev);
     feetFrom = h.y;
+    if (keyDoor(ev)) return;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {
@@ -901,6 +914,51 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     } else if (h.move?.kind === "tumble" && moveU(h.move) >= RUN.lieAt) die(ev);
   }
 
+  /** The mallet on 1417's reader: it fails, and fails, and on the last swing the door gives. True once the level is ending. */
+  function keyDoor(ev: GameEvent[]): boolean {
+    const key = game.level.keyDoor;
+    const h = world.hero;
+    const m = h.move;
+    if (!key || m?.kind !== "swing" || !world.swing.length || m.victims.includes(KEY_ID) || Math.abs(h.x - key.x) > KEY_REACH) return false;
+    m.victims.push(KEY_ID);
+    keyHits++;
+    ev.push({ type: "think", text: key.fails[Math.min(keyHits, key.fails.length) - 1], seconds: THINK.seconds });
+    if (keyHits < key.hits) {
+      ev.push({ type: "keyFail", n: keyHits, x: key.x, y: h.y - h.h * 0.6 });
+      return false;
+    }
+    ev.push({ type: "keyOpen", x: key.x, y: h.y - h.h * 0.6 });
+    world.hits = [];
+    ev.push({ type: "exit" });
+    setMode("walkoff", ev, RUN.walkoffT);
+    return true;
+  }
+
+  /** A hall's keys as the sim's: W forward, S back, A and D his sidestep, and no slide; a key held through a card is not a step. */
+  function hallInput(given: Input): Input {
+    const { held, pressed } = given;
+    if (game.mode !== "play") {
+      heldThrough.up = held.up;
+      heldThrough.down = held.down;
+    } else {
+      if (!held.up) heldThrough.up = false;
+      if (!held.down) heldThrough.down = false;
+    }
+    const forward = held.up && !heldThrough.up;
+    const back = held.down && !heldThrough.down;
+    return {
+      held: { ...held, right: forward, left: back, down: false, up: false },
+      pressed: { ...pressed, right: pressed.up && forward, left: pressed.down && back, down: false, up: false },
+      strafe: ((held.right ? 1 : 0) - (held.left ? 1 : 0)) as -1 | 0 | 1,
+    };
+  }
+
+  /** Off a hall W and the up arrow are a jump, as they have always been. */
+  function upJumps(given: Input): Input {
+    if (!given.held.up && !given.pressed.up) return given;
+    return { ...given, held: { ...given.held, jump: given.held.jump || given.held.up }, pressed: { ...given.pressed, jump: given.pressed.jump || given.pressed.up } };
+  }
+
   /** The tower's traps: falling through a chute's gap costs the slide's seconds and no more; stepping on a wet floor slips him. */
   function towerTraps(ev: GameEvent[]) {
     const h = world.hero;
@@ -910,7 +968,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       h.vx = 0;
       ev.push({ type: "chute", x: h.x, y: chute.y });
     }
-    const slip = game.level.slips?.find((s) => Math.abs(h.y - s.y) < 4 && Math.abs(h.x - s.x) < 70) ?? null;
+    const wet = game.level.puddle;
+    const slip = game.level.slips?.find((s) => Math.abs(h.y - s.y) < 4 && Math.abs(h.x - s.x) < 70) ?? (wet && h.x >= wet.z0 * 100 && h.x <= wet.z1 * 100 ? wet : null);
     slipCool = Math.max(0, slipCool - STEP);
     if (slip && slip !== onSlip && slipCool <= 0 && h.onGround && Math.abs(h.vx) > TOWER_TRAPS.slipSpeed && h.invuln <= 0) {
       h.vx = -h.vx;
@@ -941,7 +1000,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (input.held.run && Math.abs(h.vx) > 0) did("run");
   }
 
-  function step(input: Input) {
+  function step(given: Input) {
+    const input = game.level.hall ? hallInput(given) : upJumps(given);
     const ev: GameEvent[] = [];
     game.events = ev;
     if (game.mode === "card") {

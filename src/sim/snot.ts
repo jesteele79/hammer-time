@@ -1,6 +1,7 @@
 import { hittable, npcRect, strikeNpc, type Npc, type SpillKind } from "./cast";
 import { HEAD_SCALE } from "./constants";
 import type { GameEvent } from "./events";
+import { sideways } from "./geometry";
 import { sweptHeadHits } from "./hits";
 import { HEAT, SNOT_FIRE_U, moveU } from "./moves";
 import { floorAt } from "./physics";
@@ -12,7 +13,7 @@ import { knock } from "./targets";
 import type { HeroState, Stage, Target } from "./types";
 
 /** `id` is unique in the world, so the renderer can match a blob across two steps. */
-export type Snot = { id: number; x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
+export type Snot = { lx?: number; id: number; x: number; y: number; vx: number; vy: number; life: number; hot: boolean; pierce: number; hit: number[] };
 /** Snot, the tray's water or coffee on the floor: staff slip on any of them. `hot`: the pepper's snot, drawn chili-flecked. */
 export type Puddle = { x: number; y: number; w: number; life: number; max: number; kind: "snot" | SpillKind; hot?: boolean };
 
@@ -45,6 +46,7 @@ export function fireSnot(h: HeroState, w: { snot: Snot[]; nextSnot: number }, ev
   const x = h.x + s.nose.x + h.facing * (SNOT.ahead + r);
   const y = h.y + s.nose.y;
   w.snot.push({
+    lx: h.lx,
     id: ++w.nextSnot,
     x,
     y,
@@ -74,7 +76,7 @@ export function stepSnot(
     const r = b.hot ? SNOT.hotR : SNOT.r;
     // On the home screen it flies past everyone and every cart and lands on the floor: the scene stays as it is.
     for (const t of w.still ? [] : w.targets) {
-      if (b.life <= 0 || b.hit.includes(t.id)) continue;
+      if (b.life <= 0 || b.hit.includes(t.id) || sideways(w.stage, b, t)) continue;
       if (!sweptHeadHits(a, b, r, { x: t.x - t.w / 2, y: t.y - t.h, w: t.w, h: t.h })) continue;
       b.hit.push(t.id);
       knock(t, b.vx > 0 ? 1 : -1, 420, 180);
@@ -84,7 +86,7 @@ export function stepSnot(
       else b.life = 0;
     }
     for (const n of w.still ? [] : w.cast) {
-      if (b.life <= 0 || b.hit.includes(n.id) || !hittable(n)) continue;
+      if (b.life <= 0 || b.hit.includes(n.id) || !hittable(n) || sideways(w.stage, b, n)) continue;
       if (!sweptHeadHits(a, b, r, npcRect(n))) continue;
       b.hit.push(n.id);
       if (!strikeNpc(n, "snot", b.vx > 0 ? 1 : -1, w, events)) continue;
