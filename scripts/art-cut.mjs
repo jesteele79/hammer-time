@@ -1544,6 +1544,14 @@ export function nameGatePieces(pieces) {
   return Object.fromEntries(GATE_PIECES.map((name, i) => [name, pieces[i]]));
 }
 
+/** The tower sheet's pieces, left to right as painted (story Phase 2); src/art/registry.ts has the same list. */
+export const TOWER_PIECES = ["cart", "ice", "chute", "cabinet", "sign"];
+/** The tower sheet's pieces by name; a sheet with more or fewer than five is refused, its painting to be redone. */
+export function nameTowerPieces(pieces) {
+  if (pieces.length !== TOWER_PIECES.length) throw new Error(`the tower sheet has ${pieces.length} pieces, not ${TOWER_PIECES.length}`);
+  return Object.fromEntries(TOWER_PIECES.map((name, i) => [name, pieces[i]]));
+}
+
 /** The SAT sheet's pieces, left to right as painted (story Phase 1); src/art/registry.ts has the same list. */
 export const SAT_PIECES = ["stanchion", "bin", "kiosk", "van", "sign", "pretzel"];
 /** The SAT sheet's pieces by name; a sheet with more or fewer than six is refused, its painting to be redone. */

@@ -10,7 +10,8 @@ import type { JointName } from "./skeleton";
  * The cast's poses on Hammer's skeleton (the R2b design §7): every act of every role, as rotations
  * away from the painted stance. Pure, so the checks can step through every frame.
  */
-export type CastPoseCtx = { role: CastRole; act: CastAct; t: number; speed: number; onGround: boolean; sit: boolean; spin: number; hits: number };
+/** `flat`: a figure painted in a long skirt, who lies down rather than sit (it would go through the floor). */
+export type CastPoseCtx = { role: CastRole; act: CastAct; t: number; speed: number; onGround: boolean; sit: boolean; spin: number; hits: number; flat?: boolean };
 
 const TAU = Math.PI * 2;
 type K = readonly Key[];
@@ -327,6 +328,15 @@ const down = (t: number): Pose =>
     headTilt: 6 * Math.sin(t * TAU),
   });
 
+/** Flat on her back, whole, like a plank: a skirt painted down to its hem cannot sit, it would go through the floor. */
+const LIE = { spin: 88, shoulder: -24 } as const;
+const lying = (t: number, up = 0): Pose =>
+  pose({
+    rot: { shoulderNear: LIE.shoulder, shoulderFar: LIE.shoulder - 6, elbowNear: 8, elbowFar: 8 },
+    spin: LIE.spin * (1 - up),
+    headTilt: 4 * Math.sin(t * TAU),
+  });
+
 // Getting up: the knees pulled in under him, then up through a crouch to standing.
 const GETUP = {
   hip: [[0, SIT.hip], [0.4, 125], [0.65, 70], [1, 0]] as K,
@@ -335,8 +345,9 @@ const GETUP = {
   drop: [[0, 0], [0.4, -20], [0.65, -60], [1, 0]] as K,
   shoulder: [[0, SIT.shoulder], [1, HANG.shoulderNear]] as K,
 };
-const getup = (t: number): Pose => {
+const getup = (t: number, flat = false): Pose => {
   const u = clamp01(t / T.getup);
+  if (flat) return lying(t, smooth(u));
   const hip = at(GETUP.hip, u);
   const knee = at(GETUP.knee, u);
   return pose({
@@ -457,9 +468,9 @@ export function castPose(c: CastPoseCtx): Pose {
     case "fly":
       return fly(t, c.spin);
     case "down":
-      return down(t);
+      return c.flat ? lying(t) : down(t);
     case "getup":
-      return getup(t);
+      return getup(t, c.flat);
     case "slide":
       return slide(t);
     case "slip":

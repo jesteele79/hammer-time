@@ -46,7 +46,7 @@ try {
   if (want("key-art")) await webp(existsSync(owner) ? readFileSync(owner) : await titleFrame(), 1600, "key-art.webp");
   if (want("key-art-night")) await webp(await titleFrame("&home=night"), 1600, "key-art-night.webp");
   // The journey's built stops (src/sim/levels/index.ts), each drawn at its own start frame.
-  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
+  if (want("starts")) for (const venue of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower"]) await webp(await shot(venue, "thumb"), 640, `${venue}.webp`);
   // The side quests' cards, drawn by the game: the banquet at the entrees, the gate on a streak (R5 §11).
   for (const [name, url, kind] of [
     ["banquet", `${base}?next=1&board=1&quest=hungry`, "banquet-thumb"],

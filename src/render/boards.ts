@@ -89,6 +89,12 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
     { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
     { x: 3200, y: -180, cx: 3700, cy: -380, zoom: 0.92 },
   ],
+  // The foot of the first flight, floor 6 with its wet floor, and the flight up to the supervisor.
+  tower: [
+    { x: 2300, y: 0, cx: 1800 },
+    { x: 700, y: -2700, cx: 800, cy: -3000 },
+    { x: 1900, y: -5400 - 378, cx: 1800, cy: -6000, zoom: 0.9 },
+  ],
   "lobby-night": [
     { x: 1100, cx: 1600 },
     { x: 8000, y: -520, cx: 8400, zoom: 0.88 },
@@ -104,6 +110,7 @@ export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   campus: { x: 7250, y: -120, cx: 8100, cy: -420, zoom: 0.88 },
   arena: { x: 1300, y: -180, cx: 2100, cy: -380, zoom: 0.92 },
   "lobby-night": { x: 1100, cx: 1600 },
+  tower: { x: 1200, y: -3780, cx: 1200, cy: -4020, zoom: 0.9 },
 };
 
 const LOBBY_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: number }[] = [

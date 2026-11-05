@@ -65,6 +65,7 @@ import type { PickupKind } from "../sim/rewards";
 import { installFonts, label } from "./text";
 import { drawVenue, type VenueView } from "./venue";
 import { loadSatPieces } from "./venue-sat";
+import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
 import { NO_PAD, readPad, type Pad } from "./gamepad";
 import { Words } from "./words";
 import { stepWalkOut, walkOutFrom, type WalkOut } from "./walk-out";
@@ -267,6 +268,7 @@ export async function startLook(
   const flyers = new Flyers(scene.layers.play, particles, scene.ambient);
   const pigView = new PigView(scene.layers.play, particles);
   const bossView = new BossView(scene.layers.play, registry, !!opts.noart);
+  const towerCarts = new TowerCarts(scene.layers.play);
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -284,7 +286,16 @@ export async function startLook(
       p = (async () => {
         const backdrop = await loadBackdrop(scene, level, registry);
         if (stopped) return;
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null);
+        const towerPieces: TowerPieces = level.floors && !opts.noart ? await loadTowerPieces(registry) : {};
+        if (level.floors) {
+          towerCarts.setArt(towerPieces);
+          const looks = (name: "ice" | "cabinet") => {
+            const p = towerPieces[name];
+            return p ? { texture: p.texture, height: p.piece.height, width: p.piece.width, base: p.piece.base } : undefined;
+          };
+          objects.setLooks({ ice: looks("ice"), cabinet: looks("cabinet") });
+        }
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -1049,6 +1060,7 @@ export async function startLook(
     if (!on && shown) lighting.setGroup(shown);
     character.container.visible = cast.container.visible = props.container.visible = flyers.container.visible = pigView.container.visible = !on;
     if (on) bossView.container.visible = false;
+    towerCarts.container.visible = !on;
     objects.setVisible(!on);
     banquet.setVisible(id === "hungry");
     lounge.setVisible(id === "lounge");
@@ -1627,6 +1639,8 @@ export async function startLook(
     pigView.sync(prev.pig, cur.pig, alpha, simDt);
     bossView.sort(y - 0.7);
     bossView.sync(cur.boss, time);
+    towerCarts.container.zIndex = y - 0.65;
+    towerCarts.sync(cur.movers);
 
     const fb = solved.faceBox;
     const face: Rect = { x: x + fb.x, y: drawY + fb.y, w: fb.w, h: fb.h };
@@ -2130,6 +2144,7 @@ export async function startLook(
       cast.destroy();
       pigView.destroy();
       bossView.destroy();
+      towerCarts.destroy();
       banquet.destroy();
       lounge.destroy();
       gate.destroy();

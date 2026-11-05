@@ -9,6 +9,7 @@ import { campusFloor, campusFurniture, campusPlatform, drawBeltTrays } from "./v
 import { drawGantry, restaurantFloor, restaurantFurniture, restaurantPlatform } from "./venue-restaurant";
 import { giftshopFloor, giftshopFurniture, giftshopPlatform } from "./venue-giftshop";
 import { drawSatBelt, drawSatDressing, drawSatFurniture, satFloor, type SatPieces } from "./venue-sat";
+import { towerDressing, towerFloor, towerPlatform, type TowerPieces } from "./venue-tower";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
 import { label } from "./text";
@@ -70,8 +71,8 @@ export function escalatorSteps(seg: FloorSegment, t: number): Point[] {
   return out;
 }
 
-/** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs; SAT's sheet where it is in. */
-export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null): VenueView {
+/** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs; SAT's and the tower's sheets where they are in. */
+export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}): VenueView {
   const root = new Container();
   root.zIndex = SCENERY_Z;
   root.sortableChildren = false;
@@ -88,10 +89,12 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   // The scanner's pass is its furniture.
   for (const p of level.passes) if (p.kind === "gantry") drawGantry(back, p);
   else if (p.kind !== "scanner") drawPass(back, p, root);
-  for (const p of level.platforms) if (!restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
+  const climb = !!level.floors;
+  if (climb) towerDressing(back, level, tower);
+  for (const p of level.platforms) if (!(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
   const airport = level.id === "sat";
   for (const f of level.floor)
-    if (!(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
+    if (!(climb && towerFloor(front, f)) && !(airport && satFloor(front, f)) && !restaurantFloor(front, f) && !campusFloor(front, f, level.floor) && !giftshopFloor(front, f)) drawFloor(front, f, level);
   if (airport) drawSatDressing(back, front, level, sat);
   drawPits(back, level);
   const doorG = new Graphics();

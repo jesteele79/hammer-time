@@ -1482,8 +1482,31 @@ test("the camera's rest focus puts the walking line at 78 percent of the view in
 
 import { TIERS, firstTier, gpuClassOf, isDesktopGpu } from "../src/render/quality.ts";
 import { ambientOf, lightsOf } from "../src/render/lighting.ts";
+import { stackWalls } from "../src/render/backdrop.ts";
 import { PALETTE } from "../src/render/palette.ts";
 import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
+test("a housekeeper knocked down lies flat, her painted skirt out along the floor; everyone else sits", () => {
+  const flat = solve(castPose({ role: "bellhop", act: "down", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0, flat: true }), 1, 0.26);
+  const sat = solve(castPose({ role: "bellhop", act: "down", t: 0, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 }), 1, 0.26);
+  const span = (s) => Math.abs(s.joints.neck.y - s.joints.pelvis.y);
+  assert.ok(span(flat) < span(sat) * 0.25, `${span(flat)} against ${span(sat)}`);
+});
+test("the tower's walls stack a floor at a time: each row's floor line on its landing, alternating, up past the top, the lower floors over the upper", () => {
+  const walls = [{ width: 1426, height: 1024, floor: 786 }, { width: 1432, height: 1024, floor: 787 }];
+  const rows = stackWalls({ bounds: { x: -400, y: -8200, w: 3200, h: 8800 }, floors: { every: 540 } }, walls, 0.25, 1400);
+  assert.equal(rows.length, 16, "up past the top of the bounds");
+  assert.deepEqual(rows.map((r) => r.floor), Array.from({ length: 16 }, (_, i) => 16 - i), "the highest first: a lower floor's top covers an upper floor's carpet");
+  for (const r of rows) {
+    assert.equal(r.y, -540 * (r.floor - 1));
+    assert.ok(Math.abs(r.scale * walls[r.columns[0].index].floor - 540) < 1e-6, "floor to the landing above");
+    const left = r.columns[0].x;
+    const last = r.columns[r.columns.length - 1];
+    const k = (w) => 540 / walls[w].floor;
+    assert.ok(left <= -400 * 0.25 - 1400, "covers the left of the far plane");
+    assert.ok(last.x + walls[last.index].width * k(last.index) >= 2800 * 0.25 + 1400, "and the right");
+  }
+  for (let i = 1; i < rows.length; i++) assert.notEqual(rows[i].columns[0].index, rows[i - 1].columns[0].index, "alternating a floor at a time");
+});
 test("a night level has the cool ambient and tighter, brighter lamps; a day level is unchanged", () => {
   assert.deepEqual([ambientOf(LOBBY), ambientOf(LOBBY_NIGHT)], [PALETTE.lobbyAmbient, PALETTE.nightAmbient]);
   const day = lightsOf(LOBBY)[0], night = lightsOf(LOBBY_NIGHT)[0];

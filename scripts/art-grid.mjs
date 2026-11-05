@@ -29,14 +29,16 @@ const banquetTarget = target.startsWith("banquet/")
       ? "gate-sheet"
       : target === "sat/sheet"
         ? "sat-sheet"
-        : null;
+        : target === "tower/sheet"
+          ? "tower-sheet"
+          : null;
 const banquetFile =
-  banquetTarget === "room" ? "art/incoming/backdrops/ballroom.png" : banquetTarget === "table" ? "art/incoming/props/banquet-table.png" : banquetTarget === "gate-room" ? "art/incoming/backdrops/gate.png" : banquetTarget === "gate-sheet" ? "art/incoming/props/gate-sheet.png" : banquetTarget === "sat-sheet" ? "art/incoming/props/sat-sheet.png" : null;
+  banquetTarget === "room" ? "art/incoming/backdrops/ballroom.png" : banquetTarget === "table" ? "art/incoming/props/banquet-table.png" : banquetTarget === "gate-room" ? "art/incoming/backdrops/gate.png" : banquetTarget === "gate-sheet" ? "art/incoming/props/gate-sheet.png" : banquetTarget === "sat-sheet" ? "art/incoming/props/sat-sheet.png" : banquetTarget === "tower-sheet" ? "art/incoming/props/tower-sheet.png" : null;
 const rawPng = wall ? readFileSync(`art/incoming/backdrops/${wall}.png`) : banquetTarget === "room" || banquetTarget === "gate-room" ? readFileSync(banquetFile) : null;
 const keyed = rawPng
   ? { png: rawPng, ...(await sharp(rawPng).metadata()) }
   : await keyOut(
-      readFileSync(banquetTarget === "table" || banquetTarget === "gate-sheet" || banquetTarget === "sat-sheet" ? banquetFile : pig ? "art/incoming/pig/pig-body.png" : person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`),
+      readFileSync(banquetTarget === "table" || banquetTarget === "gate-sheet" || banquetTarget === "sat-sheet" || banquetTarget === "tower-sheet" ? banquetFile : pig ? "art/incoming/pig/pig-body.png" : person ? `art/incoming/cast/${person}.png` : `art/incoming/hammer/body-${target}.png`),
     );
 const [x0, y0, w, h] = args.length >= 5 ? args.slice(1, 5).map(Number) : [0, 0, keyed.width, keyed.height];
 const scale = Number(args[5] ?? (args.length >= 5 ? 2 : 1));

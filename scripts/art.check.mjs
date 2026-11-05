@@ -395,6 +395,7 @@ test("a profile head registers its nose tip at the face box's front edge", async
 
 const CAST_IN = "art/incoming/cast";
 import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
+import { TOWER } from "../src/sim/levels/tower.ts";
 const PERSONS = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "guard-1", "titanium", "housekeeper-1"];
 /** The cast bodies with a painting and a cut: every cast check runs on each. */
 const CAST_CUT = PERSONS.filter((p) => existsSync(`${CAST_IN}/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`));
@@ -653,8 +654,17 @@ test("each hatted person's cut names the hat it seats, and the sync registers ev
     if (existsSync(`${CAST_IN}/${name}-hat.png`)) assert.ok(reg.cast.hats[name]?.span > 0 && reg.cast.hats[name].pivot, `${name}'s hat`);
 });
 
+test("the tower's sheet names five pieces in order, the lists agree; its walls are cut", async () => {
+  const { TOWER_PIECES } = await import("../src/art/registry.ts");
+  const cut = await import("./art-cut.mjs");
+  assert.deepEqual([...TOWER_PIECES], cut.TOWER_PIECES);
+  assert.deepEqual([...TOWER_PIECES], ["cart", "ice", "chute", "cabinet", "sign"]);
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  if (existsSync("art/incoming/props/tower-sheet.png")) assert.deepEqual(Object.keys(reg.tower.pieces), [...TOWER_PIECES]);
+  for (const w of TOWER.backdrop.walls) if (existsSync(`art/incoming/backdrops/${w}.png`)) assert.ok(reg.walls[w], w);
+});
 test("every recolor the night asks of a painting is in that painting's cut", () => {
-  for (const s of LOBBY_NIGHT.cast) {
+  for (const s of [...LOBBY_NIGHT.cast, ...TOWER.cast]) {
     if (!s.recolor || !existsSync(`art/cuts/cast-${s.person}.json`)) continue;
     assert.ok(JSON.parse(readFileSync(`art/cuts/cast-${s.person}.json`, "utf8")).recolors?.[s.recolor], `${s.id}: ${s.person} has no ${s.recolor} mask`);
   }

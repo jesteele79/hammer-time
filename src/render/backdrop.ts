@@ -100,6 +100,33 @@ export function layWalls(walls: Pick<Wall, "width">[], scale: number, center: nu
   return out;
 }
 
+/**
+ * A tall level's walls, a floor at a time (the tower): each row's floor line on its landing, the wall scaled so its top row
+ * meets the landing above, alternating walls up the floors and across the row; one row past the top floor for the ceiling.
+ * The highest floor comes first: a lower floor's wall, drawn over it, covers the carpet painted under the one above.
+ */
+export function stackWalls(level: Pick<Level, "bounds" | "floors">, walls: Pick<Wall, "width" | "height" | "floor">[], pan: number, half: number): { floor: number; y: number; scale: number; columns: { index: number; x: number }[] }[] {
+  const every = level.floors?.every ?? 540;
+  const b = level.bounds;
+  const top = Math.ceil(-b.y / every);
+  const from = b.x * pan - half;
+  const to = (b.x + b.w) * pan + half;
+  const rows = [];
+  for (let k = top; k >= 1; k--) {
+    const columns: { index: number; x: number }[] = [];
+    let x = from - walls[0].width * (every / walls[0].floor);
+    let c = 0;
+    while (x < to) {
+      const index = (k + c) % walls.length === 0 ? 1 % walls.length : 0;
+      columns.push({ index, x });
+      x += walls[index].width * (every / walls[index].floor);
+      c++;
+    }
+    rows.push({ floor: k, y: -every * (k - 1), scale: every / walls[columns[0].index].floor, columns });
+  }
+  return rows;
+}
+
 export type Backdrop = { setVisible(on: boolean): void; update(face: Rect | null, dt: number, ground: number | null): void };
 
 /**
@@ -142,7 +169,22 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   const walls = wallsFor(level, registry);
   // A wall that does not load leaves the venue its photo, never a gap in the row.
   const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
-  if (walls && textures) {
+  if (level.backdrop?.stack && walls && textures) {
+    for (const row of stackWalls(level, walls, farPan(level), VIEW_HALF))
+      for (const { index, x } of row.columns) {
+        const w = walls[index];
+        const k = (level.floors?.every ?? 540) / w.floor;
+        const s = new Sprite(textures[index]);
+        s.position.set(x, row.y - w.floor * k);
+        s.scale.set(k);
+        s.tint = wallTint;
+        grounded.far.addChild(s);
+      }
+    planes.mid.addChild(new Graphics().rect(-20000, FLOOR.depth, 60000, 6000).fill(GROUND));
+  } else if (level.backdrop?.stack) {
+    // The walls not painted yet: plain block a floor at a time.
+    planes.far.addChild(blockWall(level.length * 3, b.y, b.y + b.h));
+  } else if (walls && textures) {
     const scale = wallScale(walls, level);
     const pan = farPan(level);
     const extent: [number, number] = [b.x * pan - VIEW_HALF, (b.x + b.w) * pan + VIEW_HALF];
@@ -194,7 +236,7 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
     grounded.mid.addChild(s);
     mids++;
   }
-  if (!mids && level.id !== "stash") planes.mid.addChild(drawMid(level.length));
+  if (!mids && level.id !== "stash" && !level.backdrop?.stack) planes.mid.addChild(drawMid(level.length));
   const fores: Sprite[] = [];
   for (const f of level.backdrop?.fore ?? []) {
     const s = await piece(f.name);
@@ -226,12 +268,12 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
 }
 
 /** The stash's back wall: painted block, a pipe run and a strip light, in the far plane. */
-function blockWall(length: number): Graphics {
+function blockWall(length: number, top = -1400, bottom = 0): Graphics {
   const g = new Graphics();
   const block = tones("#5d6460");
   const w = length * PARALLAX.far + 2400;
-  g.rect(-1200, -1400, w, 1400).fill(block.base);
-  for (let y = -1400, row = 0; y < 0; y += 70, row++) {
+  g.rect(-1200, top, w, bottom - top).fill(block.base);
+  for (let y = top, row = 0; y < bottom; y += 70, row++) {
     g.rect(-1200, y, w, 4).fill(block.shadow);
     for (let x = -1200 + (row % 2) * 70; x < w; x += 140) g.rect(x, y, 4, 70).fill(block.shadow);
   }

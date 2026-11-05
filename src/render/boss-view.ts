@@ -49,8 +49,8 @@ export class BossView {
     this.container.visible = !!b && !!this.figure && this.kind === b.kind;
     if (!b || !this.figure || this.kind !== b.kind) return;
     const act = b.state === "down" ? "down" : b.state === "windup" ? "windup" : b.state === "wave" ? "attack" : "idle";
-    const pose = castPose({ role: "bellhop", act, t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
-    this.figure.pose(pose, b.facing, { x: b.x, y: b.y }, b.state === "down" || b.flinch > 0, time, b.state === "down" ? "none" : "planted");
+    const pose = castPose({ role: "bellhop", act, t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0, flat: true });
+    this.figure.pose(pose, b.facing, { x: b.x, y: b.y }, b.state === "down" || b.flinch > 0, time, b.state === "down" ? "body" : "planted");
   }
 
   /** Behind him, whatever he does. */

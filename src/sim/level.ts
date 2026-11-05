@@ -99,7 +99,7 @@ export type SwingDoorSpec = { id: string; x: number; y: number; server: string }
  * `far` is for a short venue with wide walls: its own wall scale and far plane's pan, so the whole row is walked past.
  * A fore piece stands at the size it was painted unless it says otherwise.
  */
-export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number } };
+export type BackdropSpec = { walls: string[]; mid: { name: string; x: number }[]; fore: { name: string; x: number; scale?: number }[]; far?: { pan: number; scale: number }; stack?: "up" };
 /**
  * A level's boss: the gift shop's pig (where it sleeps and the arena he is held in once it wakes, R3 §3.3, §5.1), the
  * tower's supervisor (where she stands, her flight's top and foot, `y` her landing).

@@ -50,6 +50,8 @@ const productCopy = (k: Product) => `${ART_BASE}products/${k}.webp`;
 const productTextures = new Map<Product, Texture>();
 /** The can stencilled on the Coke Zero crate stands this tall. */
 const CRATE_CAN = 56;
+/** How tall the tower's pictured crates stand: taller than the crate they are, at their real size against him. */
+const LOOK_HEIGHT = { ice: 200, cabinet: 160 } as const;
 
 /** Loads the product pictures once. Returns how many of the three pickups have theirs; the rest keep the drawn stand-in. */
 export async function loadProducts(): Promise<number> {
@@ -232,12 +234,18 @@ export class Objects {
   private t = 0;
   private dt = 0;
   private steam = 0;
+  /** The pictures a crate with a look wears (the tower's ice machine, its hose cabinet); drawn crates without them. */
+  private looks: Partial<Record<"ice" | "cabinet", { texture: Texture; height: number; base: { x: number; y: number }; width: number }>> = {};
 
   constructor(
     layer: Container,
     private readonly particles: Particles,
   ) {
     layer.addChild(this.root);
+  }
+
+  setLooks(looks: Partial<Record<"ice" | "cabinet", { texture: Texture; height: number; base: { x: number; y: number }; width: number }>>) {
+    this.looks = looks;
   }
 
   /** Forget everything drawn: the level changed or he came back. */
@@ -324,9 +332,16 @@ export class Objects {
       if (!view) {
         const root = new Container();
         const g = new Graphics();
-        const logo = crateLogo(c.kind);
+        const worn = c.look ? this.looks[c.look] : undefined;
+        const logo = worn ? null : crateLogo(c.kind);
         root.addChild(g);
         if (logo) root.addChild(logo);
+        if (worn) {
+          const s = new Sprite(worn.texture);
+          s.anchor.set(worn.base.x / worn.width, worn.base.y / worn.height);
+          s.scale.set(LOOK_HEIGHT[c.look!] / worn.height);
+          root.addChild(s);
+        }
         root.zIndex = CRATE_Z;
         this.root.addChild(root);
         view = { root, g, logo, key: "", bump: 0 };
@@ -336,7 +351,9 @@ export class Objects {
         if (view.key && !c.broken) view.bump = CRATE_BUMP.t;
         view.key = key;
         view.g.clear();
-        if (!c.broken) drawCrate(view.g, c.kind, c.used, c.cans, !view.logo);
+        const worn = view.root.children.find((x) => x instanceof Sprite && x !== view!.logo) as Sprite | undefined;
+        if (worn) worn.tint = c.used ? 0x8a8a8a : 0xffffff;
+        else if (!c.broken) drawCrate(view.g, c.kind, c.used, c.cans, !view.logo);
         if (view.logo) view.logo.visible = !c.used && !c.broken;
       }
       view.bump = Math.max(0, view.bump - dt);

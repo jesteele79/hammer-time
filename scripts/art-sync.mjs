@@ -30,6 +30,7 @@ import {
   sheetPieces,
   nameGatePieces,
   nameSatPieces,
+  nameTowerPieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -524,6 +525,25 @@ async function sat(registry) {
   });
 }
 
+const TOWER_SHEET = "art/incoming/props/tower-sheet.png";
+
+/** The tower (story Phase 2): the sheet cut into its five named pieces; while it is not in, the drawn stand-ins stand. */
+async function tower(registry) {
+  registry.tower = {};
+  if (!existsSync(TOWER_SHEET)) return;
+  mkdirSync(join(OUT, "tower"), { recursive: true });
+  await tolerant("tower sheet", strict, async () => {
+    const named = nameTowerPieces(await sheetPieces(await keyOut(readFileSync(TOWER_SHEET))));
+    registry.tower.pieces = {};
+    for (const [name, p] of Object.entries(named)) {
+      const file = `tower/${name}.png`;
+      writeFileSync(join(OUT, file), p.png);
+      registry.tower.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+    }
+    console.log(`tower sheet: ${Object.keys(named).join(", ")}`);
+  });
+}
+
 async function publish(registry) {
   const pngs = [];
   const rigs = [];
@@ -561,6 +581,7 @@ await backdrops(registry);
 await walls(registry);
 await banquet(registry);
 await lounge(registry);
+await tower(registry);
 await gate(registry);
 await sat(registry);
 await products();

@@ -15,6 +15,12 @@ import { stageOf } from "../src/sim/level.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
+/** Whether a flight's band, from its rail to the underside of its stringer, crosses a box. */
+const stairCrosses = (f, b) => {
+  const at = (x) => f.y0 + ((f.y1 - f.y0) * (x - f.x0)) / (f.x1 - f.x0);
+  for (const x of [Math.max(f.x0, b.x0), Math.min(f.x1, b.x1)]) if (at(x) - 130 < b.y1 && at(x) + 70 > b.y0) return true;
+  return false;
+};
 const of = (evs, type) => evs.filter((e) => e.type === type);
 const play = (g) => { while (g.mode === "card") g.step(input()); };
 const until = (g, done, seconds = 10, held = {}) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) { g.step(input(held)); evs.push(...g.events); } return evs; };
@@ -48,6 +54,19 @@ test("no anchor for a pickup hangs in the air: every one stands over a landing o
     const onFloor = floorAt(stage, a.x, y - 2) === y;
     const onPlat = TOWER.platforms.some((p) => p.y === y && a.x >= p.x0 && a.x <= p.x1);
     assert.ok(onFloor || onPlat, `${a.x}, ${a.y}`);
+  }
+});
+test("every floor has its plate, clear of the flights and the balconies", () => {
+  assert.deepEqual(TOWER.signs.slice(1).map((s) => s.label), Array.from({ length: 13 }, (_, i) => `FLOOR ${i + 2}`));
+  for (const s of TOWER.signs) {
+    const box = { x0: s.x - 130, x1: s.x + 130, y0: s.y - 10, y1: s.y + 115 };
+    for (const f of TOWER.floor)
+      if (f.kind === "stairs") {
+        const lo = Math.min(f.y0, f.y1);
+        const hi = Math.max(f.y0, f.y1);
+        assert.ok(f.x1 <= box.x0 || f.x0 >= box.x1 || hi + 70 <= box.y0 || lo - 130 >= box.y1 || !stairCrosses(f, box), `${s.label} and a flight`);
+      }
+    for (const p of TOWER.platforms) assert.ok(p.x1 <= box.x0 || p.x0 >= box.x1 || p.y + 84 <= box.y0 || p.y - 100 >= box.y1, `${s.label} and a platform`);
   }
 });
 test("the scripted climber reaches the fourteenth floor along the flights, never stuck, beating the supervisor on the way", () => {

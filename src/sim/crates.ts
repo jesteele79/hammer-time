@@ -9,6 +9,8 @@ export const CRATE = { size: 110, bumpLock: 0.16, caseCans: 5, emerge: 0.5, slid
 export type Crate = {
   id: string;
   kind: CrateKind;
+  /** Drawn as something of the place: the tower's ice machine, its hose cabinet. */
+  look?: "ice" | "cabinet";
   x: number;
   y: number;
   used: boolean;

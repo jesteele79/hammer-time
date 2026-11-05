@@ -76,7 +76,26 @@ try {
     console.log(resolve(out, "home-night.png"));
     count++;
   }
-  for (const venue of ["sat", "restaurant", "campus", "arena", "lobby-night"]) {
+  if (want("supervisor")) {
+    // The supervisor in the running game: her wave with a cart on the flight, her wait beside him, and down.
+    await page.goto(`${base}?next=1&dev=1&level=tower`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => window.__next.dev.teleport(2300, -5400));
+    await page.waitForFunction(() => window.__next.boss?.state === "wave", null, { timeout: 8000 });
+    await page.waitForTimeout(1400);
+    await page.screenshot({ path: resolve(out, "supervisor-1.png") });
+    await page.evaluate(() => {
+      window.__next.dev.boss({ state: "waiting", timer: 60 });
+      window.__next.dev.teleport(1250, -5940);
+    });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: resolve(out, "supervisor-2.png") });
+    await page.evaluate(() => window.__next.dev.boss({ state: "down" }));
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: resolve(out, "supervisor-3.png") });
+    count += 3;
+  }
+  for (const venue of ["sat", "restaurant", "campus", "arena", "lobby-night", "tower"]) {
     if (!want(venue)) continue;
     await page.goto(`${base}?next=1&board=1&venue=${venue}`);
     await page.waitForFunction((v) => window.__nextBoard && window.__next?.run?.level === v, venue, { timeout: 30000 });

@@ -33,7 +33,7 @@ export type Supervisor = {
   flinch: number;
 };
 
-export const SUPERVISOR = { hp: 3, gap: 0.5, windup: 0.8, waves: 3, cartEvery: 4, cartSpeed: 300, cartW: 180, cartH: 120, rideSpeed: 140, points: 2500, waiting: 3, w: 100, h: 330, flinch: 0.4 } as const;
+export const SUPERVISOR = { hp: 3, gap: 0.5, windup: 0.8, waves: 3, cartEvery: 4, cartSpeed: 300, cartW: 180, cartH: 150, rideSpeed: 140, points: 2500, waiting: 3, w: 100, h: 330, flinch: 0.4 } as const;
 /** The boss's id among the mallet's victims and for its speech: clear of the carts', the cast's and the pig's. */
 export const BOSS_ID = 901;
 

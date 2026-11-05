@@ -255,8 +255,19 @@ function drawProp(g: Graphics, j: Record<JointName, Point>, k: number, f: 1 | -1
   }
   if (c.includes("duster")) {
     // The feather duster, up from the near hand.
-    g.moveTo(h.x, h.y).lineTo(h.x + f * 34 * k, h.y - 46 * k).stroke({ width: 6 * k, color: "#6b4a2a", cap: "round" });
-    g.ellipse(h.x + f * 46 * k, h.y - 68 * k, 18 * k, 26 * k).fill("#e8dcc6").stroke({ width: 2, color: INK });
+    const tip = { x: h.x + f * 44 * k, y: h.y - 60 * k };
+    g.moveTo(h.x, h.y).lineTo(tip.x, tip.y).stroke({ width: 6 * k, color: "#6b4a2a", cap: "round" });
+    const along = Math.atan2(tip.y - h.y, tip.x - h.x);
+    for (const spread of [-0.72, 0.72, -0.38, 0.38, 0]) {
+      const a = along + spread;
+      const len = (spread === 0 ? 86 : 74) * k;
+      const dx = Math.cos(a);
+      const dy = Math.sin(a);
+      const wide = 15 * k;
+      g.poly([tip.x, tip.y, tip.x + dx * len * 0.55 - dy * wide, tip.y + dy * len * 0.55 + dx * wide, tip.x + dx * len, tip.y + dy * len, tip.x + dx * len * 0.55 + dy * wide, tip.y + dy * len * 0.55 - dx * wide])
+        .fill(spread === 0 ? "#efe6d2" : "#d9cdb4")
+        .stroke({ width: 2, color: INK });
+    }
   }
   if (c.includes("torch")) {
     // The guard's flashlight, in the near hand whatever a hit has done: its lens the way he faces.
@@ -612,7 +623,7 @@ export class Cast {
       if (!seenNow) continue;
       const hidden = n.act === "hide" || (n.hide && n.act === "windup");
       const t = n.actT + alpha * STEP;
-      const pose = castPose({ role: n.role, act: n.act, t, speed: Math.abs(n.vx), onGround: n.onGround, sit: n.sit, spin: n.spin, hits: n.hits });
+      const pose = castPose({ role: n.role, act: n.act, t, speed: Math.abs(n.vx), onGround: n.onGround, sit: n.sit, spin: n.spin, hits: n.hits, flat: n.person === "housekeeper-1" });
       const art = v.painted ? this.arts.get(n.person)! : null;
       const solved = art
         ? solve(pose, n.facing, castHeadScale(v.look.head ?? art.head.share, art.head), art.head, art.skeleton)

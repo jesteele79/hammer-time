@@ -84,7 +84,12 @@ export type Registry = {
   };
   /** SAT (story Phase 1): its sheet's six pieces by name. Missing from an older sync, or while the sheet is not in. */
   sat?: { pieces?: Partial<Record<SatPiece, Piece>> };
+  /** The tower (story Phase 2): its sheet's five pieces by name. Missing from an older sync, or while the sheet is not in. */
+  tower?: { pieces?: Partial<Record<TowerPiece, Piece>> };
 };
+/** The tower sheet's pieces, left to right as painted (story Phase 2, Task 8); scripts/art-cut.mjs has the same list. */
+export const TOWER_PIECES = ["cart", "ice", "chute", "cabinet", "sign"] as const;
+export type TowerPiece = (typeof TOWER_PIECES)[number];
 /** The gate sheet's pieces, left to right as painted (R5 §13); scripts/art-cut.mjs has the same list. */
 export const GATE_PIECES = ["podium", "kiosk", "seats", "cart", "stanchion", "scalpel", "box"] as const;
 export type GatePiece = (typeof GATE_PIECES)[number];

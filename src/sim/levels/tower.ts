@@ -69,6 +69,8 @@ export const TOWER: Level = {
   music: "lobby",
   card: "The elevator stops at every floor. I don't.",
   floors: { every: EVERY },
+  // A floor at a time up the stairwell, alternating the fire door and the machines' alcoves; the far plane slides slowly behind the flights.
+  backdrop: { walls: ["tower-far-1", "tower-far-2"], mid: [], fore: [], stack: "up", far: { pan: 0.25, scale: 1 } },
   floor: [...nums(1, FLOORS).flatMap(landings), ...nums(1, FLOORS - 1).map(flight)],
   platforms: [...balconies, ...nooks],
   solids: [],
@@ -90,11 +92,8 @@ export const TOWER: Level = {
     { id: "floor-5", x: 650 + 400, y: floorY(5) },
     { id: "floor-10", x: 1000, y: floorY(10) },
   ],
-  signs: [
-    { x: 700, y: -420, label: "SERVICE STAIR", note: "Guests use the elevator." },
-    { x: 700, y: floorY(6) - 420, label: "FLOOR 6" },
-    { x: 700, y: floorY(12) - 420, label: "FLOOR 12", note: "Housekeeping" },
-  ],
+  // Every floor's plate where no flight runs: between the stairs, over the chutes' hatches.
+  signs: [{ x: 700, y: -420, label: "SERVICE STAIR", note: "Guests use the elevator." }, ...nums(2, FLOORS).map((k) => ({ x: 1480, y: floorY(k) - 420, label: `FLOOR ${k}`, ...(k === 12 ? { note: "Housekeeping" } : {}) }))],
   furniture: [],
   carts: [],
   lights: nums(1, FLOORS).map((k) => ({ x: k % 2 === 1 ? 1800 : 600, y: floorY(k) - 420, radius: 700, intensity: 0.45 })),
@@ -108,11 +107,11 @@ export const TOWER: Level = {
     { x: 1800, y: floorY(11) },
   ],
   movers: [
-    { id: "cart-2", x: 700, y: floorY(2), x0: -300, x1: 1500, w: 180, h: 120, speed: 140 },
-    { id: "cart-4", x: 400, y: floorY(4), x0: -300, x1: 1500, w: 180, h: 120, speed: 140 },
-    { id: "cart-7", x: 1700, y: floorY(7), x0: 900, x1: 2500, w: 180, h: 120, speed: 140 },
-    { id: "cart-9", x: 1900, y: floorY(9), x0: 1620, x1: 2500, w: 180, h: 120, speed: 140 },
-    { id: "cart-11", x: 1400, y: floorY(11), x0: 900, x1: 2000, w: 180, h: 120, speed: 140 },
+    { id: "cart-2", x: 700, y: floorY(2), x0: -300, x1: 1500, w: 180, h: 150, speed: 140 },
+    { id: "cart-4", x: 400, y: floorY(4), x0: -300, x1: 1500, w: 180, h: 150, speed: 140 },
+    { id: "cart-7", x: 1700, y: floorY(7), x0: 900, x1: 2500, w: 180, h: 150, speed: 140 },
+    { id: "cart-9", x: 1900, y: floorY(9), x0: 1620, x1: 2500, w: 180, h: 150, speed: 140 },
+    { id: "cart-11", x: 1400, y: floorY(11), x0: 900, x1: 2000, w: 180, h: 150, speed: 140 },
   ],
   hints: { early: 900 },
   thoughts: [
