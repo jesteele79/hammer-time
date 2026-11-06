@@ -131,3 +131,4 @@ Final (3b): minor (deferred): a summoned conductor follows him anywhere, through
 Final (3b): minor (deferred): the countryside's phase keys on where he stands: stepping back left of the tunnel's mouth turns the hills back into fields.
 Task 15: Ruling: the browser checks' 55 fps floor takes an FPS_FLOOR from the environment: the laptop went on battery in its Silent plan mid-run and held every screen near 43, the home screen too; the final production runs were on mains at the default floor (cabin 74 to 79 at medium, train 116 to 120, journey and Paris pass) — cost if wrong: none, the default is unchanged.
 Final (3b): review by a fresh reviewer on the most capable model over 05b7f58..138b3ba: ready with fixes; three Important and one re-graded, all fixed above; two minors deferred.
+Task 15: complete (commits a50eea7..b3fdd69, tests: npm run test:next → # duration_ms 125205.8809)
