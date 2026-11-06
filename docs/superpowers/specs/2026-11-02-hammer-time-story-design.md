@@ -1056,6 +1056,78 @@ a demo unit. Don't touch it." · "Scalpel. SCALPEL. Are you listening?" ·
 in?" · "That's not how we hold that here." · "Doctor will be right with you."
 Residents: "Is this on the exam?"
 
+### As planned (Phase 4, 2026-11-06)
+
+Approved by the owner in the Phase 4 brainstorm, section by section:
+
+- **Three parts.** 4a: six small fixes left from Phases 2 and 3, then 3-4
+  with its song, the Blender renders of the bridge and the Marktplatz, and
+  Basel's street as the home scene; after it the strip reads "The Basel
+  office is coming". 4b: the costume switch and 3-5 with its song; after it,
+  "The replacement is coming". 4c: 3-6, the end of Act 3, the README, the
+  as-built notes and the Phase 5 handoff; after it the game can be finished.
+  The epilogue stays in Phase 5, so Phase 4 ends at Act 3's card.
+- **3-4's street** is about 16,000 px on four walls at Paris's scale: the
+  Rhine bank by the Kaserne and the old town painted straight; the Mittlere
+  Brücke and the Marktplatz from the build session's renders, painted over
+  later the train's way. The ferry crosses on its cable behind the bridge;
+  the lanterns come on as the clock runs down, lit by its last third. Two
+  punch clocks, clock 420 s.
+- **The errands** are four counters: he stands at one and holds still 1.5 s
+  while a pip fills, the counter's line shows, and the HUD counts
+  "Errands 2/4". The office door stays shut until 4/4; walked into early it
+  gives "I have four errands and a meeting."
+- **A pipe band is one marching wall,** drawn six deep and one body thick on
+  the floor, against him at 200 px/s. The nearest piper is missing, which
+  leaves a hole at floor height: a slide goes through, anything else
+  touching the rank is caught, carried 400 px back and dropped, one hit. A
+  second before it steps off the pipes come up and the drone swells. The
+  bleachers are the way over. **The drum corps** stands and plays; every
+  fourth beat of the song shakes the screen and knocks him off any barrier
+  or bleacher near them, no hit. **The rifles** fly as the planes do, on an
+  arc: swat or duck. **The motorcycles** are Paris's scooters at 900 px/s,
+  two together, and ride the Marktplatz's ramp, which he can climb too.
+- **The drum major** is on the boss machinery, three hits in three rounds.
+  Each round: a whistle, four pipers from the wing as one band wall with its
+  hole, then the mace thrown high for two seconds while he stands under it,
+  which is the opening: a bonk then is a hit, the mace clatters down and he
+  picks it up; the mace landing on Hammer is a hit, its shadow marks the
+  spot. On the third: "Carry on, sir.", 1,000 points, and the four pipers
+  fall in behind Hammer at his walking pace to the door; the pipes play
+  only while he walks, the drone holds while he stands.
+- **The crowd** is the painted cast in summer tints behind the barriers,
+  "Prost!" when bonked; the beer tents hold Coke Zero; bratwurst plates and
+  food plates wait for Phase 5.
+- **The scrubs are already painted and rigged** (`public/art/hammer/scrubs-*`):
+  a level says its costume, the game rebuilds him in it when the level
+  starts; scrubs on 3-5 and 3-6 only, the Affliction everywhere else, the
+  home scene included. The TRAINER badge is drawn by the game, never above
+  the neckline; the strip's pictures of 3-5 and 3-6 show scrubs.
+- **3-5's corridor** is about 14,000 px on three walls painted straight: the
+  entrance with the administrator's desk under SKILLS LAB, the sterile
+  corridor with OR 3 and the autoclave, the ward corridor with the BREAK
+  ROOM and the double doors. Two vending machines pay three cans a bonk; the
+  BREAK ROOM is a stash door in the lobby's format; two punch clocks; the
+  five signs are the game's; clock 420 s; the double doors end the level.
+- **The hazards' numbers are scaled to this game** (the spec's came from the
+  old small-scale design): gurneys are the tower's carts at 220 px/s,
+  turning at the walls, safe on top, jumped over, a hit at the side, and
+  never slid under, since a deck is lower than his crouch; IV poles are low
+  wheeled bases to jump, a hit if touched; sharps bins on the counters are
+  a hit to brush, "That's a sharps bin, trainee."; the code blue stretch
+  runs everyone at 1.8 and pulses the lights red, no pulse under reduced
+  motion; the autoclave is a heat patch on 2 s and off 3 s at +20 a second;
+  nurses spray within 300 px, telegraphed 0.4 s, and the puddle slips him:
+  he reverses and loses control for half a second, no pip.
+- **The people:** nurses fight as the office workers do, two hits, the spray
+  their trick (the painted nurse and the tech in navy); techs square up and
+  shove like the airport's agents, two hits; residents are students in
+  white coats throwing charts for planes; the administrator stands at her
+  desk like the concierge, takes no part, says her line once as he arrives,
+  and "I'm here to train." is his thought. The tech, the resident and the
+  administrator borrow the nurse's, the student's and the office worker's
+  paintings, recolored, until theirs are cut.
+
 ## 11. The replacement, and home
 
 ### 11.1 3-6 The replacement
@@ -1128,6 +1200,49 @@ viewing.
 
 The journey's `credits` turns true; the home screen becomes the Buc-ee's
 booth with him in it; the epilogue's card joins the strip.
+
+### As planned (Phase 4, 2026-11-06)
+
+- **The hall** is one painted wall, the fight only: the double doors at the
+  left with the catering table beside them, four rows of seats stepping down
+  as platforms, and at the right the lectern with the IFU, the ring light on
+  its stand, the big screen on the wall and the drone's pad. The calendar
+  with every date rewritten in his hand is in the painting on the back wall
+  from the start. Clock 360 s. The kid is on the boss machinery, fifteen
+  hits on one bar with marks at ten and five, a stagger on every hit; a lost
+  life restarts the fight whole, as the suite's does; "absolute bullshit"
+  plays on his first hurt of the fight, not rolled.
+- **Round one (15 to 11):** the beam sweeps the floor in a slow arc, a lit
+  wedge that heats him at 30 a second and is never drawn over his face; the
+  kid keeps to its far edge and jabs with the selfie stick on Titanium's
+  briefcase timing. A bonk on the stand turns the beam a quarter turn and
+  leaves him in the dark for 1.5 s before he moves to the new edge: that is
+  the hit. The stand takes a bonk again after 2 s.
+- **Round two (10 to 6):** residents fill the seats four at a time, throwing
+  charts, replaced as they go down; a drone circles and dives every 6 s
+  after a half-second hover, a snot rocket downs it for 300 and "FOOTAGE.",
+  and a new one lifts off the pad after 10 s; the kid hops between the rows
+  filming. The hits come from freezes: the lecture freezes the whole room
+  2.2 s, him included; the IFU is a box of the gate's kind, picked up from
+  the lectern, thrown with the box key, freezing him with birds and "READ
+  THE IFU.", and lying where it lands to be picked up again.
+- **Round three (5 to 0):** he runs to the lectern and the screen plays the
+  drawn loop; he hides behind the lectern; the screen's glow is heat across
+  the front two rows; nuts drop from the catering table every 6 s. Only a
+  full super smash cracks the screen. The first two cracks bring him out
+  staggering for 2 s each; the third puts the screen dark and, with nowhere
+  to hide, he is in the open until the last hit, which plays "They need to
+  get fired" straight. Two residents carry him out through the doors.
+- **The end of the act:** the administrator walks in through the doors with
+  her folder; the level ends on her card, a caption with his thought under
+  it ("Obviously."), then the act card with the act's total and the
+  fanfare, then home.
+- **Home, and the save's end:** from the suite on, the home scene is Basel's
+  street at the Kaserne end at evening, him in the Affliction shirt. Once
+  the replacement is done the journey has nowhere next: the save keeps
+  nothing to carry on, Clock in reads "The epilogue is coming" and waits for
+  Phase 5, and every stop replays from the strip as today. `credits` stays
+  off until the epilogue exists.
 
 ## 12. The 3D levels
 
@@ -1351,6 +1466,14 @@ drone's buzz. The crowd never speaks aloud.
 - `train` plays on its level, the music hurrying with the station's last twenty seconds. New cues on the plan's events: `boarded`,
   `doorsBeep`, `stretchOut`, `shoved`, `board`, `tunnel`, `bogie` (and a jolt of about 2 px), `doorOpen`, `bossStagger`, `summon`.
 
+### As planned (Phase 4, 2026-11-06)
+
+- Three songs: `basel` is the bands, pipes and drums, the drum corps' beat as the level's beat with the shake on its fourth,
+  the chanter playing only while he walks once the pipers follow him; `lab` is the monitor's beep at 72 over sparse pads,
+  the beep doubled in the code blue stretch; `replacement` is a lo-fi content beat that turns into the boss drive, one
+  section a round. Five new cues: the bagpipe's drone, the drum corps' hit, the mace's whirr, the ring light's hum, the
+  screen's crack. The drone's buzz, the spray, the gurney's rattle and the code blue alarm use cues the game has.
+
 ## 14. Settings and the controller
 
 Settings, from the home screen and the break card: **music volume** and
@@ -1467,7 +1590,7 @@ hold the paste-ready prompts.
 - **Phase 1:** the gate's four (prompts written); SAT's walls (`backdrops/sat-far-1..3.png`: the curb and check-in, the TSA line, the concourse and gate), its mid pieces (`sat-mid-1..3`: the kiosks, the X-ray belt and scanner, the walkway and bar) and one fore piece (`sat-fore-1`: a column with the departures screen); `cast/skycap.png`, `cast/tsa.png`; `props/sat-sheet.png` (the stanchion, the bin, the kiosk, the shuttle van, the departures sign, the pretzel bag). No home-screen art (the scene is live).
 - **Phase 2:** `cast/guard.png`, `cast/housekeeper.png`, `cast/titanium.png`; the lounge (`backdrops/lounge.png`, `props/lounge-sheet.png`); the tower (`backdrops/tower-far-1..2.png`, `props/tower-sheet.png`: the cart, the ice machine, the chute's door, the hose cabinet, the wet-floor sign); the suite (a Blender render painted over, `backdrops/suite-1..3.png`); Hammer's back view and frames, and the back views of office-2, the nurse and the bellhops; the hallway's Blender set.
 - **Phase 3:** the cabin's Blender set; `cast/purser.png`, `cast/attendant.png`; Paris (`backdrops/paris-far-1..3.png`, mid and fore pieces, `cast/concierge.png`, `cast/parisian.png`, `cast/garcon.png`, `props/french-sheet.png`, `backdrops/brasserie.png`); the train (the station hall and a carriage from Blender renders painted over, `backdrops/station.png`, `backdrops/train-far-1..3.png`, `cast/conductor.png`, `props/train-sheet.png`).
-- **Phase 4:** Basel (the bridge and the Marktplatz from Blender renders painted over, `backdrops/basel-far-1..4.png`, `cast/piper.png`, `cast/drummer.png`, `cast/drill.png`, `cast/drum-major.png`, `props/basel-sheet.png`); the office (`backdrops/lab-far-1..3.png`, `cast/tech.png`, `cast/resident.png`, `cast/admin.png`, `props/lab-sheet.png`, the scrubs costume layer `hammer/body-scrubs.png`); the training room (`backdrops/training-room.png`, `cast/replacement.png`, `props/training-sheet.png`: the ring light, the lectern, the drone, the tablet, the selfie stick, the screen).
+- **Phase 4:** Basel (the bridge and the Marktplatz from Blender renders painted over, `backdrops/basel-far-1..4.png`, `cast/piper.png`, `cast/drummer.png`, `cast/drill.png`, `cast/drum-major.png`, `props/basel-sheet.png`); the office (`backdrops/lab-far-1..3.png`, `cast/tech.png`, `cast/resident.png`, `cast/admin.png`, `props/lab-sheet.png`, the scrubs costume layer `hammer/body-scrubs.png`); the training room (`backdrops/training-room.png`, `cast/replacement.png`, `props/training-sheet.png`: the ring light, the lectern, the drone, the tablet, the selfie stick, the screen). (2026-11-06: the scrubs are already painted and rigged in `public/art/hammer/scrubs-*`, so `hammer/body-scrubs.png` is struck; the drum major's file is `cast/major.png`, his person's name in the code; the training room is three walls, `backdrops/training-far-1..3.png`, the back with the doors and the calendar, the plain middle, the front with the screen; the sheets gain Basel's ramp, barrier, bleacher, beer tent, ferry, lantern and mace, the lab's chart, and the training room's IFU.)
 - **Phase 5:** the epilogue's backdrops (the airport's hall from a Blender render, SAT at dusk, the highway sign, the Buc-ee's booth, the credits' training room); `art/incoming/brand/key-art.png` if the owner wants a painted first frame.
 
 ### As built (Phase 3b, 2026-11-05)
@@ -1627,3 +1750,26 @@ Every phase ends with all of these green, then the commit on the branch:
 26. (2026-11-05) The kids are the student at child size; the attendants are
     one painting recolored; Coke Zero in France is the can's picture at 0.7;
     the brasserie's round ends 3-2 and its points join the level's.
+27. (2026-11-06) Phase 4 is built in three parts, 4a Basel, 4b the office,
+    4c the replacement and the ending; the epilogue stays in Phase 5, so the
+    phase ends at Act 3's card and Clock in reads "The epilogue is coming"
+    once the replacement is done.
+28. (2026-11-06) A pipe band is one marching wall with the nearest piper
+    missing, a hole a slide goes through; the drum corps' shake knocks him
+    off barriers and bleachers without a hit; the drum major's opening is
+    the two seconds his mace is in the air, once a round after his whistle's
+    four pipers; the pipers who follow him afterwards play only while he
+    walks.
+29. (2026-11-06) The errands are four counters held 1.5 s each, counted on
+    the HUD, the office door shut until 4/4.
+30. (2026-11-06) The scrubs are the painted costume already in the art
+    folder with a drawn TRAINER badge, worn on 3-5 and 3-6 only; the lab's
+    hazard numbers were scaled to this game's size (gurneys 220 px/s, the
+    spray at 300 px) and a gurney is never slid under.
+31. (2026-11-06) The kid's third crack leaves him in the open for good rather
+    than a third two-second window, since five hits do not fit three such
+    windows; the administrator's card is a caption with his thought; the
+    calendar is in the hall's painting from the start.
+32. (2026-11-06) From the suite on the home scene is Basel's street; Phase
+    4's first task takes six small fixes from the deferred lists and leaves
+    the rest to Phase 5.

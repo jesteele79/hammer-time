@@ -4,8 +4,19 @@ Story Phase 3 is built: Act 3 plays from 3-1's card to "Basel SBB. 17:06. On tim
 
 **Repo and branch:** `C:\Users\jeste\Desktop\hammer-time`, branch `claude/hammer-pass`. `main` moves only on the owner's yes at the time. `main` holds Phase 3 since 2026-11-06: the owner moved it before playing the phase, so their play notes may still come.
 
+## The plan is written (2026-11-06): this is now the build's handoff
+
+The Fable planning session brainstormed Phase 4 with the owner (spec §10's, §11's and §13's "As planned (Phase 4, 2026-11-06)" notes, §16's amendment, §20 items 27 to 32) and wrote the plan: **`docs/superpowers/plans/2026-11-06-story-phase-4.md`**, fifteen tasks in three parts. **4a** (Tasks 1 to 6): the cheap leftovers, Basel's street with its errands and its door, the parade's bands as walls with a hole, the drum corps and the drill team, the drum major and the pipers who follow, Basel drawn from the session's renders with its song and the home scene, the part's verification. **4b** (Tasks 7 to 10): the costume on the level, the office's corridor and hazards, its people with the spray and the slip, the lab drawn with its song, the part's verification. **4c** (Tasks 11 to 15): the training room and the replacement's three rounds, the training room drawn with its song, the end of Act 3 with the save's end and the home, the phase's verification, the Phase 5 handoff.
+
+**The method:** superpowers:executing-plans inline, test-first, the ledger `.superpowers/sdd/2026-11-06-story-phase-4/progress.md` (every ruling with its cost if wrong), one fresh reviewer on the most capable model at the end of each part (Tasks 6, 10 and 15). Commit and push `claude/hammer-pass` after every task; `main` only on the owner's yes at the time.
+
+**The asks at the start:** put the owner's five Codex prompts to them before Task 1 (`art/outgoing/batch-story-phase4-codex.txt` prompts 1 to 5: Basel's four people; Basel's two straight walls and its sheet; the office's three walls and its sheet; the office's three people; the training room's three walls, the kid and the training sheet) and carry on without waiting. Prompt 6 (the bridge and the Marktplatz over the game's renders) is handed over at Task 5 with the renders. The renders are the session's own Blender work (`scripts/blender/basel.py`, Task 5). The brief is `art/outgoing/batch-13-story-phase4.txt`. Phase 3's prompts 1 to 4 may still be out with the owner: cut their paintings in as they land, as the handoff's unpainted list says.
+
+**What the plan supersedes in this file and the spec:** the scrubs costume layer is already painted and rigged (`public/art/hammer/scrubs-*`), so `hammer/body-scrubs.png` is struck; the drum major's file is `cast/major.png`; the training room is three walls (`training-far-1..3`), not one; the parade's bands are a module of their own (`src/sim/parade.ts`), not cast; the lab's gurney and spray numbers are scaled to this game's size and a gurney is never slid under; the epilogue stays in Phase 5, so the save ends on "The epilogue is coming". The "Phase 4's asks" section below stands otherwise. Act 3 play notes from the owner are fixed between tasks as they come.
+
 ## Read first, in full, before any code
 
+0. `docs/superpowers/plans/2026-11-06-story-phase-4.md`, the whole plan, then this file.
 1. `docs/superpowers/specs/2026-11-02-hammer-time-story-design.md`: §1 and §2 (the decisions and the rules), §10 and §11, §9's "As built" notes, §12, §13, §15's art schedule, §19.
 2. `docs/superpowers/plans/2026-11-02-story-roadmap.md`, Phase 4 and the art schedule.
 3. `docs/superpowers/plans/2026-11-05-story-phase-3.md` and `2026-11-05-story-phase-3-ledger.md`: the last plan, for its format and its Review Focus, and every ruling it took.

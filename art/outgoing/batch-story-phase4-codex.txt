@@ -1,0 +1,177 @@
+HAMMER TIME — STORY PHASE 4, THE CODEX PROMPTS (BASEL, THE OFFICE AND THE REPLACEMENT)
+
+These are for Codex in its mode that works on this laptop (it reads the brief and the
+reference images from the repo and saves its images straight into art/incoming/). Paste
+each into a new Codex chat. Prompts 1 to 5 can run at the same time, at the start of the
+phase. Prompt 6 waits until the game has rendered the bridge and the Marktplatz (the
+session hands it over then, with the renders in art/outgoing/renders/). The brief they
+point at: art/outgoing/batch-13-story-phase4.txt.
+
+
+1. BASEL'S PEOPLE: THE PIPER, THE DRUMMER, THE DRILL TEAM, THE DRUM MAJOR (batch 13, items 1 to 4)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEMS 1 TO 4 only, and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png, art\incoming\cast\guard-1.png and art\incoming\cast\conductor.png, and the other people in art\incoming\cast\ — the pose and style done right. The four new people must match them for style, finish and placement in the frame.
+
+3. Make piper.png, then drummer.png, drill.png and major.png, one at a time. For each, use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: each has their own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with Image 1, bellhop-1.png and guard-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and EMPTY. The far arm and hand visible just behind the near one, with a green gap between the near forearm and the belly.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's.
+   - piper: a broad man in his thirties, red-brown hair under a dark glengarry cap with two ribbon tails at the back, a dark green doublet with blank silver buttons, a white shirt, a blue and green tartan kilt to the knee, a plain sporran, white hose with a red flash, black brogues; no bagpipes, nothing in the hands.
+   - drummer: a compact woman in her twenties, dark hair in a low braid under a flat black cap with a short peak, a red tunic with a white cross belt and blank buttons, the same tartan kilt, white hose, black brogues; no drum, no sticks, nothing in the hands.
+   - drill: a tall slim man in his twenties, cropped fair hair under a white peaked cap, a navy tunic with a white belt and a white lanyard, white gloves, navy trousers with a white stripe, white shoes; no rifle, nothing in the hands.
+   - major: a big-chested man in his fifties with a grey moustache, a tall black bearskin cap with a blank plume holder, a red tunic with gold frogging, a broad sash across the chest with no letters, white gloves, the tartan kilt, white hose, black brogues, a stern face, his head a little larger in the frame like guard-1's; no mace, nothing in the hands.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text, letters or logos anywhere; every badge, button, sash and banner is blank.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Clearly a different person from everyone already in art\incoming\cast\, and not looking like the man in Image 1.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\piper.png, drummer.png, drill.png and major.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. In a few lines, tell me how many tries each took and anything on the checklist you could not get right.
+
+
+2. BASEL: THE RHINE BANK, THE OLD TOWN AND THE BASEL SHEET (batch 13, items 5 and 6)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEMS 5 AND 6 only (two walls and one sheet), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\paris-far-3.png and paris-far-4.png — a street wall: 1536 x 1024, landscape, the pavement's edge about three-quarters of the way down, the finish.
+   - art\incoming\props\train-sheet.png — a sheet of objects on green in a row, apart: the finish and the layout.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make basel-far-1.png, then basel-far-4.png (attach basel-far-1.png so the base line and the evening light match), each exactly 1536 x 1024, landscape; then basel-sheet.png at the widest landscape size the tool offers. Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Walls: seen straight on, every horizontal line level, no side walls or corners; the base line one straight level line about three-quarters of the way down with plain paving or cobbles below it to the bottom edge; nothing standing in front of the wall or on the floor; no people; a low warm July evening light from the left.
+   - basel-far-1: the Rhine bank by the Kaserne: the Kaserne's long pale facade with a ground-floor arcade of round arches and tall windows above, a flagpole with a blank flag, plane trees in full leaf, a low stone wall and an iron railing in front of the river, the Rhine's green water beyond and the far bank's houses small against an evening sky; no boats, no text.
+   - basel-far-4: the old town's street: narrow painted facades in ochre, sage and rose with stepped gables and shutters, a bank's front with a blank brass plate and a blank sign, a copy shop's window with blank posters, a pharmacy's front with a green cross with no letters, a pillar with blank bills, flower boxes, and the Münster's two red sandstone towers small behind the roofs at the right third; no office door, no people, no text; the left edge and the right edge continue each other.
+   - basel-sheet: exactly EIGHT objects in the brief's order from left to right: a display-team motorcycle facing LEFT with a rider in a white helmet and jacket, a wooden ramp rising to the LEFT, a steel crowd barrier section, a three-tier bleacher rising to the RIGHT seen from the side, a small white beer tent from the front with a blank banner, a small flat wooden ferry with a short mast and a cable, a round orange paper lantern on a string, a drum major's mace upright with a silver crown head; each whole, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text.
+   - The same inked cartoon style and finish as bellhop-1.png and Paris's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\basel-far-1.png and basel-far-4.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\basel-sheet.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.
+
+
+3. THE OFFICE: THREE WALLS AND THE LAB SHEET (batch 13, items 7 and 8)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEMS 7 AND 8 only (three walls and one sheet), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\lobby-far-1.png and lobby-far-2.png — indoor walls: 1536 x 1024, landscape, the base line about three-quarters of the way down, their edges meeting.
+   - art\incoming\props\tower-sheet.png — a sheet of objects on green in a row, apart.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make lab-far-1.png, then lab-far-2.png (attach lab-far-1.png so the paint, the handrail, the ceiling and the base line match), then lab-far-3.png (attach lab-far-2.png likewise), each exactly 1536 x 1024, landscape; then lab-sheet.png at the widest landscape size the tool offers. Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Walls: seen straight on, every horizontal line level, no side walls or corners; the same pale green paint, the same wooden handrail at the same height, the same fluorescent drop ceiling; the base line one straight level line about three-quarters of the way down with plain grey lino below it to the bottom edge; nothing standing in front of the wall or on the floor; no people; the right edge of each continues into the left edge of the next.
+   - lab-far-1: the entrance: a reception desk at the left third with a glass partition above it and a blank sign panel over that, a waiting bench, a potted plant, a blank framed poster, a blank wall clock, a corridor opening at the right.
+   - lab-far-2: the sterile corridor: double doors with round windows at the left third, wall cabinets with blank labels, a blank whiteboard, a scrub sink, a steel autoclave cabinet with a round door in an alcove at the right third, a blank room-number plate.
+   - lab-far-3: the ward corridor: a nurse station's back counter with two blank dark monitors and a blank pinboard at the left third, a supply rack of blank boxes, a door with a blank plate in the middle, a fire extinguisher, double doors with round windows at the right third.
+   - lab-sheet: exactly SIX objects in the brief's order from left to right: a hospital gurney facing LEFT with a white sheet and its rails up, an IV pole on a five-wheel base with a blank bag, a yellow sharps bin with a red lid, a vending machine from the front with rows of blank cans and a blank panel, a steel autoclave with a round door and a blank dial, a clipboard with a blank sheet; each whole, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text.
+   - The same inked cartoon style and finish as bellhop-1.png and the lobby's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\lab-far-1.png, lab-far-2.png and lab-far-3.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\lab-sheet.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.
+
+
+4. THE OFFICE'S PEOPLE: THE TECH, THE RESIDENT, THE ADMINISTRATOR (batch 13, items 9 to 11)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\cast\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEMS 9 TO 11 only, and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
+   - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
+   - Image 3: art\incoming\cast\bellhop-1.png, art\incoming\cast\nurse.png and art\incoming\cast\office-2.png, and the other people in art\incoming\cast\ — the pose and style done right, and the colleagues these three stand beside.
+
+3. Make tech.png, then resident.png and admin.png, one at a time. For each, use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: each has their own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with Image 1, bellhop-1.png and nurse.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Strict LEFT profile: head, torso, hips, legs and both shoes point left; the torso shows its side, not its chest.
+   - Both arms reach forward and down about 30 degrees from vertical, as in Image 1 and bellhop-1.png, the hands open and EMPTY. The far arm and hand visible just behind the near one, with a green gap between the near forearm and the belly.
+   - Both soles flat, the far foot a small step ahead, the soles at the same height in the frame as Image 1's.
+   - tech: a stocky man in his thirties, dark hair under a navy surgical cap, navy scrubs with a blank badge on a lanyard, a white undershirt at the neck, navy trousers, white clogs; nothing in the hands.
+   - resident: a slight woman in her late twenties, dark hair tied back, a short white coat over blue scrubs, a blank badge, a stethoscope round the neck, blue trousers, white sneakers; no chart, nothing in the hands.
+   - admin: an upright woman in her fifties, silver hair in a neat bob, a grey suit jacket and skirt, a cream blouse, a lanyard with a blank card, low black heels, a thin pleasant smile; no folder, nothing in the hands.
+   - A flat bright green background (#00FF00), no floor, no shadow, no text, letters or logos anywhere; every badge and card is blank.
+   - The same inked cartoon style and finish as bellhop-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+   - Clearly a different person from everyone already in art\incoming\cast\, nurse.png included, and not looking like the man in Image 1.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\tech.png, resident.png and admin.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. In a few lines, tell me how many tries each took and anything on the checklist you could not get right.
+
+
+5. THE TRAINING ROOM: THREE WALLS, THE KID AND THE TRAINING SHEET (batch 13, items 12 to 14)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything already in art\incoming\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEMS 12 TO 14 only (three walls, one person, one sheet), and follow its STYLE, RULES and POSE AND FRAMING blocks word for word.
+
+2. Study these images:
+   - art\incoming\backdrops\lobby-far-1.png and lobby-far-2.png — indoor walls: 1536 x 1024, landscape, the base line about three-quarters of the way down, their edges meeting.
+   - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly for the kid.
+   - art\incoming\cast\student-1.png and bellhop-1.png — the pose and style done right; the kid is built like student-1.
+   - art\incoming\props\train-sheet.png — a sheet of objects on green in a row, apart.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+
+3. Make training-far-1.png, then training-far-2.png (attach training-far-1.png so the panels, the ceiling and the base line match), then training-far-3.png (attach training-far-2.png likewise), each exactly 1536 x 1024, landscape; then replacement.png with Image 1 as the input image, replacing the man completely, same canvas as Image 1 (1086 x 1448, portrait); then training-sheet.png at the widest landscape size the tool offers. Do not upscale or resize afterward.
+
+4. Before you keep each one, check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - Walls: seen straight on, every horizontal line level, no side walls or corners; the same grey acoustic panels, the same fluorescent drop ceiling; the base line one straight level line about three-quarters of the way down with plain dark carpet below it to the bottom edge; nothing standing in front of the wall or on the floor; no people; the right edge of each continues into the left edge of the next.
+   - training-far-1: the back wall: double doors with round windows at the left third, a big wall calendar at the right third with every cell scribbled over and rewritten in marker and no readable letters or numbers, a blank fire-exit panel, a thermostat.
+   - training-far-2: the middle: acoustic panels, a blank wall clock, a blank framed poster, a light switch plate, nothing else.
+   - training-far-3: the front: a big flat screen, dark and blank, filling the middle half of the wall from the top of the panels to a little above the base line, a blank small sign beside it, panels either side, a power outlet low at the right; nothing in front of the screen.
+   - replacement: strict LEFT profile, both arms forward and down with open EMPTY hands, both soles flat at Image 1's height; a slim man in his mid twenties, a short fade with a swoop at the front, light stubble, a charcoal quarter-zip over a white tee, slim dark joggers, white sneakers, white earbuds in both ears, his head a little larger in the frame than student-1's; no tablet, no selfie stick; flat green, no shadow; clearly a different person from everyone in art\incoming\cast\ and not the man in Image 1.
+   - training-sheet: exactly SEVEN objects in the brief's order from left to right: a ring light on a tall tripod lit white, a wooden lectern from the side with a sloped top, a small quadcopter drone with a camera under it, a dark tablet upright with a blank screen, an extended selfie stick with a blank phone clamped at the top, a flat screen on a wall bracket dark and blank, a thick folded instruction leaflet with a blank cover standing on its edge; each whole and upright, none touching another or the edge, on flat bright green (#00FF00), no shadows, no text.
+   - The same inked cartoon style and finish as bellhop-1.png and the lobby's walls: thick black outlines, flat cel shading, one shadow tone and one highlight tone.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\training-far-1.png, training-far-2.png and training-far-3.png, C:\Users\jeste\Desktop\hammer-time\art\incoming\cast\replacement.png and C:\Users\jeste\Desktop\hammer-time\art\incoming\props\training-sheet.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.
+
+
+6. THE BRIDGE AND THE MARKTPLATZ, PAINTED OVER THE GAME'S RENDERS (batch 13, item 15; run when the renders exist)
+
+You are making game art on this Windows laptop. Work only inside C:\Users\jeste\Desktop\hammer-time. Do not run git: no commits, no branches, no archives. Do not change, move or delete any existing file, including everything in art\outgoing\renders\. The only files you create are the ones named in step 5.
+
+1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEM 15 only (two walls), and follow its STYLE and RULES blocks word for word.
+
+2. Study these images:
+   - art\outgoing\renders\basel-far-2.png and basel-far-3.png — the game's own renders of the Mittlere Brücke and the Marktplatz: the camera, the parapet, the lamp posts, the river, the arches, the tower and the stalls to keep exactly.
+   - art\incoming\backdrops\station-1.png beside art\outgoing\renders\station-1.png — a render and the finished game wall painted over it: how much changes (the finish) and how much does not (everything else).
+   - art\incoming\backdrops\basel-far-1.png and basel-far-4.png — Basel's two painted walls: the evening light and the finish to match.
+   - art\outgoing\references\hammer-profile.png — the drawing style.
+   - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
+
+3. Make basel-far-2.png and basel-far-3.png, one at a time, each exactly 1536 x 1024, landscape. For each, use your built-in image generation with its render as the input image, so the camera, the parapet, the lamp posts, the arches, the tower and the stalls carry over exactly; paint it in the game's inked style with the same July evening light as basel-far-1.png. Do not upscale or resize afterward.
+
+4. Before you keep each one, put it side by side with its render and with station-1.png and check every point below. If any point fails, generate again (up to five tries) and keep the best one:
+   - The same view as the render: the same parapet, lamp posts, river line, arches, tower and stalls in the same places; nothing added on the floor, no people, no boats.
+   - Seen straight on, every horizontal line level; the base line one straight level line about three-quarters of the way down; plain deck or paving below it to the bottom edge.
+   - basel-far-2: the bridge's stone parapet with its lamp posts, the river below it, the far bank's houses and the chapel's turret, the evening sky; its left edge and right edge continue each other.
+   - basel-far-3: the red Rathaus facade with its arcade of three arches and its tower, flagpoles with blank banners, two market stalls with awnings, the square's paving.
+   - No text, letters, numbers, logos or signatures anywhere: the banners, the stalls and the plaques are blank.
+   - The same inked cartoon style and finish as bellhop-1.png and station-1.png: thick black outlines, flat cel shading, one shadow tone and one highlight tone; not a render.
+
+5. Save the keepers as C:\Users\jeste\Desktop\hammer-time\art\incoming\backdrops\basel-far-2.png and basel-far-3.png, and the exact prompt you used for each as the same name with .prompt.txt, in the same folder.
+
+6. Stop. List each file, its size in pixels, how many tries it took, and anything on the checklist you could not get right.

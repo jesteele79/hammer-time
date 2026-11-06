@@ -1,0 +1,258 @@
+HAMMER TIME — ART BATCH 13: BASEL, THE OFFICE AND THE REPLACEMENT (STORY PHASE 4, ACT 3'S END)
+
+Twenty-two files for the end of Act 3: eight new people, Basel's two straight walls and its
+sheet of objects, the office's three walls and its sheet, the training room's three walls
+and its sheet, and (later, once the game has rendered them) the Mittlere Brücke and the
+Marktplatz painted over the game's own renders. The game draws the floors, the ramp's
+face, the barriers and bleachers in place, the doors, every sign, the bands marching, the
+mace in the air, the ring light's beam, the screen's picture and its cracks, the drone in
+flight, the IFU in his hand, the mallet and the badge (do not paint any of that into a
+wall or into a person's hands). The design is
+docs/superpowers/specs/2026-11-02-hammer-time-story-design.md §10, §11 and §16 with their
+"As planned (Phase 4)" notes, and the plan docs/superpowers/plans/2026-11-06-story-phase-4.md.
+
+Hammer's scrubs are already painted (art/incoming/hammer/body-scrubs.png): nothing of
+Hammer is in this batch.
+
+STYLE (apply to every image):
+Inked caricature illustration. Thick clean black outlines, flat cel shading with one
+shadow tone and one highlight tone, small white specular glints, saturated but natural
+colors, no gradients, no painterly brushwork, no photorealism, no 3D render look. Same
+artist and same style as the reference images.
+
+RULES (every image):
+- No text, letters, numbers, logos, signatures or watermarks anywhere: signs, screens,
+  boards, badges, tags, labels, banners, calendars, bottles and bills are blank. The game
+  writes every word itself ("BANK", "SKILLS LAB", "TRAINER").
+- The whole subject inside the frame with margin all round.
+- Walls: straight on, every horizontal line level, no side walls or corners, no people,
+  nothing standing on the floor in front of the wall unless the item says so.
+- Sheets, pieces and people: flat bright green background (#00FF00), no floor, no shadow.
+- Walls are exactly 1536 x 1024 pixels, landscape; never upscale.
+- PNG; never upscale or resize afterward.
+
+------------------------------------------------------------------------------------------
+ITEMS 1 TO 4: BASEL'S PEOPLE (pose-locked like the cast; save to art/incoming/cast/)
+
+Attach: Image 1 art/incoming/hammer/body-affliction.png (the pose, camera, framing, canvas
+and drawing style to copy exactly); Image 2 art/outgoing/references/hammer-profile.png (the
+drawing style); Image 3 art/incoming/cast/bellhop-1.png, guard-1.png and conductor.png (the
+pose and style done right).
+
+They are NOT the man in Image 1. Each has their own face, hair, build and clothes;
+nothing of the man may remain except the pose, the camera and the canvas.
+
+POSE AND FRAMING (copy Image 1 exactly):
+- Orthographic side view, strict LEFT-facing profile like Image 1: head, torso, hips,
+  legs and both shoes point left; the torso shows its side, not its chest.
+- Both arms extend FORWARD (toward image-left) and DOWN, about 30 degrees forward from
+  vertical, elbows nearly straight, hands open, relaxed and EMPTY, the far arm and hand
+  visible just behind the near one, a clear triangular green gap between the near
+  forearm and the belly.
+- Both soles flat with the same small forward-back stagger as Image 1, the soles at the
+  same height in the frame as Image 1's; only the top of the head sits lower or higher.
+- The same canvas shape and size as Image 1 (1086 x 1448, portrait).
+- Head in strict left profile, chin level, mouth closed, eyes looking ahead. No props,
+  nothing in the hands: the pipes, the drum, the rifle and the mace are the game's.
+- Background: flat bright green like a green screen (#00FF00). No floor, no shadow, no
+  scenery, no texture, no gradient.
+
+1. piper.png — a pipe band piper. A man in his thirties, broad, red-brown hair under a
+   dark glengarry cap with two ribbon tails at the back, a dark green doublet with blank
+   silver buttons, a white shirt, a blue and green tartan kilt to the knee, a plain
+   sporran, white hose with a red flash, black brogues. Hands empty (the bagpipes are the
+   game's: the band is drawn six deep from this one painting, and the game recolors it
+   for the second band).
+2. drummer.png — a drum corps drummer. A woman in her twenties, compact, dark hair in a
+   low braid under a flat black cap with a short peak, a red tunic with a white cross
+   belt and blank buttons, the same tartan kilt, white hose, black brogues. Hands empty
+   (the snare and the sticks are the game's).
+3. drill.png — a drill team member. A man in his twenties, tall and slim, cropped fair
+   hair under a white peaked cap, a navy tunic with a white belt and a white lanyard,
+   white gloves, navy trousers with a white stripe, white shoes. Hands empty, gloved (the
+   rifle is the game's).
+4. major.png — the drum major. A man in his fifties, big-chested, grey moustache, a tall
+   black bearskin cap with a blank plume holder, a red tunic with gold frogging, a broad
+   embroidered sash across the chest with no letters, white gloves, the tartan kilt,
+   white hose, black brogues, a stern face. Hands empty (the mace is the game's). His
+   head is a little larger in the frame than the others', like guard-1's.
+
+------------------------------------------------------------------------------------------
+ITEMS 5 AND 6: BASEL'S TWO STRAIGHT WALLS AND ITS SHEET (save to art/incoming/backdrops/
+and art/incoming/props/)
+
+Attach: art/incoming/backdrops/paris-far-3.png and paris-far-4.png (a street wall: 1536 x
+1024, the pavement's edge three-quarters down, the finish); art/incoming/props/
+train-sheet.png (a sheet of objects on green in a row); hammer-profile.png (the style);
+bellhop-1.png (the inked finish).
+
+The two walls are two places far apart and never meet, but their base lines are at the
+same row and their light is the same July evening, low and warm from the left.
+
+5a. basel-far-1.png — the Rhine bank by the Kaserne, seen straight on from the promenade:
+    the Kaserne's long pale facade with a ground-floor arcade of round arches, tall
+    windows above, a flagpole with a blank flag, plane trees in full leaf along the
+    promenade, a low stone wall and an iron railing in front of the river, the Rhine's
+    green water beyond and the far bank's houses small against an evening sky. The
+    promenade's paving edge as the base line about three-quarters down, plain paving
+    below it. No people, no boats (the ferry is the game's), no text.
+5b. basel-far-4.png — the old town's street to the Münster, seen straight on: a row of
+    narrow painted facades in ochre, sage and rose with stepped gables and shutters, a
+    bank's front with a blank brass plate and a blank sign, a copy shop's window with
+    blank posters, a pharmacy's front with a green cross with no letters, a pillar with
+    blank bills on it, flower boxes, and the Münster's two red sandstone towers rising
+    behind the roofs at the right third (far, small, in the distance). The cobbles' edge
+    as the base line about three-quarters down, plain cobbles below it. No door for the
+    office (the game draws it), no people, no text. The left edge and the right edge
+    continue each other (the game repeats this wall).
+6.  basel-sheet.png — exactly EIGHT objects on flat bright green, in a single row from
+    left to right, none touching another or the edge, each whole, seen from the side at
+    the cast's eye level:
+    a. a display-team motorcycle facing LEFT with its rider leaning forward, the rider in
+       a white helmet with a dark visor and a white jacket, the bike dark red;
+    b. a ramp: a wooden wedge rising to the LEFT, planked, with a flat top;
+    c. a crowd barrier: one steel section with vertical bars and feet, grey;
+    d. a bleacher: three tiers of benches rising to the RIGHT with a rail at the top,
+       aluminium and dark seats, seen from the side;
+    e. a beer tent: a small white marquee seen from the front, its flap open, a blank
+       banner across its top;
+    f. the Rhine ferry: a small flat wooden ferry boat seen from the side, a cabin in the
+       middle, a short mast with a cable running up from it;
+    g. a lantern: a round paper lantern, warm orange, hung from a short string;
+    h. a drum major's mace: upright, a dark shaft with a silver crown head and cords.
+
+------------------------------------------------------------------------------------------
+ITEMS 7 AND 8: THE OFFICE'S THREE WALLS AND ITS SHEET (save to art/incoming/backdrops/
+and art/incoming/props/)
+
+Attach: art/incoming/backdrops/lobby-far-1.png and lobby-far-2.png (indoor walls: 1536 x
+1024, the base line three-quarters down, their edges meeting); art/incoming/props/
+tower-sheet.png (a sheet on green); hammer-profile.png (the style); bellhop-1.png (the
+finish).
+
+The three walls are one corridor: the same pale green paint, the same handrail at the
+same height, the same grey lino's edge at the same row; the right edge of each continues
+into the left edge of the next, and lab-far-2's and lab-far-3's edges continue each other
+both ways (the game repeats them).
+
+7a. lab-far-1.png — the office's entrance: a reception desk at the left third with a
+    glass partition above it and a blank wall-mounted sign panel over that, a waiting
+    bench against the wall, a potted plant, a blank poster in a frame, a wall clock with
+    a blank face, a corridor opening at the right. Fluorescent panels in a drop ceiling.
+    The lino's edge as the base line about three-quarters down, plain lino below it.
+7b. lab-far-2.png — the sterile corridor: pale green walls with a wooden handrail, a
+    pair of double doors with round windows at the left third (the operating room's),
+    wall cabinets with blank labels, a blank whiteboard, a scrub sink, a steel autoclave
+    cabinet with a round door set into an alcove at the right third, a blank room-number
+    plate. The same lino's edge.
+7c. lab-far-3.png — the ward corridor: a nurse station's back counter with two blank
+    dark monitors and a blank pinboard at the left third, a supply rack of blank boxes,
+    a door with a blank plate (the break room's) at the middle, a fire extinguisher, and
+    a pair of double doors with round windows at the right third (the training room's).
+    The same lino's edge.
+8.  lab-sheet.png — exactly SIX objects on flat bright green, in a single row from left
+    to right, none touching another or the edge, each whole, seen from the side at eye
+    level:
+    a. a hospital gurney facing LEFT: a steel trolley on four wheels with a thin mattress
+       and a white sheet, its rails up;
+    b. an IV pole: a steel pole on a five-wheel base with a blank bag hanging from its
+       hook;
+    c. a sharps bin: a yellow box with a red lid and a blank label;
+    d. a vending machine: a tall machine seen from the front, its glass front showing
+       rows of blank cans, a blank panel;
+    e. an autoclave: a steel cabinet with a round door and a blank dial;
+    f. a clipboard chart: a clipboard with a blank sheet, seen flat.
+
+------------------------------------------------------------------------------------------
+ITEMS 9 TO 11: THE OFFICE'S PEOPLE (pose-locked like the cast; save to art/incoming/cast/)
+
+Attach: as items 1 to 4, plus art/incoming/cast/nurse.png and office-2.png (the nurse
+and an office worker: the colleagues they stand beside).
+
+The POSE AND FRAMING block of items 1 to 4 applies word for word.
+
+9.  tech.png — a surgical tech. A man in his thirties, stocky, dark hair under a navy
+    surgical cap, navy scrubs with a blank badge on a lanyard, a white undershirt
+    showing at the neck, navy trousers, white clogs. Hands empty.
+10. resident.png — a resident. A woman in her late twenties, slight, dark hair tied back,
+    a short white coat over blue scrubs, a blank badge, a stethoscope round the neck,
+    blue trousers, white sneakers. Hands empty (the chart is the game's).
+11. admin.png — the administrator. A woman in her fifties, upright, silver hair in a
+    neat bob, a grey suit jacket and skirt, a cream blouse, a lanyard with a blank card,
+    low black heels, a thin pleasant smile. Hands empty (the folder is the game's).
+
+------------------------------------------------------------------------------------------
+ITEMS 12 TO 14: THE TRAINING ROOM, THE KID AND THE TRAINING SHEET (save to
+art/incoming/backdrops/, art/incoming/cast/ and art/incoming/props/)
+
+Attach: as items 7 and 8 for the walls; as items 1 to 4 for the kid, plus
+art/incoming/cast/student-1.png (the body he is built like); train-sheet.png for the sheet.
+
+The three walls are one lecture hall: the same grey acoustic panels, the same dark
+carpet's edge at the same row; the right edge of each continues into the left edge of
+the next.
+
+12a. training-far-1.png — the hall's back wall: a pair of double doors with round windows
+     at the left third, a wall calendar at the right third (a big month grid with every
+     cell scribbled over and rewritten in marker, no readable letters or numbers), grey
+     acoustic panels, a blank fire-exit panel, a thermostat. Fluorescent panels in a drop
+     ceiling. The carpet's edge as the base line about three-quarters down, plain carpet
+     below it.
+12b. training-far-2.png — the hall's middle: grey acoustic panels, a blank wall clock, a
+     blank framed poster, a light switch plate, nothing else. The same carpet's edge.
+12c. training-far-3.png — the hall's front: a big flat screen, dark and blank, filling
+     the middle half of the wall from the top of the panels to a little above the base
+     line, a blank small sign beside it, acoustic panels either side, a power outlet
+     low at the right. The same carpet's edge. Nothing in front of the screen (the
+     lectern and the ring light are the game's).
+13.  replacement.png — the replacement, the kid. A man in his mid twenties, slim, a short
+     fade with a swoop at the front, a light stubble, a charcoal quarter-zip over a white
+     tee, slim dark joggers, white sneakers, white earbuds in both ears. His head a
+     little larger in the frame than student-1's (the game draws it at the cast's share).
+     Hands empty (the tablet and the selfie stick are the game's). The POSE AND FRAMING
+     block of items 1 to 4 applies word for word.
+14.  training-sheet.png — exactly SEVEN objects on flat bright green, in a single row from
+     left to right, none touching another or the edge, each whole and upright, seen from
+     the side at eye level:
+     a. a ring light on its stand: a tall tripod with a round LED ring at the top, lit
+        white;
+     b. a lectern: a wooden lectern seen from the side, its top sloped, a shelf under it;
+     c. a drone: a small quadcopter with a camera under it, seen from the side, its rotors
+        still;
+     d. a tablet: a dark tablet standing upright, its screen blank;
+     e. a selfie stick: extended, with a phone clamped at the top, its screen blank;
+     f. a big screen: a flat screen on a wall bracket, dark and blank (the small version
+        the game shows cracked);
+     g. the IFU: a thick folded instruction leaflet with a blank cover, standing on its
+        edge.
+
+------------------------------------------------------------------------------------------
+ITEM 15: THE BRIDGE AND THE MARKTPLATZ (later; save to art/incoming/backdrops/)
+
+The game renders the Mittlere Brücke and the Marktplatz in Blender first (the plan's
+Task 5) and puts the renders in art/outgoing/renders/basel-far-2.png and basel-far-3.png.
+This item is painted over them: the render is the input image, the painting keeps its
+camera, its parapet, its arches, its tower and its stalls exactly, in the game's inked
+style. Prompt 6 in batch-story-phase4-codex.txt is written for it and is handed over when
+the renders exist.
+
+15. basel-far-2.png (the Mittlere Brücke's deck seen from the side: the stone parapet
+    along the far edge with its lamp posts, the river below it, the far bank's houses
+    and the chapel's turret, the evening sky; its left and right edges continue each
+    other), basel-far-3.png (the Marktplatz: the red Rathaus facade with its arcade of
+    three arches and its tower, flagpoles with blank banners, two market stalls with
+    awnings, the square's paving as the base line), each 1536 x 1024, painted over its
+    render; no people, no text, nothing on the floor the render does not show.
+
+------------------------------------------------------------------------------------------
+CHECKLIST (pass/fail, every file):
+- People: strict left profile, both arms forward and down with empty open hands, the
+  soles at Image 1's height, 1086 x 1448, flat green, no props, no text; clearly a
+  different person from everyone in art/incoming/cast/ and not the man in Image 1.
+- Walls: 1536 x 1024, straight on, one level base line about three-quarters down with
+  plain floor below it, nothing in front, no people, no text; the edges meet as each item
+  says.
+- Sheets: the exact count in the exact order, in a row, apart, on flat green, no
+  shadows, no text.
+- Every image in the inked style of bellhop-1.png: thick outlines, flat cel shading, one
+  shadow tone, one highlight tone.
