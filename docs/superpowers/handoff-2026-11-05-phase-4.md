@@ -2,7 +2,7 @@
 
 Story Phase 3 is built: Act 3 plays from 3-1's card to "Basel SBB. 17:06. On time. They always are." on a saved journey, and 3-4 reads "Coming". Your job is Phase 4 of `docs/superpowers/plans/2026-11-02-story-roadmap.md`: 3-4 Basel in Tattoo week, 3-5 the Basel office, 3-6 the replacement, and the end of Act 3.
 
-**Repo and branch:** `C:\Users\jeste\Desktop\hammer-time`, branch `claude/hammer-pass`. `main` moves only on the owner's yes at the time. As of this handoff `main` is behind: it has Phases 1 and 2, and Phase 3 is on `claude/hammer-pass` alone until the owner says otherwise.
+**Repo and branch:** `C:\Users\jeste\Desktop\hammer-time`, branch `claude/hammer-pass`. `main` moves only on the owner's yes at the time. `main` holds Phase 3 since 2026-11-06: the owner moved it before playing the phase, so their play notes may still come.
 
 ## Read first, in full, before any code
 
