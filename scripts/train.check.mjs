@@ -253,3 +253,33 @@ test("the camera stops at the hall's first wall and the end of coach 1: nothing 
   const rooms = TRAIN.rooms;
   assert.deepEqual([TRAIN.bounds.x, TRAIN.bounds.x + TRAIN.bounds.w], [rooms[0].x0, rooms[rooms.length - 1].x1]);
 });
+
+test("Hammer down from the station's clock, then Try again: the level's own card, not the train leaving", () => {
+  const g = train(); play(g);
+  for (let i = 0; i < 80000 && g.mode !== "over"; i++) { if (g.mode === "play" && g.run.stretch > 1) g.dev.stretch(0.5); g.step(input()); }
+  assert.equal(g.mode, "over");
+  g.newRun(81, g.venue, { snapshot: g.snapshot });
+  assert.deepEqual([hudOf(g).card, hudOf(g).told], [TRAIN.card, false]);
+});
+test("the stroller never reaches through the second door's wall", () => {
+  const st = TRAIN.movers.find((m) => m.id === "stroller");
+  const wall = coachX(7) - 12;
+  assert.ok(st.x0 - st.w / 2 > wall + 24, `the stroller's reach ${st.x0 - st.w / 2} against the door ${wall}`);
+  const g = train(); play(g); g.run.stretch = null; g.dev.bossDoor(1);
+  Object.assign(g.world.hero, { x: coachX(7) - 42, y: 0, onGround: true, patience: 2 });
+  // Pressed against the door, down the whole time: every punch misses, so nothing here may touch him.
+  const evs = until(g, () => false, 40, { right: true, down: true });
+  assert.equal(of(evs, "hurt").length, 0);
+});
+test("a knockdown just after the third hit keeps the door: he saw him turn to go", () => {
+  for (const wait of [0, 0.3, 0.6]) {
+    const g = train(); play(g); const h = g.world.hero; g.run.stretch = null; g.run.checkpoint = "board"; const c = g.world.boss;
+    Object.assign(h, { x: coachX(13) - 120, y: 0, invuln: 99 });
+    for (let i = 0; i < 3; i++) { until(g, (x) => x.world.boss.state === "windup", 6); dodge(g); assert.equal(hitBoss(c, "bonk", g.events), true); if (i < 2) until(g, (x) => x.world.boss.hurtT <= 0 && x.world.boss.state !== "hurt", 2); }
+    until(g, () => false, wait);
+    Object.assign(h, { invuln: 0, patience: 1 });
+    g.world.hit(h.x + 100);
+    until(g, (x) => of(x.events, "respawn").length > 0, 5);
+    assert.deepEqual([g.run.bossDoors, g.world.boss.door, g.world.boss.hp], [1, 1, 6], `${wait} s after the third hit`);
+  }
+});

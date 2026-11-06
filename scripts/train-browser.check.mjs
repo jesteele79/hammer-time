@@ -9,6 +9,8 @@ import { resolve } from "node:path";
 import sharp from "sharp";
 import { checkedUrl } from "./browser-guard.mjs";
 
+// 55 on mains; a laptop on battery in its Silent plan holds every screen near 43, the home screen too, so a run there names its own.
+const FPS_FLOOR = Number(process.env.FPS_FLOOR ?? 55);
 const base = checkedUrl(process.argv[2] || "http://127.0.0.1:8090/");
 const out = resolve("artifacts");
 mkdirSync(out, { recursive: true });
@@ -195,7 +197,7 @@ try {
   await tp(coachX(16) + 300);
   await page.waitForTimeout(2000);
   const coach = await fpsOver(5);
-  assert.ok(Math.min(...hall) >= 55 && Math.min(...coach) >= 55, `55 fps at 1920 by 1080: hall ${hall}, coach ${coach}`);
+  assert.ok(Math.min(...hall) >= FPS_FLOOR && Math.min(...coach) >= FPS_FLOOR, `${FPS_FLOOR} fps at 1920 by 1080: hall ${hall}, coach ${coach}`);
   await page.close();
 
   // The four sizes.

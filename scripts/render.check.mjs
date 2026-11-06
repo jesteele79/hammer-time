@@ -1755,3 +1755,13 @@ test("the countryside shows fields before the tunnel and hills after, in every c
 test("the hall's clock reads 13:58 with the whole stretch left and 14:02 when it runs out", () => {
   assert.deepEqual([clockTime(120), clockTime(60), clockTime(0), clockTime(null)], ["13:58", "14:00", "14:02", "14:02"]);
 });
+
+import { fadeOfBoss } from "../src/render/boss-view.ts";
+test("the conductor fades out at the end of his retreat, not popping off the screen; nobody else does", () => {
+  const c = { kind: "conductor", state: "retreat", timer: 1 };
+  assert.equal(fadeOfBoss(c), 1);
+  assert.equal(fadeOfBoss({ ...c, timer: 0.15 }), 0.5);
+  assert.equal(fadeOfBoss({ ...c, timer: 0 }), 0);
+  assert.equal(fadeOfBoss({ ...c, state: "block", timer: 0 }), 1);
+  assert.equal(fadeOfBoss({ kind: "purser", state: "retreat", timer: 0 }), 1);
+});

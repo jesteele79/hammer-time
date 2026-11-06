@@ -71,7 +71,8 @@ export const TRAIN: Level = {
   doors: [],
   signs: [{ x: coachX(QUIET) + 384, y: -300, label: "Shh" }],
   movers: [
-    { id: "stroller", x: coachX(FAMILY) + 100, y: 0, x0: coachX(FAMILY) + 40, x1: coachX(FAMILY) + 720, w: 120, h: 110, speed: 160 },
+    // Its box stays clear of the door at the coach's start, and a man pressed against it.
+    { id: "stroller", x: coachX(FAMILY) + 140, y: 0, x0: coachX(FAMILY) + 100, x1: coachX(FAMILY) + 720, w: 120, h: 110, speed: 160 },
     { id: "bike-swing", x: coachX(BIKES) + 600, y: -200, x0: coachX(BIKES) + 540, x1: coachX(BIKES) + 660, w: 140, h: 30, speed: 160 },
   ],
   coaches: { from: 4000, every: 768, count: 18 },

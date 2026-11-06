@@ -955,7 +955,7 @@ Approved by the owner in the Phase 3 brainstorm, section by section:
 - **The conductor's punch is a rule, not a band:** it meets him in reach (150 px), on his feet and less than 90 px off the floor.
   A duck, a jump or a step back all miss, and the miss is the only opening. Under the coaches' ceiling the plan's "jump over it"
   at y -300 was inside the ceiling. A punch that lands throws him out of reach; the conductor holds his door, so he walks back up.
-- **The doors won** live on the run (`bossDoors`): a lost life keeps them, Try again and the next level clear them. His door is a
+- **The doors won** live on the run (`bossDoors`), each won with its third hit and not at the end of his walk away: a lost life keeps them, Try again and the next level clear them. His door is a
   wall from floor to ceiling while he holds it. The driver ducks where the plan's jumped: at the third door the stagger ends
   before a jump lands, and a jump near a door can land on the last seat back, where the ceiling keeps him tucked.
 - **Under the coaches' ceiling he tucks** (`Stage.low`): his collider drops to the crouch's as his head would meet it, so a jump

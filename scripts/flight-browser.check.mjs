@@ -8,6 +8,8 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { checkedUrl } from "./browser-guard.mjs";
 
+// 55 on mains; a laptop on battery in its Silent plan holds every screen near 43, the home screen too, so a run there names its own.
+const FPS_FLOOR = Number(process.env.FPS_FLOOR ?? 55);
 const base = checkedUrl(process.argv[2] || "http://127.0.0.1:8090/");
 const out = resolve("artifacts");
 mkdirSync(out, { recursive: true });
@@ -111,7 +113,7 @@ try {
     await tp(rowX(50));
     if (i >= 7) rates.push(await page.evaluate(() => window.__next.three.fps));
   }
-  assert.ok(Math.min(...rates) >= 55, `the cabin holds 55 fps at 1920 by 1080: ${rates}`);
+  assert.ok(Math.min(...rates) >= FPS_FLOOR, `the cabin holds ${FPS_FLOOR} fps at 1920 by 1080: ${rates}`);
   await shot("flight-first.png");
   await page.evaluate(() => window.__next.dev.turbulence());
   await page.waitForFunction(() => window.__next.flight.sign > 0, null, { timeout: 2000 });

@@ -17,6 +17,10 @@ const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; si
 };
 
 /** A boss standing in the level: their painting (or stand-in), posed by their state, always behind him. */
+const RETREAT_FADE = 0.3;
+/** The conductor goes through his door and on to the next: he fades over his walk's last moments, not popping off the screen. */
+export const fadeOfBoss = (b: Pick<Boss, "kind" | "state"> & { timer?: number }): number => (b.kind === "conductor" && b.state === "retreat" ? Math.min(1, (b.timer ?? 1) / RETREAT_FADE) : 1);
+
 export class BossView {
   readonly container = new Container({ label: "boss" });
   private figure: Diner | null = null;
@@ -60,6 +64,7 @@ export class BossView {
   /** Drawn where the boss stands, or hidden when the level has none. */
   sync(b: Boss | null, time: number): void {
     this.container.visible = !!b && !!this.figure && this.kind === b.kind && !((b.kind === "titanium" || b.kind === "conductor") && b.state === "down");
+    this.container.alpha = b ? fadeOfBoss(b) : 1;
     if (!b || !this.figure || this.kind !== b.kind) return;
     if (b.kind === "titanium") {
       const flying = b.state === "pool";

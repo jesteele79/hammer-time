@@ -21,7 +21,7 @@ import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tier
 import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
 import { createBoss } from "./boss";
-import { atDoor, conductorWall, summonConductor } from "./conductor";
+import { CONDUCTOR, atDoor, conductorWall, summonConductor } from "./conductor";
 import { createSwingDoors } from "./hazards";
 import type { Point, Rect } from "./types";
 import { createWorld, type World } from "./world";
@@ -386,6 +386,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   function newRun(s: number, from?: number, opts?: RunOptions) {
     const snap = opts?.snapshot ?? null;
+    game.cardLine = null;
     game.shift = opts?.shift ?? (snap ? game.shift : wholeShift);
     game.journey = opts?.journey ?? (!!snap && game.journey);
     game.start = game.venue = clampStart(from ?? game.start, game.shift.length);
@@ -430,6 +431,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   }
 
   function toTitle() {
+    game.cardLine = null;
     game.quest = null;
     game.questDoor = null;
     // The home screen's scene is laid out fresh: the lobby as a shift finds it, whatever was played last.
@@ -1146,7 +1148,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (c?.kind !== "conductor") return;
     const punch = world.events.find((e) => e.type === "conductorPunch");
     if (punch?.type === "conductorPunch") damage(world.hero, world.stage, punch.fromX, ev);
-    for (const e of world.events) if (e.type === "doorOpen") game.run.bossDoors = e.door + 1;
+    // Won with the third hit, not at the end of his walk away: he saw him turn to go.
+    game.run.bossDoors = Math.max(game.run.bossDoors, Math.floor((CONDUCTOR.hp - c.hp) / CONDUCTOR.perDoor));
     const q = game.level.quiet;
     if (q && world.hero.x >= q.x0 && world.hero.x <= q.x1 && world.events.some((e) => e.type === "lectureStart")) summonConductor(c, world.hero, ev);
     const wall = conductorWall(c);

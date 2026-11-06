@@ -9,6 +9,8 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { checkedUrl } from "./browser-guard.mjs";
 
+// 55 on mains; a laptop on battery in its Silent plan holds every screen near 43, the home screen too, so a run there names its own.
+const FPS_FLOOR = Number(process.env.FPS_FLOOR ?? 55);
 const base = checkedUrl(process.argv[2] || "http://127.0.0.1:8090/");
 const home = `${base}?dev=1`;
 const out = resolve("artifacts");
@@ -99,7 +101,7 @@ try {
   await page.waitForFunction(() => !!window.__next.moves.bubble, null, { timeout: 2000 });
   await shot("journey-home-insult.png");
   const fps = await page.evaluate(() => window.__next.fps);
-  assert.ok(fps >= 55, `the home screen holds its frame rate: ${fps}`);
+  assert.ok(fps >= FPS_FLOOR, `the home screen holds its frame rate: ${fps}`);
   while (Date.now() - t0 < 60000) await page.waitForTimeout(1000);
   const thinks = await page.evaluate(() => window.__next.run.events.think ?? 0);
   assert.ok(thinks >= 6 && thinks <= 8, `about one insult every eight seconds: ${thinks} in a minute`);

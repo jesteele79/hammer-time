@@ -16,7 +16,7 @@ Story Phase 3 is built: Act 3 plays from 3-1's card to "Basel SBB. 17:06. On tim
 
 - **3a:** the flight as the second 3D level on `ThreeView` with lanes, the seatbelt sign, the drinks carts, the queue and the purser; Paris with its lift, its gate and its closed street; the French table on the lounge's menu pattern; four songs.
 - **3b:** Gare de Lyon on its own two-minute clock; eighteen coaches as rooms under a low ceiling he tucks under; the conductor at three doors; the countryside and the tunnel; Act 3's cards to Basel.
-- Tests at the end: see the last commit's report. Twenty-one browser checks at the sizes they name, on dev; flight, train and journey on the production build.
+- Tests at the end: 818 passing. Twenty-one browser checks at the sizes they name, on dev; flight, Paris, train and journey on the production build. 74 to 79 fps in the cabin at medium and 116 to 120 on the train, on the laptop's integrated card on mains. On battery in its Silent plan every screen holds near 43: a run there sets `FPS_FLOOR`.
 
 ## What is still unpainted
 
@@ -37,7 +37,9 @@ The ledgers' `minor (deferred)` lines are the list. From Phase 3:
 - Holding A and tapping D steps him a further lane left when D comes up.
 - In 3D a drinks cart launched before she woke is undrawn during her 1.5 s push, and still shoves.
 - A respawn at row 30's clock lands him inside the first of the queue, who pops him back 105 px.
-<<MINORS>>
+- A summoned conductor follows him anywhere, through every wall, even back down the platform.
+- The countryside's phase keys on where he stands: stepping back left of the tunnel's mouth turns the hills back into fields.
+- A knockdown in the 1.45 s after the conductor's ninth hit keeps the win but not its 1,000 points.
 
 From Phase 2: a snot rocket as the supervisor's last hit gives no ride cart; the bellhops' keycards drop again after a lost life while the fixed ones stay taken; `let carts` in `supervisor.ts` is module state; his profile on the game's canvas uses the 3D camera of the frame before; a door's leaf and the wall it makes disagree by 0.2 m and half a second; the puddle slips him across the hall's whole width; a dropped keycard in the suite pogoes off the bed.
 
