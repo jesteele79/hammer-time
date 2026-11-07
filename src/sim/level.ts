@@ -164,7 +164,10 @@ export type CastPerson =
   | "piper"
   | "drummer"
   | "drill"
-  | "major";
+  | "major"
+  | "tech"
+  | "resident"
+  | "admin";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
@@ -192,8 +195,8 @@ export type CastSpawn = {
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
-/** `cheer`: the crowd behind a barrier, never solid and never noticing him, bonked once with a "Prost!"; `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip; `stand`: seated until he is near, then up into him; `rush`: a kid who runs at him and shoves him along. */
-export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove" | "stand" | "rush" | "cheer";
+/** `spray`: a nurse who never marches and sprays sanitizer at his feet within reach (3-5); `cheer`: the crowd behind a barrier, never solid and never noticing him, bonked once with a "Prost!"; `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip; `stand`: seated until he is near, then up into him; `rush`: a kid who runs at him and shoves him along. */
+export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove" | "stand" | "rush" | "cheer" | "spray";
 export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */

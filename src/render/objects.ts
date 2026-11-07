@@ -5,6 +5,7 @@ import { CRATE, type Crate } from "../sim/crates";
 import type { CarriedKind, CrateKind } from "../sim/level";
 import type { Pickup, PickupKind } from "../sim/rewards";
 import { SCENERY_Z } from "./backdrop";
+import { drawVending } from "./venue-lab";
 import { PALETTE, shadowOf, tones } from "./palette";
 import type { Particles, RecipeName } from "./particles";
 
@@ -358,7 +359,7 @@ export class Objects {
         const root = new Container();
         const g = new Graphics();
         const worn = c.look ? this.looks[c.look] : undefined;
-        const logo = worn ? null : crateLogo(c.kind);
+        const logo = worn || c.look === "vending" ? null : crateLogo(c.kind);
         root.addChild(g);
         if (logo) root.addChild(logo);
         if (worn) {
@@ -378,6 +379,7 @@ export class Objects {
         view.g.clear();
         const worn = view.root.children.find((x) => x instanceof Sprite && x !== view!.logo) as Sprite | undefined;
         if (worn) worn.tint = c.used ? 0x8a8a8a : 0xffffff;
+        else if (c.look === "vending") drawVending(view.g, c.used);
         else if (!c.broken) drawCrate(view.g, c.kind, c.used, c.cans, !view.logo);
         if (view.logo) view.logo.visible = !c.used && !c.broken;
       }

@@ -79,6 +79,7 @@ import { SETS } from "./3d/sets";
 import { ParisView } from "./venue-paris";
 import { TrainView, loadTrainPieces, type TrainPieces } from "./venue-train";
 import { BaselView, LANTERNS, loadBaselPieces, type BaselPieces } from "./venue-basel";
+import { LabView, loadLabPieces, type LabPieces } from "./venue-lab";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
@@ -113,6 +114,8 @@ const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, col
 const BASEL_LANTERNS: Light[] = Array.from({ length: Math.floor((LANTERNS.x1 - LANTERNS.x0) / LANTERNS.post) + 1 }, (_, k) => ({ x: LANTERNS.x0 + k * LANTERNS.post, y: LANTERNS.y, radius: 520, intensity: 0.5, color: PALETTE.lampGlow, flicker: 0.05, group: "basel-lanterns", soft: true }));
 /** Basel's evening light at the level's start, before dusk eases it toward the night's. */
 const BASEL_DAY = "#ffe0bd";
+/** The code blue's red, the lights pulse toward it. */
+const CODE_BLUE = "#7a1f2b";
 /** The drum corps' shake: camera trauma on its fourth beat. */
 const DRUM_SHAKE = 0.5;
 /** How fast he must be moving for the pipers following him to play. */
@@ -314,6 +317,10 @@ export async function startLook(
   let trainPieces: TrainPieces = {};
   const baselView = new BaselView(scene.layers.play);
   let baselPieces: BaselPieces = {};
+  const labView = new LabView(scene.layers.play);
+  let labPieces: LabPieces = {};
+  /** The code blue's light last set: redrawn as it moves on, not every frame. */
+  let pulseAt = -1;
   /** The light dusk has brought so far (3-4): redrawn as it moves on, not every frame. */
   let duskAt = -1;
   let character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
@@ -373,8 +380,12 @@ export async function startLook(
           baselPieces = opts.noart ? {} : await loadBaselPieces(registry);
           towerCarts.setBaselArt(baselPieces);
         }
+        if (level.codeBlue) {
+          labPieces = opts.noart ? {} : await loadLabPieces(registry);
+          towerCarts.setLabArt(labPieces);
+        }
         if (level.pickups?.some((p) => p.kind === "bread") && !opts.noart && registry.french?.food?.[0]) setBreadPicture(await Assets.load<Texture>(ART_BASE + registry.french.food[0].file).catch(() => null));
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces, baselPieces);
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces, baselPieces, labPieces, !opts.noart && !!registry.walls?.[level.backdrop?.walls[0] ?? ""]);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -830,6 +841,9 @@ export async function startLook(
         break;
       case "doorsBeep":
         trainView.beep();
+        break;
+      case "spray":
+        labView.spray(e.x, e.y);
         break;
       case "drumHit":
         scene.camera.trauma = Math.max(scene.camera.trauma, DRUM_SHAKE);
@@ -1996,6 +2010,20 @@ export async function startLook(
       duskAt = -1;
       sound.lead(true);
     }
+    labView.container.zIndex = y - 0.45;
+    labView.setVisible(!!game.level.codeBlue);
+    if (game.level.codeBlue) {
+      labView.sync(game.level, world.time, simDt);
+      // Code blue: the lights pulse red at 2 Hz while he is in its stretch, except under reduced motion.
+      const pulse = world.codeBlue > 1 && !scene.reducedMotion ? Math.round((0.5 + 0.5 * Math.sin(world.time * Math.PI * 4)) * 8) / 8 : 0;
+      if (pulse !== pulseAt) {
+        pulseAt = pulse;
+        lighting.setAmbient(mixHex(ambientOf(game.level), CODE_BLUE, pulse * 0.6));
+        cast.setAmbient(scene.ambient);
+        props.setAmbient(scene.ambient);
+        flyers.setAmbient(scene.ambient);
+      }
+    } else pulseAt = -1;
     hallFlat.setVisible(!!game.level.hall && !hallUp());
     if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h, cur.flight ? flatCabinOf(cur) : undefined);
 
@@ -2119,7 +2147,7 @@ export async function startLook(
     // The title tune on the home screen; the level's song (the stash has its own), quiet under its cards; a repeat changes nothing.
     const levelMusic = musicFor(game.mode, game.level.music, game.quest ? questMusic(game.quest).theme : null);
     sound.music(levelMusic.theme, levelMusic.quiet);
-    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time, (world.flight?.sign ?? 0) > 0 || (game.run.stretch !== null && game.run.stretch <= STATION.doors)));
+    afterFrame(simDt, hurryFor(game.mode, game.level.time, game.run.time, (world.flight?.sign ?? 0) > 0 || (game.run.stretch !== null && game.run.stretch <= STATION.doors) || world.codeBlue > 1));
 
     const cam = scene.camera;
     const home = game.mode === "title" ? game.level.home : undefined;
@@ -2188,7 +2216,10 @@ export async function startLook(
       window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();
       window.__next.costume = character.costume;
+      const badge = character.badge();
+      window.__next.badgeScreen = badge && scene.toScreen({ x: character.container.x + badge.x, y: character.container.y + badge.y });
       window.__next.shake = scene.camera.trauma;
+      window.__next.ambient = scene.ambient;
       window.__next.music = { lead: sound.leadLevel };
       window.__next.errands = game.run.errands.length;
       window.__next.bands = cur.parade?.bands.map((b) => ({ id: b.id, x: b.x, state: b.state }));
@@ -2573,6 +2604,7 @@ export async function startLook(
       parisView.destroy();
       trainView.destroy();
       baselView.destroy();
+      labView.destroy();
       hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();

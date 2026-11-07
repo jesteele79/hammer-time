@@ -14,6 +14,7 @@ import { drawParis, drawParisStandIn, parisPlatform } from "./venue-paris";
 import { drawSuiteStandIn } from "./venue-suite";
 import { drawTrain, drawTrainStandIn, type TrainPieces } from "./venue-train";
 import { baselPlatform, drawBasel, type BaselPieces } from "./venue-basel";
+import { drawLab, type LabPieces } from "./venue-lab";
 import { towerDressing, towerFloor, towerPlatform, type TowerPieces } from "./venue-tower";
 import { PALETTE, highlightOf, shadowOf, tones } from "./palette";
 import type { Scene } from "./scene";
@@ -77,7 +78,7 @@ export function escalatorSteps(seg: FloorSegment, t: number): Point[] {
 }
 
 /** The level drawn behind Hammer: floors, platforms, furniture, doors, punch clocks and signs; SAT's and the tower's sheets where they are in. */
-export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}, suitePainted = false, train: TrainPieces = {}, basel: BaselPieces = {}): VenueView {
+export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = null, tower: TowerPieces = {}, suitePainted = false, train: TrainPieces = {}, basel: BaselPieces = {}, lab: LabPieces = {}, wallsPainted = false): VenueView {
   const root = new Container();
   root.zIndex = SCENERY_Z;
   root.sortableChildren = false;
@@ -105,6 +106,11 @@ export function drawVenue(scene: Scene, level: Level, sat: SatPieces | null = nu
   }
   const street = !!level.errands;
   if (street) root.addChild(drawBasel(level, basel));
+  if (level.codeBlue) {
+    // The corridor's walls until they are painted: pale green under a drop ceiling, a handrail along them.
+    if (!wallsPainted) back.rect(-400, -1400, level.length + 800, 1400).fill("#cfe3d4").rect(-400, -1400, level.length + 800, 520).fill("#e9ecee").rect(-400, -880, level.length + 800, 10).fill("#9aa3ab").rect(-400, -330, level.length + 800, 16).fill("#a8774e");
+    root.addChild(drawLab(level, lab));
+  }
   for (const p of level.platforms) if (!level.rooms && !(street && baselPlatform(p)) && !(level.bonjour && parisPlatform(mid, p)) && !(climb && towerPlatform(mid, p)) && !restaurantPlatform(mid, p) && !campusPlatform(mid, p) && !giftshopPlatform(mid, p)) drawPlatform(mid, p);
   const airport = level.id === "sat";
   for (const f of level.floor)

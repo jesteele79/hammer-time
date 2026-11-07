@@ -76,7 +76,8 @@ export const SONGS: Record<SongId, Song> = {
   // 3-5 (story spec §13): the monitor's beep at 72 over sparse pads, two slow chords on a triangle.
   lab: {
     step: 60 / 72 / 4,
-    lead: bars(...Array.from({ length: 4 }, () => [88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+    // The monitor at 72: a beep on every beat.
+    lead: bars(...Array.from({ length: 4 }, () => [88, 0, 0, 0, 88, 0, 0, 0, 88, 0, 0, 0, 88, 0, 0, 0])),
     leadWave: "sine",
     leadLen: 1,
     bass: bars(...Array.from({ length: 4 }, (_, k) => [k % 2 ? 53 : 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),

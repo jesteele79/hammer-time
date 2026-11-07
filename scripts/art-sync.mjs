@@ -34,6 +34,7 @@ import {
   nameTowerPieces,
   nameTrainPieces,
   nameBaselPieces,
+  nameLabPieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -221,7 +222,7 @@ async function bodies(registry) {
 
 const CAST_IN = "art/incoming/cast";
 // The bartender borrows server-1's painting (PAINTING_OF); the skycap and the TSA agent are cut when theirs arrive.
-const CAST_PERSONS = ["piper", "drummer", "drill", "major", "purser", "attendant-1", "concierge", "garcon", "parisian-1", "conductor", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1", "guard-1", "titanium", "housekeeper-1"];
+const CAST_PERSONS = ["piper", "drummer", "drill", "major", "tech", "resident", "admin", "purser", "attendant-1", "concierge", "garcon", "parisian-1", "conductor", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "gate-agent", "skycap-1", "tsa-1", "guard-1", "titanium", "housekeeper-1"];
 
 /** The cast's paintings, cut like Hammer's bodies: each person's layers, head plate and silhouettes, and their rig. */
 async function cast(registry) {
@@ -604,6 +605,24 @@ async function sat(registry) {
 const TOWER_SHEET = "art/incoming/props/tower-sheet.png";
 const TRAIN_SHEET = "art/incoming/props/train-sheet.png";
 const BASEL_SHEET = "art/incoming/props/basel-sheet.png";
+const LAB_SHEET = "art/incoming/props/lab-sheet.png";
+
+/** The Basel office (story Phase 4): the sheet cut into its six named pieces; while it is not in, the drawn stand-ins stand. */
+async function lab(registry) {
+  registry.lab = {};
+  if (!existsSync(LAB_SHEET)) return;
+  mkdirSync(join(OUT, "lab"), { recursive: true });
+  await tolerant("lab sheet", strict, async () => {
+    const named = nameLabPieces(await sheetPieces(await keyOut(readFileSync(LAB_SHEET))));
+    registry.lab.pieces = {};
+    for (const [name, p] of Object.entries(named)) {
+      const file = `lab/${name}.png`;
+      writeFileSync(join(OUT, file), p.png);
+      registry.lab.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+    }
+    console.log(`lab sheet: ${Object.keys(named).join(", ")}`);
+  });
+}
 
 /** Basel (story Phase 4): the sheet cut into its eight named pieces; while it is not in, the drawn stand-ins stand. */
 async function basel(registry) {
@@ -697,6 +716,7 @@ await french(registry);
 await tower(registry);
 await train(registry);
 await basel(registry);
+await lab(registry);
 await back(registry);
 await gate(registry);
 await sat(registry);

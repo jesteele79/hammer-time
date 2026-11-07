@@ -27,8 +27,8 @@ export type CrateOut = { pickups: Pickup[]; events: GameEvent[]; nextId: () => n
 export const cratesOf = (level: Level): Crate[] =>
   level.crates.map((c) => ({ ...c, used: false, broken: false, cans: 0, lock: 0 }));
 export const crateRect = (c: Crate): Rect => ({ x: c.x - CRATE.size / 2, y: c.y - CRATE.size, w: CRATE.size, h: CRATE.size });
-/** Every crate stays solid once spent; a broken case is gone; a fridge stands behind the aisle he walks. */
-export const crateSolids = (crates: Crate[]): Rect[] => crates.filter((c) => !c.broken && c.look !== "fridge").map(crateRect);
+/** Every crate stays solid once spent; a broken case is gone; a fridge and a vending machine stand behind the aisle he walks. */
+export const crateSolids = (crates: Crate[]): Rect[] => crates.filter((c) => !c.broken && c.look !== "fridge" && c.look !== "vending").map(crateRect);
 
 /** One hit on a crate (the shipped hitBlock): what comes out, whether it is spent, whether a case breaks. Returns whether it acted at all. */
 export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateOut): boolean {

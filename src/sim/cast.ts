@@ -34,7 +34,7 @@ export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart
 
 export type CastJob = CastJobName;
 /** The people whose painting's name is their whole job, with no number. */
-const JOBS_WHOLE: readonly string[] = ["nurse", "purser", "concierge", "garcon", "conductor", "piper", "drummer", "drill", "major"];
+const JOBS_WHOLE: readonly string[] = ["nurse", "purser", "concierge", "garcon", "conductor", "piper", "drummer", "drill", "major", "tech", "resident", "admin"];
 /** Who a person is: the painting's name less its number ("cook-1" is a cook). */
 export const jobOf = (p: CastPerson): CastJob => (JOBS_WHOLE.includes(p) ? p : p.slice(0, -2)) as CastJob;
 /** Which of the lobby's four fights each job fights (R3 §4). */
@@ -75,11 +75,16 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   drill: "student",
   // A boss; this is only his painting's job.
   major: "office",
+  // The Basel office (story spec §10.2): techs square up and shove as the airport's agents do; residents are students in white
+  // coats throwing charts; the administrator stands at her desk and takes no part.
+  tech: "bellhop",
+  resident: "student",
+  admin: "office",
 };
 /** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
-export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };
+export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2, tech: 2 };
 /** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
-export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1", concierge: "office-2", garcon: "server-2", "parisian-1": "student-2", "kid-1": "student-2", conductor: "bellhop-1", major: "guard-1" };
+export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1", concierge: "office-2", garcon: "server-2", "parisian-1": "student-2", "kid-1": "student-2", conductor: "bellhop-1", major: "guard-1", tech: "nurse", resident: "student-1", admin: "office-2" };
 export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
 /** Who wears a hat that flies off at the first hit. */
 export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook", "skycap"]);
@@ -108,7 +113,7 @@ export const POINTS = { down: 100, slip: 150, schooled: 150, frozen: 50, swat: 5
 export const KNOCK = { small: { back: 700, up: 650 }, big: { back: 1100, up: 600 }, slide: { speed: 1100, friction: 700 }, bounce: 0.3 } as const;
 /** How fast a cart, a sliding bellhop or a flying body must move to bowl or to hurt. */
 export const ROLLING = 150;
-export const SPILL = { water: { w: 260, life: 8 }, coffee: { w: 150, life: 7 }, gravy: { w: 260, life: 8 }, grease: { w: 150, life: 7 } } as const;
+export const SPILL = { water: { w: 260, life: 8 }, coffee: { w: 150, life: 7 }, gravy: { w: 260, life: 8 }, grease: { w: 150, life: 7 }, sanitizer: { w: 200, life: 6 } } as const;
 export type SpillKind = keyof typeof SPILL;
 /** What a staffer's fall leaves on the floor: the tray's water, the coffee, the gravy, the pan's grease. */
 export const SPILL_OF: Partial<Record<CastJob, SpillKind>> = { server: "water", office: "coffee", lunch: "gravy", cook: "grease" };

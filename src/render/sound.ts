@@ -12,6 +12,11 @@ type Cue = keyof AudioBus & string;
 
 export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   bounce: ["jump"],
+  // The Basel office (story spec §13): the spray's fizz, the slip, a sharps bin's snap, the code blue's beep.
+  spray: ["fizz"],
+  slipped: ["slip"],
+  sharps: ["snap"],
+  codeBlue: ["beep"],
   // Basel (story spec §13): the bagpipe's drone as a band's pipes come up, the drum corps' hit, the mace's whirr.
   bandRise: ["drone"],
   drumHit: ["drumHit"],

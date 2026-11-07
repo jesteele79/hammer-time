@@ -426,7 +426,7 @@ test("a profile head registers its nose tip at the face box's front edge", async
 const CAST_IN = "art/incoming/cast";
 import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
 import { TOWER } from "../src/sim/levels/tower.ts";
-const PERSONS = ["piper", "drummer", "drill", "major", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "guard-1", "titanium", "housekeeper-1"];
+const PERSONS = ["piper", "drummer", "drill", "major", "tech", "resident", "admin", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "guard-1", "titanium", "housekeeper-1"];
 /** The cast bodies with a painting and a cut: every cast check runs on each. */
 const CAST_CUT = PERSONS.filter((p) => existsSync(`${CAST_IN}/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`));
 const castCache = new Map();
@@ -723,7 +723,7 @@ test("every recolor the night asks of a painting is in that painting's cut", () 
   }
 });
 test("every recolor a level asks of a painting is in that painting's cut, a borrowed painting's too", () => {
-  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT, FLIGHT, PARIS, TRAIN, BASEL])
+  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT, FLIGHT, PARIS, TRAIN, BASEL, LAB])
     for (const s of level.cast ?? []) {
       const painting = PAINTING_OF[s.person] ?? s.person;
       if (!s.recolor || !existsSync(`art/cuts/cast-${painting}.json`)) continue;
@@ -736,6 +736,7 @@ import { FLIGHT } from "../src/sim/levels/flight.ts";
 import { PARIS } from "../src/sim/levels/paris.ts";
 import { TRAIN } from "../src/sim/levels/train.ts";
 import { BASEL } from "../src/sim/levels/basel.ts";
+import { LAB } from "../src/sim/levels/lab.ts";
 import { PAINTING_OF } from "../src/sim/cast.ts";
 
 test("a recolor region can name the layers it reaches: a garment painted in behind an arm is recolored on its own layer only", () => {

@@ -1,5 +1,5 @@
 import { CAST_LINES, RETORTS, STAFF_SIGHS, pick } from "../game/lines";
-import { SPILL_OF, TRICKS, freezeNpc, linesOf } from "./cast";
+import { SPILL, SPILL_OF, TRICKS, freezeNpc, linesOf } from "./cast";
 import { stun } from "./damage";
 import {
   CAST,
@@ -28,7 +28,7 @@ import { bodyRect, overlapsRect, sideways } from "./geometry";
 import { BURST_R, flopRect, flopping } from "./hits";
 import { flies, launchCoffee, launchPlane, launchRifle, type Missile } from "./missiles";
 import { canStand, floorAt, moveBody } from "./physics";
-import type { Puddle } from "./snot";
+import { SNOT, type Puddle } from "./snot";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
 
 export type CastWorld = {
@@ -97,6 +97,41 @@ function notice(n: Npc, w: CastWorld, events: GameEvent[]): boolean {
   setAct(n, "notice");
   events.push({ type: "castNotice", id: n.id, x: n.x, y: n.y - n.h });
   return true;
+}
+
+/** The nurse's sanitizer (story spec §10.2, the 2026-11-06 note): within `reach` and off her rest, a wind-up, then a puddle at his feet. */
+export const SPRAY = { reach: 300, windup: 0.4, rest: 2.5, walk: 90 } as const;
+
+/** She never marches: she walks her post slowly, faces him in reach, winds up and sprays where he stands. */
+function stepSpray(n: Npc, w: CastWorld, events: GameEvent[]): void {
+  const h = w.hero;
+  if (n.act === "windup") {
+    n.vx = 0;
+    if (n.actT < SPRAY.windup) return;
+    const s = SPILL.sanitizer;
+    const y = floorAt(w.stage, h.x, h.y - 24) ?? h.y;
+    w.puddles.push({ x: h.x, y, w: s.w, life: s.life, max: s.life, kind: "sanitizer" });
+    if (w.puddles.length > SNOT.puddles) w.puddles.shift();
+    events.push({ type: "spray", id: n.id, x: h.x, y });
+    attack(n, events);
+    n.rest = SPRAY.rest;
+    return;
+  }
+  if (n.act === "attack") {
+    n.vx = 0;
+    if (n.actT >= 0.3) setAct(n, "idle");
+    return;
+  }
+  notice(n, w, events);
+  const near = Math.abs(h.x - n.x) <= SPRAY.reach && sameLevel(n, h);
+  if (!near) {
+    patrol(n, w, SPRAY.walk);
+    return;
+  }
+  n.vx = 0;
+  n.facing = toward(n, h);
+  if (n.rest > 0 || !ticketFree(w.cast)) return;
+  windup(n, w, events);
 }
 
 /** The station's crowd: their walk, how far a shove carries him, how long before they shove again, how high a jump clears them. */
@@ -337,7 +372,7 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
     if (n.actT >= c.windup) {
       // The bartender's are coasters off the bar; they fly as the planes do.
       const at = { x: h.x, y: h.y - h.h * 0.6 };
-      const m = n.job === "drill" ? launchRifle(++w.nextMissile, n, at) : launchPlane(++w.nextMissile, n, at, n.job === "bartender" ? "coaster" : "plane");
+      const m = n.job === "drill" ? launchRifle(++w.nextMissile, n, at) : launchPlane(++w.nextMissile, n, at, n.job === "bartender" ? "coaster" : n.job === "resident" ? "chart" : "plane");
       w.missiles.push(m);
       events.push({ type: "missile", kind: m.kind, x: m.x, y: m.y });
       if (n.job === "drill") events.push({ type: "castThrow", id: n.id, x: m.x, y: m.y, t: w.time });
@@ -602,6 +637,11 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
       n.vx = n.facing * RUSH.speed;
       n.act = "walk";
     } else patrol(n, w, SHOVE.walk);
+    return;
+  }
+  // A nurse with the sanitizer: she stands her ground and sprays it at his feet.
+  if (n.trick === "spray") {
+    stepSpray(n, w, events);
     return;
   }
   // The cabin's queue and its seated travelers, the quiet car's pair, Basel's crowd, stand as they are, whoever comes.

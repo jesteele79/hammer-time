@@ -5,9 +5,9 @@ import { floorAt } from "./physics";
 import { SNOT, type Puddle } from "./snot";
 import type { HeroState, Point, Stage } from "./types";
 
-export type MissileKind = "plane" | "coffee" | "pan" | "coaster" | "water" | "apple" | "bottle" | "bag" | "rifle";
+export type MissileKind = "plane" | "coffee" | "pan" | "coaster" | "water" | "apple" | "bottle" | "bag" | "rifle" | "chart";
 /** What is swatted for points as a paper plane is: the plane, the bartender's coaster, the drill team's rifle (on its own arc). */
-export const flies = (kind: MissileKind): boolean => kind === "plane" || kind === "coaster" || kind === "rifle";
+export const flies = (kind: MissileKind): boolean => kind === "plane" || kind === "coaster" || kind === "rifle" || kind === "chart";
 /** What a plane's lift and drag hold up: a rifle spins up and comes down on its arc instead. */
 const glides = (kind: MissileKind): boolean => flies(kind) && kind !== "rifle";
 /** Something thrown at him: `phase` seeds a plane's wobble, `from` is the thrower. */
@@ -29,7 +29,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 type Thrower = Pick<Npc, "id" | "x" | "y" | "h" | "facing">;
 
 /** From the hand, aimed where he is now: a plane dips toward a target below and climbs a little to one above. */
-export function launchPlane(id: number, from: Thrower, target: Point, kind: "plane" | "coaster" = "plane"): Missile {
+export function launchPlane(id: number, from: Thrower, target: Point, kind: "plane" | "coaster" | "chart" = "plane"): Missile {
   const y = from.y - from.h * PLANE.hand;
   const dx = target.x - from.x;
   const dir = Math.sign(dx) || from.facing;

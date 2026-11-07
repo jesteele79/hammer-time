@@ -90,6 +90,10 @@ export type NextProbe = {
   headTintChain?: number;
   /** What he wears now: the Affliction shirt, or the level's costume (scrubs on 3-5 and 3-6). */
   costume?: string;
+  /** The TRAINER badge's middle on the screen, CSS px; null without one. */
+  badgeScreen?: { x: number; y: number } | null;
+  /** The play layer's ambient tint now: the code blue's pulse reads here. */
+  ambient?: number;
   /** The camera's trauma now: the drum corps' shake, a bogie's jolt. */
   shake?: number;
   /** The music's state the checks read: the lead's level (3-4's pipers play only while he walks). */

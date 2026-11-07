@@ -43,6 +43,8 @@ export type Character = {
   headTintChain(): number;
   /** The mallet in his fist, or not: at the gate his fist holds a scalpel and the mallet leans on his cart (R5 §2). */
   holdMallet(on: boolean): void;
+  /** Where the TRAINER badge hangs now, in the character's own space; null without one. */
+  badge(): { x: number; y: number } | null;
 };
 
 /** A level's costume: scrubs on 3-5 and 3-6 (story spec §10.2), the Affliction shirt everywhere else. */
@@ -375,6 +377,9 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     },
     holdMallet(on) {
       if (malletSprite) malletSprite.visible = on;
+    },
+    badge() {
+      return badge?.visible ? { x: badge.x, y: badge.y } : null;
     },
     headTintChain() {
       let chain = 0xffffff;

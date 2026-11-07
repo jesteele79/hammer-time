@@ -270,6 +270,15 @@ try {
     await page.screenshot({ path: resolve(out, "conductor-3.png") });
     count += 3;
   }
+  if (want("lab")) {
+    // The office's stretches, in the running game's scene, him in scrubs.
+    await page.goto(`${base}?next=1&board=1&dev=1&level=lab`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 60000 });
+    await page.waitForTimeout(1500);
+    const frames = (await render("venue")).split("\n");
+    frames.forEach((f, i) => save(`lab-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
   if (want("basel")) {
     // Basel's stretches, in the running game's scene.
     await page.goto(`${base}?next=1&board=1&dev=1&level=basel`);

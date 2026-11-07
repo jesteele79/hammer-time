@@ -65,6 +65,8 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   flight: [{ x: 200, cx: 500 }, { x: 1700, cx: 2000 }, { x: 3700, cx: 3700 }],
   // The hall, the platform, the quiet car, the bistro car, the family car, the bike car, coach 1.
   train: [{ x: 1200, cx: 1400, cy: -300 }, { x: 3300, cx: 3400, cy: -200 }, { x: 4000 + 4 * 768 + 300, cx: 4000 + 4 * 768 + 384, cy: -200 }, { x: 4000 + 8 * 768 + 300, cx: 4000 + 8 * 768 + 384, cy: -200 }, { x: 4000 + 11 * 768 + 300, cx: 4000 + 11 * 768 + 384, cy: -200 }, { x: 4000 + 14 * 768 + 100, cx: 4000 + 14 * 768 + 384, cy: -200 }, { x: 4000 + 17 * 768 + 300, cx: 4000 + 17 * 768 + 384, cy: -200 }],
+  // The office: the entrance, OR 3 and the autoclave, the ward.
+  lab: [{ x: 700, cx: 1200, cy: -300 }, { x: 6200, cx: 6500, cy: -300 }, { x: 10600, cx: 10900, cy: -300 }],
   // Basel: the Kaserne end, the bridge with a band on it, the Marktplatz and the drum major.
   basel: [{ x: 900, cx: 1400, cy: -300 }, { x: 4400, cx: 4700, cy: -300 }, { x: 11800, cx: 12100, cy: -300 }],
   paris: [{ x: 450, cx: 760, cy: -300 }, { x: 1150, y: -540, cx: 1000, cy: -720 }, { x: 2800, cx: 3100, cy: -300 }, { x: 6000, cx: 6200, cy: -300 }, { x: 10050, cx: 10150, cy: -300 }],
@@ -114,6 +116,7 @@ export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   train: { x: 1200, cx: 1800, cy: -300 },
   paris: { x: 2800, cx: 3100, cy: -300 },
   basel: { x: 900, cx: 1400, cy: -300 },
+  lab: { x: 700, cx: 1200, cy: -300 },
   sat: { x: 5900, y: 0, cx: 6500, zoom: 0.92 },
   lobby: { x: 1100, y: 0, cx: 1600 },
   restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },

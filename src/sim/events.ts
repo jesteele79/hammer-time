@@ -231,4 +231,7 @@ export type GameEvent =
   /** 3-5: a sharps bin brushed; the code blue stretch entered or left. */
   | { type: "sharps"; x: number; y: number }
   | { type: "codeBlue"; on: boolean }
+  /** 3-5: a nurse's sanitizer on the floor at his feet, and him slipping on it. */
+  | { type: "spray"; id: number; x: number; y: number }
+  | { type: "slipped"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

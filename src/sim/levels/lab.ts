@@ -70,11 +70,41 @@ export const LAB: Level = {
   rewards: { count: 8, bucees: 1, nuts: 2 },
   routes: [{ id: "corridor", x0: 800, x1: 13200, y0: -80, y1: 0 }],
   thoughts: [
+    { x: 700, text: "I'm here to train." },
     { x: 1500, text: "Grüezi yourself." },
     { x: 4000, text: "I don't need a badge. I'm the trainer." },
     { x: 7000, text: "In-service is at 7. Be early." },
     { x: 10500, text: "Scalpel. SCALPEL. Are you listening?" },
     { x: 12300, text: "I've trained surgeons better than your surgeons." },
   ],
-  cast: [],
+  // Three walls painted straight: the entrance, the sterile corridor with the autoclave, the ward with the double doors.
+  backdrop: {
+    walls: ["lab-far-1", "lab-far-2", "lab-far-3"],
+    layout: [
+      { wall: "lab-far-1", x: -1536 },
+      { wall: "lab-far-1", x: 0 },
+      { wall: "lab-far-2", x: 1536 },
+      { wall: "lab-far-2", x: 3072 },
+      { wall: "lab-far-2", x: 4608 },
+      { wall: "lab-far-3", x: 6144 },
+      { wall: "lab-far-3", x: 7680 },
+      { wall: "lab-far-2", x: 9216 },
+      { wall: "lab-far-3", x: 10752 },
+      { wall: "lab-far-3", x: 12288 },
+      { wall: "lab-far-3", x: 13824 },
+    ],
+    mid: [],
+    fore: [],
+    far: { pan: 1, scale: 1 },
+  },
+  cast: [
+    // The administrator at her desk under SKILLS LAB; she takes no part.
+    { id: "admin", person: "admin", x: 500, y: 0, facing: 1, trick: "seated" },
+    // Nurses with the sanitizer at their stations.
+    ...[2000, 4400, 8700, 12600].map((x, k) => ({ id: `nurse-${k + 1}`, person: "nurse" as const, x, y: 0, x0: x - 300, x1: x + 300, trick: "spray" as const })),
+    // Techs who square up and shove.
+    ...[3300, 7300, 11000].map((x, k) => ({ id: `tech-${k + 1}`, person: "tech" as const, x, y: 0, x0: x - 300, x1: x + 300 })),
+    // Residents in white coats throwing charts.
+    ...[5000, 6800, 9900, 11700].map((x, k) => ({ id: `resident-${k + 1}`, person: "resident" as const, x, y: 0, x0: x - 250, x1: x + 250 })),
+  ],
 };

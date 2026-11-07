@@ -10,6 +10,8 @@ import { STASH } from "../src/sim/levels/stash.ts";
 import { LAB } from "../src/sim/levels/lab.ts";
 import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { hudOf, hintOf } from "../src/render/hud.ts";
+import { flies } from "../src/sim/missiles.ts";
+import { drive } from "../src/sim/drive.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -56,4 +58,25 @@ test("the code blue's multiplier: a staffer inside it walks 1.8 times as far as 
 });
 test("the venue reads Skills lab and the HUD has no errands here", () => {
   const g = empty(); play(g); assert.deepEqual([hudOf(g).venue, hudOf(g).errands], ["Skills lab", null]);
+});
+test("a nurse sprays within 300 px after a 0.4 s wind-up and leaves a puddle that slips him with no pip, once in 1.6 s; she never marches", () => {
+  const g = lab(); play(g); const h = g.world.hero; const n = g.world.cast.find((c) => c.trick === "spray"); Object.assign(h, { x: n.x - 250, y: 0, patience: 2, invuln: 0, vx: 0 });
+  const evs = until(g, (x) => of(x.events, "spray").length > 0, 3); assert.deepEqual([of(evs, "castWindup").length >= 1, g.world.puddles.some((p) => p.kind === "sanitizer"), n.act !== "attack" || n.vx === 0], [true, true, true]);
+  const slip = until(g, (x) => of(x.events, "slipped").length > 0, 2, { right: true }); assert.deepEqual([of(slip, "slipped").length, h.patience, h.stunT > 0 || h.vx <= 0], [1, 2, true]);
+  assert.equal(of(until(g, () => false, 1, { right: true }), "slipped").length, 0, "once in 1.6 s");
+});
+test("techs shove and go in two; residents throw charts that fly as planes; the administrator greets him once and takes no part", () => {
+  const g = lab(); play(g); const h = g.world.hero; const t = g.world.cast.find((c) => c.job === "tech"); assert.deepEqual([t.role, t.maxHits], ["bellhop", 2]);
+  const r = g.world.cast.find((c) => c.job === "resident"); Object.assign(h, { x: r.x - 500, y: 0 }); until(g, (x) => x.world.missiles.some((m) => m.kind === "chart"), 4); assert.ok(flies("chart") && g.world.missiles.some((m) => m.kind === "chart"));
+  const k = lab(); play(k); const a = k.world.cast.find((c) => c.job === "admin"); Object.assign(k.world.hero, { x: 300, y: 0 }); const hi = until(k, () => false, 2, { right: true });
+  assert.deepEqual([of(hi, "castLine").filter((e) => e.text.startsWith("Mr. Hammer.")).length, of(hi, "think").some((e) => e.text === "I'm here to train."), a.trick], [1, true, "seated"]);
+});
+test("the scripted trainee walks the office to the double doors through everyone; a masher is finished", () => {
+  // Through lost lives, as the earlier walkers' loops run: the corridor is meant to cost a pip or two.
+  const g = lab(); play(g); let t = 0; while (g.mode !== "walkoff" && g.mode !== "over" && t < 410) { g.step(g.mode === "play" ? drive(g.level, g.world.hero, "lab", g.world) : input()); t += STEP; } assert.equal(g.mode, "walkoff");
+  const m = lab(); play(m); until(m, (x) => x.mode === "over", 420, { right: true, run: true, hammer: true }); assert.equal(m.mode, "over");
+});
+test("the vending machines stand against the wall: he walks past them, and the mallet still opens them", () => {
+  const g = empty(); play(g); const h = g.world.hero; Object.assign(h, { x: 1300, y: 0 });
+  until(g, (x) => x.world.hero.x > 1700, 2, { right: true }); assert.ok(h.x > 1700, `past the machine at ${h.x}`);
 });

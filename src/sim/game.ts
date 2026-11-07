@@ -153,7 +153,7 @@ const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
 /** 3-5's corridor (story spec §10.2): a sharps bin's hit at most this often; the code blue's speed; who says what at a bin. */
-export const LAB_RULES = { sharpsAgain: 1.6, codeBlue: 1.8, sharps: "That's a sharps bin, trainee." } as const;
+export const LAB_RULES = { sharpsAgain: 1.6, codeBlue: 1.8, sharps: "That's a sharps bin, trainee.", slipStill: 60, slipStun: 0.5, greet: 400, hello: "Mr. Hammer. We're so glad you came to discuss your transition." } as const;
 /** 3-4's errands (story spec §10.1): held still this long this near the counter; the line's seconds; the shut door's line and how often. */
 export const ERRAND = { hold: 1.5, reach: 60, still: 10, think: 2.2, nag: 3, shut: "I have four errands and a meeting." } as const;
 
@@ -1363,6 +1363,24 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "codeBlue", on: inside });
     }
     world.codeBlue = inside ? LAB_RULES.codeBlue : 1;
+    // The administrator at her desk says it once as he comes by.
+    for (const n of world.cast)
+      if (n.job === "admin" && !n.replied && Math.abs(n.x - h.x) <= LAB_RULES.greet) {
+        n.replied = true;
+        ev.push({ type: "castLine", id: n.id, text: LAB_RULES.hello, seconds: 3 });
+      }
+    // A nurse's sanitizer underfoot: he goes the other way and loses his feet for half a second, no pip.
+    const gel = world.puddles.find((p) => p.kind === "sanitizer" && Math.abs(h.y - p.y) < 4 && Math.abs(h.x - p.x) <= p.w / 2);
+    // The spray lands this step; it takes his feet from the next.
+    const fresh = world.events.some((e) => e.type === "spray");
+    if (gel && !fresh && h.onGround && slipCool <= 0 && h.invuln <= 0 && h.move?.kind !== "tumble") {
+      const nurse = world.cast.filter((n) => n.alive && n.trick === "spray").sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0];
+      h.vx = Math.abs(h.vx) > 10 ? -h.vx : (nurse && nurse.x > h.x ? -1 : 1) * LAB_RULES.slipStill;
+      h.slideT = 0;
+      stun(h, LAB_RULES.slipStun, ev);
+      slipCool = TOWER_TRAPS.slipAgain;
+      ev.push({ type: "slipped", x: h.x, y: h.y });
+    }
   }
 
   /** The tower's traps: falling through a chute's gap costs the slide's seconds and no more; stepping on a wet floor slips him. */
