@@ -363,6 +363,27 @@ export function drawMissile(g: Graphics, m: Missile) {
     g.rotation = m.spin;
     return;
   }
+  if (m.kind === "rifle") {
+    // The drill team's rifle, spinning end over end: a dark stock, a long barrel, the white sling.
+    g.roundRect(-60, -6, 120, 12, 4).fill("#3a2312").stroke({ width: 3, color: INK });
+    g.rect(10, -4, 50, 8).fill("#2b2b2e");
+    g.moveTo(-40, 6).quadraticCurveTo(0, 22, 40, 6).stroke({ width: 3, color: "#f4f3ee" });
+    g.position.set(m.x, m.y);
+    g.scale.set(1);
+    g.rotation = m.spin;
+    return;
+  }
+  if (m.kind === "chart") {
+    // A resident's chart: a clipboard with its sheet, flying flat like a plane.
+    g.roundRect(-20, -26, 40, 52, 4).fill("#a8774e").stroke({ width: 3, color: INK });
+    g.rect(-15, -18, 30, 40).fill("#fbf7ee");
+    for (let k = 0; k < 4; k++) g.rect(-11, -12 + k * 8, 22, 2).fill("#9aa3ab");
+    g.rect(-8, -30, 16, 8).fill("#8d939c");
+    g.position.set(m.x, m.y);
+    g.scale.set(m.vx < 0 ? -1 : 1, 1);
+    g.rotation = m.vx < 0 ? -m.spin * 0.4 : m.spin * 0.4;
+    return;
+  }
   if (m.kind === "plane") {
     g.poly([-36, 0, 32, -5, 12, 6, 32, 9]).fill("#fbf7ee").stroke({ width: 3, color: INK, join: "round" });
     g.moveTo(-36, 0).lineTo(32, -5).stroke({ width: 2, color: "#b8b0a2" });

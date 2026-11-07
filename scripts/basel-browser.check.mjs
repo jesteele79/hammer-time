@@ -220,17 +220,17 @@ try {
   await page.keyboard.up("KeyD");
   await shot("basel-handover.png");
 
-  // The office door with the errands done: the tally, then the strip with 3-5 coming.
+  // The office door with the errands done: the tally, then on to 3-5's card (the office is built).
   await page.evaluate(() => {
     for (const id of ["bank", "printer", "pharmacy", "courier"]) window.__next.dev.errand(id);
   });
   await tp(15500);
   await page.keyboard.down("KeyD");
-  await page.waitForFunction(() => ["story", "title"].includes(window.__next.run.mode), null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__next.run.mode === "story" || (window.__next.run.mode === "card" && window.__next.run.level === "lab"), null, { timeout: 30000 });
   await page.keyboard.up("KeyD");
   if ((await probe()).mode === "story") await page.keyboard.press("Enter");
-  await waitMode("title", 20000);
-  assert.ok(await page.getByRole("button", { name: "The Basel office is coming" }).isDisabled(), "3-5 is coming");
+  await page.waitForFunction(() => window.__next.run.level === "lab", null, { timeout: 20000 });
+  assert.match(await page.locator(".next-veil__card").textContent(), /The Basel office/);
   await page.close();
 
   // The frame rate on the bridge with a band marching.
@@ -256,7 +256,7 @@ try {
   }
 
   assert.deepEqual(errors, [], "no console errors");
-  console.log(`PASS: 3-4's card, the errands at their counters and the door shut until 4/4, a band drawn, caught and slid under, the drum corps' shake, the drum major's bar and his rounds, the pipers who play while he walks, the office door and 3-5 coming, the home scene over Basel's street, the four sizes; the bridge ${bridge} fps.`);
+  console.log(`PASS: 3-4's card, the errands at their counters and the door shut until 4/4, a band drawn, caught and slid under, the drum corps' shake, the drum major's bar and his rounds, the pipers who play while he walks, the office door and on to 3-5, the home scene over Basel's street, the four sizes; the bridge ${bridge} fps.`);
 
 } finally {
   await browser.close();

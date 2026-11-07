@@ -49,6 +49,8 @@ export type Character = {
 
 /** A level's costume: scrubs on 3-5 and 3-6 (story spec §10.2), the Affliction shirt everywhere else. */
 export const costumeOf = (level: Pick<Level, "costume">): Costume => level.costume ?? "affliction";
+/** What he wears in `level` while working `working`: the break room (the stash) keeps the costume he came in with. */
+export const costumeAt = (level: Pick<Level, "costume" | "id">, working: Pick<Level, "costume">): Costume => costumeOf(level.id === "stash" ? working : level);
 /**
  * The scrubs' TRAINER badge (story spec §10.2), drawn by the game: in rig units, hung `dy` of the way from the neck to the
  * pelvis and `forward` toward his front, between the torso and the near arm; never above the neckline, never on his face.
@@ -61,7 +63,7 @@ export function badgeAt(solved: Pick<Solved, "joints" | "facing" | "scale">): { 
   const spine = Math.atan2(p.x - n.x, p.y - n.y);
   return {
     x: n.x + (p.x - n.x) * BADGE.dy + solved.facing * BADGE.forward * solved.scale * Math.cos(spine),
-    y: n.y + (p.y - n.y) * BADGE.dy + solved.facing * BADGE.forward * solved.scale * Math.sin(spine),
+    y: n.y + (p.y - n.y) * BADGE.dy - solved.facing * BADGE.forward * solved.scale * Math.sin(spine),
     rotation: -spine,
     scale: solved.scale,
   };

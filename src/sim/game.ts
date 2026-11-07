@@ -1348,7 +1348,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const level = game.level;
     const h = world.hero;
     sharpsCool = Math.max(0, sharpsCool - STEP);
-    const bin = level.sharps?.find((s) => overlapsRect(bodyRect(h), s));
+    // A bin stands on its counter: only his feet on that counter bring him to it.
+    const bin = level.sharps?.find((s) => Math.abs(h.y - (s.y + s.h)) < 4 && overlapsRect(bodyRect(h), s));
     if (bin && h.onGround && sharpsCool <= 0 && h.invuln <= 0 && h.move?.kind !== "tumble") {
       sharpsCool = LAB_RULES.sharpsAgain;
       world.hits.push(bin.x + bin.w / 2 === h.x ? h.x + 1 : bin.x + bin.w / 2);

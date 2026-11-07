@@ -606,6 +606,30 @@ the light eases toward night over the clock's last third, when the lanterns over
 the drill team and the bikes are drawn in code until their paintings and the Basel sheet are cut in; the drum major wears the
 guard's painting until his own is. From the suite on, the home screen's scene is Basel's street at the Kaserne end, at evening.
 
+## The Basel office (3-5)
+
+Left to right over 14,000 px (`src/sim/levels/lab.ts`), "Skills lab · Training day.", in **scrubs**: a level names its costume
+(`Level.costume`) and the game changes him into it as the level shows (`costumeOf`, the look's `wear`), the Affliction shirt
+everywhere else, the home scene included. The scrubs are the painted body already in the art; the TRAINER badge is drawn by the
+game on his chest below the neckline, turned with his spine, between the torso and the near arm, never on his face
+(`src/render/character.ts`).
+
+The administrator stands at her desk under SKILLS LAB and says it once as he comes by ("Mr. Hammer. We're so glad you came to
+discuss your transition."); "I'm here to train." is his thought. Six nurse stations are counters, four supply racks shelves, two
+vending machines against the wall pay three Coke Zeros a bonk, the BREAK ROOM is the stash's door, the TRAINING ROOM's double doors
+end the level; two punch clocks; 420 seconds. **The hazards:** three gurneys rolling at 220 px/s in their bays (a hit at the side,
+a ride on top, a jump clears one; never slid under), three IV poles on low wheeled bases (a hit to touch), sharps bins on three
+counters (a hit to brush, "That's a sharps bin, trainee." from the nearest nurse), the autoclave venting 2 s in 5 at +20 heat a
+second, and the code blue stretch (7,800 to 9,400), where everyone on their feet moves at 1.8 times while he is in it, the lights
+pulse red (not under reduced motion) and the music hurries. **The people:** nurses who never march and spray sanitizer at his feet
+within 300 px after a 0.4 s wind-up, leaving a puddle that turns him round and takes his feet for half a second, no pip, once in
+1.6 s; techs who square up and shove, two hits; residents in white coats throwing charts as planes. Until their paintings are
+cut, the techs wear the nurse's painting, the residents the student's and the administrator the office worker's.
+
+The corridor's three walls are the owner's to paint (`lab-far-1..3`); until then the game draws a pale green corridor with its
+handrail. The gurneys, the IV poles, the vending machines, the autoclave and the sharps bins are drawn in code until the lab sheet
+is in (`src/render/venue-lab.ts`). The music is the monitor's beep at 72 over sparse pads.
+
 ## Hungry Hungry Hammer (the BUFFET door)
 
 The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
@@ -1054,13 +1078,13 @@ built stop, the side quests') after the art changes, and
 The story (`src/sim/story.ts`) is fifteen stops in order: SAT (the prologue),
 1-1 to 1-4 (Act 1, The Trip: the hotel's four venues as built), 2-1 to 2-4
 (Act 2, Status Crusade) and 3-1 to 3-6 (Act 3, The Last Tour), with the cards
-that come before and after them. SAT, Acts 1 and 2 and Act 3 as far as Basel are built, thirteen stops: a fresh
+that come before and after them. SAT, Acts 1 and 2 and Act 3 as far as the Basel office are built, fourteen stops: a fresh
 journey's Clock in opens on the email from the Basel office, then SAT. Act 2 starts
 clean on "11:40 pm. The same lobby.", carries his keycards through its four levels,
 and ends on the Bonvoy review ("TITANIUM. Lifetime.") and its act card with his
 status. Act 3 starts clean on the flight, lands in Paris ("Paris. 13 July. 06:40. No Southwest, no A-List, no ice."), takes
-the French table on the way, arrives "Basel SBB. 17:06. On time. They always are." and goes on with him to Basel, and ends for
-now at the office's door; 3-5 then reads "Coming" and Clock in "The Basel office is coming". From the suite on, the home screen's
+the French table on the way, arrives "Basel SBB. 17:06. On time. They always are." and goes on with him to Basel and the
+office, and ends for now at the training room's doors; 3-6 then reads "Coming" and Clock in "The replacement is coming". From the suite on, the home screen's
 scene is Basel's street at evening. Acts 2 and 3 have no straight-through run yet (`STRAIGHT_BUILT`). A
 journey begun before SAT was built has it finished with no best; it replays
 from the strip, and New game plays it in order.
@@ -1109,7 +1133,7 @@ floor's hum and the suite's drive; on the way to Basel the safety video's muzak 
 sign on, it hurries), the musette, a waltz of two saws a hair apart, and its quick cousin
 at the French table, 1.4 times the speed, the train's rail clatter; in Basel the bands themselves, a chanter on the pipes'
 nine notes over a held drone at 96, the drum corps' beat as the level's (its fourth the shake), the chanter gated once the pipers
-follow him: it plays while he walks. What
+follow him: it plays while he walks; in the office the monitor's beep at 72 over two slow chords, hurrying in the code blue. What
 plays follows the mode (`musicFor` in
 `src/render/sound.ts`): the level's song quiet under its cards, the tallies
 and the break and full in play, a round's song the same way, silence under
@@ -1175,6 +1199,7 @@ node scripts/flight-browser.check.mjs http://127.0.0.1:8090/
 node scripts/paris-browser.check.mjs http://127.0.0.1:8090/
 node scripts/train-browser.check.mjs http://127.0.0.1:8090/
 node scripts/basel-browser.check.mjs http://127.0.0.1:8090/
+node scripts/lab-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 

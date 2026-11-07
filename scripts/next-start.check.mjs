@@ -142,14 +142,14 @@ try {
   await page.goto(all);
   await page.waitForFunction(() => window.__next?.run?.mode === "title");
   const open = await stops(page);
-  for (const code of ["1-1", "1-2", "1-3", "1-4", "2-1", "2-2", "2-3", "2-4", "3-1", "3-2", "3-3", "3-4"]) assert.deepEqual([open.find((x) => x.code === code).state, open.find((x) => x.code === code).img], ["done", true], `${code} finished`);
-  assert.equal(open.find((x) => x.code === "3-5").state, "next", "3-5 next");
-  assert.ok(await page.getByRole("button", { name: "The Basel office is coming" }).isDisabled(), "Clock in names the stop");
+  for (const code of ["1-1", "1-2", "1-3", "1-4", "2-1", "2-2", "2-3", "2-4", "3-1", "3-2", "3-3", "3-4", "3-5"]) assert.deepEqual([open.find((x) => x.code === code).state, open.find((x) => x.code === code).img], ["done", true], `${code} finished`);
+  assert.equal(open.find((x) => x.code === "3-6").state, "next", "3-6 next");
+  assert.ok(await page.getByRole("button", { name: "The replacement is coming" }).isDisabled(), "Clock in names the stop");
   // 2-1 finished: The M CLUB takes its place on the Side quests row.
   assert.deepEqual(await page.locator(".next-start__quest").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label"))), ["Play Hungry Hungry Hammer", "Play Fare Darts", "Play The M CLUB", "Play The brasserie"], "three side quests");
   assert.deepEqual(await page.locator(".next-strip__act b").allTextContents(), ["000000", "000000", "000000", "000000", "000000"], "no bests yet");
   assert.equal(await page.getByRole("button", { name: "Clock in" }).count(), 0, "Clock in gives way to the notice");
-  assert.ok(await page.getByRole("button", { name: "The Basel office is coming" }).isDisabled(), "the office is coming");
+  assert.ok(await page.getByRole("button", { name: "The replacement is coming" }).isDisabled(), "the replacement is coming");
   await page.getByRole("button", { name: /Work the whole shift/ }).click();
   await page.waitForFunction(() => window.__next.run.mode === "card");
   assert.match(await page.locator(".next-veil__card").textContent(), /Your shift starts here/);

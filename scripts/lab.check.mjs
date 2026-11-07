@@ -12,6 +12,8 @@ import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { hudOf, hintOf } from "../src/render/hud.ts";
 import { flies } from "../src/sim/missiles.ts";
 import { drive } from "../src/sim/drive.ts";
+import { attacking } from "../src/sim/cast-behavior.ts";
+import { noticeLine } from "../src/sim/cast.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -79,4 +81,25 @@ test("the scripted trainee walks the office to the double doors through everyone
 test("the vending machines stand against the wall: he walks past them, and the mallet still opens them", () => {
   const g = empty(); play(g); const h = g.world.hero; Object.assign(h, { x: 1300, y: 0 });
   until(g, (x) => x.world.hero.x > 1700, 2, { right: true }); assert.ok(h.x > 1700, `past the machine at ${h.x}`);
+});
+test("a spraying nurse is never an attacker: walking into her as she sprays costs nothing, and nobody says an empty line", () => {
+  const g = lab(); play(g); const h = g.world.hero; const n = g.world.cast.find((c) => c.trick === "spray");
+  Object.assign(n, { act: "attack", actT: 0, rest: 0 }); assert.equal(attacking(n, h), false);
+  Object.assign(h, { x: n.x - 20, y: 0, patience: 2, invuln: 0, vx: 0 });
+  const evs = until(g, () => false, 0.3); g.step(input()); evs.push(...g.events);
+  assert.deepEqual([h.patience, of(evs, "castLine").filter((e) => !e.text).length], [2, 0]);
+});
+test("the floor in front of a counter is safe: a sharps bin hurts only on its counter, the break room's door included", () => {
+  const g = empty(); play(g); const h = g.world.hero; Object.assign(h, { x: 4300, y: 0, patience: 2, invuln: 0 });
+  const walk = until(g, (x) => x.world.hero.x > 4800, 3, { right: true });
+  Object.assign(h, { x: 9000, y: 0 }); g.step(input({ down: true }, { down: true })); const room = until(g, () => false, 0.5);
+  assert.deepEqual([of(walk, "sharps").length + of(room, "sharps").length, h.patience], [0, 2]);
+});
+test("the lab's nurses say the spec's lines; the spray lands where he stood as she wound up, so stepping away dodges it", () => {
+  const g = lab(); play(g); const h = g.world.hero; const n = g.world.cast.find((c) => c.trick === "spray");
+  assert.ok(["Sir, this is a sterile field.", "Did you scrub in?", "That's not how we hold that here.", "Doctor will be right with you."].includes(noticeLine(n)), noticeLine(n));
+  Object.assign(h, { x: n.x - 250, y: 0, vx: 0, invuln: 0 }); until(g, (x) => x.world.cast.find((c) => c.id === n.id).act === "windup", 3);
+  const at = h.x; Object.assign(h, { x: at - 450 }); const evs = until(g, (x) => of(x.events, "spray").length > 0, 1);
+  assert.deepEqual([Math.round(of(evs, "spray")[0].x), of(until(g, () => false, 1), "slipped").length], [Math.round(at), 0]);
+  assert.ok(LAB.thoughts.some((t) => t.text === "That's a demo unit. Don't touch it."));
 });

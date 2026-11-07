@@ -1797,3 +1797,25 @@ test("the TRAINER badge hangs on his chest below the neckline, facing either way
     assert.equal(BADGE.text, "TRAINER");
   }
 });
+import { costumeAt } from "../src/render/character.ts";
+import { zoneParticle } from "../src/render/particles.ts";
+import { drawMissile } from "../src/render/props.ts";
+import { LAB as LAB_LEVEL } from "../src/sim/levels/lab.ts";
+import { STASH as STASH_LEVEL } from "../src/sim/levels/stash.ts";
+import { LOBBY as LOBBY_LEVEL } from "../src/sim/levels/lobby.ts";
+test("the badge sits on his chest whichever way he leans: lying face down, it is under him", () => {
+  // Facing right and pitched forward a quarter turn: the spine runs from the neck at the right to the pelvis at the left.
+  const b = badgeAt({ joints: { neck: { x: 200, y: 0 }, pelvis: { x: 0, y: 0 } }, facing: 1, scale: 1 });
+  assert.ok(b.y > 10, `the chest faces the floor: ${b.y}`);
+});
+test("the break room keeps the costume of the level it is entered from; every other level wears its own", () => {
+  assert.deepEqual([costumeAt(STASH_LEVEL, LAB_LEVEL), costumeAt(STASH_LEVEL, LOBBY_LEVEL), costumeAt(LAB_LEVEL, LOBBY_LEVEL), costumeAt(LOBBY_LEVEL, LAB_LEVEL)], ["scrubs", "affliction", "scrubs", "affliction"]);
+});
+test("the autoclave puffs steam, the walk-in frosts, a flat-top steams", () => {
+  assert.deepEqual([zoneParticle("steam"), zoneParticle("freezer"), zoneParticle("flattop")], ["steamPuff", "frost", "steam"]);
+});
+test("a rifle is drawn as a rifle and a chart as a clipboard, not as the coffee cup", () => {
+  const size = (kind) => { const g = new PaintedGraphics(); drawMissile(g, { id: 1, kind, x: 0, y: 0, vx: 300, vy: 0, spin: 0, life: 1, phase: 0, from: 1 }); const b = g.getLocalBounds(); return [Math.round(b.width), Math.round(b.height)]; };
+  const cup = size("coffee");
+  assert.ok(size("rifle")[0] > 90 && size("chart")[1] > cup[1] + 10, `rifle ${size("rifle")}, chart ${size("chart")}, cup ${cup}`);
+});

@@ -35,6 +35,16 @@ const pixel = async (x, y) => {
   const i = (Math.round(y) * info.width + Math.round(x)) * info.channels;
   return [data[i], data[i + 1], data[i + 2]];
 };
+const STOPS = ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight", "paris", "train", "basel", "lab", "replacement"];
+/** A saved journey at `stop`, clocked in from the home screen: the strip's own way in. */
+const openStop = async (stop) => {
+  await open(`${base}?dev=1`);
+  const done = STOPS.slice(0, STOPS.indexOf(stop));
+  await page.evaluate((j) => localStorage.setItem("hammer-time-journey", JSON.stringify(j)), { v: 1, next: stop, done, best: {}, bonked: 0, run: null, carry: null, credits: false });
+  await page.goto(`${base}?dev=1`);
+  await waitMode("title", 60000);
+  await page.getByRole("button", { name: "Clock in" }).click();
+};
 const fpsOver = async (seconds) => {
   const rates = [];
   for (let i = 0; i < seconds; i++) {
@@ -92,10 +102,100 @@ try {
   assert.ok(still.every((v) => v === still[0]), `no pulse under reduced motion: ${still}`);
   await page.close();
 
+  // The costume across levels: the Affliction on 3-4, scrubs on 3-5 through a lost life and Try again, the Affliction at home.
+  await open(`${base}?next=1&dev=1&level=basel`);
+  await waitMode("play");
+  await page.waitForTimeout(600);
+  assert.equal((await probe()).costume, "affliction", "3-4 in the Affliction");
+  await page.close();
+  await openStop("lab");
+  await waitMode("play");
+  await page.waitForFunction(() => window.__next.costume === "scrubs", null, { timeout: 10000 });
+  // Two hits a grace apart: the second pip.
+  await page.evaluate(() => window.__next.dev.hit());
+  await page.waitForTimeout(1600);
+  await page.evaluate(() => window.__next.dev.hit());
+  await page.waitForFunction(() => window.__next.run.mode === "card" || window.__next.run.mode === "dying", null, { timeout: 8000 });
+  await waitMode("play", 20000);
+  assert.equal((await probe()).costume, "scrubs", "a lost life: still in scrubs");
+  // The break room, in scrubs.
+  await tp(9000);
+  await page.waitForTimeout(400);
+  await page.keyboard.down("KeyS");
+  await page.waitForFunction(() => window.__next.run.level === "stash", null, { timeout: 5000 });
+  await page.keyboard.up("KeyS");
+  await page.waitForTimeout(1200);
+  assert.equal((await probe()).costume, "scrubs", "the break room in scrubs, no change of clothes");
+  // The double doors: the tally, then home with 3-6 coming and the Affliction on.
+  await page.goto(`${base}?dev=1`);
+  await waitMode("title", 60000);
+  assert.equal((await probe()).costume, "affliction", "home in the Affliction");
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await waitMode("play");
+  await page.waitForFunction(() => window.__next.costume === "scrubs", null, { timeout: 10000 });
+  await tp(13600);
+  await page.keyboard.down("KeyD");
+  await page.waitForFunction(() => ["story", "title"].includes(window.__next.run.mode), null, { timeout: 30000 });
+  await page.keyboard.up("KeyD");
+  if ((await probe()).mode === "story") await page.keyboard.press("Enter");
+  await waitMode("title", 20000);
+  assert.ok(await page.getByRole("button", { name: "The replacement is coming" }).isDisabled(), "3-6 is coming");
+  // He changes as the home scene shows: the Affliction body loads, then takes the scrubs' place.
+  await page.waitForFunction(() => window.__next.costume === "affliction", null, { timeout: 8000 });
+  await page.close();
+
+  // A gurney's side costs a pip (nobody about: a nurse's slip would turn him round).
+  await open(`${base}?next=1&dev=1&nocast=1&level=lab`);
+  await waitMode("play");
+  await page.waitForTimeout(1500);
+  await tp(1900);
+  await page.waitForTimeout(300);
+  const g0 = (await probe()).patience;
+  await page.keyboard.down("KeyD");
+  await page.waitForFunction((p) => window.__next.run.patience < p, g0, { timeout: 8000 });
+  await page.keyboard.up("KeyD");
+  await page.close();
+
+  // Try again after Hammer down, clocked in from the strip: the lab's card again, in scrubs.
+  await openStop("lab");
+  await waitMode("play");
+  for (let i = 0; i < 6 && (await probe()).mode !== "over"; i++) {
+    await page.evaluate(() => window.__next.dev.hit());
+    await page.waitForTimeout(1600);
+    await page.evaluate(() => window.__next.dev.hit());
+    await page.waitForFunction(() => ["card", "over"].includes(window.__next.run.mode), null, { timeout: 8000 }).catch(() => null);
+    if ((await probe()).mode === "card") await waitMode("play", 20000);
+  }
+  await waitMode("over", 20000);
+  await page.getByRole("button", { name: /Try again/ }).click();
+  await waitMode("play", 20000);
+  await page.waitForFunction(() => window.__next.costume === "scrubs", null, { timeout: 8000 });
+  await page.close();
+
+  // The frame rate in the code blue stretch.
+  await open(`${base}?next=1&dev=1&level=lab`);
+  await waitMode("play");
+  await tp(8300);
+  await page.waitForTimeout(3000);
+  const blue = await fpsOver(5);
+  assert.ok(Math.min(...blue) >= FPS_FLOOR, `${FPS_FLOOR} fps at 1920 by 1080 in the code blue: ${blue}`);
+  await page.close();
+
+  // The four sizes.
+  for (const [w, h] of [[1920, 1080], [1280, 800], [390, 844], [844, 390]]) {
+    await open(`${base}?next=1&dev=1&level=lab`, [w, h]);
+    await waitMode("play");
+    await tp(6200);
+    await page.waitForTimeout(1500);
+    const wide = await page.evaluate(() => document.scrollingElement.scrollWidth);
+    assert.ok(wide <= w, `no sideways scroll at ${w}: ${wide}`);
+    await shot(`lab-${w}x${h}.png`);
+    await page.close();
+  }
+
   assert.deepEqual(errors, [], "no console errors");
-  console.log("PASS: 3-5's card, him in scrubs with the badge and his face as painted, the code blue's pulse and none under reduced motion.");
+  console.log(`PASS: 3-5's card, scrubs with the badge and his face as painted, the code blue's pulse and none under reduced motion, the costume across 3-4, a lost life, Try again and home, a gurney's side, the break room, the double doors and 3-6 coming, the four sizes; the code blue ${blue} fps.`);
+
 } finally {
   await browser.close();
 }
-void FPS_FLOOR;
-void fpsOver;

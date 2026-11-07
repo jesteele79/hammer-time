@@ -73,6 +73,8 @@ export const RECIPES = {
   stuffing: { speed: [160, 420], angle: [200, 340], gravity: 1100, drag: 1.4, life: [0.5, 0.9], size: [12, 6], colors: ["#fff7f2", "#f7d4de"], additive: false },
 } satisfies Record<string, Recipe>;
 export type RecipeName = keyof typeof RECIPES;
+/** What rises off a heat zone under his shoes: a flat-top's steam, the autoclave's puffs, the walk-in's frost. */
+export const zoneParticle = (kind: "flattop" | "freezer" | "steam" | "beam"): RecipeName => (kind === "freezer" ? "frost" : kind === "steam" ? "steamPuff" : "steam");
 
 type Particle = {
   x: number;

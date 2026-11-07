@@ -51,11 +51,11 @@ import { TIERS, shouldStepDown3d } from "./quality";
 import { VIEW_HALF, groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
-import { costumeOf, createCharacter } from "./character";
+import { costumeAt, costumeOf, createCharacter } from "./character";
 import { ambientOf, ambientTint, createLighting, lightsOf, multiplyTint, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects, productTexture, setBreadPicture } from "./objects";
 import { PALETTE } from "./palette";
-import { Particles } from "./particles";
+import { Particles, zoneParticle } from "./particles";
 import { CAST, HATTED, type CastRole } from "../sim/cast";
 import { Cast } from "./cast";
 import { Flyers } from "./cast-fx";
@@ -1104,7 +1104,7 @@ export async function startLook(
   function showLevel(level: Level, x: number, y: number) {
     shown = level.id;
     shownX = x;
-    void wear(costumeOf(level));
+    void wear(costumeAt(level, game.shift[game.venue] ?? level));
     for (const [id, v] of views) {
       v.venue.setVisible(id === level.id);
       v.backdrop.setVisible(id === level.id);
@@ -2099,7 +2099,7 @@ export async function startLook(
     zoneT = heatAt ? zoneT + simDt : 0;
     if (heatAt && zoneT >= (heatAt.kind === "flattop" ? 0.1 : 0.12)) {
       zoneT = 0;
-      particles.emit(heatAt.kind === "flattop" ? "steam" : "frost", x + (Math.random() - 0.5) * 80, floorY - 10, 1);
+      particles.emit(zoneParticle(heatAt.kind), x + (Math.random() - 0.5) * 80, floorY - 10, 1);
     }
     // The walk-in breathes cold out of its door while it is on screen.
     fogT += simDt;

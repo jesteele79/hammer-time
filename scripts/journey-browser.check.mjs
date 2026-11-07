@@ -401,7 +401,8 @@ try {
   assert.equal(await page.locator(".next-start__quest").count(), 3, "three side quests");
   assert.equal((await run()).level, "basel", "the home scene is Basel's street once the suite is done");
 
-  // 6c. Act 3 as far as it goes: 3-1, the landing, 3-2 and its lunch, 3-3, Basel on time, 3-4 to the office door, and home with the office coming.
+  // 6c. Act 3 as far as it goes: 3-1, the landing, 3-2 and its lunch, 3-3, Basel on time, 3-4 to the office door, 3-5 in scrubs to the
+  // training room's doors, and home with the replacement coming.
   const rowX = (row) => Math.round(100 * (0.5 + (52 - row) * 0.77));
   const coachX = (n) => 4000 + (18 - n) * 768;
   await page.getByRole("button", { name: "Clock in" }).click();
@@ -456,16 +457,27 @@ try {
   });
   await tp(15600);
   await page.keyboard.down("KeyD");
+  await page.waitForFunction(() => ["story", "card"].includes(window.__next.run.mode) && window.__next.run.level !== "basel", null, { timeout: 30000 }).catch(() => null);
+  await page.keyboard.up("KeyD");
+  if ((await run()).mode === "story") await enter();
+  // The run goes on to 3-5: its card, him in scrubs, the training room's doors.
+  await waitMode("card", 20000);
+  assert.match(await veil(), /The Basel office/);
+  assert.equal((await run()).level, "lab", "on to 3-5's card");
+  await waitMode("play");
+  await page.waitForFunction(() => window.__next.costume === "scrubs", null, { timeout: 10000 });
+  await tp(13600);
+  await page.keyboard.down("KeyD");
   await page.waitForFunction(() => ["story", "title"].includes(window.__next.run.mode), null, { timeout: 30000 });
   await page.keyboard.up("KeyD");
   if ((await run()).mode === "story") await enter();
   await waitMode("title", 20000);
   const strip3 = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, [e.dataset.state, e.dataset.coming ?? null]])));
-  assert.deepEqual([strip3["3-4"]?.[0], strip3["3-5"]], ["done", ["next", "true"]], JSON.stringify(strip3));
-  assert.ok(await page.getByRole("button", { name: "The Basel office is coming" }).isDisabled(), "Clock in names the stop");
+  assert.deepEqual([strip3["3-4"]?.[0], strip3["3-5"]?.[0], strip3["3-6"]], ["done", "done", ["next", "true"]], JSON.stringify(strip3));
+  assert.ok(await page.getByRole("button", { name: "The replacement is coming" }).isDisabled(), "Clock in names the stop");
   assert.equal(await page.locator(".next-start__quest").count(), 4, "four side quests");
   s = await save();
-  assert.deepEqual([s.next, s.done.length, !!s.run], ["lab", 13, true], "Act 3 so far in the save, the run going on to the office");
+  assert.deepEqual([s.next, s.done.length, !!s.run], ["replacement", 14, true], "Act 3 so far in the save, the run going on to the replacement");
 
   // 7. A broken save: the start screen opens on a new journey, and nothing errs.
   await page.evaluate(() => localStorage.setItem("hammer-time-journey", "{broken"));

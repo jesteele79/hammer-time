@@ -56,7 +56,7 @@ export const ticketFree = (cast: Npc[]): boolean => attackers(cast) < TICKETS;
 const toward = (n: Npc, h: HeroState): 1 | -1 => (h.x < n.x ? -1 : 1);
 /** On the attack now: what costs a pip on contact. A student's follow-through hurts nobody, the guard's attack is his beam, and the office worker's march only head-on. */
 export const attacking = (n: Npc, h: HeroState): boolean =>
-  n.role !== "student" && n.role !== "guard" && n.trick !== "wander" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
+  n.role !== "student" && n.role !== "guard" && n.trick !== "wander" && n.trick !== "spray" && (n.act === "attack" || (n.role === "office" && n.act === "walk" && n.rest <= 0 && n.facing === toward(n, h)));
 /** How much of a rolling cart hurts him: the stacked cases, from the floor up; the brass frame and arch hurt nobody. */
 const CART_HURT = { w: 140, h: 220 } as const;
 /** How hard the drunk guest's bump sends him: about 200 px on a clear floor. */
@@ -108,11 +108,13 @@ function stepSpray(n: Npc, w: CastWorld, events: GameEvent[]): void {
   if (n.act === "windup") {
     n.vx = 0;
     if (n.actT < SPRAY.windup) return;
+    // It lands where he stood as she wound up: the wind-up is his warning, and a step away dodges it.
     const s = SPILL.sanitizer;
-    const y = floorAt(w.stage, h.x, h.y - 24) ?? h.y;
-    w.puddles.push({ x: h.x, y, w: s.w, life: s.life, max: s.life, kind: "sanitizer" });
+    const x = n.mark;
+    const y = floorAt(w.stage, x, n.y - 24) ?? n.y;
+    w.puddles.push({ x, y, w: s.w, life: s.life, max: s.life, kind: "sanitizer" });
     if (w.puddles.length > SNOT.puddles) w.puddles.shift();
-    events.push({ type: "spray", id: n.id, x: h.x, y });
+    events.push({ type: "spray", id: n.id, x, y });
     attack(n, events);
     n.rest = SPRAY.rest;
     return;
@@ -131,6 +133,7 @@ function stepSpray(n: Npc, w: CastWorld, events: GameEvent[]): void {
   n.vx = 0;
   n.facing = toward(n, h);
   if (n.rest > 0 || !ticketFree(w.cast)) return;
+  n.mark = h.x;
   windup(n, w, events);
 }
 

@@ -1,4 +1,4 @@
-import { CAST_LINES, CHEER, JOB_LINES, pick, type CastJobName, type CastLineSet } from "../game/lines";
+import { CAST_LINES, CHEER, JOB_LINES, SPRAY_NURSE, pick, type CastJobName, type CastLineSet } from "../game/lines";
 import type { GameEvent } from "./events";
 import { bodyRect } from "./geometry";
 import type { CarriedKind, CastPerson, CastTrick, Level } from "./level";
@@ -280,7 +280,9 @@ export const setAct = (n: Npc, act: CastAct): void => {
   n.act = act;
   n.actT = 0;
 };
-export const say = (n: Npc, text: string, events: GameEvent[]): void => {
+/** A line in a bubble; a person with nothing to say for it says nothing. */
+export const say = (n: Npc, text: string | undefined, events: GameEvent[]): void => {
+  if (!text) return;
   events.push({ type: "castLine", id: n.id, text, seconds: T.line });
 };
 
@@ -402,4 +404,4 @@ export function noticeLine(n: Npc): string {
 }
 
 /** Everything a cast member says. */
-export const linesOf = (n: Pick<Npc, "job">): CastLineSet => JOB_LINES[n.job];
+export const linesOf = (n: Pick<Npc, "job"> & Partial<Pick<Npc, "trick">>): CastLineSet => (n.trick === "spray" ? SPRAY_NURSE : JOB_LINES[n.job]);

@@ -74,6 +74,7 @@ export const LAB: Level = {
     { x: 1500, text: "Grüezi yourself." },
     { x: 4000, text: "I don't need a badge. I'm the trainer." },
     { x: 7000, text: "In-service is at 7. Be early." },
+    { x: 8000, text: "That's a demo unit. Don't touch it." },
     { x: 10500, text: "Scalpel. SCALPEL. Are you listening?" },
     { x: 12300, text: "I've trained surgeons better than your surgeons." },
   ],

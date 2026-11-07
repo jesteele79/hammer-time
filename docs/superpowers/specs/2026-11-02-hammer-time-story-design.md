@@ -1146,6 +1146,18 @@ Approved by the owner in the Phase 4 brainstorm, section by section:
 - **Home:** from the suite on, the home scene is Basel's street at the Kaserne end at evening (`homeOf`, `?home=basel`), with
   its own first paint (`public/start/key-art-basel.webp`).
 
+### As built (Phase 4b, 2026-11-07)
+
+- **3-5 plays in scrubs** (`src/sim/levels/lab.ts`): the costume is the level's (`Level.costume`, `costumeOf`, the look's `wear`),
+  the TRAINER badge drawn on the chest from the solved pose. Where the build differs: the gurney bays are drawn frames, not passes
+  (a pass is a low ceiling that would wall him out of the bay); vend-1 stands before the first station and gurney-2's bay clears
+  the autoclave's steam; the vending machines stand against the wall, not solid, opened by the mallet; the code blue speeds
+  everyone on their feet in its stretch while he is in it; "That's a sharps bin, trainee." is the nearest nurse's; the spray takes
+  his feet from the step after it lands, where he stood as she wound up; a bin counts only with his feet on its counter; the
+  break room keeps his costume; the spraying nurses say §10.2's lines; no nurse is recolored (her painting has no masks).
+- **Drawn:** until the corridor's walls are painted the game draws a pale green corridor with its handrail; the gurneys, IV poles,
+  vending machines, the autoclave with its puffs, the sharps bins and the spray's mist are drawn in code (`src/render/venue-lab.ts`).
+
 ## 11. The replacement, and home
 
 ### 11.1 3-6 The replacement
@@ -1497,6 +1509,11 @@ drone's buzz. The crowd never speaks aloud.
 - `basel` plays on 3-4, 2.9 dB under the banquet through the game's bus (-56.7 against -53.8 dBFS). The bus's lead has its own
   gain (`AudioBus.setLead`): once the pipers follow him it plays only while he walks. New cues: `drone` (a band's pipes coming
   up), `drumHit` (the corps' fourth beat), `whirr` (the mace going up). Nobody has heard the song but the owner.
+
+### As built (Phase 4b, 2026-11-07)
+
+- `lab` plays on 3-5, 5.1 dB under the banquet (-58.9 against -53.8 dBFS): the monitor beeps on every beat at 72 (once a bar it sat
+  6.1 dB under), two slow chords on a triangle. The music hurries in the code blue; the lights pulse red, not under reduced motion.
 
 ## 14. Settings and the controller
 

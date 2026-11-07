@@ -157,6 +157,19 @@ export const CAST_LINES = {
 
 /** Through his teeth, the one word the concierge's gate takes. */
 export const BONJOUR = "...Bonjour.";
+/** The Basel office's nurses, with the sanitizer (story spec §10.2): their own lines, word for word, not the hotel guests'. */
+export const SPRAY_NURSE: CastLineSet = {
+  notice: ["Sir, this is a sterile field.", "Did you scrub in?", "That's not how we hold that here.", "Doctor will be right with you."],
+  bump: ["Sir, this is a sterile field.", "Did you scrub in?"],
+  down: ["Doctor will be right with you."],
+  fall: "Steriiile",
+  shove: [],
+  warn: [],
+  skid: [],
+  march: [],
+  ambush: [],
+  frozen: "That's not how we hold that here.",
+};
 /** Basel's crowd, bonked (story spec §10.1): a speech bubble, never a recording. */
 export const CHEER = "Prost!";
 
