@@ -184,8 +184,9 @@ try {
   await page.keyboard.up("KeyD");
   assert.match(await page.locator(".next-veil__card").textContent(), /Basel SBB\. 17:06\. On time\. They always are\./);
   await page.keyboard.press("Enter");
-  await waitMode("title", 20000);
-  assert.ok(await page.getByRole("button", { name: "Basel is coming" }).isDisabled(), "Clock in names the stop");
+  // Basel is built: the run goes on to its card.
+  await waitMode("card", 20000);
+  assert.match(await page.locator(".next-veil__card").textContent(), /Basel, Tattoo week/);
   await page.close();
 
   // The frame rate, in the hall and in a coach.

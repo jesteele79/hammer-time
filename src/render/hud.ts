@@ -114,6 +114,8 @@ export function hintOf(game: Game): string {
     if (d.kind === "return") return "↓ at the cart · back to the lobby";
     if (!tierMet(d, game.run.keycards)) return `${d.label} · ${d.opens ?? "closed"}`;
     if (d.locked && game.world.boss && game.world.boss.state !== "down") return `${d.label} · Housekeeping has the key`;
+    const errands = game.level.errands?.length ?? 0;
+    if (d.errands && game.run.errands.length < errands) return `${d.label} · errands ${game.run.errands.length}/${errands}`;
     if (d.kind === "exit" && d.down) return `↓ ${d.label} · up to the fourteenth floor`;
     if (d.kind === "exit") return `${d.label} · walk in to finish your shift`;
     if (d.kind === "gate") return `${d.label} · walk in to board`;
@@ -316,6 +318,7 @@ export const hudKey = (p: HudPayload) =>
     p.venue,
     p.status,
     p.boss ? [p.boss.hp, p.boss.bonks, p.boss.snots].join(",") : "",
+    p.errands ? `${p.errands.n}/${p.errands.of}` : "",
     p.quest?.id === "hungry" ? [p.quest.score, p.quest.time, p.quest.reach, p.quest.reachBase, p.quest.combo, p.quest.chomps, p.quest.lecture, p.quest.result ? 1 : 0].join(",") : "",
     p.quest?.id === "fares" ? [p.quest.score, p.quest.left, p.quest.steady.toFixed(1), p.quest.towels, p.quest.position, p.quest.streak, p.quest.result ? 1 : 0].join(",") : "",
     p.boxes,

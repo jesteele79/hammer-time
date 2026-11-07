@@ -1001,7 +1001,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (game.level.stretch && run.stretch !== null && h.x >= game.level.stretch.x1) board(game.level.stretch, ev);
     if (game.level.coaches) coachStep(ev);
     conductorStep(ev);
-    if (world.boss?.kind === "major" && world.events.some((e) => e.type === "bossDown")) game.run.bossDoors = 1;
+    // Won with the third hit, not at the end of the handover: a knockdown in it keeps the win.
+    if (world.boss?.kind === "major" && world.boss.hp === 0) game.run.bossDoors = 1;
     if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;

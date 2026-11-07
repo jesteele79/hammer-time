@@ -1128,6 +1128,24 @@ Approved by the owner in the Phase 4 brainstorm, section by section:
   administrator borrow the nurse's, the student's and the office worker's
   paintings, recolored, until theirs are cut.
 
+### As built (Phase 4a, 2026-11-07)
+
+- **3-4 plays from the strip to the office door** (`src/sim/levels/basel.ts`): the errands, the door that needs them, the
+  parade (`src/sim/parade.ts`), the drum corps, the drill team, the bikes and the drum major (`src/sim/major.ts`) as planned.
+  Where the build differs: band-3 starts at the pharmacy (11,500), short of the Marktplatz, so the drum major's arena is his own
+  ranks'; the drum corps plays at 12,400 in front of the Rathaus, within reach of the Marktplatz's barrier; a catch drops him out
+  behind the rank, so the band marches on; the knock-off is a hop through the platform; each bleacher has two tiers to climb to
+  its 520; the ramp rises to the left, the way the bikes ride it (a face to jump from the bridge's side, a slope from the old
+  town's); the drum major holds the Marktplatz while he stands, his win and its 1,000 points come with the third hit, he
+  stays beaten across a lost life, and at the handover his last
+  rank falls out and its four pipers are the ones who follow.
+- **Drawn:** the bridge and the Marktplatz from the build session's renders (`scripts/blender/basel.py`), the Kaserne and the
+  old town a plain facade until painted; the bands six deep with the nearest piper missing, the corps on its beat, the
+  followers, the mace and its shadow, the ferry, the lanterns at dusk, the bikes with their riders (`src/render/venue-basel.ts`).
+  The pipers, drummers and drill team are drawn stand-ins; the drum major wears the guard's painting until his own is cut.
+- **Home:** from the suite on, the home scene is Basel's street at the Kaserne end at evening (`homeOf`, `?home=basel`), with
+  its own first paint (`public/start/key-art-basel.webp`).
+
 ## 11. The replacement, and home
 
 ### 11.1 3-6 The replacement
@@ -1474,6 +1492,12 @@ drone's buzz. The crowd never speaks aloud.
   section a round. Five new cues: the bagpipe's drone, the drum corps' hit, the mace's whirr, the ring light's hum, the
   screen's crack. The drone's buzz, the spray, the gurney's rattle and the code blue alarm use cues the game has.
 
+### As built (Phase 4a, 2026-11-07)
+
+- `basel` plays on 3-4, 2.9 dB under the banquet through the game's bus (-56.7 against -53.8 dBFS). The bus's lead has its own
+  gain (`AudioBus.setLead`): once the pipers follow him it plays only while he walks. New cues: `drone` (a band's pipes coming
+  up), `drumHit` (the corps' fourth beat), `whirr` (the mace going up). Nobody has heard the song but the owner.
+
 ## 14. Settings and the controller
 
 Settings, from the home screen and the break card: **music volume** and
@@ -1612,6 +1636,14 @@ hold the paste-ready prompts.
   `props/sat-sheet.png` (six pieces in the order stanchion, bin, kiosk, van,
   sign, pretzel), and the walls and the mid and fore pieces under the names in
   `sat.ts`'s backdrop, each needing its cut in `art/cuts/` when it arrives.
+
+### As built (Phase 4a, 2026-11-07)
+
+- **The bridge and the Marktplatz are rendered** (`art/outgoing/renders/basel-far-2.png`, `basel-far-3.png`, cut at the floor's
+  768) and handed to the owner with prompt 6 of `art/outgoing/batch-story-phase4-codex.txt`; the game shows the renders until the
+  paintings land. Prompts 1 to 5 went to the owner before Task 1, pointed at paintings that exist (the conductor, Paris's walls
+  and the train sheet named "if it exists", being still out).
+- **Still drawn or borrowed:** Basel's four people, the Kaserne and old-town walls, the Basel sheet's eight pieces (`BASEL_PIECES`).
 
 ## 17. How the old plans fold in
 

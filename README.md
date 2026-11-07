@@ -569,6 +569,43 @@ at half scale in a coach and 1.3 in the station so he stands on what is painted;
 paintings serve eighteen rooms. The game draws the countryside in their flat panes, the hands on the blank clock and the lit row on
 the blank board (`src/render/backdrop.ts`, `src/render/venue-train.ts`). Until the train's sheet is in, its six pieces are drawn in code.
 
+## Basel (3-4)
+
+Left to right over 16,000 px (`src/sim/levels/basel.ts`), "14 July. 18:10. Four errands and a meeting." From the Kaserne along
+the Rhine, over the Mittlere Brücke and through the old town to the office's door past the Münster, in Tattoo week. Four errands,
+each a counter with someone behind it: the bank at the bridge's end (7,900), the copy shop (9,800), the pharmacy (11,500) and the
+courier (14,800). Standing still within 60 px of a counter for 1.5 s fills a pip over it, does the errand once a run, says its line
+("Francs. Not euros. Not dollars. FRANCS.", "Forty copies. Stapled.", "It's a TUESDAY.", "That's a $400 demo unit.") and counts on
+the HUD beside the clock ("Errands 2/4"). The BASEL OFFICE door at 15,700 stays shut until all four are done; walked into early it
+gives "I have four errands and a meeting." at most every 3 s. An errand done stays done across a lost life; Try again takes the run
+back to the card's. Two punch clocks (the bridge, the Marktplatz); 420 seconds.
+
+**The parade** (`src/sim/parade.ts`): four pipe bands, each one marching rank against him at 200 px/s, drawn six deep with the
+nearest piper missing, so there is a hole at the floor. A band waits until he passes its mark, raises its pipes for a second (the
+drone swells), then marches to its end. Slide or crouch and it passes over him; standing, walking or jumping into the rank, he is
+caught, carried 400 px back with it and dropped out behind it for a pip. The bleachers (520 up, with two tiers to climb) are the
+way over. The drum corps plays in front of the Rathaus: every 2.5 s (the song's fourth beat at 96) the screen shakes within 1,400
+px, and within 600 px of it a barrier, a tier or a tent hops him off, no pip. The drill team on the bridge throws rifles on an arc
+(duck under or swat them with H, as paper planes). Two display bikes come down the street at 900 px/s, half a second apart, and
+leap the ramp at the Marktplatz; one jump clears the pair if it goes when the first is about 250 px off. The ramp rises to the
+left the way the bikes ride it: a 220 px face to jump from the bridge's side, a slope to walk up from the old town's. The crowd
+behind the barriers is never in the way and says "Prost!" when bonked; the beer tents hold Coke Zero; four drummers out of the
+ranks march at him by the ramp.
+
+**The drum major** (`src/sim/major.ts`) holds the Marktplatz in front of the red Rathaus: no way past him to the office while he
+stands. Three rounds. Each: a whistle ("Stand clear!" the first time) and a rank of four pipers marching the arena from the wing,
+then the mace thrown two seconds high; only while it is up does a bonk count, and it lands where he stands, a pip for Hammer if he
+is under it (its shadow marks the spot). On the third hit: "Carry on, sir.", 1,000 points, his ranks fall out, and their four
+pipers fall in behind Hammer, walking at his pace and stopping when he stops; their chanter plays only while he walks, the drone
+holds while he stands. Beaten, he stays beaten across a lost life.
+
+The bridge and the Marktplatz are the owner's paintings over the game's Blender renders (`scripts/blender/basel.py`,
+`art/outgoing/renders/basel-far-2.png`, `basel-far-3.png`), shown at the game's own size; until the Kaserne's and the old town's
+walls are painted, a plain facade stands in their place in the street's layout. The ferry crosses on its cable behind the bridge;
+the light eases toward night over the clock's last third, when the lanterns over the old town come on. The pipers, the drummers,
+the drill team and the bikes are drawn in code until their paintings and the Basel sheet are cut in; the drum major wears the
+guard's painting until his own is. From the suite on, the home screen's scene is Basel's street at the Kaserne end, at evening.
+
 ## Hungry Hungry Hammer (the BUFFET door)
 
 The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
@@ -1017,13 +1054,14 @@ built stop, the side quests') after the art changes, and
 The story (`src/sim/story.ts`) is fifteen stops in order: SAT (the prologue),
 1-1 to 1-4 (Act 1, The Trip: the hotel's four venues as built), 2-1 to 2-4
 (Act 2, Status Crusade) and 3-1 to 3-6 (Act 3, The Last Tour), with the cards
-that come before and after them. SAT, Acts 1 and 2 and Act 3 as far as the train are built, twelve stops: a fresh
+that come before and after them. SAT, Acts 1 and 2 and Act 3 as far as Basel are built, thirteen stops: a fresh
 journey's Clock in opens on the email from the Basel office, then SAT. Act 2 starts
 clean on "11:40 pm. The same lobby.", carries his keycards through its four levels,
 and ends on the Bonvoy review ("TITANIUM. Lifetime.") and its act card with his
 status. Act 3 starts clean on the flight, lands in Paris ("Paris. 13 July. 06:40. No Southwest, no A-List, no ice."), takes
-the French table on the way, and ends for now on "Basel SBB. 17:06. On time. They always are."; 3-4 then reads "Coming" and Clock
-in "Basel is coming". Acts 2 and 3 have no straight-through run yet (`STRAIGHT_BUILT`). A
+the French table on the way, arrives "Basel SBB. 17:06. On time. They always are." and goes on with him to Basel, and ends for
+now at the office's door; 3-5 then reads "Coming" and Clock in "The Basel office is coming". From the suite on, the home screen's
+scene is Basel's street at evening. Acts 2 and 3 have no straight-through run yet (`STRAIGHT_BUILT`). A
 journey begun before SAT was built has it finished with no best; it replays
 from the strip, and New game plays it in order.
 
@@ -1069,7 +1107,9 @@ bass and brushes), the M CLUB's cocktail piano, the tower's climb (up a semitone
 bar for fourteen bars, the elevator he is not using dinging past), the fourteenth
 floor's hum and the suite's drive; on the way to Basel the safety video's muzak (the
 sign on, it hurries), the musette, a waltz of two saws a hair apart, and its quick cousin
-at the French table, 1.4 times the speed. What
+at the French table, 1.4 times the speed, the train's rail clatter; in Basel the bands themselves, a chanter on the pipes'
+nine notes over a held drone at 96, the drum corps' beat as the level's (its fourth the shake), the chanter gated once the pipers
+follow him: it plays while he walks. What
 plays follows the mode (`musicFor` in
 `src/render/sound.ts`): the level's song quiet under its cards, the tallies
 and the break and full in play, a round's song the same way, silence under
@@ -1134,6 +1174,7 @@ node scripts/suite-browser.check.mjs http://127.0.0.1:8090/
 node scripts/flight-browser.check.mjs http://127.0.0.1:8090/
 node scripts/paris-browser.check.mjs http://127.0.0.1:8090/
 node scripts/train-browser.check.mjs http://127.0.0.1:8090/
+node scripts/basel-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 

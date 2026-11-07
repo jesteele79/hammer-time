@@ -51,10 +51,12 @@ export function hitMajor(m: Major, by: "bonk" | "snot", events: GameEvent[]): bo
   m.hp = Math.max(0, m.hp - 1);
   m.hurtT = MAJOR.hurt;
   m.dropped = true;
-  events.push({ type: "bossHit", by, x: m.x, y: m.y - m.h * 0.6, hp: m.hp });
+  // The win is the third hit: its points come with it, and the mace is in his hand to give, not coming down on anyone.
+  events.push({ type: "bossHit", by, x: m.x, y: m.y - m.h * 0.6, hp: m.hp, ...(m.hp === 0 ? { points: MAJOR.points } : {}) });
   if (m.hp === 0) {
     m.state = "handover";
     m.timer = MAJOR.handover;
+    m.mace = null;
     return true;
   }
   m.state = "hurt";
@@ -169,7 +171,7 @@ export function stepMajor(m: Major, w: MajorWorld, dt: number, events: GameEvent
       if (m.timer > 0) return;
       m.state = "down";
       m.mace = null;
-      events.push({ type: "bossDown", x: m.x, y: m.y - m.h, points: MAJOR.points });
+      events.push({ type: "bossDown", x: m.x, y: m.y - m.h, points: 0 });
       events.push({ type: "follow", n: FOLLOWERS });
       // His ranks fall out: their four pipers are the ones who fall in behind Hammer.
       if (w.parade) {

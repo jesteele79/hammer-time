@@ -198,7 +198,7 @@ export class BaselView {
     this.front.addChild(this.fixed);
     this.back.addChild(this.shadow, this.mace, this.fill);
     this.far.addChild(this.cable, this.ferry, this.lanterns);
-    this.far.zIndex = SCENERY_Z + 0.5;
+    this.far.zIndex = SCENERY_Z - 0.5;
     parent.addChild(this.back, this.front, this.far);
     for (let k = 0; k < 4; k++) {
       const down = new Graphics();

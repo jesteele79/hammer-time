@@ -105,7 +105,7 @@ test("three hits over three rounds, one whistle a round; Carry on, sir., 1,000 p
   const g = basel(); play(g); const h = g.world.hero; const m = g.world.boss; g.world.movers.length = 0; Object.assign(h, { x: 11650, y: 0 });
   let whistles = 0; const hitUp = () => { const evs = until(g, (x) => x.world.boss.state === "throw", 14, { down: true }); whistles += of(evs, "whistle").length; hitBoss(m, "bonk", g.events); until(g, (x) => x.world.boss.state !== "hurt" && x.world.boss.state !== "throw", 2); };
   hitUp(); hitUp(); hitUp(); const win = until(g, (x) => x.world.boss.state === "down", 3);
-  assert.deepEqual([whistles, m.hp, of(win, "bossSay").some((e) => e.text === "Carry on, sir."), of(win, "bossDown")[0].points, of(win, "follow")[0].n, g.world.parade.followers.length], [3, 0, true, 1000, 4, 4]);
+  assert.deepEqual([whistles, m.hp, of(win, "bossSay").some((e) => e.text === "Carry on, sir."), of(win, "bossDown")[0].points, of(win, "follow")[0].n, g.world.parade.followers.length], [3, 0, true, 0, 4, 4], "the 1,000 came with the third hit");
   const fx = g.world.parade.followers.map((f) => f.x); until(g, () => false, 1, { right: true }); const moved = g.world.parade.followers.map((f) => f.x);
   assert.ok(moved.every((x, i) => x > fx[i] && x < h.x - 100), `they follow behind: ${fx} -> ${moved}, him at ${h.x}`); until(g, () => false, 0.5); assert.deepEqual(g.world.parade.followers.map((f) => f.x), moved, "they stop with him");
 });
@@ -125,4 +125,25 @@ test("a beaten drum major stays beaten across a lost life, his pipers with him; 
   assert.deepEqual([g.world.boss.state, g.world.parade.followers.length], ["down", 4]);
   g.run.lives = 1; knockOut(g); play(g); knockOut(g); until(g, (x) => x.mode === "over", 6); g.newRun(81, g.venue, { snapshot: g.snapshot }); play(g);
   assert.deepEqual([g.world.boss.state, g.world.boss.hp, g.world.parade.followers.length], ["wait", 3, 0]);
+});
+import { hintOf, hudKey } from "../src/render/hud.ts";
+test("the drum major's win counts with the third hit: a knockdown in the handover keeps it and its 1,000 points; the mace is his to hand over, not to drop on him", () => {
+  const g = basel(); play(g); const h = g.world.hero; g.world.movers.length = 0; Object.assign(h, { x: 11650, y: 0 }); until(g, (x) => x.world.boss.awake, 1);
+  Object.assign(h, { x: 12150, facing: 1, vx: 0 }); until(g, () => false, 0.2); g.dev.boss({ hp: 1, state: "throw" }); const s = g.run.score;
+  const hit = [];
+  for (let i = 0; i < 120 && g.world.boss.hp > 0; i++) { g.step(input({ hammer: true }, { hammer: i % 30 === 0 })); hit.push(...g.events); }
+  assert.deepEqual([g.world.boss.hp, of(hit, "bossHit").at(-1)?.points], [0, 1000], "the 1,000 with the third hit");
+  assert.deepEqual([g.world.boss.state, g.world.boss.mace, g.run.bossDoors], ["handover", null, 1], "the win is banked at once, the mace in his hand");
+  Object.assign(h, { patience: 1, invuln: 0 }); g.world.hit(h.x + 100); until(g, (x) => of(x.events, "respawn").length > 0, 4);
+  assert.deepEqual([g.world.boss.state, g.run.score - s >= 1000], ["down", true]);
+});
+test("the office door says how many errands are left, never to walk in while it is shut; the HUD's key moves with the count", () => {
+  const g = basel(); play(g); const h = g.world.hero; g.world.boss.state = "down"; g.dev.errand("bank"); g.dev.errand("printer"); Object.assign(h, { x: 15650, y: 0 });
+  until(g, () => false, 0.1); assert.equal(hintOf(g), "BASEL OFFICE · errands 2/4");
+  const k = hudKey(hudOf(g, null, false, "a note")); g.dev.errand("pharmacy"); assert.notEqual(hudKey(hudOf(g, null, false, "a note")), k, "the count alone moves the key");
+});
+test("the tellers take no part: standing at a counter for its errand is never a bump or a line from them", () => {
+  const g = basel(); play(g); const h = g.world.hero; Object.assign(h, { x: 9800, y: 0 });
+  const evs = until(g, () => false, 3); const teller = g.world.cast.find((n) => n.spawn === "teller-copy");
+  assert.deepEqual([of(evs, "castBump").filter((e) => e.id === teller.id).length, of(evs, "castLine").filter((e) => e.id === teller.id).length, g.run.errands], [0, 0, ["printer"]]);
 });
