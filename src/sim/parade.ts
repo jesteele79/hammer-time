@@ -130,7 +130,8 @@ function stepCorps(p: ParadeState, w: ParadeWorld, events: GameEvent[]) {
 }
 
 /** The followers keep their spacing behind him, never faster than a piper walks, and stop when he stops. */
-function stepFollowers(p: ParadeState, h: HeroState, dt: number) {
+function stepFollowers(p: ParadeState, h: HeroState, dt: number, walking: boolean) {
+  if (!walking) return;
   let lead = h.x;
   for (const f of p.followers) {
     const want = lead - PARADE.followSpace;
@@ -142,12 +143,13 @@ function stepFollowers(p: ParadeState, h: HeroState, dt: number) {
   }
 }
 
-export function stepParade(w: ParadeWorld, dt: number, events: GameEvent[]): void {
+/** `walking`: a way held this step; the followers march only while he does. */
+export function stepParade(w: ParadeWorld, dt: number, events: GameEvent[], walking = true): void {
   const p = w.parade;
   if (!p) return;
   stepBands(p, w.hero, dt, events);
   stepCarry(p, w, events);
   catchHim(p, w.hero, events);
   stepCorps(p, w, events);
-  stepFollowers(p, w.hero, dt);
+  stepFollowers(p, w.hero, dt, walking);
 }

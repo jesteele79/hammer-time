@@ -91,6 +91,8 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   piper: { height: 345, head: 0.22, build: 1.05, skin: "#e8bf9c", hair: "#9a4a2a", hairStyle: "short", top: "#1f4a32", sleeves: "top", bottom: "#2f4f7f", shoes: "#141414", mustache: true },
   drummer: { height: 315, head: 0.22, build: 0.85, skin: "#ebc9a9", hair: "#2a1d16", hairStyle: "ponytail", top: "#b8282e", sleeves: "top", bottom: "#2f4f7f", shoes: "#141414" },
   drill: { height: 350, head: 0.22, build: 0.9, skin: "#f0cfae", hair: "#e3c27a", hairStyle: "short", top: "#1b2748", sleeves: "top", bottom: "#1b2748", shoes: "#f4f3ee", gloves: true },
+  // The drum major: the red tunic, a bearskin's black, white gloves (the guard's painting lent until his own is cut).
+  major: { height: 380, head: 0.22, build: 1.15, skin: "#e2b48f", hair: "#141414", hairStyle: "beanie", top: "#b8282e", sleeves: "top", bottom: "#2f4f7f", shoes: "#141414", gloves: true, mustache: true },
   "bartender-1": { height: 310, head: 0.22, build: 0.9, skin: "#c9956a", hair: "#1c1612", hairStyle: "short", top: "#f4f3ee", sleeves: "skin", vest: "#1b1b1b", apron: true, bottom: "#1b1b1b", shoes: "#141414" },
 };
 

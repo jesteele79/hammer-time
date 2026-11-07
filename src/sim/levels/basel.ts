@@ -111,12 +111,15 @@ export const BASEL: Level = {
     { x: 6800, text: "Who approved this?" },
     { x: 10300, text: "That's not a schedule. That's a parade." },
   ],
+  // The drum major in front of the red Rathaus: the Marktplatz is his until his third round.
+  boss: { kind: "major", x: 12300, arena: [11600, 13000] },
   // The bands cross him at every errand; the drum corps plays in front of the Rathaus, near enough the Marktplatz's barrier.
   parade: {
     bands: [
       { id: "band-1", from: 1000, x: 3200, x1: 400, color: "#2f4f7f" },
       { id: "band-2", from: 6600, x: 8800, x1: 6000, color: "#7a1f2b" },
-      { id: "band-3", from: 10400, x: 12400, x1: 9800, color: "#2f4f7f" },
+      // Across the pharmacy and the ramp, short of the Marktplatz: the drum major's arena is his own ranks'.
+      { id: "band-3", from: 10400, x: 11500, x1: 9800, color: "#2f4f7f" },
       { id: "band-4", from: 13200, x: 15400, x1: 12800, color: "#7a1f2b" },
     ],
     corps: { x: 12400, reach: 600 },

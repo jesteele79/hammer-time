@@ -34,7 +34,7 @@ export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart
 
 export type CastJob = CastJobName;
 /** The people whose painting's name is their whole job, with no number. */
-const JOBS_WHOLE: readonly string[] = ["nurse", "purser", "concierge", "garcon", "conductor", "piper", "drummer", "drill"];
+const JOBS_WHOLE: readonly string[] = ["nurse", "purser", "concierge", "garcon", "conductor", "piper", "drummer", "drill", "major"];
 /** Who a person is: the painting's name less its number ("cook-1" is a cook). */
 export const jobOf = (p: CastPerson): CastJob => (JOBS_WHOLE.includes(p) ? p : p.slice(0, -2)) as CastJob;
 /** Which of the lobby's four fights each job fights (R3 §4). */
@@ -73,11 +73,13 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   piper: "office",
   drummer: "office",
   drill: "student",
+  // A boss; this is only his painting's job.
+  major: "office",
 };
 /** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
 export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };
 /** The painting a person borrows until their own is painted: the bartender wears the server's, recolored. */
-export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1", concierge: "office-2", garcon: "server-2", "parisian-1": "student-2", "kid-1": "student-2", conductor: "bellhop-1" };
+export const PAINTING_OF: Partial<Record<CastPerson, CastPerson>> = { "bartender-1": "server-1", purser: "housekeeper-1", "attendant-1": "server-1", concierge: "office-2", garcon: "server-2", "parisian-1": "student-2", "kid-1": "student-2", conductor: "bellhop-1", major: "guard-1" };
 export const roleOf = (p: CastPerson): CastRole => ROLE_OF[jobOf(p)];
 /** Who wears a hat that flies off at the first hit. */
 export const HATTED: ReadonlySet<CastJob> = new Set<CastJob>(["bellhop", "cook", "skycap"]);

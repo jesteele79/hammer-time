@@ -20,7 +20,8 @@ import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
-import { createParade, startBand } from "./parade";
+import { createParade, PARADE, startBand } from "./parade";
+import { throwMace } from "./major";
 import { createBoss } from "./boss";
 import { CONDUCTOR, atDoor, conductorWall, summonConductor } from "./conductor";
 import { createSwingDoors } from "./hazards";
@@ -108,7 +109,7 @@ export type Game = {
   /** The line the next card shows in place of the level's, for that card only: the train that left. */
   cardLine: string | null;
   /** The checks' levers on a level's clocks. */
-  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void; errand(id: string): void; band(id: string): void };
+  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void; errand(id: string): void; band(id: string): void; boss(patch: Record<string, unknown>): void };
   /** How far through the errand he stands at he is, 0 to 1 (3-4): the look fills its pip. */
   errandHold: number;
 };
@@ -278,6 +279,13 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       cart() {
         if (world.flight) world.flight.cart.next = world.flight.cart.t;
       },
+      boss(patch) {
+        const b = world.boss;
+        if (!b) return;
+        Object.assign(b, patch);
+        b.awake = true;
+        if (b.kind === "major" && b.state === "throw" && !b.mace) b.mace = throwMace(b);
+      },
       band(id) {
         const b = world.parade?.bands.find((k) => k.id === id);
         if (b) startBand(b, game.events);
@@ -346,8 +354,12 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // The gift shop's pig sleeps at its spot, fresh, each time the venue is laid out.
     world.pig = level.boss?.kind === "pig" ? createPig(level.boss, floorAt(world.stage, level.boss.x) ?? 0) : null;
     world.boss = level.boss && level.boss.kind !== "pig" ? createBoss(level.boss, level.boss.y ?? 0) : null;
-    // The doors he has won stay won across a lost life.
+    // The doors he has won stay won across a lost life; so does the drum major, his pipers behind Hammer.
     if (world.boss?.kind === "conductor") atDoor(world.boss, game.run.bossDoors);
+    if (world.boss?.kind === "major" && game.run.bossDoors > 0) {
+      Object.assign(world.boss, { state: "down", hp: 0, awake: true });
+      if (world.parade) world.parade.followers = Array.from({ length: 4 }, (_, i) => ({ x: at.x - PARADE.followSpace * (i + 1), walked: 0 }));
+    }
     restage();
     world.hallCarts = createHallCarts(level);
     world.hallDoors = createHallDoors(level);
@@ -989,6 +1001,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (game.level.stretch && run.stretch !== null && h.x >= game.level.stretch.x1) board(game.level.stretch, ev);
     if (game.level.coaches) coachStep(ev);
     conductorStep(ev);
+    if (world.boss?.kind === "major" && world.events.some((e) => e.type === "bossDown")) game.run.bossDoors = 1;
     if (world.flight) stepFlight({ hero: h, flight: world.flight, missiles: world.missiles, nextMissile: () => ++world.nextMissile, pickups: game.pickups, nextPickup: () => ++nextPickup, cast: world.cast, stage: world.stage, level: game.level, bossBusy: world.boss?.kind === "purser" && world.boss.awake }, STEP, ev);
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;

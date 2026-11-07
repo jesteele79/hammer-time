@@ -144,7 +144,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       stepSamples(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP, events);
       stepMovers(world, STEP, events);
-      stepParade(world, STEP, events);
+      stepParade(world, STEP, events, input.held.left || input.held.right);
       stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
       stepPig(world, STEP, prevY, input.held.jump, events);

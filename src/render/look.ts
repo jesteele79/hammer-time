@@ -914,7 +914,7 @@ export async function startLook(
         particles.emit("impact", e.x, e.y, 14);
         break;
       case "bossDown":
-        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : cur.boss?.kind === "purser" ? "BUSINESS SELECT" : cur.boss?.kind === "conductor" ? "ON TIME" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
+        words.say(cur.boss?.kind === "titanium" ? "OVER THE RAIL" : cur.boss?.kind === "purser" ? "BUSINESS SELECT" : cur.boss?.kind === "conductor" ? "ON TIME" : cur.boss?.kind === "major" ? "CARRY ON" : "HOUSEKEEPING DOWN", e.x, e.y - 60, true, face, view);
         break;
       case "bossPhase":
         scene.camera.trauma = Math.max(scene.camera.trauma, 0.3);

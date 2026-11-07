@@ -130,6 +130,7 @@ export function hintOf(game: Game): string {
   }
   if (game.world.boss?.kind === "titanium") return "Lifetime Titanium guy · bonk him · jump what he throws · H bats an apple back";
   if (game.world.boss?.kind === "conductor" && bossUp(game.world.boss) && Math.abs(game.world.boss.x - h.x) < 900) return "The conductor · jump or ↓ as he punches · H when he staggers";
+  if (game.world.boss?.kind === "major" && bossUp(game.world.boss)) return "The drum major · slide the pipers' hole · H while his mace is up";
   if (game.world.boss?.kind === "purser" && bossUp(game.world.boss)) return "The purser · A or D out of the aisle while she pushes · bonk her between pushes";
   if (bossUp(game.world.boss)) return "Housekeeping · jump her carts or slide under · bonk her when she waits";
   const zone = heatZoneAt(game.world.stage, h);

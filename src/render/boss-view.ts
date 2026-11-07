@@ -14,6 +14,8 @@ const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; si
   purser: { person: "purser", recolor: "#1b2748", size: 1 },
   // Navy too, in the bellhop's, until his own is cut.
   conductor: { person: "conductor", recolor: "#1b2748", size: 1 },
+  // The guard's painting until his own is cut.
+  major: { person: "major", recolor: null, size: 1.05 },
 };
 
 /** A boss standing in the level: their painting (or stand-in), posed by their state, always behind him. */
@@ -81,6 +83,11 @@ export class BossView {
       const pose = castPose({ role: "office", act: b.state === "push" ? "attack" : b.flinch > 0 ? "bumped" : "idle", t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
       // Down, she has pulled the curtain back and stands to the far side of it.
       this.figure.pose(pose, -1, { x: b.state === "down" ? b.x + 120 : b.x, y: b.y }, b.flinch > 0, time, "planted");
+      return;
+    }
+    if (b.kind === "major") {
+      const act = b.state === "windup" || b.state === "whistle" ? "windup" : b.state === "throw" || b.state === "catch" ? "attack" : b.state === "hurt" ? "bumped" : "idle";
+      this.figure.pose(castPose({ role: "office", act, t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 }), b.facing, { x: b.x, y: b.y }, b.hurtT > 0, time, "planted");
       return;
     }
     if (b.kind === "conductor") {

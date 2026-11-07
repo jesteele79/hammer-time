@@ -165,7 +165,7 @@ function strolling(level: Level, h: HeroState, i: Input, w?: World): Input {
 }
 
 /** How the walker looks ahead in Basel, in px: a bike coming, where he stops running for a counter, how near it he stands, and walks back from; how near a band's rank he ducks under its hole. */
-const TOUR = { bike: 540, slow: 360, stand: 40, back: 55, band: 260 } as const;
+const TOUR = { bike: 250, slow: 360, stand: 40, back: 55, band: 260 } as const;
 /**
  * The walker: down the street to each errand in turn, still at its counter until it is done, over the bikes and the ramp's
  * face, the mallet at whoever is in his way, and in at the office door once the four are done.
@@ -183,6 +183,13 @@ function touring(level: Level, h: HeroState, i: Input, w?: World): Input {
       i.held.left = true;
     }
   }
+  // A pair of bikes: one jump clears both if it goes when the first is this near.
+  const bike = w.movers.some((m) => m.loop && m.live && m.x - h.x > -40 && m.x - h.x < TOUR.bike && m.y > (m.base ?? 0) - 40);
+  if (bike && h.onGround) {
+    i.held.jump = i.pressed.jump = true;
+    return i;
+  }
+  if (!h.onGround) i.held.jump = true;
   // A band marching at him: down, under its hole, until it has gone over.
   const band = w.parade?.bands.some((b) => b.state === "march" && b.x - h.x > -120 && b.x - h.x < TOUR.band);
   if (band && h.onGround) {
@@ -190,13 +197,32 @@ function touring(level: Level, h: HeroState, i: Input, w?: World): Input {
     i.held.run = false;
     return i;
   }
+  if (fightMajor(w, h, i)) return i;
   const still = !i.held.right && !i.held.left;
   if (!still) fight(w, h, i);
-  const bike = w.movers.some((m) => m.loop && m.live && m.x - h.x > -40 && m.x - h.x < TOUR.bike && m.y > (m.base ?? 0) - 40);
   const wall = level.solids.some((s) => s.x - h.x > 0 && s.x - h.x < LOOK.wall && s.y < h.y - 10 && s.y + s.h > h.y - 290);
-  if ((bike || (wall && !still) || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
+  if (((wall && !still) || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
   return i;
+}
+
+/** Where the walker stands to the drum major: off him, out from under the mace's landing, in the mallet's reach. */
+const MAJOR_FIGHT = { stand: 150, near: 20 } as const;
+/**
+ * The drum major: a mallet's reach off him, clear of where the mace comes down, the mallet while it is up; under the ranks
+ * as the street's bands. True while the fight has him.
+ */
+function fightMajor(w: World, h: HeroState, i: Input): boolean {
+  const m = w.boss;
+  if (m?.kind !== "major" || !m.awake || m.state === "down" || m.state === "handover") return false;
+  i.held.run = false;
+  i.held.right = i.held.left = false;
+  const want = m.x - MAJOR_FIGHT.stand;
+  if (h.x < want - MAJOR_FIGHT.near) i.held.right = true;
+  else if (h.x > want + MAJOR_FIGHT.near) i.held.left = true;
+  else if (h.facing < 0) i.held.right = true;
+  if (m.state === "throw" && !h.move && h.onGround && h.facing > 0 && Math.abs(h.x - want) <= MAJOR_FIGHT.near * 2) i.held.hammer = i.pressed.hammer = true;
+  return true;
 }
 
 /** How the runner looks ahead, in px: at the barrier, and at a traveler. */

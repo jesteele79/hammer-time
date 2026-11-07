@@ -222,4 +222,10 @@ export type GameEvent =
   /** The drum corps' fourth beat, and him knocked off a barrier or a bleacher by it. */
   | { type: "drumHit"; x: number }
   | { type: "knocked"; x: number; y: number }
+  /** The drum major (3-4): his whistle, the mace thrown up and coming down (on Hammer, or not), the handover, and the pipers who fall in. */
+  | { type: "whistle"; x: number; y: number }
+  | { type: "maceUp"; x: number; y: number }
+  | { type: "maceLand"; x: number; y: number; hit: boolean }
+  | { type: "handover"; x: number; y: number }
+  | { type: "follow"; n: number }
   | { type: "mode"; mode: GameMode };

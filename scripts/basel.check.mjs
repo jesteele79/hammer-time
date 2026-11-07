@@ -12,6 +12,9 @@ import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { hudOf } from "../src/render/hud.ts";
 import { PARADE } from "../src/sim/parade.ts";
 import { flies } from "../src/sim/missiles.ts";
+import { MAJOR } from "../src/sim/major.ts";
+import { hitBoss, BOSS_NAMES } from "../src/sim/boss.ts";
+import { drive } from "../src/sim/drive.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -87,4 +90,39 @@ test("a carried hero never goes through a wall or past the level's start; a catc
   assert.deepEqual([of(evs, "caught").length, of(evs, "dropped").length, h.x >= h.w / 2 - 1], [1, 1, true]);
   const k = basel(); play(k); k.dev.band("band-1"); until(k, (x) => x.world.parade.bands[0].state === "march", 2); const kb = k.world.parade.bands[0];
   Object.assign(k.world.hero, { x: kb.x - 200, y: 0, invuln: 3 }); assert.equal(of(until(k, () => false, 1.5), "caught").length, 0);
+});
+test("the drum major wakes within 700 px, whistles up a rank of four that marches the arena, throws the mace two seconds high and is hit only while it is up; the mace landing on Hammer is a hit", () => {
+  const g = basel(); play(g); const h = g.world.hero; const m = g.world.boss; assert.deepEqual([m.kind, m.hp, m.state, BOSS_NAMES.major], ["major", 3, "wait", "The drum major"]);
+  for (const id of BASEL.errands.map((e) => e.id)) g.dev.errand(id); Object.assign(h, { x: 11650, y: 0 });
+  const w = until(g, (x) => x.world.boss.state === "rank", 2); assert.deepEqual([of(w, "whistle").length, of(w, "bossSay").some((e) => e.text === "Stand clear!"), g.world.parade.bands.some((b) => b.id.startsWith("rank") && b.state !== "wait")], [1, true, true]);
+  assert.equal(hitBoss(m, "bonk", g.events), false);
+  until(g, (x) => x.world.boss.state === "throw", 12); const up = m.mace; assert.deepEqual([up.vy, MAJOR.air], [-1960, 2.0]);
+  assert.equal(hitBoss(m, "bonk", g.events), true); assert.deepEqual([m.hp, m.state], [2, "hurt"]);
+  const t = basel(); play(t); const th = t.world.hero; const tm = t.world.boss; Object.assign(th, { x: 11650, y: 0 }); until(t, (x) => x.world.boss.state === "throw", 14);
+  Object.assign(th, { x: tm.x, y: 0, patience: 2, invuln: 0 }); const land = until(t, (x) => of(x.events, "maceLand").length > 0, 3); assert.deepEqual([of(land, "maceLand")[0].hit, th.patience], [true, 1]);
+});
+test("three hits over three rounds, one whistle a round; Carry on, sir., 1,000 points, and four pipers fall in behind him at his walk and stop when he stops", () => {
+  const g = basel(); play(g); const h = g.world.hero; const m = g.world.boss; g.world.movers.length = 0; Object.assign(h, { x: 11650, y: 0 });
+  let whistles = 0; const hitUp = () => { const evs = until(g, (x) => x.world.boss.state === "throw", 14, { down: true }); whistles += of(evs, "whistle").length; hitBoss(m, "bonk", g.events); until(g, (x) => x.world.boss.state !== "hurt" && x.world.boss.state !== "throw", 2); };
+  hitUp(); hitUp(); hitUp(); const win = until(g, (x) => x.world.boss.state === "down", 3);
+  assert.deepEqual([whistles, m.hp, of(win, "bossSay").some((e) => e.text === "Carry on, sir."), of(win, "bossDown")[0].points, of(win, "follow")[0].n, g.world.parade.followers.length], [3, 0, true, 1000, 4, 4]);
+  const fx = g.world.parade.followers.map((f) => f.x); until(g, () => false, 1, { right: true }); const moved = g.world.parade.followers.map((f) => f.x);
+  assert.ok(moved.every((x, i) => x > fx[i] && x < h.x - 100), `they follow behind: ${fx} -> ${moved}, him at ${h.x}`); until(g, () => false, 0.5); assert.deepEqual(g.world.parade.followers.map((f) => f.x), moved, "they stop with him");
+});
+test("while the drum major stands he holds the Marktplatz: no way past him to the office", () => {
+  const g = basel(); play(g); const h = g.world.hero; Object.assign(h, { x: 11650, y: 0 }); until(g, (x) => x.world.boss.awake, 1);
+  Object.assign(h, { x: 12900, y: 0, invuln: 99 }); until(g, () => false, 2, { right: true, run: true }); assert.ok(h.x <= BASEL.boss.arena[1] + 1, `held at ${h.x}`);
+});
+test("the scripted walker runs the errands, slides the bands and beats the drum major to the office door; a masher who never slides is finished by the bands", () => {
+  const g = basel(); play(g); let t = 0; while (g.mode === "play" && t < 410) { g.step(drive(g.level, g.world.hero, "basel", g.world)); t += STEP; }
+  assert.deepEqual([g.run.errands.length, g.world.boss.state, g.mode], [4, "down", "walkoff"]);
+  const m = basel(); play(m); until(m, (x) => x.mode === "over", 420, { right: true, run: true, hammer: true }); assert.equal(m.mode, "over");
+});
+test("a beaten drum major stays beaten across a lost life, his pipers with him; Try again brings him back", () => {
+  const g = basel(); play(g); const h = g.world.hero; g.world.movers.length = 0; Object.assign(h, { x: 11650, y: 0 }); until(g, (x) => x.world.boss.awake, 1);
+  g.dev.boss({ hp: 1, state: "throw" }); assert.equal(hitBoss(g.world.boss, "bonk", g.events), true); until(g, (x) => x.world.boss.state === "down", 3);
+  knockOut(g); until(g, (x) => of(x.events, "respawn").length > 0, 4);
+  assert.deepEqual([g.world.boss.state, g.world.parade.followers.length], ["down", 4]);
+  g.run.lives = 1; knockOut(g); play(g); knockOut(g); until(g, (x) => x.mode === "over", 6); g.newRun(81, g.venue, { snapshot: g.snapshot }); play(g);
+  assert.deepEqual([g.world.boss.state, g.world.boss.hp, g.world.parade.followers.length], ["wait", 3, 0]);
 });
