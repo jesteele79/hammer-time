@@ -12,13 +12,27 @@ import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { BOSS_NAMES, hitBoss } from "../src/sim/boss.ts";
 import { hudOf, hintOf } from "../src/render/hud.ts";
 import { drive } from "../src/sim/drive.ts";
+import { CHARGE_MAX } from "../src/sim/moves.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
 const of = (evs, type) => evs.filter((e) => e.type === type);
 const play = (g) => { while (g.mode === "card") g.step(input()); };
-/** `each` runs after every step, with its events still the step's. */
-const until = (g, done, seconds = 10, held = {}, each) => { const evs = []; for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) { g.step(input(held)); each?.(g); evs.push(...g.events); } return evs; };
+/**
+ * `each` runs after every step, with its events still the step's. An `each` that steps the game itself (a key pressed) keeps
+ * both steps' events, and the loop stops at whichever step is done.
+ */
+const until = (g, done, seconds = 10, held = {}, each) => {
+  const evs = [];
+  for (let i = 0; i < Math.round(seconds / STEP) && !done(g); i++) {
+    g.step(input(held));
+    const stepped = g.events;
+    if (each && done(g)) return [...evs, ...stepped];
+    each?.(g);
+    evs.push(...(g.events === stepped ? stepped : [...stepped, ...g.events]));
+  }
+  return evs;
+};
 const knockOut = (g) => { g.world.hero.patience = 1; g.world.hero.invuln = 0; g.world.hit(g.world.hero.x + 100); };
 /** The training room as a journey's stop, the fight only. */
 const fight = (opts = {}) => { const g = createGame({ lobby: LOBBY, stash: STASH }, 91, { cast: true, title: true }); g.newRun(91, 0, { shift: [REPLACEMENT], journey: true, ...opts }); return g; };
@@ -51,4 +65,39 @@ test("absolute bullshit plays once, on his first hurt of the fight, and a lost l
 test("the scripted trainee takes round one: past the stick in its rest, the stand turned from its far side, the kid hit in the dark five times, no life lost", () => {
   const g = fight(); const all = []; for (let i = 0; i < Math.round(90 / STEP) && g.world.boss.round === 1; i++) { g.step(drive(g.level, g.world.hero, "replacement", g.world)); all.push(...g.events); }
   assert.deepEqual([g.world.boss.hp, g.world.boss.round, of(all, "lifeLost").length, of(all, "beamTurn").length >= 5], [10, 2, 0, true]);
+});
+test("round two starts at hp 10 whatever landed the hit: residents four at a time, the drone that dives and is downed by a snot for 300 and FOOTAGE., a new one after 10 s", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
+  for (let i = 0; i < 4; i++) { hitBoss(r, "bonk", g.events); until(g, (x) => x.world.boss.state !== "hurt", 1); } r.hp = 11; hitBoss(r, "snot", g.events); const two = until(g, (x) => x.world.boss.round === 2, 1);
+  assert.deepEqual([r.round, of(two, "bossPhase")[0].phase, of(two, "bossSay").some((e) => e.text === "Like and subscribe.")], [2, 2, true]);
+  // He stands among the residents' charts and the drone's dives for half a minute: untouchable, so the fight he is in stays the one under test.
+  h.invuln = 99;
+  until(g, (x) => x.world.cast.filter((c) => c.job === "resident" && c.alive).length === 4, 14); assert.equal(g.world.cast.filter((c) => c.job === "resident" && c.alive).length, 4);
+  const dive = until(g, (x) => of(x.events, "droneDive").length > 0, 8); assert.ok(of(dive, "droneHover").length >= 1);
+  until(g, (x) => x.world.boss.drone?.state === "hover", 8); const d = r.drone; g.world.snot.push({ id: 99, x: d.x, y: d.y + 5, vx: 0, vy: -1, life: 1, hit: [], hot: false, r: 20 }); const down = until(g, (x) => of(x.events, "droneDown").length > 0, 0.5);
+  assert.deepEqual([of(down, "droneDown")[0].points, of(down, "think").some((e) => e.text === "FOOTAGE.")], [300, true]); until(g, (x) => x.world.boss.drone?.state === "circle", 12); assert.equal(r.drone.state, "circle");
+});
+test("the lecture freezes the kid 2.2 s and the residents with him; the IFU is picked from the lectern, thrown with B, freezes him with birds and READ THE IFU., and lies to be picked up again", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 10; r.round = 2;
+  Object.assign(h, { x: r.x - 400, y: 0, facing: 1, lectureCd: 0 }); const fz = until(g, (x) => of(x.events, "bossFreeze").length > 0, 1, {}, (x) => x.step(input({}, { lecture: true }))); assert.deepEqual([of(fz, "bossFreeze")[0].seconds, r.state, hitBoss(r, "bonk", g.events)], [2.2, "frozen", true]);
+  Object.assign(h, { x: 3000, y: -140, onGround: true }); const took = until(g, (x) => of(x.events, "ifuTaken").length > 0, 1, { right: true }); assert.deepEqual([took.length > 0, h.boxes, g.world.ifu.state], [true, 1, "held"]);
+  Object.assign(h, { x: r.x - 350, y: 0, facing: 1 }); until(g, (x) => x.world.boss.state !== "frozen" && x.world.boss.state !== "hurt", 3); const thrown = until(g, (x) => of(x.events, "bossFreeze").some((e) => e.birds), 2, {}, (x) => x.step(input({}, { box: true })));
+  assert.deepEqual([of(thrown, "bossFreeze").find((e) => e.birds).seconds, of(thrown, "think").some((e) => e.text === "READ THE IFU."), h.boxes], [1.5, true, 0]);
+  until(g, (x) => x.world.ifu.state === "lying", 3); Object.assign(h, { x: g.world.ifu.x, y: 0 }); until(g, (x) => x.world.ifu.state === "held", 1, { right: true }); assert.equal(h.boxes, 1);
+});
+test("round three at hp 5: he hides at the lectern and plays the video, the screen heats the front rows and nuts drop every 6 s; three full smashes crack it, he staggers out 2 s on each, the third leaves him in the open; the last hit plays fired and he is carried out", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 6; r.round = 2; hitBoss(r, "bonk", g.events);
+  const three = until(g, (x) => x.world.boss.state === "hide", 6); assert.deepEqual([r.round, of(three, "screenPlay").length, hitBoss(r, "bonk", g.events)], [3, 1, false]);
+  Object.assign(h, { x: 2400, y: 0, heat: 0 }); until(g, () => false, 1); assert.ok(h.heat >= 25, "the screen's glow"); assert.ok(until(g, (x) => x.pickups.some((p) => p.kind === "nuts" && !p.taken), 7).length > 0);
+  const smash = () => { Object.assign(h, { x: 3000, y: 0, charge: CHARGE_MAX }); return until(g, (x) => of(x.events, "screenCrack").length > 0, 2, {}, (x) => x.step(input({}, { super: true }))); };
+  const c1 = smash(); assert.deepEqual([of(c1, "screenCrack")[0].n, r.state, hitBoss(r, "bonk", g.events)], [1, "out", true]); until(g, (x) => x.world.boss.state === "hide", 4);
+  smash(); until(g, (x) => x.world.boss.state === "hide", 4); const c3 = smash(); assert.deepEqual([of(c3, "screenCrack")[0].n, of(c3, "screenDark").length, r.screen.playing, r.state], [3, 1, false, "open"]);
+  r.hp = 1; const end = until(g, (x) => x.world.boss.state === "down", 3, {}, (x) => { if (hitBoss(x.world.boss, "bonk", x.events)) return; }); assert.deepEqual([of(end, "bossDown")[0].points, of(end, "voiceLine").map((e) => e.id), of(end, "carryOut").length], [5000, ["fired"], 1]);
+});
+test("the scripted trainer wins all three rounds; a masher who never smashes the screen is finished", () => {
+  const g = fight(); play(g); let t = 0; while (g.mode === "play" && t < 350) { g.step(drive(g.level, g.world.hero, "replacement", g.world)); t += STEP; } assert.deepEqual([g.world.boss.state, g.mode !== "over"], ["down", true]);
+  // The masher holds right and presses H four times a second, through every life: the kid is never down, and the run is over by its third clock.
+  const m = fight(); play(m); Object.assign(m.world.hero, { x: 2300 }); let downed = false;
+  for (let i = 0; i < Math.round(1200 / STEP) && m.mode !== "over"; i++) { m.step(input({ right: true }, { hammer: i % 30 === 0 })); downed ||= m.world.boss?.state === "down"; }
+  assert.deepEqual([m.mode, downed], ["over", false]);
 });

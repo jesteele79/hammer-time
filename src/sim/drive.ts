@@ -1,5 +1,7 @@
 import { TITANIUM } from "./titanium";
 import { REPLACEMENT } from "./replacement";
+import { CHARGE_MAX, isIdleAct } from "./moves";
+import { flies } from "./missiles";
 import { ROLLING, hittable, npcRect, standing } from "./cast";
 import { attacking } from "./cast-behavior";
 import { overlapsRect } from "./geometry";
@@ -260,6 +262,8 @@ function rounding(level: Level, h: HeroState, i: Input, w?: World): Input {
  * dark), and how far inside the stick's reach he steps to draw its jab.
  */
 const TRAIN_FIGHT = { stand: 170, bonk: 120, near: 20, beam: 2950, bait: 20 } as const;
+/** In a move that keys cannot cut short: an idle act (the watch, the tap) gives way to anything. */
+const busy = (h: HeroState) => !!h.move && !isIdleAct(h.move);
 /** The training room: in from the doors until the kid is up, then the fight. */
 function training(h: HeroState, i: Input, w?: World): Input {
   if (w && fightReplacement(w, h, i)) return i;
@@ -284,8 +288,9 @@ function fightReplacement(w: World, h: HeroState, i: Input): boolean {
   };
   const swingAt = (side: 1 | -1, ready: boolean) => {
     if (h.facing !== side) i.held[side > 0 ? "right" : "left"] = true;
-    else if (ready && !h.move && h.onGround) i.held.hammer = i.pressed.hammer = true;
+    else if (ready && !busy(h) && h.onGround) i.held.hammer = i.pressed.hammer = true;
   };
+  if (r.round !== 1) return lateRounds(w, h, i, go, swingAt);
   const far = r.stand.x + TRAIN_FIGHT.stand;
   if (r.state === "dark") {
     const side: 1 | -1 = h.x < r.x ? 1 : -1;
@@ -311,6 +316,109 @@ function fightReplacement(w: World, h: HeroState, i: Input): boolean {
     return true;
   }
   if (go(far)) swingAt(-1, r.stand.cd <= 0 && r.beam.x >= TRAIN_FIGHT.beam);
+  return true;
+}
+
+/**
+ * The later rounds' numbers: how far off the kid he stands to lecture him (out of his hop's reach), the IFU's throw, how hot
+ * before the towel, where he waits by the catering table for its nuts and where he smashes the screen from, and how near a
+ * drone counts as in his sights.
+ */
+const LATE_FIGHT = { lecture: 520, throw: 600, towel: 80, table: 560, screen: 3000, drone: 520, dodge: 260, behind: 140, chart: 420, arcT: 0.155, swat: [170, 240], quiet: 800 } as const;
+/**
+ * Rounds two and three: the mallet at the kid whenever he stands still for it (frozen, staggered out, or hit-stunned), the
+ * lecture from just out of his hop's reach to freeze him, the IFU at him when it is in hand, a snot at the drone as it hovers
+ * and a step away from its dive, the charts swatted; in round three, while he hides, nuts off the catering table until the
+ * smash is full, then the smash at the screen.
+ */
+function lateRounds(w: World, h: HeroState, i: Input, go: (x: number) => boolean, swingAt: (side: 1 | -1, ready: boolean) => void): boolean {
+  const r = w.boss;
+  if (r?.kind !== "replacement") return false;
+  const side: 1 | -1 = h.x < r.x ? 1 : -1;
+  const d = r.drone;
+  if (charts(w, h, i)) return true;
+  // The drone: a snot as it hovers in his sights, a step away from where it dives.
+  if (d && d.state === "hover" && Math.abs(d.x - h.x) < LATE_FIGHT.drone && Math.abs(d.y - (h.y - h.h * 0.85)) < 40) {
+    const at: 1 | -1 = d.x >= h.x ? 1 : -1;
+    if (h.facing !== at) i.held[at > 0 ? "right" : "left"] = true;
+    else if (!busy(h) && h.sinus >= 1 && h.fireCd <= 0) i.held.fire = i.pressed.fire = true;
+    return true;
+  }
+  if (d && d.state === "dive" && Math.abs(d.tx - h.x) < LATE_FIGHT.dodge) {
+    i.held[d.tx <= h.x ? "right" : "left"] = true;
+    i.held.run = true;
+    return true;
+  }
+  if (h.onGround && !busy(h) && h.heat >= LATE_FIGHT.towel && !w.missiles.some((m) => Math.abs(m.x - h.x) < LATE_FIGHT.quiet)) {
+    i.held.towel = i.pressed.towel = true;
+    return true;
+  }
+  if (r.state === "frozen" || r.state === "out") {
+    if (go(r.x - side * TRAIN_FIGHT.bonk)) swingAt(side, true);
+    else planes(w, h, i);
+    return true;
+  }
+  if (r.state === "hurt") return true;
+  // Round three behind the lectern: the smash once it is full, the table's nuts until then.
+  if (r.state === "hide" || r.state === "run") {
+    if (h.charge >= CHARGE_MAX) {
+      if (go(LATE_FIGHT.screen) && !busy(h) && h.onGround) i.held.super = i.pressed.super = true;
+    } else go(LATE_FIGHT.table);
+    planes(w, h, i);
+    return true;
+  }
+  // The IFU: picked up when it is near, thrown when he is in its range.
+  const ifu = w.ifu;
+  if (ifu && (ifu.state === "lectern" || ifu.state === "lying") && Math.abs(ifu.x - h.x) < 300 && h.boxes === 0) {
+    go(ifu.x);
+    return true;
+  }
+  if (h.boxes > 0 && h.boxCd <= 0 && !busy(h) && h.onGround && h.facing === side && Math.abs(r.x - h.x) < LATE_FIGHT.throw && Math.abs(r.x - h.x) > REPLACEMENT.hop.near) {
+    i.held.box = i.pressed.box = true;
+    return true;
+  }
+  // Just out of his hop's reach, facing him, the lecture as soon as it is ready.
+  const gap = Math.abs(r.x - h.x);
+  const lined = gap > REPLACEMENT.hop.near + 40 && gap < LATE_FIGHT.lecture + 200;
+  if (!lined) go(r.x - side * LATE_FIGHT.lecture);
+  else if (h.facing !== side) i.held[side > 0 ? "right" : "left"] = true;
+  else if (!busy(h) && h.onGround && h.lectureCd <= 0) i.held.lecture = i.pressed.lecture = true;
+  planes(w, h, i);
+  return true;
+}
+
+/** A chart flying at him in front: the mallet sends it back. */
+function planes(w: World, h: HeroState, i: Input) {
+  if (busy(h) || i.pressed.lecture || i.pressed.box || i.pressed.super) return;
+  const ahead = (x: number) => (x - h.x) * h.facing > 0 && Math.abs(x - h.x) < FIGHT.plane;
+  if (w.missiles.some((m) => ahead(m.x) && Math.abs(m.y - (h.y - h.h * 0.6)) < 200)) i.held.hammer = i.pressed.hammer = true;
+}
+
+/**
+ * A chart coming at him first, whatever else is on: turned to and swatted while it is far enough out, jumped when it is too
+ * close behind him. True while one has him.
+ */
+function charts(w: World, h: HeroState, i: Input): boolean {
+  // Only one that will be at his body's height when it reaches him: a chart over his head passes him.
+  const yAt = (m: World["missiles"][number]) => m.y + m.vy * (Math.max(0, Math.abs(m.x - h.x) - h.w / 2) / Math.max(1, Math.abs(m.vx)));
+  const coming = w.missiles.filter((m) => flies(m.kind) && (h.x - m.x) * m.vx > 0 && Math.abs(m.x - h.x) < LATE_FIGHT.chart && yAt(m) > h.y - h.h - 20 && yAt(m) < h.y + 10);
+  if (!coming.length) return false;
+  const m = coming.sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0];
+  const at: 1 | -1 = m.x >= h.x ? 1 : -1;
+  if (busy(h)) return true;
+  // Too close behind him to turn for: over it if it comes in low.
+  if (at !== h.facing && Math.abs(m.x - h.x) < LATE_FIGHT.behind && m.y > h.y - h.h * 0.45) {
+    if (h.onGround) i.held.jump = i.pressed.jump = true;
+    return true;
+  }
+  if (at !== h.facing) {
+    i.held[at > 0 ? "right" : "left"] = true;
+    return true;
+  }
+  // The arc meets it about 215 px out a sixth of a second after the press: pressed for where it will be then.
+  const closing = Math.abs(m.vx) + Math.max(0, h.vx * at);
+  const then = Math.abs(m.x - h.x) - closing * LATE_FIGHT.arcT;
+  if (then <= LATE_FIGHT.swat[1] && then >= LATE_FIGHT.swat[0]) i.held.hammer = i.pressed.hammer = true;
   return true;
 }
 

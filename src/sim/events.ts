@@ -201,6 +201,15 @@ export type GameEvent =
   | { type: "beamTurn"; x: number }
   | { type: "voiceLine"; id: TauntId | "curse" }
   | { type: "carryOut"; x: number; y: number }
+  /** His freeze (the lecture's, or the IFU's with the birds); the drone's hover, dive and fall; the IFU in his hand; the video and its cracks. */
+  | { type: "bossFreeze"; birds: boolean; seconds: number; x: number; y: number }
+  | { type: "droneHover"; x: number; y: number }
+  | { type: "droneDive"; x: number; y: number }
+  | { type: "droneDown"; x: number; y: number; points: number }
+  | { type: "ifuTaken"; x: number; y: number }
+  | { type: "screenPlay"; x: number }
+  | { type: "screenCrack"; n: number; x: number }
+  | { type: "screenDark"; x: number }
   | { type: "bossCall" }
   | { type: "grab"; phase: "windup" | "land" | "take"; x: number; y: number; n?: number }
   | { type: "giveBack"; n: number; x: number; y: number }

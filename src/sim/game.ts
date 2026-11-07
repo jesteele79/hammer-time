@@ -22,7 +22,8 @@ import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
 import { createParade, PARADE, startBand } from "./parade";
 import { throwMace } from "./major";
-import { REPLACEMENT, beamOn, beamZone } from "./replacement";
+import { REPLACEMENT, beamOn, beamZone, freezeReplacement, replacementRect, screenHeats } from "./replacement";
+import { SAMPLE } from "./samples";
 import { createBoss } from "./boss";
 import { CONDUCTOR, atDoor, conductorWall, summonConductor } from "./conductor";
 import { createSwingDoors } from "./hazards";
@@ -138,6 +139,9 @@ const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", s
 /** `slipAgain`: how long a stumble keeps him on his feet after it, long enough to walk off the wet stretch. */
 /** The key door among the mallet's victims: clear of the carts', the cast's and the bosses'. */
 const KEY_ID = 902;
+/** The seats the replacement's residents take, two to a row; where the catering table's nuts drop from (3-6). */
+const RESIDENT_SEATS = [980, 1120, 1480, 1620, 1980, 2120, 2480, 2620] as const;
+const NUTS_AT = { x: 550, y: -320 } as const;
 /** The door the suite's bellhops come in by, the ids their carts start from, and how long the level runs on after the rail. */
 const BELLHOP_DOOR = 1650;
 const CART_FROM = 500;
@@ -399,6 +403,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     inCodeBlue = false;
     world.codeBlue = 1;
     world.codeBlueZone = level.codeBlue ?? null;
+    world.ifu = level.ifu ? { x: level.ifu.x, y: level.ifu.y, state: "lectern" } : null;
     // Gold's late checkout stays on the clock when he comes back in the level that gave it.
     game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
@@ -622,7 +627,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     // The fight restarts with him at full health, so what he took comes back: no points, they were already his.
     if (world.boss?.kind === "titanium") game.run.cans += world.boss.owed;
-    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy, flop: world.hero.flop, boxes: world.hero.boxes }, ev);
+    // The IFU goes back on the lectern: it is not his to keep.
+    const boxes = world.hero.boxes - (world.ifu?.state === "held" ? 1 : 0);
+    begin({ charge: world.hero.charge, patience: RUN.patience, doggy: world.hero.doggy, flop: world.hero.flop, boxes: Math.max(0, boxes) }, ev);
     world.hero.invuln = RUN.respawnGrace;
     ev.push({ type: "respawn" });
   }
@@ -1138,6 +1145,23 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       r.firstHurt = true;
       ev.push({ type: "voiceLine", id: "curse" });
     }
+    if (screenHeats(r, h)) h.heat = Math.min(100, h.heat + REPLACEMENT.screen.heat * STEP);
+    ifuStep(r, ev);
+    if (r.state !== "down" && r.round === 2 && opts.cast !== false) {
+      r.resT -= STEP;
+      const seated = world.cast.filter((c) => c.job === "resident" && c.alive).length;
+      if (r.resT <= 0 && seated < REPLACEMENT.residents.atOnce) {
+        callResident(r.x);
+        r.resT = REPLACEMENT.residents.every;
+      }
+    }
+    if (r.state !== "down" && r.round === 3) {
+      r.nutsT -= STEP;
+      if (r.nutsT <= 0) {
+        r.nutsT = REPLACEMENT.nuts;
+        game.pickups.push(dropPickup(++nextPickup, "nuts", NUTS_AT.x, NUTS_AT.y));
+      }
+    }
     if (seen.some((e) => e.type === "bossDown")) {
       bossOverT = REPLACEMENT.over;
       world.hits = [];
@@ -1151,6 +1175,64 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     ev.push({ type: "exit" });
     setMode("walkoff", ev, RUN.walkoffT);
     return true;
+  }
+
+  /**
+   * The IFU (story spec §11.1): his to pick up from the lectern, or where it lies, by walking over it; the box key throws it as
+   * a box. Any box that meets the kid freezes him with the birds ("READ THE IFU." for the IFU); where the IFU lands it lies.
+   */
+  function ifuStep(r: Extract<NonNullable<World["boss"]>, { kind: "replacement" }>, ev: GameEvent[]) {
+    const h = world.hero;
+    const ifu = world.ifu;
+    for (const b of world.samples) {
+      if (b.landed >= 0 || b.hit || !overlapsRect({ x: b.x - SAMPLE.r, y: b.y - SAMPLE.r, w: 2 * SAMPLE.r, h: 2 * SAMPLE.r }, replacementRect(r))) continue;
+      if (!freezeReplacement(r, REPLACEMENT.ifuFreeze, true, ev)) continue;
+      b.hit = true;
+      b.vx = 0;
+      if (ifu && b.id === ifu.sample) ev.push({ type: "think", text: "READ THE IFU.", seconds: THINK.seconds });
+    }
+    if (!ifu) return;
+    if (ifu.state === "lectern" || ifu.state === "lying") {
+      if (!overlapsRect(bodyRect(h), { x: ifu.x - 30, y: ifu.y - 40, w: 60, h: 40 })) return;
+      ifu.state = "held";
+      h.boxes = 1;
+      ev.push({ type: "ifuTaken", x: ifu.x, y: ifu.y });
+      return;
+    }
+    if (ifu.state === "held") {
+      ifu.x = h.x;
+      ifu.y = h.y - h.h * 0.5;
+      const thrown = world.events.some((e) => e.type === "sampleThrow") ? world.samples.at(-1) : undefined;
+      if (!thrown) return;
+      ifu.state = "air";
+      ifu.sample = thrown.id;
+    }
+    const b = world.samples.find((s) => s.id === ifu.sample);
+    // Gone out of the room: back on the lectern.
+    if (!b) {
+      Object.assign(ifu, { x: game.level.ifu!.x, y: game.level.ifu!.y, state: "lectern", sample: undefined });
+      return;
+    }
+    ifu.x = b.x;
+    ifu.y = b.y;
+    if (b.landed < 0) return;
+    ifu.state = "lying";
+    ifu.sample = undefined;
+    world.samples = world.samples.filter((s) => s !== b);
+  }
+
+  /** A resident takes a seat in the rows (the spec's "fills the seats"): the free one farthest from Hammer and off the kid's, nuts in a pocket. */
+  function callResident(near: number) {
+    const h = world.hero;
+    const k = world.cast.length;
+    const taken = (x: number) => world.cast.some((c) => c.job === "resident" && c.alive && Math.abs(c.x - x) < 60 && Math.abs(c.y - REPLACEMENT.rows.y) < 4);
+    const free = RESIDENT_SEATS.filter((x) => !taken(x) && Math.abs(x - near) > 60);
+    if (!free.length) return;
+    const x = free.sort((a, b) => Math.abs(b - h.x) - Math.abs(a - h.x))[0];
+    const [n] = createCast({ cast: [{ id: `resident-call-${k}`, person: "resident", x, y: REPLACEMENT.rows.y, facing: h.x < x ? -1 : 1, carry: "nuts" }], carts: [] }, world.targets, game.run.seed + k);
+    n.id = CAST_ID + 200 + k;
+    n.noticed = true;
+    world.cast.push(n);
   }
 
   /** Two bellhops from the door into the bedroom, a cart each, a keycard each, the lobby's rules. */

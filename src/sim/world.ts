@@ -74,6 +74,8 @@ export type World = {
   /** 3-5's code blue: 1.8 while he is in its stretch (everyone in it moves that much faster), 1 otherwise; and the stretch. */
   codeBlue: number;
   codeBlueZone: { x0: number; x1: number } | null;
+  /** The IFU (3-6): on the lectern, in his hand, in the air as the box he threw (`sample` its id), or lying where it landed. */
+  ifu: { x: number; y: number; state: "lectern" | "held" | "air" | "lying"; sample?: number } | null;
   /** A hit from something at `fromX`, applied at the start of the next step. */
   hit(fromX: number): void;
   step(input: Input): void;
@@ -113,6 +115,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     errands: [],
     codeBlue: 1,
     codeBlueZone: null,
+    ifu: null,
     hit(fromX) {
       world.hits.push(fromX);
     },
