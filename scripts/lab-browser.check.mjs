@@ -155,9 +155,14 @@ try {
   await page.keyboard.up("KeyD");
   await page.close();
 
-  // Try again after Hammer down, clocked in from the strip: the lab's card again, in scrubs.
+  // Try again after Hammer down, clocked in from the strip: the lab's card again, in scrubs; the office drawn, not just him.
   await openStop("lab");
   await waitMode("play");
+  await page.waitForTimeout(800);
+  assert.equal(await page.evaluate(() => window.__next.venues?.lab?.visible), true, "the office drawn after the home screen");
+  // Its people in their paintings: none left on the stand-in once their painting is in (the administrator borrows the office worker's).
+  const art = await page.evaluate(() => window.__next.castArt);
+  assert.deepEqual([art.stale, art.painted.includes("admin")], [0, true], `the office's people painted after the home screen: ${JSON.stringify(art)}`);
   for (let i = 0; i < 6 && (await probe()).mode !== "over"; i++) {
     await page.evaluate(() => window.__next.dev.hit());
     await page.waitForTimeout(1600);
@@ -193,7 +198,7 @@ try {
   }
 
   assert.deepEqual(errors, [], "no console errors");
-  console.log(`PASS: 3-5's card, scrubs with the badge and his face as painted, the code blue's pulse and none under reduced motion, the costume across 3-4, a lost life, Try again and home, a gurney's side, the break room, the double doors and 3-6 coming, the four sizes; the code blue ${blue} fps.`);
+  console.log(`PASS: 3-5's card, scrubs with the badge and his face as painted, the code blue's pulse and none under reduced motion, the costume across 3-4, a lost life, Try again and home, a gurney's side, the break room, the double doors and on to 3-6 in scrubs, the office and its people drawn after the home screen, the four sizes; the code blue ${blue} fps.`);
 
 } finally {
   await browser.close();

@@ -28,6 +28,8 @@ export const REPLACEMENT: Level = {
   passes: [],
   bounds: { x: -400, y: -1400, w: 4400, h: 2000 },
   ifu: { x: 3000, y: -140 },
+  // The residents who take their seats in round two.
+  calls: ["resident"],
   crates: [],
   checkpoints: [],
   doors: [],

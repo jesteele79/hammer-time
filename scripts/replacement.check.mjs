@@ -110,3 +110,17 @@ test("the fight's end walks the administrator in and ends the level on the tally
   const g = fight(); play(g); const r = g.world.boss; Object.assign(g.world.hero, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 1; r.round = 3; r.state = "open"; r.screen = { playing: false, cracks: 3 };
   hitBoss(r, "bonk", g.events); const end = until(g, (x) => x.mode !== "play", 9); assert.deepEqual([of(end, "carryOut").length, of(end, "adminIn")[0].x, of(end, "exit").length, g.mode], [1, 800, 1, "walkoff"]);
 });
+test("round three's rules: a lecture at him hiding brings nothing out, no residents come and the drone stays down; an IFU gone out of the room is back on the lectern; a lost life brings back a whole screen", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
+  r.hp = 6; r.round = 2; g.step(input()); const seated = () => g.world.cast.filter((c) => c.job === "resident" && c.alive).length; hitBoss(r, "bonk", g.events);
+  until(g, (x) => x.world.boss.state === "hide", 6); const before = seated();
+  Object.assign(h, { x: r.x - 300, y: 0, facing: 1, lectureCd: 0, invuln: 99 }); const lect = until(g, () => false, 1.5, {}, (x) => x.step(input({}, { lecture: true })));
+  assert.deepEqual([of(lect, "lecture").length > 0, of(lect, "bossFreeze").length, r.state], [true, 0, "hide"]);
+  until(g, () => false, 5); assert.deepEqual([seated() <= before, r.drone === null || r.drone.state === "down"], [true, true]);
+  Object.assign(g.world.ifu, { state: "air", sample: 999 }); g.step(input()); assert.deepEqual([g.world.ifu.state, g.world.ifu.x, g.world.ifu.y], ["lectern", 3000, -140]);
+  r.screen.cracks = 1; knockOut(g); until(g, (x) => of(x.events, "respawn").length > 0, 4); assert.deepEqual(g.world.boss.screen, { playing: false, cracks: 0 });
+});
+test("the hint stays the training room's once the kid is down", () => {
+  const g = fight(); play(g); const r = g.world.boss; Object.assign(g.world.hero, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 1; r.round = 3; r.state = "open";
+  hitBoss(r, "bonk", g.events); until(g, () => false, 1); assert.match(hintOf(g), /The replacement/);
+});

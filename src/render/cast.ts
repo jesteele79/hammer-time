@@ -583,9 +583,11 @@ export class Cast {
   }
 
   /** Who draws from their painting and who as the stand-in, for the checks. */
-  artState(): { painted: CastPerson[]; standIn: CastPerson[] } {
+  artState(): { painted: CastPerson[]; standIn: CastPerson[]; stale: number } {
     const all = [...this.arts];
-    return { painted: all.filter(([, a]) => a).map(([p]) => p), standIn: all.filter(([, a]) => !a).map(([p]) => p) };
+    // Views drawn as the stand-in whose person's painting is in: none, once a frame has drawn them.
+    const stale = [...this.views.values()].filter((v) => !v.painted && this.arts.get(v.person)).length;
+    return { painted: all.filter(([, a]) => a).map(([p]) => p), standIn: all.filter(([, a]) => !a).map(([p]) => p), stale };
   }
 
   /** The painting where it loaded, the stand-in where it did not. */
@@ -602,8 +604,9 @@ export class Cast {
       if (!n.alive) continue;
       seen.add(n.id);
       let v = this.views.get(n.id);
-      // Ids start over in every venue: a view drawn for someone else is let go, never repainted.
-      if (v && (v.person !== n.person || v.recolor !== n.recolor)) {
+      // Ids start over in every venue: a view drawn for someone else is let go, never repainted. A view built as the stand-in
+      // while the level was still loading behind its card is built again once the person's painting is in.
+      if (v && (v.person !== n.person || v.recolor !== n.recolor || (!v.painted && this.arts.get(n.person)))) {
         this.drop(n.id, v);
         v = undefined;
       }

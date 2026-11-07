@@ -331,6 +331,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   costume?: Costume;
   /** Evening coming on over the clock: the light eases to night through its last third and the lanterns come on (3-4). */
   dusk?: boolean;
+  /** People the level calls in mid-fight (3-6's residents), not in `cast`: their paintings load with the level. */
+  calls?: CastPerson[];
   /** The IFU on the lectern (3-6): the box he picks up there and throws at the kid. */
   ifu?: Point;
 };

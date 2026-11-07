@@ -398,7 +398,7 @@ export async function startLook(
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
-        if (!opts.nocast) await cast.preload((level.cast ?? []).map((s) => s.person));
+        if (!opts.nocast) await cast.preload([...(level.cast ?? []).map((s) => s.person), ...(level.calls ?? [])]);
         // The pig's painting loads with its venue; the drawn pig stands in if it fails.
         if (level.boss?.kind === "pig" && !opts.noart && !stopped) await pigView.load(registry);
         if (level.boss && level.boss.kind !== "pig" && !stopped) await bossView.load(level.boss.kind);
@@ -592,6 +592,8 @@ export async function startLook(
   let gifts = 0;
   let starts = 0;
   let pantT = 0;
+  /** The boss's last line and his last thought, for the browser checks. */
+  const lastLines: { say: string | null; think: string | null } = { say: null, think: null };
   /** A spoken line waiting for its thought to finish: when it is due, on the scene's clock. */
   let lineDue: number | null = null;
   let faceOnScreen: Rect | null = null;
@@ -747,6 +749,7 @@ export async function startLook(
       // His thought on the home screen: an insult, written, never spoken.
       case "think":
         bubbles.think(e.text, e.seconds);
+        lastLines.think = e.text;
         break;
       case "harrumph":
         bubbles.think(ASIDES.anyDayNow.text, 1.6);
@@ -862,6 +865,7 @@ export async function startLook(
         break;
       case "bossSay":
         speech.say(BOSS_ID, e.text, e.seconds);
+        lastLines.say = e.text;
         break;
       // A scripted recording has its words in his bubble, as a taunt's do; the damage recording has none.
       case "voiceLine":
@@ -2176,8 +2180,9 @@ export async function startLook(
     const home = game.mode === "title" ? game.level.home : undefined;
     if (home) titleCamera(home, y, dt);
     else if (!hallUp()) {
-      // Out of the home screen: the level's own bounds, zoom and camera again, put on him at once.
-      if (titleShown) showLevel(game.level, x, y);
+      // Out of the home screen: the level's own bounds, zoom and camera again, put on him at once. A level still loading is
+      // shown as it comes in (a level he is in is shown once it is ready), not marked shown before its venue exists.
+      if (titleShown && !holding) showLevel(game.level, x, y);
       const zone = game.level.camera.zones.find((z) => x >= z.x0 && x <= z.x1);
       cam.zoom += ((zone?.zoom ?? 1) - cam.zoom) * Math.min(1, dt / ZOOM_EASE);
       // In the fight the camera holds both fighters (the shipped boss camera); no look-ahead pulls it off them.
@@ -2245,12 +2250,16 @@ export async function startLook(
       window.__next.ambient = scene.ambient;
       window.__next.music = { lead: sound.leadLevel, section: sound.sectionNow };
       window.__next.voice = sound.lastVoice;
+      window.__next.lines = { ...lastLines };
+      window.__next.venues = Object.fromEntries([...views].map(([id, v]) => [id, { visible: v.venue.root.visible, staged: !!v.venue.root.parent && !v.venue.root.destroyed, shown: id === shown }]));
       const kidNow = world.boss?.kind === "replacement" ? world.boss : null;
       window.__next.training = game.level.ifu
         ? {
             frame: trainingView.frame,
             drone: kidNow?.drone?.state ?? null,
             ifu: world.ifu?.state ?? null,
+            cracks: kidNow?.screen.cracks ?? 0,
+            playing: !!kidNow?.screen.playing,
             // On screen: the floor in the beam's middle, the floor well out of it, the middle of the big screen.
             beam: kidNow && beamOn(kidNow) ? scene.toScreen({ x: kidNow.beam.x, y: 12 }) : null,
             dark: kidNow ? scene.toScreen({ x: kidNow.beam.x + (kidNow.beam.x > 2600 ? -900 : 900), y: 12 }) : null,

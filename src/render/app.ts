@@ -100,8 +100,12 @@ export type NextProbe = {
   music?: { lead: number; section?: number | null };
   /** The last of the owner's recordings the game asked the sound for. */
   voice?: string | null;
+  /** Each built venue: whether it is visible, on the stage, and the one shown. */
+  venues?: Record<string, { visible: boolean; staged: boolean; shown: boolean }>;
+  /** The boss's last line and his last thought. */
+  lines?: { say: string | null; think: string | null };
   /** The training room (3-6): the screen loop's frame, the drone's state, where the IFU is. */
-  training?: { frame: number; drone: string | null; ifu: string | null; beam: { x: number; y: number } | null; dark: { x: number; y: number } | null; screen: { x: number; y: number } };
+  training?: { frame: number; drone: string | null; ifu: string | null; cracks: number; playing: boolean; beam: { x: number; y: number } | null; dark: { x: number; y: number } | null; screen: { x: number; y: number } };
   /** The level's errands done (3-4). */
   errands?: number;
   /** 3-4's bands: where each is and what it does. */
@@ -161,7 +165,7 @@ export type NextProbe = {
   };
   /** The cast: each live member's act by spawn id, how many hold attack tickets, the missiles in the air, how many are out. */
   /** Which cast paintings drew and which fell back to the stand-in. */
-  castArt?: { painted: string[]; standIn: string[]; live: number; tints: { cast: number; flyers: number }; drawn: Record<number, { person: string; recolor: string | null }>; carts: { id: number; load: string }[] };
+  castArt?: { painted: string[]; standIn: string[]; stale: number; live: number; tints: { cast: number; flyers: number }; drawn: Record<number, { person: string; recolor: string | null }>; carts: { id: number; load: string }[] };
   cast?: { people: Record<number, { person: string; recolor: string | null }>; targets: { id: number; load: string }[]; acts: Record<string, string>; positions: Record<string, { x: number; y: number }>; attackers: number; missiles: number; planes: { kind: string; x: number; y: number }[]; out: number };
   /** The gift shop's pig: its state, where it is, its HP and counts, and whether it is drawn or painted. */
   pig?: { state: string; x: number; hp: number; bonks: number; snots: number; drawn: "drawn" | "painted" } | null;
