@@ -433,3 +433,12 @@ test("the home scene is the lobby at night once Act 1 is done and Basel's street
   for (const id of ["lobby-night", "tower", "hallway", "suite"]) j = finishLevel(j, id, 1000, null);
   assert.equal(homeOf(j), "basel");
 });
+import { finished } from "../src/sim/journey.ts";
+import { END_LABEL } from "../src/sim/story.ts";
+import { STOP_LEVELS as BUILT_LEVELS } from "../src/sim/levels/index.ts";
+test("the cards after 3-6: the administrator's with his thought, then Act 3's; the save is finished there with nothing to carry on; Clock in is the epilogue's notice", () => {
+  assert.deepEqual(stopOf("replacement").after, [{ kind: "caption", text: "The Basel office would like you to stay on. As Trainer for Life.", thought: "Obviously." }, { kind: "act", act: "act3" }]);
+  let j = newJourney(); for (const id of STORY.map((s) => s.id)) j = finishLevel(j, id, 1000, snap(1000));
+  assert.deepEqual([j.next, j.run, j.carry, finished(j), playableNext(j, builtStops(BUILT_LEVELS)), END_LABEL, actTotal(j, "act3")], ["replacement", null, null, true, null, "The epilogue is coming", 6000]);
+  let k = newJourney(); for (const id of STORY.slice(0, 12).map((s) => s.id)) k = finishLevel(k, id, 1000, snap(1000)); assert.deepEqual([k.next, finished(k), playableNext(k, builtStops(BUILT_LEVELS)), !!k.run], ["basel", false, "basel", true]);
+});

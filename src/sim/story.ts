@@ -20,7 +20,7 @@ export type StoryId =
   | "lab"
   | "replacement";
 /** A card the shell shows between levels (spec §6.1, §6.3, §7): the email, a caption, a phone's notification, an act's end. */
-export type StoryCard = { kind: "email" } | { kind: "caption"; text: string } | { kind: "phone"; app: string; text: string; thought: string } | { kind: "act"; act: ActId };
+export type StoryCard = { kind: "email" } | { kind: "caption"; text: string; thought?: string } | { kind: "phone"; app: string; text: string; thought: string } | { kind: "act"; act: ActId };
 /** A stop: its code and name on the strip, its act, and the cards before and after it. */
 export type StoryStop = { id: StoryId; code: string; name: string; act: ActId; before?: StoryCard[]; after?: StoryCard[] };
 
@@ -77,8 +77,19 @@ export const STORY: readonly StoryStop[] = [
   { id: "train", code: "3-3", name: "The 14:02", act: "act3", after: [{ kind: "caption", text: "Basel SBB. 17:06. On time. They always are." }] },
   { id: "basel", code: "3-4", name: "Basel, Tattoo week", act: "act3" },
   { id: "lab", code: "3-5", name: "The Basel office", act: "act3" },
-  { id: "replacement", code: "3-6", name: "The replacement", act: "act3" },
+  {
+    id: "replacement",
+    code: "3-6",
+    name: "The replacement",
+    act: "act3",
+    after: [
+      { kind: "caption", text: "The Basel office would like you to stay on. As Trainer for Life.", thought: "Obviously." },
+      { kind: "act", act: "act3" },
+    ],
+  },
 ];
+/** What Clock in reads once the last stop is done, until the epilogue is built (story spec §11's 2026-11-06 note). */
+export const END_LABEL = "The epilogue is coming";
 
 const INDEX = new Map(STORY.map((s, i) => [s.id, i]));
 

@@ -6,7 +6,7 @@ import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
 import type { LevelId } from "@/sim/level";
 import type { QuestId } from "@/sim/quests/quest";
-import { JOURNEY_KEY, bonkedCount, finishLevel, homeOf, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
+import { JOURNEY_KEY, bonkedCount, finished, finishLevel, homeOf, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
 import { STOP_LEVELS } from "@/sim/levels";
 import { RUN } from "@/sim/run";
 import { builtStops, isStoryId, nextOf, stopOf, type ActId, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
@@ -290,10 +290,10 @@ export function NextGame({
     [writeJourney],
   );
 
-  /** The run is over after its last level's cards: on to the next act's first stop if it is built, else home. */
+  /** The run is over after its last level's cards: on to the next act's first stop if it is built, else home (always, once the journey is finished). */
   const endOfRun = useCallback(() => {
     const j = journeyRef.current;
-    if (howRef.current === "journey" && BUILT.includes(j.next) && j.next !== stop?.id) {
+    if (howRef.current === "journey" && !finished(j) && BUILT.includes(j.next) && j.next !== stop?.id) {
       beginStopRef.current(j.next, "journey");
       return;
     }

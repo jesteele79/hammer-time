@@ -114,6 +114,7 @@ function StoryCardView({ card, info, place, onContinue }: { card: StoryCard; inf
       <div className="next-veil next-veil--story" data-place={place}>
         <section className="next-veil__card next-veil__caption" role="dialog" aria-label={card.text}>
           <h2 className="next-veil__title">{card.text}</h2>
+          {card.thought && <p className="next-veil__thought">{card.thought}</p>}
           {info.status && <p className="next-veil__status">{info.status}</p>}
           {go}
         </section>

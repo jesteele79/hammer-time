@@ -106,3 +106,7 @@ test("a round turns whatever he was doing: set to ten as he keeps to the beam, h
   until(g, (x) => x.world.boss.state === "edge", 2); r.hp = 10; g.step(input());
   assert.deepEqual([r.round, ["film", "hop"].includes(r.state)], [2, true], r.state);
 });
+test("the fight's end walks the administrator in and ends the level on the tally", () => {
+  const g = fight(); play(g); const r = g.world.boss; Object.assign(g.world.hero, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 1; r.round = 3; r.state = "open"; r.screen = { playing: false, cracks: 3 };
+  hitBoss(r, "bonk", g.events); const end = until(g, (x) => x.mode !== "play", 9); assert.deepEqual([of(end, "carryOut").length, of(end, "adminIn")[0].x, of(end, "exit").length, g.mode], [1, 800, 1, "walkoff"]);
+});

@@ -91,6 +91,7 @@ export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   bossFreeze: ["frost"],
   ifuTaken: ["paper"],
   carryOut: ["cloth"],
+  adminIn: ["page"],
   tumble: ["curse", "thud"],
   crate: ["bump"],
   canPop: ["coin"],
@@ -168,6 +169,8 @@ export type Sound = {
   /** Schedules the music's next notes: once a frame. */
   tick(): void;
   destroy(): void;
+  /** The last of the owner's recordings asked for (a taunt, a scripted line), or null. */
+  lastVoice: string | null;
   /** Every cue asked for since boot, counted whether or not sound is unlocked. */
   played: Record<string, number>;
   unlocked: boolean;
@@ -314,6 +317,7 @@ export function createSound(): Sound {
   const sound: Sound = {
     played,
     unlocked: false,
+    lastVoice: null,
     unlock() {
       if (sound.unlocked) return;
       bus.unlock();
@@ -325,6 +329,7 @@ export function createSound(): Sound {
       // A scripted recording (3-6): forced, not rolled, whatever else is playing.
       if (e.type === "voiceLine") {
         played[`voice:${e.id}`] = (played[`voice:${e.id}`] ?? 0) + 1;
+        sound.lastVoice = e.id;
         if (!sound.unlocked) return;
         if (e.id === "curse") bus.curse();
         else {
@@ -378,11 +383,15 @@ export function createSound(): Sound {
     },
     voice(id) {
       played[`voice:${id}`] = (played[`voice:${id}`] ?? 0) + 1;
+      sound.lastVoice = id;
       if (sound.unlocked) bus.voice(id);
     },
     taunt(target) {
       const id = sound.unlocked ? bus.taunt(target) : null;
-      if (id) played[`voice:${id}`] = (played[`voice:${id}`] ?? 0) + 1;
+      if (id) {
+        played[`voice:${id}`] = (played[`voice:${id}`] ?? 0) + 1;
+        sound.lastVoice = id;
+      }
       return id;
     },
     stopVoice() {

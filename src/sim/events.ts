@@ -201,6 +201,8 @@ export type GameEvent =
   | { type: "beamTurn"; x: number }
   | { type: "voiceLine"; id: TauntId | "curse" }
   | { type: "carryOut"; x: number; y: number }
+  /** The administrator walks in through the doors with her folder, to `x` (3-6's end). */
+  | { type: "adminIn"; x: number; y: number }
   /** His freeze (the lecture's, or the IFU's with the birds); the drone's hover, dive and fall; the IFU in his hand; the video and its cracks. */
   | { type: "bossFreeze"; birds: boolean; seconds: number; x: number; y: number }
   | { type: "droneHover"; x: number; y: number }

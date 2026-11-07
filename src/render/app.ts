@@ -98,6 +98,8 @@ export type NextProbe = {
   shake?: number;
   /** The music's state the checks read: the lead's level (3-4's pipers play only while he walks). */
   music?: { lead: number; section?: number | null };
+  /** The last of the owner's recordings the game asked the sound for. */
+  voice?: string | null;
   /** The training room (3-6): the screen loop's frame, the drone's state, where the IFU is. */
   training?: { frame: number; drone: string | null; ifu: string | null; beam: { x: number; y: number } | null; dark: { x: number; y: number } | null; screen: { x: number; y: number } };
   /** The level's errands done (3-4). */

@@ -139,6 +139,8 @@ const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", s
 /** `slipAgain`: how long a stumble keeps him on his feet after it, long enough to walk off the wet stretch. */
 /** The key door among the mallet's victims: clear of the carts', the cast's and the bosses'. */
 const KEY_ID = 902;
+/** The administrator's walk-in at the training room's end (3-6): where she stops, and how long before the level ends. */
+const ADMIN = { x: 800, walk: 2.5 } as const;
 /** The seats the replacement's residents take, two to a row; where the catering table's nuts drop from (3-6). */
 const RESIDENT_SEATS = [980, 1120, 1480, 1620, 1980, 2120, 2480, 2620] as const;
 const NUTS_AT = { x: 550, y: -320 } as const;
@@ -401,6 +403,8 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     world.errands = game.run.errands;
     sharpsCool = 0;
     inCodeBlue = false;
+    kidOut = false;
+    adminT = -1;
     world.codeBlue = 1;
     world.codeBlueZone = level.codeBlue ?? null;
     world.ifu = level.ifu ? { x: level.ifu.x, y: level.ifu.y, state: "lectern" } : null;
@@ -1126,6 +1130,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
 
   /** Whether he stood in the ring light's beam last step: its heat zone's event fires as he steps in. */
   let inBeam = false;
+  /** The kid seen down (the carry-out begun), and the administrator walked in: the training room's end, in its order. */
+  let kidOut = false;
+  let adminT = -1;
   /**
    * What the replacement's fight asks of the run (story spec §11.1): the beam's heat on the floor while it shines, "absolute
    * bullshit" on his first hurt of the fight (forced, once), and the end, `over` seconds after the kid is down. A lost life
@@ -1162,16 +1169,25 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
         game.pickups.push(dropPickup(++nextPickup, "nuts", NUTS_AT.x, NUTS_AT.y));
       }
     }
-    if (seen.some((e) => e.type === "bossDown")) {
-      bossOverT = REPLACEMENT.over;
-      world.hits = [];
-      h.invuln = 99;
-    }
     if (r.state !== "down") return false;
     world.hits = [];
-    h.invuln = Math.max(h.invuln, 1);
+    h.invuln = 99;
+    // The end (story spec §11.1): he is carried out, then the administrator walks in with her folder, then the level ends
+    // where he stands. A hit from outside the step (the checks', dev's) leaves the carry-out for this step to begin.
+    if (!kidOut) {
+      kidOut = true;
+      bossOverT = REPLACEMENT.over;
+      if (!seen.some((e) => e.type === "carryOut")) ev.push({ type: "carryOut", x: r.x, y: r.y });
+    }
     bossOverT -= STEP;
     if (bossOverT > 0) return false;
+    if (adminT < 0) {
+      adminT = ADMIN.walk;
+      ev.push({ type: "adminIn", x: ADMIN.x, y: 0 });
+      return false;
+    }
+    adminT -= STEP;
+    if (adminT > 0) return false;
     ev.push({ type: "exit" });
     setMode("walkoff", ev, RUN.walkoffT);
     return true;

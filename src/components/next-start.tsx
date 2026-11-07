@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { journeyTotal, playableNext, type Journey } from "@/sim/journey";
+import { finished, journeyTotal, playableNext, type Journey } from "@/sim/journey";
 import type { QuestId } from "@/sim/quests/quest";
-import { comingLabel, type ActId, type StoryId } from "@/sim/story";
+import { END_LABEL, comingLabel, type ActId, type StoryId } from "@/sim/story";
 import { NextStrip } from "./next-strip";
 
 const pad = (n: number) => String(n).padStart(6, "0");
@@ -73,8 +73,10 @@ export function NextStart({
   const [picked, setPicked] = useState<StoryId | null>(null);
   const next = playableNext(journey, built) ?? journey.next;
   const chosen = picked && journey.done.includes(picked) && built.includes(picked) ? picked : next;
+  // The journey finished, nothing picked to replay: the epilogue is coming.
+  const ended = finished(journey) && chosen === next && !picked;
   // The next stop not built yet: its act is coming (plan decision 5).
-  const coming = !built.includes(chosen);
+  const coming = ended || !built.includes(chosen);
   const [waiting, setWaiting] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const leaveTimer = useRef(0);
@@ -154,7 +156,7 @@ export function NextStart({
             <span>Bonk the staff. Dodge the paper.</span> <span>Get to Basel.</span>
           </p>
           <button type="button" className="next-start__go" onClick={clockIn} aria-busy={waiting} disabled={!live || coming}>
-            {coming ? comingLabel(chosen, built) : waiting ? "Getting Hammer ready…" : "Clock in"}
+            {ended ? END_LABEL : coming ? comingLabel(chosen, built) : waiting ? "Getting Hammer ready…" : "Clock in"}
           </button>
         </div>
       </section>

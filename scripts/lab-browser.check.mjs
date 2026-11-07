@@ -135,13 +135,12 @@ try {
   await page.waitForFunction(() => window.__next.costume === "scrubs", null, { timeout: 10000 });
   await tp(13600);
   await page.keyboard.down("KeyD");
-  await page.waitForFunction(() => ["story", "title"].includes(window.__next.run.mode), null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__next.run.mode === "card" && window.__next.run.level === "replacement", null, { timeout: 30000 });
   await page.keyboard.up("KeyD");
-  if ((await probe()).mode === "story") await page.keyboard.press("Enter");
-  await waitMode("title", 20000);
-  assert.ok(await page.getByRole("button", { name: "The replacement is coming" }).isDisabled(), "3-6 is coming");
-  // He changes as the home scene shows: the Affliction body loads, then takes the scrubs' place.
-  await page.waitForFunction(() => window.__next.costume === "affliction", null, { timeout: 8000 });
+  // The run goes on to 3-6, and he is still in scrubs for it.
+  assert.match(await page.locator(".next-veil__card").textContent(), /3-6[\s\S]*The replacement/);
+  await waitMode("play");
+  assert.equal((await probe()).costume, "scrubs", "3-6 in scrubs");
   await page.close();
 
   // A gurney's side costs a pip (nobody about: a nurse's slip would turn him round).

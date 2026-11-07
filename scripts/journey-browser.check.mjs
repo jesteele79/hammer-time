@@ -401,8 +401,9 @@ try {
   assert.equal(await page.locator(".next-start__quest").count(), 3, "three side quests");
   assert.equal((await run()).level, "basel", "the home scene is Basel's street once the suite is done");
 
-  // 6c. Act 3 as far as it goes: 3-1, the landing, 3-2 and its lunch, 3-3, Basel on time, 3-4 to the office door, 3-5 in scrubs to the
-  // training room's doors, and home with the replacement coming.
+  // 6c. Act 3 to its end: 3-1, the landing, 3-2 and its lunch, 3-3, Basel on time, 3-4 to the office door, 3-5 in scrubs to the
+  // training room's doors, 3-6's last hit and "They need to get fired", the carry-out and the administrator, Trainer for Life,
+  // the act's card, and home with the epilogue coming.
   const rowX = (row) => Math.round(100 * (0.5 + (52 - row) * 0.77));
   const coachX = (n) => 4000 + (18 - n) * 768;
   await page.getByRole("button", { name: "Clock in" }).click();
@@ -468,16 +469,67 @@ try {
   await page.waitForFunction(() => window.__next.costume === "scrubs", null, { timeout: 10000 });
   await tp(13600);
   await page.keyboard.down("KeyD");
-  await page.waitForFunction(() => ["story", "title"].includes(window.__next.run.mode), null, { timeout: 30000 });
+  await page.waitForFunction(() => ["story", "card"].includes(window.__next.run.mode) && window.__next.run.level !== "lab", null, { timeout: 30000 }).catch(() => null);
   await page.keyboard.up("KeyD");
   if ((await run()).mode === "story") await enter();
+  // The run goes on to 3-6: the last hit plays the recording, two residents carry him out, the administrator walks in.
+  await waitMode("card", 20000);
+  assert.match(await veil(), /The training room\. He has a ring light\./);
+  assert.equal((await run()).level, "replacement", "on to 3-6's card");
+  await waitMode("play");
+  await tp(2300);
+  await page.waitForFunction(() => window.__next.boss?.state === "edge", null, { timeout: 10000 });
+  await page.evaluate(() => window.__next.dev.boss({ hp: 1, round: 3, state: "frozen", timer: 6, screen: { playing: false, cracks: 3 } }));
+  const kidX = await page.evaluate(() => window.__next.boss.x);
+  await tp(kidX - 130);
+  await page.keyboard.down("KeyD");
+  await page.waitForTimeout(80);
+  await page.keyboard.up("KeyD");
+  await page.keyboard.down("KeyH");
+  await page.waitForTimeout(120);
+  await page.keyboard.up("KeyH");
+  await page.waitForFunction(() => window.__next.boss?.state === "down", null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__next.voice === "fired", null, { timeout: 5000 });
+  await page.waitForTimeout(2500);
+  await shot("journey-carry-out.png");
+  await page.waitForTimeout(2600);
+  await shot("journey-admin-in.png");
+  await waitMode("story", 30000);
+  text = await veil();
+  assert.ok(text.includes("The Basel office would like you to stay on. As Trainer for Life.") && text.includes("Obviously."), `the administrator's card: ${text}`);
+  await cardFits("trainer-for-life");
+  await enter();
+  await page.getByRole("heading", { name: "Act 3 · The Last Tour · complete" }).waitFor();
+  text = await veil();
+  assert.match(text, /Score[\s\S]*\d{6}[\s\S]*Act total[\s\S]*\d{6}/);
+  await cardFits("act3");
+  await enter();
   await waitMode("title", 20000);
-  const strip3 = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, [e.dataset.state, e.dataset.coming ?? null]])));
-  assert.deepEqual([strip3["3-4"]?.[0], strip3["3-5"]?.[0], strip3["3-6"]], ["done", "done", ["next", "true"]], JSON.stringify(strip3));
-  assert.ok(await page.getByRole("button", { name: "The replacement is coming" }).isDisabled(), "Clock in names the stop");
-  assert.equal(await page.locator(".next-start__quest").count(), 4, "four side quests");
+  const strip3 = await page.locator(".next-strip__stop").evaluateAll((els) => Object.fromEntries(els.map((e) => [e.querySelector(".next-strip__code").textContent, e.dataset.state])));
+  assert.ok(Object.values(strip3).every((v) => v === "done") && Object.keys(strip3).length === 15, JSON.stringify(strip3));
+  assert.ok(await page.getByRole("button", { name: "The epilogue is coming" }).isDisabled(), "Clock in waits for the epilogue");
+  assert.equal((await run()).level, "basel", "the home scene is Basel's street");
+  assert.equal(await page.evaluate(() => window.__next.costume), "affliction", "in the Affliction shirt at home");
   s = await save();
-  assert.deepEqual([s.next, s.done.length, !!s.run], ["replacement", 14, true], "Act 3 so far in the save, the run going on to the replacement");
+  assert.deepEqual([s.next, s.done.length, s.run], ["replacement", 15, null], "the journey finished, nothing to carry on");
+  // 3-4 replays from the strip to its own Clocked out card.
+  await page.locator(".next-strip__stop", { has: page.locator(".next-strip__code", { hasText: /^3-4$/ }) }).click();
+  await page.getByRole("button", { name: "Clock in" }).click();
+  await waitMode("card");
+  assert.equal((await run()).level, "basel", "3-4 replays");
+  await waitMode("play");
+  await page.evaluate(() => {
+    for (const id of ["bank", "printer", "pharmacy", "courier"]) window.__next.dev.errand(id);
+    window.__next.dev.boss({ state: "down" });
+  });
+  await tp(15600);
+  await page.keyboard.down("KeyD");
+  await page.getByRole("heading", { name: "Clocked out" }).waitFor({ timeout: 30000 });
+  await page.keyboard.up("KeyD");
+  assert.match(await veil(), /3-4/);
+  await page.getByRole("button", { name: "Journey" }).click();
+  await waitMode("title", 20000);
+  assert.deepEqual([(await save()).next, (await save()).done.length], ["replacement", 15], "the replay leaves the journey as it was");
 
   // 7. A broken save: the start screen opens on a new journey, and nothing errs.
   await page.evaluate(() => localStorage.setItem("hammer-time-journey", "{broken"));
@@ -489,7 +541,7 @@ try {
   assert.deepEqual([r.level, r.score], ["sat", 0], "a new journey from its true start, the email first");
 
   if (errors.length) throw new Error(`page errors: ${errors.join("; ")}`);
-  console.log("PASS: Clock in on a fresh journey, the cards between levels, the save at every card and exit and after a reload, Hammer down and Try again on the snapshot, Act 1's Bonvoy and act cards, a replay's Clocked out, a broken save; the cards fit three shapes clear of his face.");
+  console.log("PASS: Clock in on a fresh journey, the cards between levels, the save at every card and exit and after a reload, Hammer down and Try again on the snapshot, Act 1's Bonvoy and act cards, a replay's Clocked out, Act 3 to its end and the epilogue coming, a broken save; the cards fit three shapes clear of his face.");
 } catch (err) {
   console.error("Journey check failure", errors, JSON.stringify(await page?.evaluate(() => ({ run: window.__next.run, hero: window.__next.hero, moves: window.__next.moves.move })).catch(() => null)));
   await page?.screenshot({ path: resolve(out, "journey-failure.png") });

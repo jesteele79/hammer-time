@@ -5,6 +5,7 @@ import { castPose } from "../sim/rig/cast";
 import type { CastPerson } from "../sim/level";
 import type { Point } from "../sim/types";
 import { Diner } from "./quests/diner";
+import { REPLACEMENT } from "../sim/replacement";
 
 /** Who a boss is drawn as: the supervisor wears the housekeeper's painting, navy, a shade larger (story spec §8.2). */
 const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; size: number }> = {
@@ -26,6 +27,9 @@ const STICK = { folded: 60, out: 170 } as const;
  * lift him `up` px over `lift` s, and walk him out to the left at `walk` px/s, `gap` either side of him.
  */
 export const CARRY = { from: 900, in: 1.4, lift: 0.4, up: 110, walk: 600, gap: 90 } as const;
+/** The administrator's walk in through the doors, `over` s after he is down: from the doors to `to` over `walk` s, her folder in hand. */
+export const ADMIN_WALK = { from: 120, to: 800, walk: 2 } as const;
+export const adminAt = (t: number): number | null => (t < REPLACEMENT.over ? null : ADMIN_WALK.from + (ADMIN_WALK.to - ADMIN_WALK.from) * Math.min(1, (t - REPLACEMENT.over) / ADMIN_WALK.walk));
 /** Where the carry has the kid and his two residents `t` seconds after he went down. */
 export function carryAt(x: number, t: number): { kid: { x: number; y: number }; carriers: { x: number; facing: 1 | -1; walking: boolean }[] } {
   const lift = Math.min(1, Math.max(0, (t - CARRY.in) / CARRY.lift));
@@ -54,6 +58,9 @@ export class BossView {
   private readonly stick = new Graphics();
   private readonly tablet = new Graphics();
   private carriers: Diner[] = [];
+  /** The administrator who walks in at the end, and her folder. */
+  private admin: Diner | null = null;
+  private readonly folder = new Graphics();
 
   constructor(
     parent: Container,
@@ -71,6 +78,11 @@ export class BossView {
     this.tablet.roundRect(-34, -24, 68, 48, 6).fill("#1b1d22").stroke({ width: 4, color: "#0c0c0e" });
     this.tablet.roundRect(-28, -18, 56, 36, 3).fill("#5fa8e8");
     this.tablet.zIndex = -5;
+    this.folder.roundRect(-30, -40, 60, 80, 4).fill("#1f2c4d").roundRect(-30, -40, 60, 80, 4).stroke({ width: 4, color: "#0c0c0e" });
+    this.folder.rect(-22, -30, 44, 6).fill("#c9a24a");
+    this.folder.zIndex = 50;
+    this.folder.visible = false;
+    this.container.addChild(this.folder);
     this.stick.zIndex = 50;
     this.tablet.visible = this.stick.visible = false;
     this.container.addChild(this.tablet, this.stick);
@@ -84,9 +96,11 @@ export class BossView {
     this.kind = kind;
     this.figure = new Diner(this.container, this.registry, who.person, who.recolor, this.noart, who.size);
     for (const c of this.carriers) c.destroy();
+    this.admin?.destroy();
     this.carriers = kind === "replacement" ? [0, 1].map(() => new Diner(this.container, this.registry, "resident", null, this.noart, 1)) : [];
-    for (const c of this.carriers) c.container.visible = false;
-    await Promise.all([this.figure.load(), ...this.carriers.map((c) => c.load())]);
+    this.admin = kind === "replacement" ? new Diner(this.container, this.registry, "admin", null, this.noart, 1) : null;
+    for (const c of [...this.carriers, ...(this.admin ? [this.admin] : [])]) c.container.visible = false;
+    await Promise.all([this.figure.load(), ...this.carriers.map((c) => c.load()), ...(this.admin ? [this.admin.load()] : [])]);
   }
 
   get isPainted(): boolean {
@@ -115,8 +129,21 @@ export class BossView {
     this.briefcase.visible = false;
     this.stick.visible = this.tablet.visible = false;
     for (const c of this.carriers) c.container.visible = false;
+    if (this.admin) this.admin.container.visible = false;
+    this.folder.visible = false;
     if (b.kind === "replacement") {
       const down = b.state === "down";
+      // Then the administrator walks in with her folder.
+      const ax = down && this.admin ? adminAt(-b.timer) : null;
+      if (ax !== null && this.admin) {
+        const walking = ax < ADMIN_WALK.to;
+        const pose = castPose({ role: "office", act: walking ? "walk" : "idle", t: time % 1, speed: walking ? 340 : 0, onGround: true, sit: false, spin: 0, hits: 0 });
+        this.admin.container.visible = true;
+        this.admin.pose(pose, 1, { x: ax, y: 0 }, false, time, "planted");
+        const hand = this.admin.handOffset(pose, 1, "handNear");
+        this.folder.position.set(ax + hand.x - this.container.x, hand.y - this.container.y);
+        this.folder.visible = true;
+      }
       // Down, he is carried out: his two residents walk in, lift him and walk him off to the left.
       const carry = down ? carryAt(b.x, -b.timer) : null;
       if (carry)
@@ -185,6 +212,7 @@ export class BossView {
 
   destroy(): void {
     for (const c of this.carriers) c.destroy();
+    this.admin?.destroy();
     this.figure?.destroy();
     if (!this.container.destroyed) this.container.destroy({ children: true });
   }

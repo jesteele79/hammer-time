@@ -2244,6 +2244,7 @@ export async function startLook(
       window.__next.shake = scene.camera.trauma;
       window.__next.ambient = scene.ambient;
       window.__next.music = { lead: sound.leadLevel, section: sound.sectionNow };
+      window.__next.voice = sound.lastVoice;
       const kidNow = world.boss?.kind === "replacement" ? world.boss : null;
       window.__next.training = game.level.ifu
         ? {

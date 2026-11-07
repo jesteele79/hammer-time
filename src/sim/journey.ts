@@ -95,6 +95,8 @@ export function finishLevel(j: Journey, id: StoryId, score: number, snapshot: Sn
   const best = { ...j.best, [id]: Math.max(j.best[id] ?? 0, Math.max(0, score)) };
   const done = inOrder([...j.done, id]);
   if (id !== j.next) return { ...j, done, best };
+  // The last stop: the journey is finished there, with nothing to carry on.
+  if (nextOf(id) === null) return { ...j, done, best, run: null, carry: null };
   const next = nextOf(id) ?? id;
   const clean = next !== id && firstOfAct(next);
   return { ...j, next, done, best, run: clean ? null : (snapshot?.run ?? null), carry: clean ? null : (snapshot?.carry ?? null) };
@@ -111,8 +113,12 @@ export function skipTo(j: Journey, id: StoryId): Journey {
   return { ...j, next: id, done: inOrder([...j.done, ...STORY.slice(from, to).map((s) => s.id)]) };
 }
 
-/** The stop Clock in plays: the journey's next, or the first built stop after it while it is not built (Phase 1a's SAT). */
+/** The journey's last stop is done: there is nothing next until the epilogue. */
+export const finished = (j: Pick<Journey, "done">): boolean => j.done.includes(STORY[STORY.length - 1].id);
+
+/** The stop Clock in plays: the journey's next, or the first built stop after it while it is not built (Phase 1a's SAT); none once it is finished. */
 export function playableNext(j: Journey, built: readonly StoryId[]): StoryId | null {
+  if (finished(j)) return null;
   const from = ORDER.get(j.next)!;
   return STORY.slice(from).find((s) => built.includes(s.id))?.id ?? null;
 }
