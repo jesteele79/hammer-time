@@ -242,7 +242,7 @@ export function createBoards(
   /** Stands him at x, on the floor there or at `y`, and returns where his feet are. */
   placeHero: (x: number, y?: number) => number,
   /** Shows a level's visuals (null: the one he is in) without moving the game. */
-  showLevel: (id: LevelId | null) => void = () => {},
+  showLevel: (id: LevelId | null) => void | Promise<void> = () => {},
   /** The level the game is in: the venue board frames it. */
   currentLevel: () => Level = () => LOBBY,
   /** The banquet's shots, drawn by the look's banquet view (R4). */
@@ -621,7 +621,7 @@ export function createBoards(
     scene.camera.target = null;
     scene.width = 1920;
     scene.height = 1080;
-    showLevel(level);
+    await showLevel(level);
     for (const f of frameList) {
       const y = placeHero(f.x, f.y);
       particles.emit("dust", f.x - 40, y, 12);
@@ -642,7 +642,7 @@ export function createBoards(
     scene.camera.y = saved.y;
     scene.camera.target = saved.target;
     scene.camera.zoom = saved.zoom;
-    showLevel(null);
+    await showLevel(null);
     scene.fit();
     return frames.join("\n");
   };

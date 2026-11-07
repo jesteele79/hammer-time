@@ -13,8 +13,12 @@ import type { Placement, Solved } from "../sim/rig/fk";
 import { multiplyTint } from "./lighting";
 import { LAYER_Z, layerFile, skinLayer, turnAbout, type LayerName, type RigFile, type RigLayer } from "./skin";
 import { TOWEL, Towel, palmTurn, towelAtFace, towelTexture } from "./towel";
+import { label } from "./text";
+import type { Level } from "../sim/level";
 
 export type Character = {
+  /** What he wears: the level's costume (story spec §10.2), the Affliction shirt when it names none. */
+  costume: Costume;
   container: Container;
   shadow: Graphics;
   /** Resolves once the rig and every plate are loaded; `apply` draws nothing of the body before then. */
@@ -40,6 +44,26 @@ export type Character = {
   /** The mallet in his fist, or not: at the gate his fist holds a scalpel and the mallet leans on his cart (R5 §2). */
   holdMallet(on: boolean): void;
 };
+
+/** A level's costume: scrubs on 3-5 and 3-6 (story spec §10.2), the Affliction shirt everywhere else. */
+export const costumeOf = (level: Pick<Level, "costume">): Costume => level.costume ?? "affliction";
+/**
+ * The scrubs' TRAINER badge (story spec §10.2), drawn by the game: in rig units, hung `dy` of the way from the neck to the
+ * pelvis and `forward` toward his front, between the torso and the near arm; never above the neckline, never on his face.
+ */
+export const BADGE = { w: 54, h: 30, dy: 0.38, forward: 30, text: "TRAINER", fill: "#f4f3ee", ink: "#1b2748", z: 3.5 } as const;
+/** Where the badge hangs on a solved pose: on the chest, turned with the spine. */
+export function badgeAt(solved: Pick<Solved, "joints" | "facing" | "scale">): { x: number; y: number; rotation: number; scale: number } {
+  const n = solved.joints.neck;
+  const p = solved.joints.pelvis;
+  const spine = Math.atan2(p.x - n.x, p.y - n.y);
+  return {
+    x: n.x + (p.x - n.x) * BADGE.dy + solved.facing * BADGE.forward * solved.scale * Math.cos(spine),
+    y: n.y + (p.y - n.y) * BADGE.dy + solved.facing * BADGE.forward * solved.scale * Math.sin(spine),
+    rotation: -spine,
+    scale: solved.scale,
+  };
+}
 
 const SHADOW_RX = HERO_W * 0.55;
 /** The far arm and leg sit a shade back so they read behind the near ones where they cross. */
@@ -127,6 +151,8 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
     body = bodies.affliction;
   }
   if (!body) throw new Error("no body art registered; run art:sync");
+  /** What he has on: the costume asked for, or the Affliction shirt it fell back to. */
+  const wearing: Costume = body === bodies[costume] ? costume : "affliction";
   const heads = registry.hammer.heads;
   const neutral = heads.neutral;
   if (!neutral) throw new Error("no neutral head registered; run art:sync");
@@ -145,6 +171,19 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
   }
   const head = new Sprite();
   container.addChild(head);
+  // The scrubs' TRAINER badge: a card with the word, tinted with the body.
+  const badge = wearing === "scrubs" ? new Container({ label: "badge" }) : null;
+  if (badge) {
+    badge.addChild(new Graphics().roundRect(-BADGE.w / 2, -BADGE.h / 2, BADGE.w, BADGE.h, 6).fill(BADGE.fill).roundRect(-BADGE.w / 2, -BADGE.h / 2, BADGE.w, BADGE.h, 6).stroke({ width: 2, color: BADGE.ink }));
+    const word = label(BADGE.text, "display", 14);
+    word.anchor.set(0.5);
+    word.tint = parseInt(BADGE.ink.slice(1), 16);
+    word.scale.set(Math.min(1, (BADGE.w - 6) / Math.max(1, word.width)));
+    badge.addChild(word);
+    badge.zIndex = BADGE.z;
+    badge.visible = false;
+    container.addChild(badge);
+  }
   const towelPlate = registry.hammer.props.towel;
   let towel: Towel | null = null;
   const watchPlate = registry.hammer.props.wristwatch;
@@ -252,6 +291,7 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
   };
 
   return {
+    costume: wearing,
     container,
     shadow,
     ready,
@@ -276,6 +316,14 @@ export function createCharacter(registry: Registry, costume: Costume, opts: { no
             s.hand.mesh.visible = true;
           }
         }
+      }
+      if (badge) {
+        const b = badgeAt(solved);
+        badge.position.set(b.x, b.y);
+        badge.rotation = b.rotation;
+        badge.scale.set(b.scale);
+        badge.tint = ambient;
+        badge.visible = true;
       }
       if (malletSprite && mallet?.pivot && mallet.tip) {
         const pl = solved.parts.mallet;

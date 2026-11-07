@@ -1,5 +1,5 @@
 import { Assets, Container, Graphics, RenderTexture, Sprite, Texture, type Ticker } from "pixi.js";
-import { ART_BASE, loadRegistry, type Expression, type Registry } from "../art/registry";
+import { ART_BASE, loadRegistry, type Costume, type Expression, type Registry } from "../art/registry";
 import { ASIDES, BANQUET_LECTURES, DAMAGE_LINE, DOGGY_LINE, GATE_GLOATS, GATE_INSULTS, GATE_PISSED, LECTURES, SAMPLE_LINES, SERVER_LECTURES, STAFF_COMEBACKS, TAUNT_LINES } from "../game/lines";
 import type { TauntTarget } from "../game/taunts";
 import { applyFeel, createClock, runFrame } from "../sim/clock";
@@ -50,7 +50,7 @@ import { TIERS, shouldStepDown3d } from "./quality";
 import { VIEW_HALF, groundAt, loadBackdrop, type Backdrop } from "./backdrop";
 import { createBoards, snapshotOf } from "./boards";
 import { Bubbles, Speech } from "./bubbles";
-import { createCharacter } from "./character";
+import { costumeOf, createCharacter } from "./character";
 import { ambientOf, ambientTint, createLighting, lightsOf, multiplyTint, type Light } from "./lighting";
 import { drawCrate, loadProducts, Objects, productTexture, setBreadPicture } from "./objects";
 import { PALETTE } from "./palette";
@@ -315,8 +315,31 @@ export async function startLook(
   let baselPieces: BaselPieces = {};
   /** The light dusk has brought so far (3-4): redrawn as it moves on, not every frame. */
   let duskAt = -1;
-  const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
+  let character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
+  /** The costume last asked for: a level that names the same one changes nothing, whatever the body fell back to. */
+  let asked: Costume = opts.noart ? "scrubs" : "affliction";
+  /**
+   * He changes into the level's costume (story spec §10.2): the new body is built and loaded while the old one still shows,
+   * then takes its place; a later ask wins over one still loading.
+   */
+  const wear = async (costume: Costume): Promise<void> => {
+    if (costume === asked) return;
+    asked = costume;
+    const next = createCharacter(registry, costume, { noart: opts.noart });
+    await next.ready.catch(() => undefined);
+    if (asked !== costume || stopped) {
+      next.container.destroy({ children: true });
+      return;
+    }
+    const old = character;
+    next.container.position.copyFrom(old.container.position);
+    next.container.zIndex = old.container.zIndex;
+    next.container.visible = old.container.visible;
+    scene.layers.play.addChild(next.container);
+    character = next;
+    old.container.destroy({ children: true });
+  };
   type Views = { venue: VenueView; backdrop: Backdrop };
   const views = new Map<LevelId, Views>();
   const loading = new Map<LevelId, Promise<void>>();
@@ -1066,6 +1089,7 @@ export async function startLook(
   function showLevel(level: Level, x: number, y: number) {
     shown = level.id;
     shownX = x;
+    void wear(costumeOf(level));
     for (const [id, v] of views) {
       v.venue.setVisible(id === level.id);
       v.backdrop.setVisible(id === level.id);
@@ -2162,6 +2186,7 @@ export async function startLook(
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();
+      window.__next.costume = character.costume;
       window.__next.shake = scene.camera.trauma;
       window.__next.music = { lead: sound.leadLevel };
       window.__next.errands = game.run.errands.length;
@@ -2247,6 +2272,8 @@ export async function startLook(
         }
         scene.layers.play.addChild(boardCrates);
       }
+      // The level's Hammer in the level's costume: scrubs in the office's pictures.
+      return wear(costumeOf(LEVELS.get(id)!));
     };
     /** The banquet at `q`, 1920 by 1080, as a PNG data URL: shown and framed for one picture, then put back as it was. */
     const shootBanquet = async (q: Hungry): Promise<string> => {

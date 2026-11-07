@@ -1782,3 +1782,18 @@ test("Basel's far things, the ferry and the lanterns, stand behind the venue's b
   const v = new BaselView(new PixiContainer());
   assert.ok(v.far.zIndex < BACK_Z, `the far layer at ${v.far.zIndex}, the venue at ${BACK_Z}`);
 });
+import { costumeOf, BADGE, badgeAt } from "../src/render/character.ts";
+import { solve as solveRig } from "../src/sim/rig/fk.ts";
+import { REST_POSE as REST } from "../src/sim/rig/skeleton.ts";
+test("a level's costume is scrubs where it says so and the Affliction everywhere else", () => {
+  assert.deepEqual([costumeOf({ costume: "scrubs" }), costumeOf(BASEL_STREET), costumeOf({})], ["scrubs", "affliction", "affliction"]);
+});
+test("the TRAINER badge hangs on his chest below the neckline, facing either way", () => {
+  for (const facing of [1, -1]) {
+    const s = solveRig(REST, facing, 0.26);
+    const b = badgeAt(s);
+    const top = b.y - (BADGE.h / 2) * b.scale;
+    assert.ok(BADGE.dy > 0 && top > s.joints.neck.y + 10 && b.y < s.joints.pelvis.y, `facing ${facing}: badge top ${top}, neck ${s.joints.neck.y}, pelvis ${s.joints.pelvis.y}`);
+    assert.equal(BADGE.text, "TRAINER");
+  }
+});

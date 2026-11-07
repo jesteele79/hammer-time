@@ -1,4 +1,5 @@
 import type { SongId } from "../game/audio";
+import type { Costume } from "../art/registry";
 import type { HeatZone } from "./hazards";
 import type { QuestId } from "./quests/quest";
 import type { MoverSpec } from "./movers";
@@ -316,6 +317,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   errands?: ErrandSpec[];
   /** The parade (3-4): the pipe bands as marching walls with a hole, and the drum corps whose beat shakes the ground. */
   parade?: { bands: BandSpec[]; corps?: { x: number; reach: number } };
+  /** What he wears here (story spec §10.2): scrubs on 3-5 and 3-6; the Affliction shirt when it names none. */
+  costume?: Costume;
   /** Evening coming on over the clock: the light eases to night through its last third and the lanterns come on (3-4). */
   dusk?: boolean;
 };

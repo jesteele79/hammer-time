@@ -88,6 +88,8 @@ export type NextProbe = {
   goo?: { globs: number; splats: number };
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
+  /** What he wears now: the Affliction shirt, or the level's costume (scrubs on 3-5 and 3-6). */
+  costume?: string;
   /** The camera's trauma now: the drum corps' shake, a bogie's jolt. */
   shake?: number;
   /** The music's state the checks read: the lead's level (3-4's pipers play only while he walks). */
