@@ -185,6 +185,8 @@ try {
   await press("KeyB");
   await page.waitForFunction(() => window.__next.lines?.think === "READ THE IFU.", null, { timeout: 4000 });
   assert.equal((await probe()).boss.state, "frozen", "the IFU freezes him");
+  await page.waitForFunction(() => window.__next.boss?.birds === true, null, { timeout: 2000 });
+  await shot("training-birds.png");
   await tintOk("in round two");
 
   // Round three: the screen plays; three full smashes near it crack it and put it dark.
@@ -216,6 +218,9 @@ try {
   await shot("training-carry-out.png");
   await page.waitForTimeout(2600);
   await shot("training-admin.png");
+  // She stops near him on the doors' side, on screen with him.
+  const end = await page.evaluate(() => ({ admin: window.__next.boss?.admin, hero: window.__next.hero?.x }));
+  assert.ok(end.admin !== null && end.admin >= end.hero - 460 && end.admin <= end.hero, `the administrator by him: ${JSON.stringify(end)}`);
   await waitMode("story", 30000);
   const card = await page.locator(".next-veil__card").textContent();
   assert.ok(card.includes("As Trainer for Life.") && card.includes("Obviously."), card);
@@ -266,7 +271,7 @@ try {
     await page.close();
   }
   assert.deepEqual(errors, [], "no console errors");
-  console.log(`PASS: the training room's card, bar and notches, scrubs and his face as painted through every round, the beam on the floor, the rows and the drone, the screen's loop, the sections; the stand and the dark, Like and subscribe and four residents, the lecture's freeze, the IFU, three smashes, fired, the carry-out and the administrator, the two cards and the epilogue coming; a lost life and Try again at fifteen; ${rates} fps in round two; the four sizes.`);
+  console.log(`PASS: the training room's card, bar and notches, scrubs and his face as painted through every round, the beam on the floor, the rows and the drone, the screen's loop, the sections; the stand and the dark, Like and subscribe and four residents, the lecture's freeze, the IFU and its birds, three smashes, fired, the carry-out and the administrator by him, the two cards and the epilogue coming; a lost life and Try again at fifteen; ${rates} fps in round two; the four sizes.`);
 } finally {
   await browser.close();
 }

@@ -49,7 +49,11 @@ export type Replacement = {
   hop: Hop | null;
   /** Frozen with the birds round his head (the IFU's), not the lecture's stillness. */
   birds: boolean;
+  /** Where the administrator stops once she walks in at the end (the game sets it); null before. */
+  admin: number | null;
 };
+/** His openings (story spec §11.1): the dark of round one, a freeze, a stagger out from behind the lectern, the open after the screen. */
+const OPENINGS: ReadonlySet<ReplacementState> = new Set<ReplacementState>(["dark", "frozen", "out", "open"]);
 
 /**
  * His numbers. The beam: where it sweeps, how fast, how wide its wedge, its heat a second, how far a bonk on the stand turns
@@ -110,6 +114,7 @@ export const createReplacement = (b: BossSpec): Replacement => ({
   said: [],
   hop: null,
   birds: false,
+  admin: null,
 });
 
 export const replacementRect = (r: Replacement): Rect => ({ x: r.x - r.w / 2, y: r.y - r.h, w: r.w, h: r.h });
@@ -133,22 +138,24 @@ export const screenHeats = (r: Pick<Replacement, "screen" | "state">, h: Pick<He
 /** Where he goes once a stagger or a freeze is over: his round's own state. */
 const settled = (r: Replacement): ReplacementState => (r.round === 1 ? "edge" : r.round === 2 ? "film" : r.screen.cracks < REPLACEMENT.screen.cracks ? "run" : "open");
 
-/** A hop cut short lands him where it was going. */
-function land(r: Replacement) {
+/** A hop cut short leaves him where he is: on the row under him, or on the floor. */
+function settle(r: Replacement) {
   if (!r.hop) return;
-  r.x = r.hop.x1;
-  r.y = r.hop.y1;
+  const over = REPLACEMENT.rows.xs.some((x) => Math.abs(r.x - x) <= ROW_HALF);
+  r.y = over ? REPLACEMENT.rows.y : 0;
   r.hop = null;
 }
+/** Half a seat row's width. */
+const ROW_HALF = 150;
 
 /**
- * A hit on him, from anywhere: none while he runs, hides, staggers or is down, nor before he is up. Each one staggers him back
- * 60 px for half a second; Hammer has his say on a round's first. At none he is down, "They need to get fired" plays and two
- * residents carry him out. The rounds turn on his step, whatever landed the hit.
+ * A hit on him, from anywhere, in his openings only (the dark, a freeze, a stagger out, the open): the mallet, a snot or the
+ * smash elsewhere counts nothing. Each one staggers him back 60 px for half a second; Hammer has his say on a round's first. At
+ * none he is down, "They need to get fired" plays and two residents carry him out. The rounds turn on his step.
  */
 export function hitReplacement(r: Replacement, by: "bonk" | "snot", events: GameEvent[]): boolean {
-  if (!r.awake || r.state === "hide" || r.state === "run" || r.state === "hurt" || r.state === "down") return false;
-  land(r);
+  if (!r.awake || !OPENINGS.has(r.state)) return false;
+  settle(r);
   r.hp = Math.max(0, r.hp - 1);
   events.push({ type: "bossHit", by, x: r.x, y: r.y - r.h * 0.6, hp: r.hp });
   const comeback = r.round === 2 ? KID_COMEBACKS.two : r.round === 3 ? KID_COMEBACKS.three : null;
@@ -175,10 +182,13 @@ export function hitReplacement(r: Replacement, by: "bonk" | "snot", events: Game
   return true;
 }
 
-/** The room's freeze on him (the lecture's, or the IFU's with the birds): still and hittable, then his round again. */
+/**
+ * The room's freeze on him (the lecture's, or the IFU's with the birds), from round two: still and hittable, then his round
+ * again. Never in round one (the dark is its opening), nor hiding or on his way behind the lectern (the screen is round three's).
+ */
 export function freezeReplacement(r: Replacement, seconds: number, birds: boolean, events: GameEvent[]): boolean {
-  if (!r.awake || r.state === "hide" || r.state === "hurt" || r.state === "down") return false;
-  land(r);
+  if (!r.awake || r.round === 1 || r.state === "hide" || r.state === "run" || r.state === "hurt" || r.state === "down") return false;
+  settle(r);
   r.state = "frozen";
   r.timer = seconds;
   r.vx = 0;
@@ -347,7 +357,7 @@ function crackScreen(r: Replacement, events: GameEvent[]) {
   const s = REPLACEMENT.screen;
   r.screen.cracks = Math.min(s.cracks, r.screen.cracks + 1) as 0 | 1 | 2 | 3;
   events.push({ type: "screenCrack", n: r.screen.cracks, x: (s.x0 + s.x1) / 2 });
-  land(r);
+  settle(r);
   r.y = 0;
   if (r.screen.cracks >= s.cracks) {
     r.screen.playing = false;
@@ -482,7 +492,7 @@ export function stepReplacement(r: Replacement, w: ReplacementWorld, dt: number,
     r.round = 3;
     if (r.drone) r.drone.state = "down";
     r.nutsT = REPLACEMENT.nuts;
-    land(r);
+    settle(r);
     r.state = "run";
     r.timer = 0;
     events.push({ type: "bossPhase", phase: 3, room: 0 });

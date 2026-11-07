@@ -2234,7 +2234,7 @@ export async function startLook(
             return r ? scene.toScreen({ x: r.x + r.w / 2, y: r.y + r.h / 2 }) : null;
           }
         : undefined;
-      window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y };
+      window.__next.boss = cur.boss && { kind: cur.boss.kind, state: cur.boss.state, hp: cur.boss.hp, max: cur.boss.max, x: cur.boss.x, y: cur.boss.y, birds: bossView.birdsShown, admin: cur.boss.kind === "replacement" ? cur.boss.admin : null };
       window.__next.pig = cur.pig && { state: cur.pig.state, x: cur.pig.x, hp: cur.pig.hp, bonks: cur.pig.bonks, snots: cur.pig.snots, drawn: pigView.kind };
       window.__next.heroScreenHeight = HERO_HEIGHT * scene.scale;
       window.__next.carrying = objects.carrying;

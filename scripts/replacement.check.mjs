@@ -10,6 +10,7 @@ import { STASH } from "../src/sim/levels/stash.ts";
 import { REPLACEMENT } from "../src/sim/levels/replacement.ts";
 import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { BOSS_NAMES, hitBoss } from "../src/sim/boss.ts";
+import { freezeReplacement } from "../src/sim/replacement.ts";
 import { hudOf, hintOf } from "../src/render/hud.ts";
 import { drive } from "../src/sim/drive.ts";
 import { CHARGE_MAX } from "../src/sim/moves.ts";
@@ -51,7 +52,8 @@ test("round one: the beam sweeps and heats him at 30 a second, never when off th
   Object.assign(h, { x: r.beam.x, y: -300, onGround: false, vy: 0, heat: 0 }); g.step(input()); assert.equal(h.heat, 0);
   assert.ok(Math.abs(r.x - (r.beam.x + 260 * r.beam.dir)) < 40 || r.state !== "edge", "at the edge");
   Object.assign(h, { x: r.x - 200, y: 0, patience: 2, invuln: 0 }); const jab = until(g, (x) => x.world.hero.patience < 2, 3); assert.deepEqual([of(jab, "bossWindup").length >= 1, h.patience], [true, 1]);
-  assert.equal(hitBoss(r, "bonk", g.events), true); assert.deepEqual([r.hp, r.state], [14, "hurt"]);
+  // The hit is in the dark: he stands there for it.
+  Object.assign(r, { state: "dark", timer: 1.5 }); assert.equal(hitBoss(r, "bonk", g.events), true); assert.deepEqual([r.hp, r.state], [14, "hurt"]);
   until(g, (x) => x.world.boss.state === "edge", 3); const bx = r.beam.x; Object.assign(h, { x: r.stand.x - 150, y: 0, facing: 1 });
   const turn = []; for (let i = 0; i < 240 && !of(g.events, "beamTurn").length; i++) { g.step(input({}, { hammer: i % 30 === 0 })); turn.push(...g.events); }
   assert.deepEqual([of(turn, "beamTurn").length, Math.abs(r.beam.x - bx) >= 600, r.state], [1, true, "dark"]);
@@ -68,7 +70,7 @@ test("the scripted trainee takes round one: past the stick in its rest, the stan
 });
 test("round two starts at hp 10 whatever landed the hit: residents four at a time, the drone that dives and is downed by a snot for 300 and FOOTAGE., a new one after 10 s", () => {
   const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
-  for (let i = 0; i < 4; i++) { hitBoss(r, "bonk", g.events); until(g, (x) => x.world.boss.state !== "hurt", 1); } r.hp = 11; hitBoss(r, "snot", g.events); const two = until(g, (x) => x.world.boss.round === 2, 1);
+  for (let i = 0; i < 4; i++) { Object.assign(r, { state: "dark", timer: 1.5 }); hitBoss(r, "bonk", g.events); until(g, (x) => x.world.boss.state !== "hurt", 1); } r.hp = 11; Object.assign(r, { state: "dark", timer: 1.5 }); hitBoss(r, "snot", g.events); const two = until(g, (x) => x.world.boss.round === 2, 1);
   assert.deepEqual([r.round, of(two, "bossPhase")[0].phase, of(two, "bossSay").some((e) => e.text === "Like and subscribe.")], [2, 2, true]);
   // He stands among the residents' charts and the drone's dives for half a minute: untouchable, so the fight he is in stays the one under test.
   h.invuln = 99;
@@ -86,7 +88,7 @@ test("the lecture freezes the kid 2.2 s and the residents with him; the IFU is p
   until(g, (x) => x.world.ifu.state === "lying", 3); Object.assign(h, { x: g.world.ifu.x, y: 0 }); until(g, (x) => x.world.ifu.state === "held", 1, { right: true }); assert.equal(h.boxes, 1);
 });
 test("round three at hp 5: he hides at the lectern and plays the video, the screen heats the front rows and nuts drop every 6 s; three full smashes crack it, he staggers out 2 s on each, the third leaves him in the open; the last hit plays fired and he is carried out", () => {
-  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 6; r.round = 2; hitBoss(r, "bonk", g.events);
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 6; r.round = 2; Object.assign(r, { state: "frozen", timer: 2 }); hitBoss(r, "bonk", g.events);
   const three = until(g, (x) => x.world.boss.state === "hide", 6); assert.deepEqual([r.round, of(three, "screenPlay").length, hitBoss(r, "bonk", g.events)], [3, 1, false]);
   Object.assign(h, { x: 2400, y: 0, heat: 0 }); until(g, () => false, 1); assert.ok(h.heat >= 25, "the screen's glow"); assert.ok(until(g, (x) => x.pickups.some((p) => p.kind === "nuts" && !p.taken), 7).length > 0);
   const smash = () => { Object.assign(h, { x: 3000, y: 0, charge: CHARGE_MAX }); return until(g, (x) => of(x.events, "screenCrack").length > 0, 2, {}, (x) => x.step(input({}, { super: true }))); };
@@ -108,11 +110,11 @@ test("a round turns whatever he was doing: set to ten as he keeps to the beam, h
 });
 test("the fight's end walks the administrator in and ends the level on the tally", () => {
   const g = fight(); play(g); const r = g.world.boss; Object.assign(g.world.hero, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 1; r.round = 3; r.state = "open"; r.screen = { playing: false, cracks: 3 };
-  hitBoss(r, "bonk", g.events); const end = until(g, (x) => x.mode !== "play", 9); assert.deepEqual([of(end, "carryOut").length, of(end, "adminIn")[0].x, of(end, "exit").length, g.mode], [1, 800, 1, "walkoff"]);
+  hitBoss(r, "bonk", g.events); const end = until(g, (x) => x.mode !== "play", 9); assert.deepEqual([of(end, "carryOut").length, of(end, "adminIn")[0].x, of(end, "exit").length, g.mode], [1, 1850, 1, "walkoff"]);
 });
 test("round three's rules: a lecture at him hiding brings nothing out, no residents come and the drone stays down; an IFU gone out of the room is back on the lectern; a lost life brings back a whole screen", () => {
   const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
-  r.hp = 6; r.round = 2; g.step(input()); const seated = () => g.world.cast.filter((c) => c.job === "resident" && c.alive).length; hitBoss(r, "bonk", g.events);
+  r.hp = 6; r.round = 2; g.step(input()); const seated = () => g.world.cast.filter((c) => c.job === "resident" && c.alive).length; Object.assign(r, { state: "frozen", timer: 2 }); hitBoss(r, "bonk", g.events);
   until(g, (x) => x.world.boss.state === "hide", 6); const before = seated();
   Object.assign(h, { x: r.x - 300, y: 0, facing: 1, lectureCd: 0, invuln: 99 }); const lect = until(g, () => false, 1.5, {}, (x) => x.step(input({}, { lecture: true })));
   assert.deepEqual([of(lect, "lecture").length > 0, of(lect, "bossFreeze").length, r.state], [true, 0, "hide"]);
@@ -123,4 +125,28 @@ test("round three's rules: a lecture at him hiding brings nothing out, no reside
 test("the hint stays the training room's once the kid is down", () => {
   const g = fight(); play(g); const r = g.world.boss; Object.assign(g.world.hero, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 1; r.round = 3; r.state = "open";
   hitBoss(r, "bonk", g.events); until(g, () => false, 1); assert.match(hintOf(g), /The replacement/);
+});
+test("his openings are the only hits: at the edge, filming, hopping or hiding nothing counts, a snot from afar included; the dark, a freeze, a stagger out and the open do", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
+  for (const state of ["edge", "jab", "film", "hop", "hide", "run"]) { r.state = state; assert.equal(hitBoss(r, "snot", g.events), false, state); }
+  for (const state of ["dark", "frozen", "out", "open"]) { r.state = state; r.hurtT = 0; assert.equal(hitBoss(r, "bonk", g.events), true, state); }
+  assert.equal(r.hp, 11);
+});
+test("no freeze in round one, nor on his way behind the lectern: a lecture or the IFU there brings nothing", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
+  const lect = () => { Object.assign(h, { x: r.x - 300, y: 0, facing: 1, lectureCd: 0, invuln: 99 }); return until(g, (x) => of(x.events, "bossFreeze").length > 0, 1, {}, (x) => x.step(input({}, { lecture: true }))); };
+  r.state = "edge"; assert.equal(of(lect(), "bossFreeze").length, 0, "round one");
+  r.hp = 6; r.round = 2; r.state = "frozen"; r.timer = 2; hitBoss(r, "bonk", g.events); until(g, (x) => x.world.boss.state === "run", 2);
+  assert.deepEqual([r.state, of(lect(), "bossFreeze").length], ["run", 0]);
+});
+test("a freeze as he hops leaves him where he was, on the floor or the row under him, not at the hop's end", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
+  r.hp = 10; g.step(input()); Object.assign(r, { x: 3000, y: 0, state: "film" }); Object.assign(h, { x: 2800, y: 0, invuln: 99 });
+  until(g, (x) => x.world.boss.state === "hop" && x.world.boss.hop.t > 0.4, 2); const at = r.x;
+  g.world.events.length = 0; freezeReplacement(r, 2.2, false, g.events);
+  assert.ok(Math.abs(r.x - at) < 5, `froze at ${r.x}, was ${at}`); assert.ok(r.y === 0 || r.y === -150, `on the floor or a row: ${r.y}`);
+});
+test("the administrator stops on his doors' side, near enough to be seen, never nearer the doors than 800", () => {
+  const g = fight(); play(g); const r = g.world.boss; Object.assign(g.world.hero, { x: 3000, y: 0 }); until(g, (x) => x.world.boss.awake, 2); r.hp = 1; r.round = 3; r.state = "open";
+  hitBoss(r, "bonk", g.events); const end = until(g, (x) => x.mode !== "play", 9); assert.equal(of(end, "adminIn")[0].x, 2550);
 });

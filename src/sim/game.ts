@@ -140,7 +140,7 @@ const LEARNED_BY: Partial<Record<GameEvent["type"], Lesson>> = { jump: "jump", s
 /** The key door among the mallet's victims: clear of the carts', the cast's and the bosses'. */
 const KEY_ID = 902;
 /** The administrator's walk-in at the training room's end (3-6): where she stops, and how long before the level ends. */
-const ADMIN = { x: 800, walk: 2.5 } as const;
+const ADMIN = { x: 800, gap: 450, walk: 2.5 } as const;
 /** The seats the replacement's residents take, two to a row; where the catering table's nuts drop from (3-6). */
 const RESIDENT_SEATS = [980, 1120, 1480, 1620, 1980, 2120, 2480, 2620] as const;
 const NUTS_AT = { x: 550, y: -320 } as const;
@@ -1183,7 +1183,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (bossOverT > 0) return false;
     if (adminT < 0) {
       adminT = ADMIN.walk;
-      ev.push({ type: "adminIn", x: ADMIN.x, y: 0 });
+      // She stops on his doors' side, near enough to be seen with him, never nearer the doors than her mark.
+      r.admin = Math.max(ADMIN.x, Math.round(h.x - ADMIN.gap));
+      ev.push({ type: "adminIn", x: r.admin, y: 0 });
       return false;
     }
     adminT -= STEP;

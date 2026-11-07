@@ -5,6 +5,7 @@ import { castPose } from "../sim/rig/cast";
 import type { CastPerson } from "../sim/level";
 import type { Point } from "../sim/types";
 import { Diner } from "./quests/diner";
+import { bird } from "./cast";
 import { REPLACEMENT } from "../sim/replacement";
 
 /** Who a boss is drawn as: the supervisor wears the housekeeper's painting, navy, a shade larger (story spec §8.2). */
@@ -17,8 +18,9 @@ const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; si
   conductor: { person: "conductor", recolor: "#1b2748", size: 1 },
   // The guard's painting until his own is cut.
   major: { person: "major", recolor: null, size: 1.05 },
-  // The student's painting until his own is cut.
-  replacement: { person: "replacement", recolor: null, size: 0.97 },
+  // The student's painting until his own is cut, in its purple (a recolor the painting's cut already bakes) so he is not one
+  // of the green-jacketed residents round him.
+  replacement: { person: "replacement", recolor: "#8a3b8f", size: 0.97 },
 };
 /** The selfie stick's length out of his near hand, folded and extended for the jab. */
 const STICK = { folded: 60, out: 170 } as const;
@@ -26,10 +28,10 @@ const STICK = { folded: 60, out: 170 } as const;
  * The replacement carried out (story spec §11.1): two residents walk in from the left over `in` s and take him one at each end,
  * lift him `up` px over `lift` s, and walk him out to the left at `walk` px/s, `gap` either side of him.
  */
-export const CARRY = { from: 900, in: 1.4, lift: 0.4, up: 110, walk: 600, gap: 90 } as const;
-/** The administrator's walk in through the doors, `over` s after he is down: from the doors to `to` over `walk` s, her folder in hand. */
-export const ADMIN_WALK = { from: 120, to: 800, walk: 2 } as const;
-export const adminAt = (t: number): number | null => (t < REPLACEMENT.over ? null : ADMIN_WALK.from + (ADMIN_WALK.to - ADMIN_WALK.from) * Math.min(1, (t - REPLACEMENT.over) / ADMIN_WALK.walk));
+export const CARRY = { from: 1300, in: 2, lift: 0.4, up: 110, walk: 600, gap: 90 } as const;
+/** The administrator's walk in from the doors' side, `over` s after he is down: `from` px short of her stop, over `walk` s, her folder in hand. */
+export const ADMIN_WALK = { from: 1100, walk: 2 } as const;
+export const adminAt = (stop: number, t: number): number | null => (t < REPLACEMENT.over ? null : stop - ADMIN_WALK.from * (1 - Math.min(1, (t - REPLACEMENT.over) / ADMIN_WALK.walk)));
 /** Where the carry has the kid and his two residents `t` seconds after he went down. */
 export function carryAt(x: number, t: number): { kid: { x: number; y: number }; carriers: { x: number; facing: 1 | -1; walking: boolean }[] } {
   const lift = Math.min(1, Math.max(0, (t - CARRY.in) / CARRY.lift));
@@ -58,9 +60,12 @@ export class BossView {
   private readonly stick = new Graphics();
   private readonly tablet = new Graphics();
   private carriers: Diner[] = [];
-  /** The administrator who walks in at the end, and her folder. */
+  /** The administrator who walks in at the end, and her folder; the birds round his head when the IFU froze him. */
   private admin: Diner | null = null;
   private readonly folder = new Graphics();
+  private readonly birds = new Graphics();
+  /** The birds are up this frame (for the checks). */
+  birdsShown = false;
 
   constructor(
     parent: Container,
@@ -82,7 +87,8 @@ export class BossView {
     this.folder.rect(-22, -30, 44, 6).fill("#c9a24a");
     this.folder.zIndex = 50;
     this.folder.visible = false;
-    this.container.addChild(this.folder);
+    this.birds.zIndex = 60;
+    this.container.addChild(this.folder, this.birds);
     this.stick.zIndex = 50;
     this.tablet.visible = this.stick.visible = false;
     this.container.addChild(this.tablet, this.stick);
@@ -131,12 +137,24 @@ export class BossView {
     for (const c of this.carriers) c.container.visible = false;
     if (this.admin) this.admin.container.visible = false;
     this.folder.visible = false;
+    this.birds.clear();
+    this.birdsShown = false;
     if (b.kind === "replacement") {
+      // The IFU froze him: three birds circle his head while it lasts.
+      if (b.state === "frozen" && b.birds) {
+        this.birdsShown = true;
+        const cx = b.x - this.container.x;
+        const cy = b.y - b.h - 30 - this.container.y;
+        for (let i = 0; i < 3; i++) {
+          const a = time * 3 + (i * Math.PI * 2) / 3;
+          bird(this.birds, cx + Math.cos(a) * 70, cy + Math.sin(a) * 22, 20, Math.sin(time * 18 + i) * 0.3);
+        }
+      }
       const down = b.state === "down";
       // Then the administrator walks in with her folder.
-      const ax = down && this.admin ? adminAt(-b.timer) : null;
+      const ax = down && this.admin && b.admin !== null ? adminAt(b.admin, -b.timer) : null;
       if (ax !== null && this.admin) {
-        const walking = ax < ADMIN_WALK.to;
+        const walking = ax < (b.admin ?? ax);
         const pose = castPose({ role: "office", act: walking ? "walk" : "idle", t: time % 1, speed: walking ? 340 : 0, onGround: true, sit: false, spin: 0, hits: 0 });
         this.admin.container.visible = true;
         this.admin.pose(pose, 1, { x: ax, y: 0 }, false, time, "planted");

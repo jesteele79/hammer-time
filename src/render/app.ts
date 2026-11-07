@@ -170,7 +170,7 @@ export type NextProbe = {
   /** The gift shop's pig: its state, where it is, its HP and counts, and whether it is drawn or painted. */
   pig?: { state: string; x: number; hp: number; bonks: number; snots: number; drawn: "drawn" | "painted" } | null;
   /** The boss beside the pig. */
-  boss?: { kind: string; state: string; hp: number; max: number; x: number; y: number } | null;
+  boss?: { kind: string; state: string; hp: number; max: number; x: number; y: number; birds?: boolean; admin?: number | null } | null;
   /** With `&dev=1`: move him anywhere and hit him, for the checks. */
   dev?: {
     teleport(x: number, y?: number): void;
