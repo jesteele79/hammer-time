@@ -628,6 +628,9 @@ export class AudioBus {
   private step = 0;
   private nextAt = 0;
   hurry = false;
+  /** The song's lead, gated (3-4's pipers play only while he walks): its level, and the gain it plays through. */
+  private lead = 1;
+  private leadGain: GainNode | null = null;
   private yellSrc: AudioBufferSourceNode | null = null;
   private yellBytes: Promise<ArrayBuffer> | null = null;
   private yellDecode: Promise<void> | null = null;
@@ -1082,6 +1085,30 @@ export class AudioBus {
     this.tickSong(SONGS[this.theme], this.musicGain);
   }
 
+  /** The lead on or off, over 50 ms (3-4's chanter while he walks, the drone holding while he stands); nothing else of the song changes. */
+  setLead(on: boolean) {
+    const want = on ? 1 : 0;
+    if (want === this.lead) return;
+    this.lead = want;
+    if (this.ctx && this.leadGain) this.leadGain.gain.setTargetAtTime(want, this.ctx.currentTime, 0.05 / 3);
+  }
+
+  /** The lead's level now, 0 or 1: for the checks. */
+  get leadLevel(): number {
+    return this.lead;
+  }
+
+  /** The lead's own gain into the music, made as the song first plays. */
+  private leadBus(bus: GainNode): GainNode {
+    if (!this.ctx) return bus;
+    if (!this.leadGain || this.leadGain.context !== this.ctx) {
+      this.leadGain = this.ctx.createGain();
+      this.leadGain.gain.value = this.lead;
+      this.leadGain.connect(bus);
+    }
+    return this.leadGain;
+  }
+
   /** A song, scheduled a little ahead: the lead and its double, the bass, the drums and the gags. */
   private tickSong(s: Song, bus: GainNode) {
     if (!this.ctx) return;
@@ -1094,7 +1121,7 @@ export class AudioBus {
       const t = this.nextAt;
       const n = s.lead[i];
       if (n) {
-        this.tone(midi(n), t, step * s.leadLen, s.leadWave, 0.09, bus);
+        this.tone(midi(n), t, step * s.leadLen, s.leadWave, 0.09, this.leadBus(bus));
         const d = s.double;
         if (d && i >= d.from && i < d.to) this.tone(midi(n + d.shift), t, step * s.leadLen, d.wave, 0.045, bus);
       }
@@ -1158,6 +1185,27 @@ export class AudioBus {
 
   jump() {
     this.blip(620, 0.09, "square", 0.16, 380);
+  }
+  /** The pipes coming up: the bagpipe's drone, a fifth swelling over 0.8 s. */
+  drone() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    const at = this.ctx.currentTime;
+    this.tone(110, at, 0.8, "sawtooth", 0.05, this.sfxGain, 116);
+    this.tone(165, at + 0.05, 0.75, "sawtooth", 0.04, this.sfxGain, 174);
+  }
+  /** The drum corps' fourth beat: a low thump with a snare's crack. */
+  drumHit() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    const at = this.ctx.currentTime;
+    this.tone(90, at, 0.22, "sine", 0.22, this.sfxGain, 45);
+    this.hit(at + 0.01, 0.12, 0.09, 1900, "bandpass", this.sfxGain);
+  }
+  /** The mace going up: a rising whistle of air, 0.6 s. */
+  whirr() {
+    if (!this.ctx || !this.sfxGain || this.muted) return;
+    const at = this.ctx.currentTime;
+    this.hit(at, 0.6, 0.05, 900, "bandpass", this.sfxGain, 3200);
+    this.tone(420, at, 0.6, "triangle", 0.035, this.sfxGain, 980);
   }
   coin() {
     this.blip(988, 0.06, "square", 0.14);

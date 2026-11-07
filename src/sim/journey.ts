@@ -122,6 +122,9 @@ export function stopState(j: Journey, id: StoryId): "done" | "next" | "locked" {
   return id === j.next ? "next" : "locked";
 }
 
+/** The home screen's scene (story spec §5.1, §11's 2026-11-06 note): the lobby at night once Act 1 is done, Basel's street once the suite is. */
+export const homeOf = (j: Pick<Journey, "done">): "lobby-night" | "basel" | undefined => (j.done.includes("suite") ? "basel" : j.done.includes("arena") ? "lobby-night" : undefined);
+
 export const actTotal = (j: Journey, act: ActId): number => STORY.filter((s) => s.act === act).reduce((t, s) => t + (j.best[s.id] ?? 0), 0);
 export const journeyTotal = (j: Journey): number => STORY.reduce((t, s) => t + (j.best[s.id] ?? 0), 0);
 

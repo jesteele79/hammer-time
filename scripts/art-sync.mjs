@@ -33,6 +33,7 @@ import {
   nameSatPieces,
   nameTowerPieces,
   nameTrainPieces,
+  nameBaselPieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -362,7 +363,7 @@ async function walls(registry) {
   const dir = "art/incoming/backdrops";
   if (!existsSync(dir)) return;
   mkdirSync(join(OUT, "backdrops"), { recursive: true });
-  for (const file of readdirSync(dir).filter((f) => /-far-\d+\.png$/.test(f) && !f.startsWith("train-far-"))) {
+  for (const file of readdirSync(dir).filter((f) => /-far-\d+\.png$/.test(f) && !f.startsWith("train-far-") && !/^basel-far-[23]\.png$/.test(f))) {
     const name = file.replace(/\.png$/, "");
     const cutFile = `art/cuts/wall-${name}.json`;
     if (!existsSync(cutFile)) {
@@ -390,7 +391,7 @@ async function walls(registry) {
     });
   }
   // The station's and the coaches' walls the same way, with the windows the game draws the countryside in and the hall's clock.
-  for (const name of ["station-1", "station-2", "train-far-1", "train-far-2", "train-far-3"]) {
+  for (const name of ["station-1", "station-2", "train-far-1", "train-far-2", "train-far-3", "basel-far-2", "basel-far-3"]) {
     const painted = join(dir, `${name}.png`);
     const source = existsSync(painted) ? painted : `art/outgoing/renders/${name}.png`;
     if (!existsSync(source)) continue;
@@ -602,6 +603,24 @@ async function sat(registry) {
 
 const TOWER_SHEET = "art/incoming/props/tower-sheet.png";
 const TRAIN_SHEET = "art/incoming/props/train-sheet.png";
+const BASEL_SHEET = "art/incoming/props/basel-sheet.png";
+
+/** Basel (story Phase 4): the sheet cut into its eight named pieces; while it is not in, the drawn stand-ins stand. */
+async function basel(registry) {
+  registry.basel = {};
+  if (!existsSync(BASEL_SHEET)) return;
+  mkdirSync(join(OUT, "basel"), { recursive: true });
+  await tolerant("basel sheet", strict, async () => {
+    const named = nameBaselPieces(await sheetPieces(await keyOut(readFileSync(BASEL_SHEET))));
+    registry.basel.pieces = {};
+    for (const [name, p] of Object.entries(named)) {
+      const file = `basel/${name}.png`;
+      writeFileSync(join(OUT, file), p.png);
+      registry.basel.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+    }
+    console.log(`basel sheet: ${Object.keys(named).join(", ")}`);
+  });
+}
 
 /** The train (story Phase 3): the sheet cut into its six named pieces; while it is not in, the drawn stand-ins stand. */
 async function train(registry) {
@@ -677,6 +696,7 @@ await lounge(registry);
 await french(registry);
 await tower(registry);
 await train(registry);
+await basel(registry);
 await back(registry);
 await gate(registry);
 await sat(registry);

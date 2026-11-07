@@ -1766,3 +1766,12 @@ test("the conductor fades out at the end of his retreat, not popping off the scr
   assert.equal(fadeOfBoss({ ...c, state: "block", timer: 0 }), 1);
   assert.equal(fadeOfBoss({ kind: "purser", state: "retreat", timer: 0 }), 1);
 });
+
+import { BASEL as BASEL_STREET } from "../src/sim/levels/basel.ts";
+test("a layout with a missing wall draws a block and the rest: Basel's bridge and Marktplatz show before the bank and the old town are painted", () => {
+  const W = { file: "x", width: 1536, height: 1024, floor: 768, top: "#000000" };
+  const walls = wallsFor(BASEL_STREET, { walls: { "basel-far-2": W, "basel-far-3": W } });
+  assert.deepEqual([walls?.length, walls?.[0], walls?.[1], walls?.[2], walls?.[3]], [4, null, W, W, null]);
+  assert.deepEqual(BASEL_STREET.backdrop.layout.map((p) => [p.wall, p.x]), [["basel-far-1", -1536], ["basel-far-1", 0], ["basel-far-1", 1536], ["basel-far-2", 3072], ["basel-far-2", 4608], ["basel-far-2", 6144], ["basel-far-4", 7680], ["basel-far-4", 9216], ["basel-far-3", 10752], ["basel-far-3", 12288], ["basel-far-4", 13824]]);
+  assert.equal(wallsFor({ backdrop: { walls: ["a", "b"], mid: [], fore: [] } }, { walls: { a: W } }), null, "a row is still all or nothing");
+});

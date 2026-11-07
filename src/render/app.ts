@@ -88,6 +88,14 @@ export type NextProbe = {
   goo?: { globs: number; splats: number };
   /** The product of every tint above the head sprite: 0xffffff when the plate reaches the screen as drawn. */
   headTintChain?: number;
+  /** The camera's trauma now: the drum corps' shake, a bogie's jolt. */
+  shake?: number;
+  /** The music's state the checks read: the lead's level (3-4's pipers play only while he walks). */
+  music?: { lead: number; section?: number | null };
+  /** The level's errands done (3-4). */
+  errands?: number;
+  /** 3-4's bands: where each is and what it does. */
+  bands?: { id: string; x: number; state: string }[];
   /** His face box on screen, CSS px: nothing in the shell may cover it. */
   /** His face on the screen; null while only his back shows, in the hall. */
   faceScreen?: { x: number; y: number; w: number; h: number } | null;
@@ -158,6 +166,9 @@ export type NextProbe = {
     charge(): void;
     give(kind: "can" | "nuts" | "bucees" | "pepper" | "keycard"): void;
     boss(o: { hp?: number; state?: string; door?: number }): void;
+    /** 3-4: an errand done at once; a band started now. */
+    errand(id: string): void;
+    band(id: string): void;
     pad(o: { axes?: number[]; buttons?: { pressed: boolean }[] } | null): void;
     three(o: { frameMs?: number; lose?: boolean }): void;
     /** The cabin's turbulence and its cart, now. */

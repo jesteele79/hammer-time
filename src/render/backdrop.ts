@@ -50,13 +50,19 @@ async function loadAll(urls: string[]): Promise<Texture[] | null> {
   }
 }
 
-/** A venue's walls in order, all registered, or null: a venue with any wall missing draws its photo, never a partial row. */
-export function wallsFor(level: Pick<Level, "backdrop">, registry: Pick<Registry, "walls">): Wall[] | null {
+/**
+ * A venue's walls in order, or null. A row is all or nothing: a venue with any wall missing draws its photo, never a partial
+ * row. A layout (3-2, 3-4) draws the walls it has, a flat stand-in in a missing one's place: null there.
+ */
+export function wallsFor(level: Pick<Level, "backdrop">, registry: Pick<Registry, "walls">): (Wall | null)[] | null {
   const names = level.backdrop?.walls ?? [];
   if (!names.length) return null;
-  const walls = names.map((n) => registry.walls?.[n]);
-  return walls.every((w): w is Wall => !!w) ? walls : null;
+  const walls = names.map((n) => registry.walls?.[n] ?? null);
+  if (walls.every(Boolean)) return walls;
+  return level.backdrop?.layout && walls.some(Boolean) ? walls : null;
 }
+/** What a missing wall of a layout measures: the painted walls' 1536 by 1024, the floor three-quarters down. */
+const FLAT: Wall = { file: "", width: 1536, height: 1024, floor: 768, top: "#c9b79a", bottom: "#8f857a" };
 
 /**
  * One scale per venue: its walls side by side span its length in the far plane, so each stands behind its own stretch
@@ -131,16 +137,16 @@ export function stackWalls(level: Pick<Level, "bounds" | "floors">, walls: Pick<
  * A level's walls by its explicit layout (3-2): each at its `x` and floor `y`, and how much of it shows above that floor:
  * as painted, or up to the floor of a wall stacked over it.
  */
-export function placementsOf(backdrop: NonNullable<Level["backdrop"]>, walls: Wall[]): { wall: Wall; index: number; x: number; y: number; above: number }[] {
+export function placementsOf(backdrop: NonNullable<Level["backdrop"]>, walls: (Wall | null)[]): { wall: Wall; index: number; x: number; y: number; above: number; flat: boolean }[] {
   const scale = backdrop.far?.scale ?? 1;
   const names = backdrop.walls;
   const layout = backdrop.layout ?? [];
   return layout.map((p) => {
     const index = names.indexOf(p.wall);
-    const wall = walls[index];
+    const wall = walls[index] ?? FLAT;
     const y = p.y ?? 0;
     const over = layout.filter((o) => o.x === p.x && (o.y ?? 0) < y).map((o) => y - (o.y ?? 0));
-    return { wall, index, x: p.x, y, above: over.length ? Math.min(...over) : wall.floor * scale };
+    return { wall, index, x: p.x, y, above: over.length ? Math.min(...over) : wall.floor * scale, flat: !walls[index] };
   });
 }
 
@@ -286,17 +292,27 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
   planes.mid.addChild(grounded.mid);
   planes.fore.addChild(grounded.fore);
   let groundY: number | null = null;
-  const walls = wallsFor(level, registry);
+  const listed = wallsFor(level, registry);
+  const walls = listed?.every(Boolean) ? (listed as Wall[]) : null;
   let countryside: Countryside | null = null;
   // A wall that does not load leaves the venue its photo, never a gap in the row.
   const textures = walls && (await loadAll(walls.map((w) => ART_BASE + w.file)));
-  if (level.backdrop?.layout && walls && textures) {
+  // A layout's walls each on its own: one missing or failing to load draws flat in its place.
+  const laid = level.backdrop?.layout && listed ? await Promise.all(listed.map(async (w) => (w ? ((await loadAll([ART_BASE + w.file]))?.[0] ?? null) : null))) : null;
+  if (level.backdrop?.layout && listed && laid) {
     const scale = level.backdrop.far?.scale ?? 1;
     // The topmost first, so a wall stacked under it covers what it painted below its own floor.
-    for (const p of placementsOf(level.backdrop, walls).sort((a, b) => a.y - b.y)) {
+    for (const p of placementsOf(level.backdrop, listed).sort((a, b) => a.y - b.y)) {
       const w = p.wall;
+      const tex = laid[p.index];
+      if (p.flat || !tex) {
+        const g = flatWall(p.x, p.y, w.width * scale, p.above);
+        g.tint = wallTint;
+        grounded.far.addChild(g);
+        continue;
+      }
       const cut = w.floor - p.above / scale;
-      const s = new Sprite(cut > 0 ? new Texture({ source: textures[p.index].source, frame: new Rectangle(0, cut, w.width, w.height - cut) }) : textures[p.index]);
+      const s = new Sprite(cut > 0 ? new Texture({ source: tex.source, frame: new Rectangle(0, cut, w.width, w.height - cut) }) : tex);
       s.position.set(p.x, p.y - p.above);
       s.scale.set(scale);
       s.tint = wallTint;
@@ -437,6 +453,24 @@ export async function loadBackdrop(scene: Scene, level: Level, registry: Registr
       }
     },
   };
+}
+
+/** A layout's wall not painted yet: a plain facade with a row of windows and a cornice over its floor, the paving below. */
+function flatWall(x: number, floor: number, width: number, above: number): Graphics {
+  const g = new Graphics();
+  const face = tones(FLAT.top);
+  const top = floor - above;
+  g.rect(x, top - 4000, width, 4000).fill(tones("#e9d7b8").base);
+  g.rect(x, top, width, above * 0.12).fill(tones("#8a4b3a").base);
+  g.rect(x, top + above * 0.12, width, above * 0.88).fill(face.base);
+  g.rect(x, top + above * 0.12, width, 18).fill(face.shadow);
+  for (let wx = x + 90; wx < x + width - 120; wx += 190) {
+    g.rect(wx, top + above * 0.3, 70, 120).fill(face.shadow);
+    g.rect(wx, top + above * 0.62, 70, 120).fill(face.shadow);
+  }
+  g.rect(x, floor, width, 4000).fill(FLAT.bottom!);
+  g.rect(x, top + above * 0.12, 3, above * 0.88).fill({ color: "#000000", alpha: 0.2 });
+  return g;
 }
 
 /** The stash's back wall: painted block, a pipe run and a strip light, in the far plane. */

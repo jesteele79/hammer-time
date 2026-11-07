@@ -1,0 +1,8 @@
+{
+ "note": "Coordinates are pixels of art/incoming/backdrops/basel-far-3.png, painted over art/outgoing/renders/basel-far-3.png (scripts/blender/basel.py), whose floor's edge is three-quarters down. Drawn at the game's own size in Basel's layout. Until the painting is in, the render shows.",
+ "floor": 768,
+ "seams": [
+  0,
+  1536
+ ]
+}

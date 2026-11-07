@@ -111,6 +111,27 @@ export const BASEL: Level = {
     { x: 6800, text: "Who approved this?" },
     { x: 10300, text: "That's not a schedule. That's a parade." },
   ],
+  // The Rhine bank and the old town painted straight; the bridge and the Marktplatz painted over the game's renders.
+  backdrop: {
+    walls: ["basel-far-1", "basel-far-2", "basel-far-3", "basel-far-4"],
+    // One more of the Kaserne's wall before the level's start, where the camera looks back past it.
+    layout: [
+      { wall: "basel-far-1", x: -1536 },
+      { wall: "basel-far-1", x: 0 },
+      { wall: "basel-far-1", x: 1536 },
+      { wall: "basel-far-2", x: 3072 },
+      { wall: "basel-far-2", x: 4608 },
+      { wall: "basel-far-2", x: 6144 },
+      { wall: "basel-far-4", x: 7680 },
+      { wall: "basel-far-4", x: 9216 },
+      { wall: "basel-far-3", x: 10752 },
+      { wall: "basel-far-3", x: 12288 },
+      { wall: "basel-far-4", x: 13824 },
+    ],
+    mid: [],
+    fore: [],
+    far: { pan: 1, scale: 1 },
+  },
   // The drum major in front of the red Rathaus: the Marktplatz is his until his third round.
   boss: { kind: "major", x: 12300, arena: [11600, 13000] },
   // The bands cross him at every errand; the drum corps plays in front of the Rathaus, near enough the Marktplatz's barrier.

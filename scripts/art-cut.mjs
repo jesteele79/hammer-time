@@ -1575,6 +1575,13 @@ export function nameTrainPieces(pieces) {
   if (pieces.length !== TRAIN_PIECES.length) throw new Error(`the train sheet has ${pieces.length} pieces, not ${TRAIN_PIECES.length}`);
   return Object.fromEntries(TRAIN_PIECES.map((name, i) => [name, pieces[i]]));
 }
+/** Basel's sheet's pieces, left to right as painted (story Phase 4); src/art/registry.ts has the same list. */
+export const BASEL_PIECES = ["bike", "ramp", "barrier", "bleacher", "tent", "ferry", "lantern", "mace"];
+/** The Basel sheet's pieces by name: eight, or the sheet is refused. */
+export function nameBaselPieces(pieces) {
+  if (pieces.length !== BASEL_PIECES.length) throw new Error(`the Basel sheet has ${pieces.length} pieces, not ${BASEL_PIECES.length}`);
+  return Object.fromEntries(BASEL_PIECES.map((name, i) => [name, pieces[i]]));
+}
 export const TOWER_PIECES = ["cart", "ice", "chute", "cabinet", "sign"];
 /** The tower sheet's pieces by name; a sheet with more or fewer than five is refused, its painting to be redone. */
 export function nameTowerPieces(pieces) {

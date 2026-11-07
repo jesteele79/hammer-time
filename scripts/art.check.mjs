@@ -1186,3 +1186,10 @@ test("the train sheet cuts six pieces by name, the lists agree", async () => {
   const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
   if (existsSync("art/incoming/props/train-sheet.png")) assert.deepEqual(Object.keys(reg.train.pieces), [...TRAIN_PIECES]);
 });
+test("the bridge's and the Marktplatz's renders are committed, each 1536 by 1024 with its cut's floor three-quarters down", async () => {
+  for (const n of ["basel-far-2", "basel-far-3"]) {
+    const m = await sharp(`art/outgoing/renders/${n}.png`).metadata();
+    const cut = JSON.parse(readFileSync(`art/cuts/wall-${n}.json`, "utf8"));
+    assert.deepEqual([m.width, m.height, cut.floor, cut.seams], [1536, 1024, 768, [0, 1536]], n);
+  }
+});

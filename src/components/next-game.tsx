@@ -6,7 +6,7 @@ import type { GameMode } from "@/sim/game";
 import type { Action } from "@/sim/input";
 import type { LevelId } from "@/sim/level";
 import type { QuestId } from "@/sim/quests/quest";
-import { JOURNEY_KEY, bonkedCount, finishLevel, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
+import { JOURNEY_KEY, bonkedCount, finishLevel, homeOf, newJourney, parseJourney, playableNext, serializeJourney, skipTo, type Carry, type Journey, type Snapshot } from "@/sim/journey";
 import { STOP_LEVELS } from "@/sim/levels";
 import { RUN } from "@/sim/run";
 import { builtStops, isStoryId, nextOf, stopOf, type ActId, type StoryCard, type StoryId, type StoryStop } from "@/sim/story";
@@ -85,8 +85,6 @@ const readJourney = (): Journey => {
     return newJourney();
   }
 };
-/** The home screen's scene (story spec §5.1): the lobby at night once Act 1 is done. */
-const homeOf = (j: Journey): LevelId | undefined => (j.done.includes("arena") ? "lobby-night" : undefined);
 /** `&journey=all`: every built stop finished, for the page only (spec §4.7). */
 const openJourney = (): Journey => ({ ...newJourney(), done: [...BUILT], next: nextOf(BUILT[BUILT.length - 1]) ?? BUILT[BUILT.length - 1] });
 
@@ -115,7 +113,7 @@ export function NextGame({
   title = false,
   quest,
   journeyAll = false,
-  homeNight = false,
+  homeAt,
 }: {
   forceWebgl?: boolean;
   noart?: boolean;
@@ -135,7 +133,8 @@ export function NextGame({
   /** Every built stop open for this page, nothing saved (`&journey=all`, spec §4.7). */
   journeyAll?: boolean;
   /** The home screen as it stands once Act 1 is done, whatever the save says (`&home=night`, the boards' and the pictures'). */
-  homeNight?: boolean;
+  /** The home scene the page asks for (`?home=`), whatever the save says. */
+  homeAt?: "lobby-night" | "basel";
 }) {
   const host = useRef<HTMLDivElement>(null);
   const look = useRef<Look | null>(null);
@@ -339,7 +338,7 @@ export function NextGame({
         preference: forceWebgl ? "webgl" : "webgpu",
       });
       if (cancelled) return render.destroy();
-      const started = await startLook(render, { noart, flat, board, dev, nocast, level, title, home: homeNight ? "lobby-night" : homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
+      const started = await startLook(render, { noart, flat, board, dev, nocast, level, title, home: homeAt ?? homeOf(journeyAll ? openJourney() : readJourney()), onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality });
       setLiveQuality(render.quality);
       if (cancelled) {
         started.stop();
@@ -359,12 +358,12 @@ export function NextGame({
       cancelled = true;
       dispose?.();
     };
-  }, [forceWebgl, noart, flat, board, dev, nocast, level, title, journeyAll, homeNight, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
+  }, [forceWebgl, noart, flat, board, dev, nocast, level, title, journeyAll, homeAt, onHud, onMode, onLevelDone, onCard, onTitleScene, onQuality]);
 
   // The save decides the home scene: finishing Act 1, or New game, changes it from the next visit home.
   useEffect(() => {
-    if (ready && !homeNight) look.current?.setHome(homeOf(journey));
-  }, [ready, journey, homeNight]);
+    if (ready && !homeAt) look.current?.setHome(homeOf(journey));
+  }, [ready, journey, homeAt]);
 
   // Settings opened while the game still loaded: the game hears it once it is ready, so its keys stay the page's.
   useEffect(() => {

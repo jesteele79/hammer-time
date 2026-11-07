@@ -270,6 +270,39 @@ try {
     await page.screenshot({ path: resolve(out, "conductor-3.png") });
     count += 3;
   }
+  if (want("basel")) {
+    // Basel's stretches, in the running game's scene.
+    await page.goto(`${base}?next=1&board=1&dev=1&level=basel`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 60000 });
+    await page.waitForTimeout(1200);
+    const frames = (await render("venue")).split("\n");
+    frames.forEach((f, i) => save(`basel-look-${i + 1}.png`, f));
+    count += frames.length;
+  }
+  // The drum major: the whistle and his rank, the mace in the air, the handover with the pipers behind Hammer.
+  if (want("major")) {
+    await page.goto(`${base}?next=1&dev=1&level=basel`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => window.__next.dev.teleport(11650, 0));
+    await page.waitForFunction(() => window.__next.boss?.state === "rank", null, { timeout: 10000 });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: resolve(out, "major-1.png") });
+    await page.evaluate(() => window.__next.dev.boss({ state: "throw" }));
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: resolve(out, "major-2.png") });
+    await page.evaluate(() => window.__next.dev.teleport(12150, 0));
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.__next.dev.boss({ hp: 1, state: "throw" }));
+    await page.keyboard.down("KeyH");
+    await page.waitForTimeout(120);
+    await page.keyboard.up("KeyH");
+    await page.waitForFunction(() => window.__next.boss?.state === "down", null, { timeout: 5000 });
+    await page.keyboard.down("KeyD");
+    await page.waitForTimeout(900);
+    await page.keyboard.up("KeyD");
+    await page.screenshot({ path: resolve(out, "major-3.png") });
+    count += 3;
+  }
   if (want("paris")) {
     // Paris's stretches, in the running game's scene.
     await page.goto(`${base}?next=1&board=1&dev=1&level=paris`);

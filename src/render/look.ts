@@ -77,6 +77,7 @@ import type { ThreeView } from "./3d/three-view";
 import { SETS } from "./3d/sets";
 import { ParisView } from "./venue-paris";
 import { TrainView, loadTrainPieces, type TrainPieces } from "./venue-train";
+import { BaselView, LANTERNS, loadBaselPieces, type BaselPieces } from "./venue-basel";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
@@ -107,6 +108,22 @@ const ROOM_KEEP = 0.8;
 const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS, TRAIN, BASEL].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
+/** Basel's lanterns over the old town (3-4), lit as the clock's last third begins: a lamp every post. */
+const BASEL_LANTERNS: Light[] = Array.from({ length: Math.floor((LANTERNS.x1 - LANTERNS.x0) / LANTERNS.post) + 1 }, (_, k) => ({ x: LANTERNS.x0 + k * LANTERNS.post, y: LANTERNS.y, radius: 520, intensity: 0.5, color: PALETTE.lampGlow, flicker: 0.05, group: "basel-lanterns", soft: true }));
+/** Basel's evening light at the level's start, before dusk eases it toward the night's. */
+const BASEL_DAY = "#ffe0bd";
+/** The drum corps' shake: camera trauma on its fourth beat. */
+const DRUM_SHAKE = 0.5;
+/** How fast he must be moving for the pipers following him to play. */
+const LEAD_WALK = 10;
+/** How far into dusk a level with one is: 0 until the clock's last third, then up to 1 as it runs out. */
+export const duskOf = (level: Pick<Level, "dusk" | "time">, timeLeft: number): number => (level.dusk && level.time > 0 ? Math.min(1, Math.max(0, (level.time / 3 - timeLeft) / (level.time / 3))) : 0);
+/** Two colors mixed, `k` of the way from `a` to `b`. */
+export function mixHex(a: string, b: string, k: number): string {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return `#${x.map((v, i) => Math.round(v + (y[i] - v) * k).toString(16).padStart(2, "0")).join("")}`;
+}
 /** How long a pickup's line stays in the hint. */
 const NOTE_T = 2;
 /** A seam underfoot: a jolt of about 2 px, gone in 0.3 s. */
@@ -237,7 +254,7 @@ export async function startLook(
 ): Promise<Look> {
   const { app } = render;
   const scene = createScene(render);
-  const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1), homes: [LOBBY_NIGHT] }, newSeed(), {
+  const game = createGame({ lobby: SHIFT[0], stash: STASH, venues: SHIFT.slice(1), homes: [LOBBY_NIGHT, BASEL] }, newSeed(), {
     cast: !opts.nocast,
     title: !!opts.title,
     start: Math.max(0, SHIFT.findIndex((l) => l.id === opts.level)),
@@ -275,7 +292,7 @@ export async function startLook(
   if (!reduced) shieldGlow.blendMode = "add";
   scene.layers.play.addChild(shieldGlow, beam);
   // The lamps light the play layer's children as they are now; a venue built later takes the same tint in `prepare`.
-  const lighting = createLighting(scene, render.quality, [...[...LEVELS.values()].flatMap((l) => lightsOf(l)), BANQUET_LIGHT]);
+  const lighting = createLighting(scene, render.quality, [...[...LEVELS.values()].flatMap((l) => lightsOf(l)), BANQUET_LIGHT, ...BASEL_LANTERNS]);
   const props = new Props(scene.layers.play, particles, scene.ambient);
   if (!opts.noart) void props.loadBox(registry);
   const cast = new Cast(scene.layers.play, scene.ambient, registry, particles);
@@ -294,6 +311,10 @@ export async function startLook(
   const parisView = new ParisView(scene.layers.play);
   const trainView = new TrainView(scene.layers.play);
   let trainPieces: TrainPieces = {};
+  const baselView = new BaselView(scene.layers.play);
+  let baselPieces: BaselPieces = {};
+  /** The light dusk has brought so far (3-4): redrawn as it moves on, not every frame. */
+  let duskAt = -1;
   const character = createCharacter(registry, opts.noart ? "scrubs" : "affliction", { noart: opts.noart });
   scene.layers.play.addChild(character.container);
   type Views = { venue: VenueView; backdrop: Backdrop };
@@ -324,8 +345,12 @@ export async function startLook(
           trainPieces = opts.noart ? {} : await loadTrainPieces(registry);
           towerCarts.setTrainArt(trainPieces);
         }
+        if (level.errands) {
+          baselPieces = opts.noart ? {} : await loadBaselPieces(registry);
+          towerCarts.setBaselArt(baselPieces);
+        }
         if (level.pickups?.some((p) => p.kind === "bread") && !opts.noart && registry.french?.food?.[0]) setBreadPicture(await Assets.load<Texture>(ART_BASE + registry.french.food[0].file).catch(() => null));
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces);
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces, baselPieces);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -781,6 +806,9 @@ export async function startLook(
         break;
       case "doorsBeep":
         trainView.beep();
+        break;
+      case "drumHit":
+        scene.camera.trauma = Math.max(scene.camera.trauma, DRUM_SHAKE);
         break;
       case "bogie":
         scene.camera.trauma = Math.max(scene.camera.trauma, BOGIE_JOLT);
@@ -1920,6 +1948,29 @@ export async function startLook(
       views.get(game.level.id)?.backdrop.countryside?.sync(scene.camera.x, VIEW_HALF, world.hero.x, simDt);
     }
     if (game.level.bonjour) parisView.sync(game.level, time, simDt, world.bonjourDone, world.tip.out > 0);
+    baselView.back.zIndex = y - 0.74;
+    baselView.front.zIndex = y - 0.58;
+    baselView.setVisible(!!game.level.errands);
+    if (game.level.errands) {
+      const dusk = game.mode === "title" ? 1 : duskOf(game.level, game.run.time);
+      const near = game.level.errands.reduce((a, b) => (Math.abs(b.x - h.x) < Math.abs(a.x - h.x) ? b : a));
+      baselView.sync(game.level, baselPieces, cur.parade, cur.boss, { x: near.x, hold: game.errandHold }, time, dusk > 0 ? 1 : 0, simDt);
+      // Evening comes on over the clock's last third, the lanterns lit at its start.
+      const at = Math.round(dusk * 20) / 20;
+      if (at !== duskAt) {
+        duskAt = at;
+        lighting.setGroup(dusk > 0 ? "basel-lanterns" : game.level.id);
+        lighting.setAmbient(mixHex(BASEL_DAY, PALETTE.nightAmbient, at));
+        cast.setAmbient(scene.ambient);
+        props.setAmbient(scene.ambient);
+        flyers.setAmbient(scene.ambient);
+      }
+      // Once the pipers follow him, their chanter plays while he walks; the drone holds while he stands.
+      sound.lead(!cur.parade?.followers.length || Math.abs(h.vx) > LEAD_WALK);
+    } else {
+      duskAt = -1;
+      sound.lead(true);
+    }
     hallFlat.setVisible(!!game.level.hall && !hallUp());
     if (game.level.hall) hallFlat.sync(cur.hallCarts, cur.hallDoors, h, cur.flight ? flatCabinOf(cur) : undefined);
 
@@ -2111,6 +2162,10 @@ export async function startLook(
       window.__next.heroScreenX = scene.toScreen({ x, y }).x;
       window.__next.heroScreenY = scene.toScreen({ x, y: drawY }).y;
       window.__next.headTintChain = character.headTintChain();
+      window.__next.shake = scene.camera.trauma;
+      window.__next.music = { lead: sound.leadLevel };
+      window.__next.errands = game.run.errands.length;
+      window.__next.bands = cur.parade?.bands.map((b) => ({ id: b.id, x: b.x, state: b.state }));
       // His back has no face: only his profile does, while it shows.
       window.__next.faceScreen = hallBack ? null : faceOnScreen;
       window.__next.bubbleScreen = bubbles.box && screenRect(bubbles.box);
@@ -2437,7 +2492,14 @@ export async function startLook(
       boss(o: { hp?: number; state?: string; door?: number }) {
         if (world.boss?.kind === "titanium") setTitanium(world.boss, o, game.events);
         else if (world.boss?.kind === "conductor" && o.door !== undefined) game.dev.bossDoor(o.door);
-        else if (world.boss) Object.assign(world.boss, o);
+        else if (world.boss) game.dev.boss(o);
+      },
+      /** 3-4's errand done at once, and a band started now, whoever is where. */
+      errand(id: string) {
+        game.dev.errand(id);
+      },
+      band(id: string) {
+        game.dev.band(id);
       },
       /** The running round: its clock, dishes on a rival's plate, his line locked on a rival's plate, dishes landed on his. */
       quest(o: { time?: number; plate?: { who: RivalId; kinds: FoodKind[] }; aim?: RivalId; eat?: FoodKind[] }) {
@@ -2482,6 +2544,7 @@ export async function startLook(
       towerCarts.destroy();
       parisView.destroy();
       trainView.destroy();
+      baselView.destroy();
       hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();

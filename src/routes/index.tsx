@@ -21,8 +21,8 @@ export const Route = createFileRoute("/")({
     // ?title=1 puts ?next=1 on the start screen; ?quest=hungry or ?quest=fares opens that side quest's practice from it.
     title: flag(search.title),
     quest: questOf(search.quest),
-    // ?home=night shows the home screen as it stands once Act 1 is done, whatever the save says (the boards' and the pictures').
-    home: search.home === "night" ? ("night" as const) : undefined,
+    // ?home=night shows the home screen as it stands once Act 1 is done, ?home=basel once the suite is, whatever the save says.
+    home: search.home === "night" ? ("night" as const) : search.home === "basel" ? ("basel" as const) : undefined,
   }),
   component: Home,
 });
@@ -39,5 +39,5 @@ const questOf = (v: unknown): (typeof QUESTS)[number] | undefined => ((QUESTS as
 function Home() {
   const { next, gl, noart, board, dev, nocast, flat, level, journey, title, quest, home } = Route.useSearch();
   // A quest link holds the game on the start screen behind it: practice opens from there, ?next=1 or not.
-  return <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} flat={!!flat} level={level} journeyAll={!!journey} title={!next || !!title || !!quest} quest={quest} homeNight={home === "night"} />;
+  return <NextGame forceWebgl={!!gl} noart={!!noart} board={!!board} dev={!!dev} nocast={!!nocast} flat={!!flat} level={level} journeyAll={!!journey} title={!next || !!title || !!quest} quest={quest} homeAt={home === "night" ? "lobby-night" : home === "basel" ? "basel" : undefined} />;
 }

@@ -425,3 +425,11 @@ test("the doors won on the train do not follow him: a level from a saved run sta
   play(g);
   assert.deepEqual([g.run.score, g.run.bossDoors, g.world.boss.door, g.world.boss.hp], [5000, 0, 0, 9]);
 });
+import { homeOf } from "../src/sim/journey.ts";
+test("the home scene is the lobby at night once Act 1 is done and Basel's street once the suite is", () => {
+  let j = newJourney(); assert.equal(homeOf(j), undefined);
+  for (const id of ["sat", "lobby", "restaurant", "campus", "arena"]) j = finishLevel(j, id, 1000, null);
+  assert.equal(homeOf(j), "lobby-night");
+  for (const id of ["lobby-night", "tower", "hallway", "suite"]) j = finishLevel(j, id, 1000, null);
+  assert.equal(homeOf(j), "basel");
+});

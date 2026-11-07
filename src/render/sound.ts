@@ -12,6 +12,16 @@ type Cue = keyof AudioBus & string;
 
 export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   bounce: ["jump"],
+  // Basel (story spec §13): the bagpipe's drone as a band's pipes come up, the drum corps' hit, the mace's whirr.
+  bandRise: ["drone"],
+  drumHit: ["drumHit"],
+  maceUp: ["whirr"],
+  whistle: ["whistle"],
+  caught: ["bump"],
+  dropped: ["thud"],
+  knocked: ["thunk"],
+  errand: ["coin"],
+  handover: ["chime"],
   // The way to Basel (story spec §13).
   seatbelt: ["belt"],
   cartOut: ["rattle"],
@@ -134,6 +144,9 @@ export type Sound = {
   taunt(target: TauntTarget): TauntId | null;
   /** Whatever recording is playing stops (a break). */
   stopVoice(): void;
+  /** The song's lead on or off (3-4's pipers play only while he walks), and where it stands. */
+  lead(on: boolean): void;
+  readonly leadLevel: number;
   /** Schedules the music's next notes: once a frame. */
   tick(): void;
   destroy(): void;
@@ -312,6 +325,12 @@ export function createSound(): Sound {
     },
     setHurry(on) {
       bus.hurry = on;
+    },
+    lead(on) {
+      bus.setLead(on);
+    },
+    get leadLevel() {
+      return bus.leadLevel;
     },
     setMuted(on) {
       bus.setMuted(on);

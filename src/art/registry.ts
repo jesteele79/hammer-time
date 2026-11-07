@@ -109,7 +109,12 @@ export type Registry = {
   tower?: { pieces?: Partial<Record<TowerPiece, Piece>> };
   /** The train (story Phase 3): its sheet's six pieces by name. Missing from an older sync, or while the sheet is not in. */
   train?: { pieces?: Partial<Record<TrainPiece, Piece>> };
+  /** Basel (story Phase 4): its sheet's eight pieces by name. Missing from an older sync, or while the sheet is not in. */
+  basel?: { pieces?: Partial<Record<BaselPiece, Piece>> };
 };
+/** Basel's sheet's pieces, left to right as painted (story Phase 4, Task 5); scripts/art-cut.mjs has the same list. */
+export const BASEL_PIECES = ["bike", "ramp", "barrier", "bleacher", "tent", "ferry", "lantern", "mace"] as const;
+export type BaselPiece = (typeof BASEL_PIECES)[number];
 /** The train sheet's pieces, left to right as painted (story Phase 3, Task 13); scripts/art-cut.mjs has the same list. */
 export const TRAIN_PIECES = ["suitcase", "stroller", "bicycle", "trolley", "barrier", "quiet"] as const;
 export type TrainPiece = (typeof TRAIN_PIECES)[number];
