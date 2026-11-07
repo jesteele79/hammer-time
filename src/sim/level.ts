@@ -50,7 +50,8 @@ export type LevelFloor = FloorSegment & { kind: FloorKind };
 export type LevelPlatform = Platform & { kind: PlatformKind; bounce?: number; tip?: number };
 export type CrateKind = "pepper" | "can" | "case" | "bucees";
 /** `x` is the crate's middle, `y` its bottom (world px, up is negative). */
-export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" | "bin" | "fridge" };
+/** `yield`: the cans a bonk on a can crate pops (3-5's vending machines pay three). */
+export type CrateSpec = { id: string; kind: CrateKind; x: number; y: number; look?: "ice" | "cabinet" | "bin" | "fridge" | "vending"; yield?: number };
 export type DoorKind = "stash" | "return" | "exit" | "closed" | "quest" | "gate";
 /**
  * `closed` doors say what opens them; a `quest` door opens a side quest once a shift (the BUFFET's banquet, R4 §7); a
@@ -317,6 +318,10 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   errands?: ErrandSpec[];
   /** The parade (3-4): the pipe bands as marching walls with a hole, and the drum corps whose beat shakes the ground. */
   parade?: { bands: BandSpec[]; corps?: { x: number; reach: number } };
+  /** The code blue stretch (3-5): everyone in it moves at 1.8 times while he is in it, and the lights pulse. */
+  codeBlue?: { x0: number; x1: number };
+  /** Sharps bins on the counters (3-5): brushing one is a hit. */
+  sharps?: Rect[];
   /** What he wears here (story spec §10.2): scrubs on 3-5 and 3-6; the Affliction shirt when it names none. */
   costume?: Costume;
   /** Evening coming on over the clock: the light eases to night through its last third and the lanterns come on (3-4). */

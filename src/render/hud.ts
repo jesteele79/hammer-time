@@ -135,8 +135,9 @@ export function hintOf(game: Game): string {
   if (game.world.boss?.kind === "major" && bossUp(game.world.boss)) return "The drum major · slide the pipers' hole · H while his mace is up";
   if (game.world.boss?.kind === "purser" && bossUp(game.world.boss)) return "The purser · A or D out of the aisle while she pushes · bonk her between pushes";
   if (bossUp(game.world.boss)) return "Housekeeping · jump her carts or slide under · bonk her when she waits";
-  const zone = heatZoneAt(game.world.stage, h);
+  const zone = heatZoneAt(game.world.stage, h, game.world.time);
   if (zone?.kind === "flattop") return "Flat-top · it heats you fast · step off it";
+  if (zone?.kind === "steam") return "Autoclave · it vents · step off while it hisses";
   if (zone?.kind === "freezer") return "Walk-in freezer · cooling off";
   // The cast's threats, in the shipped hint's order: paper, a runaway cart, students to lecture, puddles, staff to bonk.
   const w = game.world;
@@ -226,7 +227,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const q = game.quest;
   const quest = q ? (q.id === "hungry" ? banquetHud(q, !!game.questDoor) : gateHud(q, !!game.questDoor)) : null;
   return {
-    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.coaches ? `Coach ${Math.max(1, game.level.coaches.count - Math.floor((h.x - game.level.coaches.from) / game.level.coaches.every))}` : game.level.id === "basel" ? "Basel" : game.level.name,
+    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.coaches ? `Coach ${Math.max(1, game.level.coaches.count - Math.floor((h.x - game.level.coaches.from) / game.level.coaches.every))}` : game.level.id === "basel" ? "Basel" : game.level.id === "lab" ? "Skills lab" : game.level.name,
     name: game.level.name,
     world: game.level.world,
     card: game.cardLine ?? game.level.card ?? null,

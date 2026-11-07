@@ -77,7 +77,7 @@ export type GameEvent =
   /** He did a move for the first time this run: its lesson stops teaching it. */
   | { type: "lesson"; move: Lesson }
   /** He stepped onto a flat-top or into the walk-in. */
-  | { type: "heatZone"; kind: "flattop" | "freezer"; x: number; y: number }
+  | { type: "heatZone"; kind: "flattop" | "freezer" | "steam" | "beam"; x: number; y: number }
   /** A swinging door swung: banged open by its server's rush or slammed by the mallet (`hard`), or pushed through. */
   | { type: "doorSwing"; id: string; x: number; y: number; dir: 1 | -1; hard: boolean }
   /** A dish cart's dishes crashed. */
@@ -228,4 +228,7 @@ export type GameEvent =
   | { type: "maceLand"; x: number; y: number; hit: boolean }
   | { type: "handover"; x: number; y: number }
   | { type: "follow"; n: number }
+  /** 3-5: a sharps bin brushed; the code blue stretch entered or left. */
+  | { type: "sharps"; x: number; y: number }
+  | { type: "codeBlue"; on: boolean }
   | { type: "mode"; mode: GameMode };

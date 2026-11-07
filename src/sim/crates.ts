@@ -10,7 +10,9 @@ export type Crate = {
   id: string;
   kind: CrateKind;
   /** Drawn as something of the place: the tower's ice machine, its hose cabinet. */
-  look?: "ice" | "cabinet" | "bin" | "fridge";
+  look?: "ice" | "cabinet" | "bin" | "fridge" | "vending";
+  /** Cans a bonk pops, if not one. */
+  yield?: number;
   x: number;
   y: number;
   used: boolean;
@@ -47,7 +49,7 @@ export function hitCrate(c: Crate, how: CrateHit, ctx: CrateContext, out: CrateO
   c.lock = CRATE.bumpLock;
   out.events.push({ type: "crate", id: c.id, kind: c.kind, x: c.x, y: c.y });
   if (c.kind === "can") {
-    out.events.push({ type: "canPop", x: top.x, y: top.y });
+    for (let k = 0; k < (c.yield ?? 1); k++) out.events.push({ type: "canPop", x: top.x, y: top.y });
     return true;
   }
   const kind = c.kind === "bucees" ? "bucees" : ctx.hot ? "nuts" : "pepper";

@@ -34,6 +34,9 @@ import type { HeroState, Point, Rect, Stage, Target } from "./types";
 export type CastWorld = {
   stage: Stage;
   hero: HeroState;
+  /** 3-5's code blue: how much faster everyone in its stretch moves while it is on. */
+  codeBlue?: number;
+  codeBlueZone?: { x0: number; x1: number } | null;
   /** The home screen's scene: nobody moves or notices him. */
   still?: boolean;
   cast: Npc[];
@@ -631,12 +634,21 @@ function land(n: Npc, w: CastWorld): void {
   n.spills = false;
 }
 
+/** Code blue: on his own feet in its stretch while it is on, a staffer goes this much faster; thrown or sliding, not. */
+const rushed = (n: Npc, w: CastWorld): number => {
+  const z = w.codeBlueZone;
+  return z && (w.codeBlue ?? 1) > 1 && n.x >= z.x0 && n.x <= z.x1 && n.act !== "fly" && n.act !== "slide" ? (w.codeBlue ?? 1) : 1;
+};
+
 function physics(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
   const was = n.onGround;
   if (!n.onGround) n.vy += GRAVITY_DOWN * dt;
   const vx0 = n.vx;
   const vy0 = n.vy;
+  const k = rushed(n, w);
+  n.vx *= k;
   moveBody(n, w.stage, dt);
+  n.vx /= k;
   n.blocked = vx0 !== 0 && n.vx === 0;
   if (n.act === "fly") {
     n.spin += n.dir * 540 * dt;

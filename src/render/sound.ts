@@ -232,7 +232,7 @@ export function cuesFor(e: GameEvent): Cue[] {
     case "missile":
       return e.kind === "pan" ? ["whoosh"] : ["paper"];
     case "heatZone":
-      return e.kind === "flattop" ? ["sizzle"] : ["frost"];
+      return e.kind === "freezer" ? ["frost"] : ["sizzle"];
     case "doorSwing":
       return e.hard ? ["bang"] : ["swish"];
     case "dishes":

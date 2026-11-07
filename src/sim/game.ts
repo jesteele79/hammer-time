@@ -152,6 +152,8 @@ export const STATION = { doors: 20, beep: 2 } as const;
 const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
+/** 3-5's corridor (story spec §10.2): a sharps bin's hit at most this often; the code blue's speed; who says what at a bin. */
+export const LAB_RULES = { sharpsAgain: 1.6, codeBlue: 1.8, sharps: "That's a sharps bin, trainee." } as const;
 /** 3-4's errands (story spec §10.1): held still this long this near the counter; the line's seconds; the shut door's line and how often. */
 export const ERRAND = { hold: 1.5, reach: 60, still: 10, think: 2.2, nag: 3, shut: "I have four errands and a meeting." } as const;
 
@@ -232,6 +234,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** The errand he holds still at, and the shut door's next "four errands". */
   let errandT = 0;
   let errandNag = 0;
+  /** 3-5: the next sharps bin's hit, and whether he is in the code blue stretch. */
+  let sharpsCool = 0;
+  let inCodeBlue = false;
 
   const game: Game = {
     levels,
@@ -389,6 +394,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     errandNag = 0;
     game.errandHold = 0;
     world.errands = game.run.errands;
+    sharpsCool = 0;
+    inCodeBlue = false;
+    world.codeBlue = 1;
+    world.codeBlueZone = level.codeBlue ?? null;
     // Gold's late checkout stays on the clock when he comes back in the level that gave it.
     game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
@@ -995,6 +1004,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     }
     thinkFrom = h.x;
     errandStep(ev);
+    labStep(ev);
     towerTraps(ev);
     feetFrom = h.y;
     parisStep(ev);
@@ -1331,6 +1341,28 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.run.errands.push(e.id);
     ev.push({ type: "errand", id: e.id, n: game.run.errands.length, of: list.length, x: e.x, y: h.y - h.h });
     ev.push({ type: "think", text: e.line, seconds: ERRAND.think });
+  }
+
+  /** 3-5's corridor: a sharps bin brushed on a counter is a hit, once in a while; the code blue stretch, on as he is in it. */
+  function labStep(ev: GameEvent[]) {
+    const level = game.level;
+    const h = world.hero;
+    sharpsCool = Math.max(0, sharpsCool - STEP);
+    const bin = level.sharps?.find((s) => overlapsRect(bodyRect(h), s));
+    if (bin && h.onGround && sharpsCool <= 0 && h.invuln <= 0 && h.move?.kind !== "tumble") {
+      sharpsCool = LAB_RULES.sharpsAgain;
+      world.hits.push(bin.x + bin.w / 2 === h.x ? h.x + 1 : bin.x + bin.w / 2);
+      ev.push({ type: "sharps", x: bin.x + bin.w / 2, y: bin.y });
+      const nurse = world.cast.filter((n) => n.alive && n.job === "nurse").sort((a, b) => Math.abs(a.x - h.x) - Math.abs(b.x - h.x))[0];
+      if (nurse && Math.abs(nurse.x - h.x) < 1200) ev.push({ type: "castLine", id: nurse.id, text: LAB_RULES.sharps, seconds: 2 });
+    }
+    const z = level.codeBlue;
+    const inside = !!z && h.x >= z.x0 && h.x <= z.x1;
+    if (inside !== inCodeBlue) {
+      inCodeBlue = inside;
+      ev.push({ type: "codeBlue", on: inside });
+    }
+    world.codeBlue = inside ? LAB_RULES.codeBlue : 1;
   }
 
   /** The tower's traps: falling through a chute's gap costs the slide's seconds and no more; stepping on a wet floor slips him. */

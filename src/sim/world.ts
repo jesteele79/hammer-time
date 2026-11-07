@@ -71,6 +71,9 @@ export type World = {
   still: boolean;
   /** The run's errands done (3-4), as the game keeps them: for the scripted walker and the look. */
   errands: readonly string[];
+  /** 3-5's code blue: 1.8 while he is in its stretch (everyone in it moves that much faster), 1 otherwise; and the stretch. */
+  codeBlue: number;
+  codeBlueZone: { x0: number; x1: number } | null;
   /** A hit from something at `fromX`, applied at the start of the next step. */
   hit(fromX: number): void;
   step(input: Input): void;
@@ -108,6 +111,8 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     hallDoors: [],
     still: false,
     errands: [],
+    codeBlue: 1,
+    codeBlueZone: null,
     hit(fromX) {
       world.hits.push(fromX);
     },
@@ -151,7 +156,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       stepBoss(world, STEP, events);
       stepSwingDoors(world, STEP, events);
       stepHeat(h, input, STEP, events);
-      world.zone = stepHeatZones(h, world.stage, STEP, world.zone, events);
+      world.zone = stepHeatZones(h, world.stage, STEP, world.zone, events, world.time);
       stepIdle(h, input, STEP, events);
       world.events = events;
       world.time += STEP;

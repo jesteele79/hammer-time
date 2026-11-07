@@ -12,6 +12,7 @@ import { SUITE } from "./suite";
 import { TOWER } from "./tower";
 import { TRAIN } from "./train";
 import { BASEL } from "./basel";
+import { LAB } from "./lab";
 
 /** The story's stops that are built, by id: the renderer plays them, the shell lists them on the strip. */
-export const STOP_LEVELS: ReadonlyMap<string, Level> = new Map([SAT, LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS, TRAIN, BASEL].map((l) => [l.id, l]));
+export const STOP_LEVELS: ReadonlyMap<string, Level> = new Map([SAT, LOBBY, RESTAURANT, CAMPUS, GIFTSHOP, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS, TRAIN, BASEL, LAB].map((l) => [l.id, l]));

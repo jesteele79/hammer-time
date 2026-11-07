@@ -8,7 +8,7 @@ import {
 } from "./taunts";
 
 /** Every place's song (story spec §13): the home screen's, each level's, the stash's and the two side quests'. */
-export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite" | "flight" | "paris" | "french" | "train" | "basel";
+export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite" | "flight" | "paris" | "french" | "train" | "basel" | "lab";
 export type Theme = SongId;
 /** The music's level, and the share of it left under the cards (plan decision 12's quiet). */
 export const MUSIC = { level: 0.07, quiet: 0.4 } as const;
@@ -73,6 +73,20 @@ const WALTZ_BASS = bars(...[45, 45, 38, 38, 40, 40, 45, 45, 48, 43, 45, 40, 38, 
 const everyBar = (count: number): Record<number, "chime"> => Object.fromEntries(Array.from({ length: count }, (_, k) => [k * 16, "chime" as const]));
 
 export const SONGS: Record<SongId, Song> = {
+  // 3-5 (story spec §13): the monitor's beep at 72 over sparse pads, two slow chords on a triangle.
+  lab: {
+    step: 60 / 72 / 4,
+    lead: bars(...Array.from({ length: 4 }, () => [88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+    leadWave: "sine",
+    leadLen: 1,
+    bass: bars(...Array.from({ length: 4 }, (_, k) => [k % 2 ? 53 : 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])),
+    bassWave: "triangle",
+    bassLen: 16,
+    kick: "................",
+    snare: "................",
+    hat: "x......x........",
+    gags: {},
+  },
   // 3-4 (story spec §13): the bands themselves, a chanter on the pipes' nine notes over the drone, the drum corps' beat as
   // the level's: four to the bar at 96, its fourth beat the shake.
   basel: {

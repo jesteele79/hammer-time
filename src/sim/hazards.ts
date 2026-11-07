@@ -4,19 +4,23 @@ import type { Puddle } from "./snot";
 import type { HeroState, Point, Stage } from "./types";
 
 /** A stretch of counter or floor that heats him (a flat-top) or cools him (the walk-in freezer) while he stands on it: heat a second. */
-export type HeatZone = { x0: number; x1: number; y: number; rate: number; kind: "flattop" | "freezer" };
+/** `cycle`: on for `on` seconds then off for `off`, by the world's clock (3-5's autoclave); always on without one. */
+export type HeatZone = { x0: number; x1: number; y: number; rate: number; kind: "flattop" | "freezer" | "steam" | "beam"; cycle?: { on: number; off: number } };
 /** How far his feet may be from a zone's surface and still be on it. */
 const ON = 4;
 
-/** The zone he stands on now, or null: standing on it counts, passing over it in the air does not. */
-export function heatZoneAt(stage: Pick<Stage, "heat">, h: Pick<HeroState, "x" | "y" | "onGround">): HeatZone | null {
+/** A zone with a cycle is on for the first `on` seconds of each `on + off`. */
+export const zoneOn = (z: Pick<HeatZone, "cycle">, time: number): boolean => !z.cycle || time % (z.cycle.on + z.cycle.off) < z.cycle.on;
+
+/** The zone he stands on now, or null: standing on it counts, passing over it in the air does not, nor a vent between its puffs. */
+export function heatZoneAt(stage: Pick<Stage, "heat">, h: Pick<HeroState, "x" | "y" | "onGround">, time = 0): HeatZone | null {
   if (!h.onGround) return null;
-  return stage.heat?.find((z) => h.x >= z.x0 && h.x <= z.x1 && Math.abs(h.y - z.y) <= ON) ?? null;
+  return stage.heat?.find((z) => h.x >= z.x0 && h.x <= z.x1 && Math.abs(h.y - z.y) <= ON && zoneOn(z, time)) ?? null;
 }
 
 /** Heat on or off at the zone's rate, kept within 0 and 100, with a `heatZone` event as he steps onto one. Returns the zone he is on. */
-export function stepHeatZones(h: HeroState, stage: Stage, dt: number, was: HeatZone | null, events: GameEvent[]): HeatZone | null {
-  const z = heatZoneAt(stage, h);
+export function stepHeatZones(h: HeroState, stage: Stage, dt: number, was: HeatZone | null, events: GameEvent[], time = 0): HeatZone | null {
+  const z = heatZoneAt(stage, h, time);
   if (z) h.heat = Math.min(100, Math.max(0, h.heat + z.rate * dt));
   if (z && z !== was) events.push({ type: "heatZone", kind: z.kind, x: h.x, y: h.y });
   return z;

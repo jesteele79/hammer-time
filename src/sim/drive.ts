@@ -8,6 +8,7 @@ import { stageOf, type Level } from "./level";
 import { rowX } from "./levels/flight";
 import { lectureReach } from "./moves";
 import { floorAt } from "./physics";
+import { zoneOn } from "./hazards";
 import { PIG } from "./pig";
 import type { HeroState } from "./types";
 import type { World } from "./world";
@@ -24,7 +25,7 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train" | "basel", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train" | "basel" | "lab", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
   if (route === "hall") return hallway(level, h, i, world);
@@ -32,6 +33,7 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "
   if (route === "paris") return strolling(level, h, i, world);
   if (route === "train") return riding(level, h, i, world);
   if (route === "basel") return touring(level, h, i, world);
+  if (route === "lab") return rounding(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   if (world && fightTitanium(world, h, i)) return i;
@@ -223,6 +225,31 @@ function fightMajor(w: World, h: HeroState, i: Input): boolean {
   else if (h.facing < 0) i.held.right = true;
   if (m.state === "throw" && !h.move && h.onGround && h.facing > 0 && Math.abs(h.x - want) <= MAJOR_FIGHT.near * 2) i.held.hammer = i.pressed.hammer = true;
   return true;
+}
+
+/** How the trainee looks ahead in the office, in px: a gurney or an IV pole coming, the autoclave's vent, a sharps bin. */
+const ROUND = { mover: 240, vent: 260, bin: 160 } as const;
+/**
+ * The trainee: down the corridor to the double doors, over the gurneys and the IV poles, waiting out the autoclave's vent,
+ * off the counters with their bins, the mallet at whoever is in his way.
+ */
+function rounding(level: Level, h: HeroState, i: Input, w?: World): Input {
+  i.held.right = i.held.run = true;
+  if (!w) return i;
+  const vent = level.heat?.find((z) => z.cycle && z.x0 - h.x > -20 && z.x0 - h.x < ROUND.vent);
+  if (vent && h.onGround && h.x < vent.x0 && zoneOn(vent, w.time + 0.6)) {
+    i.held.right = i.held.run = false;
+    return i;
+  }
+  fight(w, h, i);
+  const mover = w.movers.some((m) => !m.loop && !m.ride && Math.abs(m.x - h.x) < ROUND.mover + m.w / 2 && (m.x - h.x) * 1 > -m.w / 2 && Math.abs(m.y - h.y) < 40 && h.y > m.top.y + 8);
+  const wall = level.solids.some((s) => s.x - h.x > 0 && s.x - h.x < LOOK.wall && s.y < h.y - 10 && s.y + s.h > h.y - 290);
+  const crate = level.crates.some((c) => c.x - h.x > 0 && c.x - h.x < LOOK.wall && Math.abs(c.y - h.y) < 10);
+  if ((mover || wall || crate || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  // Off a counter before its bin.
+  if (h.y < -60 && level.sharps?.some((s) => s.x - h.x > 0 && s.x - h.x < ROUND.bin)) i.held.down = true;
+  return i;
 }
 
 /** How the runner looks ahead, in px: at the barrier, and at a traveler. */
