@@ -775,6 +775,9 @@ export async function startLook(
       case "tunnel":
         views.get(game.level.id)?.backdrop.countryside?.enterTunnel();
         break;
+      case "respawn":
+        views.get(game.level.id)?.backdrop.countryside?.reset();
+        break;
       case "doorsBeep":
         trainView.beep();
         break;

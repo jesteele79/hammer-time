@@ -90,7 +90,8 @@ export function hitConductor(c: Conductor, by: "bonk" | "snot", events: GameEven
   c.flinch = CONDUCTOR.hurt;
   c.hp = Math.max(0, c.hp - 1);
   c.state = "hurt";
-  events.push({ type: "bossHit", by, x: c.x, y: c.y - c.h * 0.6, hp: c.hp });
+  // The win is the ninth hit: its points come with it, so a knockdown in his walk away keeps them.
+  events.push({ type: "bossHit", by, x: c.x, y: c.y - c.h * 0.6, hp: c.hp, ...(c.hp === 0 ? { points: CONDUCTOR.points } : {}) });
   return true;
 }
 
@@ -197,7 +198,7 @@ export function stepConductor(c: Conductor, w: ConductorWorld, dt: number, event
       if (c.timer > 0) return;
       events.push({ type: "doorOpen", door: c.door });
       atDoor(c, c.door + 1);
-      if (c.door >= c.doors.length) events.push({ type: "bossDown", x: c.x, y: c.y - c.h, points: CONDUCTOR.points });
+      if (c.door >= c.doors.length) events.push({ type: "bossDown", x: c.x, y: c.y - c.h, points: 0 });
       return;
   }
 }

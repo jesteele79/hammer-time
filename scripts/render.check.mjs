@@ -1748,6 +1748,7 @@ test("a room's own wall wins over the list's order", () => {
 test("the countryside shows fields before the tunnel and hills after, in every coach's three windows", () => {
   assert.equal(countrysidePhase(TRAIN, coachX(13)), "fields");
   assert.equal(countrysidePhase(TRAIN, coachX(11)), "hills");
+  assert.equal(countrysidePhase(TRAIN, coachX(13), true), "hills", "once the tunnel is passed it stays hills");
   const rects = countryWindows(TRAIN, { walls: trainWalls() });
   assert.equal(rects.length, 18 * 3);
   assert.deepEqual(rects[0], { x: coachX(18) + 80, y: (141 - 768) / 2, w: 153.5, h: 113 });

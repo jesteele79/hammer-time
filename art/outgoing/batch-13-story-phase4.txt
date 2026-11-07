@@ -36,8 +36,8 @@ ITEMS 1 TO 4: BASEL'S PEOPLE (pose-locked like the cast; save to art/incoming/ca
 
 Attach: Image 1 art/incoming/hammer/body-affliction.png (the pose, camera, framing, canvas
 and drawing style to copy exactly); Image 2 art/outgoing/references/hammer-profile.png (the
-drawing style); Image 3 art/incoming/cast/bellhop-1.png, guard-1.png and conductor.png (the
-pose and style done right).
+drawing style); Image 3 art/incoming/cast/bellhop-1.png and guard-1.png, and conductor.png if it
+exists (the pose and style done right).
 
 They are NOT the man in Image 1. Each has their own face, hair, build and clothes;
 nothing of the man may remain except the pose, the camera and the canvas.
@@ -81,9 +81,10 @@ POSE AND FRAMING (copy Image 1 exactly):
 ITEMS 5 AND 6: BASEL'S TWO STRAIGHT WALLS AND ITS SHEET (save to art/incoming/backdrops/
 and art/incoming/props/)
 
-Attach: art/incoming/backdrops/paris-far-3.png and paris-far-4.png (a street wall: 1536 x
-1024, the pavement's edge three-quarters down, the finish); art/incoming/props/
-train-sheet.png (a sheet of objects on green in a row); hammer-profile.png (the style);
+Attach: art/incoming/backdrops/campus-far-1.png and campus-far-2.png, or paris-far-3.png
+and paris-far-4.png if they exist (an outdoor wall: 1536 x 1024, the pavement's edge
+three-quarters down, the finish); art/incoming/props/tower-sheet.png, and train-sheet.png
+if it exists (a sheet of objects on green in a row); hammer-profile.png (the style);
 bellhop-1.png (the inked finish).
 
 The two walls are two places far apart and never meet, but their base lines are at the
@@ -186,7 +187,8 @@ ITEMS 12 TO 14: THE TRAINING ROOM, THE KID AND THE TRAINING SHEET (save to
 art/incoming/backdrops/, art/incoming/cast/ and art/incoming/props/)
 
 Attach: as items 7 and 8 for the walls; as items 1 to 4 for the kid, plus
-art/incoming/cast/student-1.png (the body he is built like); train-sheet.png for the sheet.
+art/incoming/cast/student-1.png (the body he is built like); tower-sheet.png (and train-sheet.png if it
+exists) for the sheet.
 
 The three walls are one lecture hall: the same grey acoustic panels, the same dark
 carpet's edge at the same row; the right edge of each continues into the left edge of

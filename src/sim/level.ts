@@ -191,7 +191,7 @@ export type ThoughtSpec = { x: number; text: string; y?: number };
 export type RewardRoute = { id: string; x0: number; x1: number; y0: number; y1: number };
 
 /** The levels that exist (the story's stops are `StoryId`, `src/sim/story.ts`); the stash is a level, not a stop. */
-export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway" | "suite" | "flight" | "paris" | "train";
+export type LevelId = "sat" | "lobby" | "stash" | "restaurant" | "campus" | "arena" | "lobby-night" | "tower" | "hallway" | "suite" | "flight" | "paris" | "train" | "basel" | "lab" | "replacement";
 /** The cabin's numbers (story spec §9.1): the drinks cart, the turbulence, the reclined seats, the legs and the tablet by row. */
 export type FlightSpec = {
   cart: { first: number; every: number; speed: number; shove: number };

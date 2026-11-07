@@ -152,7 +152,7 @@ export type GameEvent =
   /** A boss beside the pig: its telegraph, a wave of what it sends, a hit that counted, and down. */
   | { type: "bossWindup"; x: number; y: number }
   | { type: "bossWave"; x: number; y: number; n: number }
-  | { type: "bossHit"; by: "bonk" | "snot"; x: number; y: number; hp: number }
+  | { type: "bossHit"; by: "bonk" | "snot"; x: number; y: number; hp: number; points?: number }
   | { type: "bossDown"; x: number; y: number; points: number }
   /** The train: aboard with what was left of the clock; the doors beeping; the clock out; a shove in the crowd; the board lit; the tunnel; a bogie underfoot; a connecting door opened; the conductor staggered and summoned. */
   | { type: "boarded"; bonus: number }

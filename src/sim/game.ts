@@ -204,6 +204,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   /** The wet floor he stands on: it slips him stepping onto it, not for standing there. */
   /** Keys held through a card down a hall: not a step until they are let go. */
   const heldThrough = { up: false, down: false, side: false };
+  /** The snapped lanes' sidestep: the newest of A and D to go down while it is held, so a release never steps him. */
+  let laneKey: -1 | 0 | 1 = 0;
+  const laneWas = { left: false, right: false };
   /** Where the conductor's door stands in the stage, for when he leaves it. */
   let doorWall: number | null = null;
   /** The train: the tunnel gone through this life; where he stood last step, for the seams he crosses; the next Shh!. */
@@ -1123,10 +1126,15 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     // The cabin is a run: forward without a key, W the sprint, ↓ under the seats, and only the cart moves him back.
     if (game.level.hall?.run) {
       const crouched = back && !forward;
+      if (held.right && !laneWas.right) laneKey = 1;
+      else if (held.left && !laneWas.left) laneKey = -1;
+      else if ((laneKey === 1 && !held.right) || (laneKey === -1 && !held.left)) laneKey = 0;
+      laneWas.left = held.left;
+      laneWas.right = held.right;
       return {
         held: { ...held, right: true, left: false, up: false, down: back, run: forward && !crouched },
         pressed: { ...pressed, right: false, left: false, up: false, down: pressed.down && back },
-        strafe: heldThrough.side ? 0 : (((held.right ? 1 : 0) - (held.left ? 1 : 0)) as -1 | 0 | 1),
+        strafe: heldThrough.side ? 0 : laneKey,
       };
     }
     return {

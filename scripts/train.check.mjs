@@ -216,7 +216,7 @@ test("three hits at a door send him back a coach and open it; a won door stays o
   const d = g.world.boss;
   const again = (n) => { for (let i = 0; i < n; i++) { until(g, (x) => x.world.boss.state === "windup", 6); dodge(g); assert.equal(hitBoss(d, "bonk", g.events), true); if (i < n - 1) until(g, (x) => x.world.boss.hurtT <= 0 && x.world.boss.state !== "hurt", 2); } };
   Object.assign(h, { x: coachX(7) - 120, y: 0, invuln: 99 }); again(3); until(g, (x) => x.world.boss.door === 2, 3);
-  Object.assign(h, { x: coachX(2) - 120, y: 0, invuln: 99 }); again(3); const win = until(g, (x) => x.world.boss.state === "down", 3); assert.deepEqual([of(win, "bossDown")[0].points, d.door, conductorWall(d)], [1000, 3, null]);
+  Object.assign(h, { x: coachX(2) - 120, y: 0, invuln: 99 }); again(3); const win = until(g, (x) => x.world.boss.state === "down", 3); assert.deepEqual([of(win, "bossDown")[0].points, d.door, conductorWall(d)], [0, 3, null], "the 1,000 came with the ninth hit");
   assert.equal(g.run.bossDoors, 3);
 });
 test("Try again after Hammer down at the second door puts him back at the first", () => {
@@ -282,4 +282,16 @@ test("a knockdown just after the third hit keeps the door: he saw him turn to go
     until(g, (x) => of(x.events, "respawn").length > 0, 5);
     assert.deepEqual([g.run.bossDoors, g.world.boss.door, g.world.boss.hp], [1, 1, 6], `${wait} s after the third hit`);
   }
+});
+test("the ninth hit pays the 1,000 as it lands, and a knockdown in his walk away keeps them", () => {
+  const g = train(); play(g); const h = g.world.hero; g.run.stretch = null;
+  g.run.checkpoint = "board"; g.dev.bossDoor(2);
+  Object.assign(h, { x: coachX(2) - 300, y: 0, invuln: 99 });
+  const evs = []; const s = g.run.score;
+  for (let i = 0; i < 2400 && g.world.boss.state !== "retreat"; i++) { g.step(drive(g.level, h, "train", g.world)); evs.push(...g.events); }
+  assert.deepEqual([g.world.boss.state, of(evs, "bossHit").map((e) => e.points ?? 0)], ["retreat", [0, 0, 1000]]);
+  assert.ok(g.run.score - s >= 1000, `paid ${g.run.score - s}`);
+  const paid = g.run.score; Object.assign(h, { invuln: 0, patience: 1 }); g.world.hit(h.x + 100);
+  const down = until(g, (x) => of(x.events, "respawn").length > 0, 4);
+  assert.deepEqual([g.run.score >= paid, of(down, "bossDown").length, g.world.boss.state], [true, 0, "down"]);
 });

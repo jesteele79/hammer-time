@@ -17,7 +17,7 @@ You are making game art on this Windows laptop. Work only inside C:\Users\jeste\
 2. Study these images:
    - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly.
    - Image 2: art\outgoing\references\hammer-profile.png — the drawing style.
-   - Image 3: art\incoming\cast\bellhop-1.png, art\incoming\cast\guard-1.png and art\incoming\cast\conductor.png, and the other people in art\incoming\cast\ — the pose and style done right. The four new people must match them for style, finish and placement in the frame.
+   - Image 3: art\incoming\cast\bellhop-1.png and art\incoming\cast\guard-1.png (and art\incoming\cast\conductor.png if it exists), and the other people in art\incoming\cast\ — the pose and style done right. The four new people must match them for style, finish and placement in the frame.
 
 3. Make piper.png, then drummer.png, drill.png and major.png, one at a time. For each, use your built-in image generation with Image 1 as the input image, so the pose, canvas and framing carry over, but replace the man completely: each has their own face, hair, build, height and clothes, exactly as the item describes. Nothing of the man in Image 1 may remain except the pose. Same canvas size and shape as Image 1 (1086 x 1448, portrait). Do not upscale or resize afterward.
 
@@ -45,8 +45,8 @@ You are making game art on this Windows laptop. Work only inside C:\Users\jeste\
 1. Read C:\Users\jeste\Desktop\hammer-time\art\outgoing\batch-13-story-phase4.txt in full. It is the brief. Make ITEMS 5 AND 6 only (two walls and one sheet), and follow its STYLE and RULES blocks word for word.
 
 2. Study these images:
-   - art\incoming\backdrops\paris-far-3.png and paris-far-4.png — a street wall: 1536 x 1024, landscape, the pavement's edge about three-quarters of the way down, the finish.
-   - art\incoming\props\train-sheet.png — a sheet of objects on green in a row, apart: the finish and the layout.
+   - art\incoming\backdrops\campus-far-1.png and campus-far-2.png (or paris-far-3.png and paris-far-4.png if they exist) — an outdoor wall: 1536 x 1024, landscape, the pavement's edge about three-quarters of the way down, the finish.
+   - art\incoming\props\tower-sheet.png (and train-sheet.png if it exists) — a sheet of objects on green in a row, apart: the finish and the layout.
    - art\outgoing\references\hammer-profile.png — the drawing style.
    - art\incoming\cast\bellhop-1.png — the inked finish everything must match.
 
@@ -130,7 +130,7 @@ You are making game art on this Windows laptop. Work only inside C:\Users\jeste\
    - art\incoming\backdrops\lobby-far-1.png and lobby-far-2.png — indoor walls: 1536 x 1024, landscape, the base line about three-quarters of the way down, their edges meeting.
    - Image 1: art\incoming\hammer\body-affliction.png — the pose, camera, framing, canvas and drawing style to copy exactly for the kid.
    - art\incoming\cast\student-1.png and bellhop-1.png — the pose and style done right; the kid is built like student-1.
-   - art\incoming\props\train-sheet.png — a sheet of objects on green in a row, apart.
+   - art\incoming\props\tower-sheet.png (and train-sheet.png if it exists) — a sheet of objects on green in a row, apart.
    - art\outgoing\references\hammer-profile.png — the drawing style.
 
 3. Make training-far-1.png, then training-far-2.png (attach training-far-1.png so the panels, the ceiling and the base line match), then training-far-3.png (attach training-far-2.png likewise), each exactly 1536 x 1024, landscape; then replacement.png with Image 1 as the input image, replacing the man completely, same canvas as Image 1 (1086 x 1448, portrait); then training-sheet.png at the widest landscape size the tool offers. Do not upscale or resize afterward.

@@ -195,3 +195,19 @@ test("Try again after Hammer down brings back the clock, the lane and the pips a
   g.newRun(61, g.venue, { snapshot: g.snapshot }); play(g); assert.deepEqual([g.run.time, h.lane, h.patience, h.x], [300, 1, 2, 50]);
   assert.deepEqual([g.world.flight.sign, g.world.flight.cart.live, g.world.boss.hp], [0, false, 3]);
 });
+test("a tap with the other key held moves one lane, and the release moves none", () => {
+  const g = flight(); play(g); const h = g.world.hero; assert.equal(h.lane, 1);
+  until(g, () => false, 0.3, { left: true }); assert.equal(h.lane, 0, "A held: one lane left");
+  until(g, () => false, 0.1, { left: true, right: true }); assert.equal(h.lane, 1, "D tapped: one lane right");
+  until(g, () => false, 0.5, { left: true }); assert.equal(h.lane, 1, "D up with A held: none");
+  until(g, () => false, 0.5); assert.equal(h.lane, 1, "A up: none");
+});
+test("a respawn at row 30 stands him clear of the queue", () => {
+  const g = flight(); play(g); const h = g.world.hero; g.run.checkpoint = "row30";
+  g.world.hero.patience = 1; g.world.hero.invuln = 0; g.world.hit(h.x + 100);
+  until(g, (x) => of(x.events, "respawn").length > 0, 4);
+  const q = g.world.cast.filter((n) => n.trick === "queue").sort((a, b) => a.x - b.x);
+  const overlaps = q.some((n) => Math.abs(n.x - h.x) < (n.w + h.w) / 2);
+  assert.deepEqual([overlaps, h.x < q[0].x - 100], [false, true], `at ${h.x}, the queue at ${q[0].x}`);
+  const x0 = h.x; until(g, () => false, 0.3); assert.ok(h.x >= x0, "not popped back");
+});

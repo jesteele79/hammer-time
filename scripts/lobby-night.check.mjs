@@ -218,3 +218,16 @@ test("a bellhop bonked in a lost life carries no keycard when he comes back; one
   assert.equal(person(g, "bellhop-night-1").carry, null);
   assert.equal(person(g, "bellhop-night-2").carry, "keycard");
 });
+test("a fixed keycard taken stays taken and a bellhop's dropped stays dropped across a life", () => {
+  const g = crewed(); play(g);
+  const fixed = g.pickups.find((p) => p.kind === "keycard" && !p.taken && p.spot);
+  Object.assign(g.world.hero, { x: fixed.x, y: fixed.y, onGround: true }); g.step(input());
+  const n = person(g, "bellhop-night-1");
+  n.hits = 2; n.act = "idle"; n.noticed = true; n.rest = 9;
+  Object.assign(g.world.hero, { x: n.x - 180, y: 0, facing: 1, onGround: true, vx: 0, move: null });
+  g.step(input({ hammer: true }, { hammer: true }));
+  until(g, () => g.pickups.some((p) => p.kind === "keycard" && p.body), 2);
+  const spot = fixed.spot; const cards = g.run.keycards;
+  knockOut(g); until(g, (x) => of(x.events, "respawn").length > 0, 6);
+  assert.deepEqual([g.run.keycards, g.pickups.some((p) => p.spot === spot && !p.taken), person(g, "bellhop-night-1").carry, g.pickups.filter((p) => p.kind === "keycard" && p.body).length], [cards, false, null, 0]);
+});

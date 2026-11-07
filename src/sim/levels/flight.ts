@@ -48,7 +48,8 @@ export const FLIGHT: Level = {
   camera: { zones: [] },
   rewards: { count: 0, bucees: 0, nuts: 0 },
   routes: [],
-  checkpoints: [{ id: "row30", x: rowX(30), y: 0 }],
+  // A row and a half before the queue, so a respawn stands him clear of it.
+  checkpoints: [{ id: "row30", x: rowX(30) - 150, y: 0 }],
   seat: { x: rowX(1) },
   boss: { kind: "purser", x: rowX(3), arena: [rowX(6), rowX(3)] },
   thoughts: [

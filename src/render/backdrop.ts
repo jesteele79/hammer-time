@@ -159,7 +159,8 @@ export function roomWallOf(level: Partial<Pick<Level, "rooms" | "backdrop">>, i:
 }
 
 /** What's out of the window at a place on the train: fields before the tunnel, hills after. */
-export const countrysidePhase = (level: Pick<Level, "tunnel">, x: number): "fields" | "hills" => (level.tunnel && x >= level.tunnel.x ? "hills" : "fields");
+/** `passed`: the tunnel already gone through this life, so stepping back out of its mouth keeps the hills. */
+export const countrysidePhase = (level: Pick<Level, "tunnel">, x: number, passed = false): "fields" | "hills" => (level.tunnel && (passed || x >= level.tunnel.x) ? "hills" : "fields");
 
 /** The coaches' panes in the world: a wall's own px, scaled to its room. */
 export function countryWindows(level: Partial<Pick<Level, "rooms" | "backdrop">>, registry: Pick<Registry, "walls">): Rect[] {
@@ -187,8 +188,17 @@ export class Countryside {
     private readonly rects: Rect[],
   ) {}
 
+  private passed = false;
+
   enterTunnel(): void {
     this.dark = COUNTRY.dark;
+    this.passed = true;
+  }
+
+  /** A life begins again: the tunnel is ahead of him once more if he stands before it. */
+  reset(): void {
+    this.passed = false;
+    this.dark = 0;
   }
 
   /** The panes on screen now, for the browser check. */
@@ -201,7 +211,8 @@ export class Countryside {
     this.drift += COUNTRY.drift * dt;
     const g = this.g.clear();
     const shift = cameraX * COUNTRY.scroll + this.drift;
-    const fields = countrysidePhase(this.level, heroX) === "fields";
+    if (countrysidePhase(this.level, heroX) === "hills") this.passed = true;
+    const fields = countrysidePhase(this.level, heroX, this.passed) === "fields";
     for (const r of this.showing(cameraX, half)) {
       if (this.dark > 0) g.rect(r.x, r.y, r.w, r.h).fill("#0b0c10");
       else if (fields) this.fields(g, r, shift);
