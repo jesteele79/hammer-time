@@ -39,7 +39,10 @@ export type PlatformKind =
   | "chair"
   | "awning"
   | "seat"
-  | "bike";
+  | "bike"
+  | "barrier"
+  | "bleacher"
+  | "tent";
 export type FloorKind = "marble" | "tile" | "stairs" | "escalator" | "wood" | "quarry" | "concrete" | "ramp" | "truck" | "brick" | "terrazzo" | "stone" | "steps" | "belt" | "carpet";
 export type LevelFloor = FloorSegment & { kind: FloorKind };
 /** `tip`: stood on this long, it tips him off (the window of Paris's closet). */
@@ -68,7 +71,11 @@ export type DoorSpec = {
   down?: boolean;
   /** A quest door whose tally ends the level, as a gate's does. */
   ends?: boolean;
+  /** An exit shut until every errand of the level is done (3-4's office door). */
+  errands?: boolean;
 };
+/** A counter he stands at, still, for `ERRAND.hold` seconds: done once a run, its line his thought (story spec §10.1). */
+export type ErrandSpec = { id: string; x: number; line: string };
 /** A door with a tier opens at that many keycards; any other door has none to reach. */
 export const tierMet = (d: Pick<DoorSpec, "tier">, keycards: number): boolean => !d.tier || keycards >= d.tier;
 /** `auto`: set as he crosses a stretch's end, with no clock to punch and no bonus for it. */
@@ -177,8 +184,8 @@ export type CastSpawn = {
   /** The night crew's tricks (story spec §8.1): a server's ice water, an office worker's reply-all, a guest who only wanders. */
   trick?: CastTrick;
 };
-/** `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip; `stand`: seated until he is near, then up into him; `rush`: a kid who runs at him and shoves him along. */
-export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove" | "stand" | "rush";
+/** `cheer`: the crowd behind a barrier, never solid and never noticing him, bonked once with a "Prost!"; `queue`: stands in his lane and says nothing until bonked; `seated`: in a seat of the cabin, or behind a desk, takes no part; `tray`: walks its pass, knocking him if he is in the way, and never looks up; `shove`: a traveler in a hurry who shoves him along, no pip; `stand`: seated until he is near, then up into him; `rush`: a kid who runs at him and shoves him along. */
+export type CastTrick = "water" | "replyAll" | "wander" | "queue" | "seated" | "tray" | "shove" | "stand" | "rush" | "cheer";
 export type CarriedKind = "can" | "nuts" | "bucees" | "keycard";
 export type LevelLight = { x: number; y: number; radius: number; intensity: number };
 /** The moves a lesson teaches: each is learned the first time he does it (story spec §6.2). */
@@ -299,6 +306,10 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   chutes?: { x: number; y: number; w: number }[];
   /** Wet floors: a reversed step and half a second without control. */
   slips?: Point[];
+  /** The counters he must stand at before the door that needs them opens (3-4). */
+  errands?: ErrandSpec[];
+  /** Evening coming on over the clock: the light eases to night through its last third and the lanterns come on (3-4). */
+  dusk?: boolean;
 };
 
 export const PICKUP_SIZE = 70;

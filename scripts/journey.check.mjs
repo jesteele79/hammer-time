@@ -390,8 +390,8 @@ test("finishing 3-3 leaves Basel next and the act open", () => {
   let j = newJourney();
   for (const id of ["sat", "lobby", "restaurant", "campus", "arena", "lobby-night", "tower", "hallway", "suite", "flight", "paris", "train"]) j = finishLevel(j, id, 1000, snap(1000));
   assert.equal(j.next, "basel");
-  assert.equal(playableNext(j, builtStops(STOP_LEVELS)), null);
-  assert.equal(comingLabel("basel", builtStops(STOP_LEVELS)), "Basel is coming");
+  assert.equal(playableNext(j, builtStops(STOP_LEVELS)), "basel");
+  assert.equal(comingLabel("lab", builtStops(STOP_LEVELS)), "The Basel office is coming");
 });
 test("the three drivers play their levels start to finish", () => {
   const ride = (level, seconds) => {

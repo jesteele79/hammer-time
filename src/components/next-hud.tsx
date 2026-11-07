@@ -170,6 +170,11 @@ export function NextHud({
             {hud.time === null ? "–" : clock(hud.time)}
           </span>
         )}
+        {!q && !g && hud.errands && (
+          <span className="next-hud__errands" data-done={hud.errands.n >= hud.errands.of} aria-label={`Errands ${hud.errands.n} of ${hud.errands.of}`}>
+            Errands {hud.errands.n}/{hud.errands.of}
+          </span>
+        )}
         <button type="button" className="next-hud__button" aria-label="Pause" onPointerDown={noFocus} onClick={onPause}>
           <PauseIcon />
         </button>

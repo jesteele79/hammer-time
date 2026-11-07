@@ -72,9 +72,11 @@ export type Run = {
   stretch: number | null;
   /** Where Ambassador set the checkpoint, while `checkpoint` names it. */
   checkpointAt?: Point;
+  /** The level's errands done (3-4): kept across a lost life, as the snapshot had them on Try again. */
+  errands: string[];
 };
 
-export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [], keycards: 0, perks: [], spots: [], stretch: null, bossDoors: 0 });
+export const createRun = (seed: number): Run => ({ seed, score: 0, cans: 0, lives: RUN.lives, time: 0, star: 0, checkpoint: null, punched: [], spent: [], flopped: false, lobbed: false, bonked: 0, learned: [], keycards: 0, perks: [], spots: [], stretch: null, bossDoors: 0, errands: [] });
 
 export function addScore(r: Run, n: number): void {
   r.score = Math.min(RUN.maxScore, r.score + n);

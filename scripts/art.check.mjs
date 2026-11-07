@@ -723,7 +723,7 @@ test("every recolor the night asks of a painting is in that painting's cut", () 
   }
 });
 test("every recolor a level asks of a painting is in that painting's cut, a borrowed painting's too", () => {
-  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT, FLIGHT, PARIS, TRAIN])
+  for (const level of [LOBBY, RESTAURANT, CAMPUS, SAT, FLIGHT, PARIS, TRAIN, BASEL])
     for (const s of level.cast ?? []) {
       const painting = PAINTING_OF[s.person] ?? s.person;
       if (!s.recolor || !existsSync(`art/cuts/cast-${painting}.json`)) continue;
@@ -735,6 +735,7 @@ import { SAT } from "../src/sim/levels/sat.ts";
 import { FLIGHT } from "../src/sim/levels/flight.ts";
 import { PARIS } from "../src/sim/levels/paris.ts";
 import { TRAIN } from "../src/sim/levels/train.ts";
+import { BASEL } from "../src/sim/levels/basel.ts";
 import { PAINTING_OF } from "../src/sim/cast.ts";
 
 test("a recolor region can name the layers it reaches: a garment painted in behind an arm is recolored on its own layer only", () => {

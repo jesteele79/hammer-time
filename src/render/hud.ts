@@ -64,6 +64,8 @@ export type HudPayload = {
   saved: boolean;
   /** The most pressing thing to know, one line. */
   hint: string;
+  /** The level's errands done and how many it has (3-4), beside the clock; null where there are none. */
+  errands: { n: number; of: number } | null;
   /** The pig's bar (R3 §5.2) while the fight is on: its HP and the bonks and snots it still needs. */
   boss: { name: string; hp: number; max: number; bonks: number; snots: number; need: number } | null;
   /**
@@ -168,6 +170,15 @@ export function hintOf(game: Game): string {
     if (barrier && h.x < barrier.x + barrier.w) return "Shift and ↓ together slide under the barrier · the train won't wait";
     return "To the doors at the far end · the crowd won't let you by · jump them";
   }
+  // Basel's: the door that waits for the errands, and the counters.
+  const errands = game.level.errands;
+  if (errands?.length) {
+    const left = errands.filter((e) => !game.run.errands.includes(e.id));
+    if (!left.length) return "Errands done · on to the BASEL OFFICE";
+    const at = left.find((e) => Math.abs(e.x - h.x) < 400);
+    if (at) return "Stand still at the counter · the errand fills";
+    return `Errands ${errands.length - left.length}/${errands.length} · stand at each counter · bleachers over the bands`;
+  }
   // Paris's own business, past whatever is in his face.
   const hotel = game.level.bonjour;
   if (hotel) {
@@ -212,7 +223,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
   const q = game.quest;
   const quest = q ? (q.id === "hungry" ? banquetHud(q, !!game.questDoor) : gateHud(q, !!game.questDoor)) : null;
   return {
-    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.coaches ? `Coach ${Math.max(1, game.level.coaches.count - Math.floor((h.x - game.level.coaches.from) / game.level.coaches.every))}` : game.level.name,
+    venue: game.level.floors ? `Floor ${1 + Math.round(-h.y / game.level.floors.every)}` : game.level.stretch && h.x < game.level.stretch.x1 ? "Gare de Lyon" : game.level.coaches ? `Coach ${Math.max(1, game.level.coaches.count - Math.floor((h.x - game.level.coaches.from) / game.level.coaches.every))}` : game.level.id === "basel" ? "Basel" : game.level.name,
     name: game.level.name,
     world: game.level.world,
     card: game.cardLine ?? game.level.card ?? null,
@@ -242,6 +253,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
     saved,
     hall: !!game.level.hall,
     hint: q ? (q.id === "hungry" ? hungryHint(q) : faresHint(q)) : (note ?? hintOf(game)),
+    errands: game.level.errands?.length ? { n: game.run.errands.length, of: game.level.errands.length } : null,
     boss:
       pig && pig.state !== "asleep" && pig.state !== "defeated"
         ? { name: "The Pink Menace", hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need }

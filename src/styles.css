@@ -493,6 +493,15 @@ button:focus-visible {
   text-align: right;
   color: var(--hud-gold);
 }
+.next-hud__errands {
+  color: var(--hud-gold);
+  font-size: 0.82em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.next-hud__errands[data-done="true"] {
+  color: #9fe08a;
+}
 .next-hud__clock[data-hurry="true"] {
   color: #ff6a5c;
   animation: next-hud-pulse 0.5s ease-in-out infinite alternate;

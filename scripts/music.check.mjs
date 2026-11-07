@@ -15,7 +15,7 @@ import { SAT } from "../src/sim/levels/sat.ts";
 import { FLIGHT } from "../src/sim/levels/flight.ts";
 import { PARIS } from "../src/sim/levels/paris.ts";
 
-const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate", "lobby-night", "lounge", "tower", "hallway", "suite", "flight", "paris", "french", "train"];
+const IDS = ["title", "sat", "lobby", "restaurant", "campus", "arena", "cellar", "banquet", "gate", "lobby-night", "lounge", "tower", "hallway", "suite", "flight", "paris", "french", "train", "basel"];
 test("every place has a song in the side quests' form", () => {
   assert.deepEqual(Object.keys(SONGS).sort(), [...IDS].sort());
   for (const id of IDS) {

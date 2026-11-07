@@ -599,8 +599,8 @@ function stepAct(n: Npc, w: CastWorld, dt: number, events: GameEvent[]): void {
     } else patrol(n, w, SHOVE.walk);
     return;
   }
-  // The cabin's queue and its seated travelers, the quiet car's pair, stand as they are, whoever comes.
-  if (n.trick === "queue" || n.trick === "seated") {
+  // The cabin's queue and its seated travelers, the quiet car's pair, Basel's crowd, stand as they are, whoever comes.
+  if (n.trick === "queue" || n.trick === "seated" || n.trick === "cheer") {
     n.vx = 0;
     return;
   }
@@ -676,7 +676,8 @@ function keepToHim(n: Npc, w: CastWorld, dt: number): void {
 
 function contact(n: Npc, w: CastWorld, prevHeroY: number, jumpHeld: boolean, events: GameEvent[]): void {
   const h = w.hero;
-  if (!hittable(n) || sideways(w.stage, h, n)) return;
+  // The crowd is behind its barrier: nothing to walk into or land on.
+  if (!hittable(n) || sideways(w.stage, h, n) || n.trick === "cheer") return;
   if (flopping(h)) {
     if (n.act === "down" || !overlapsRect(flopRect(h), npcRect(n))) return;
     if (strikeNpc(n, "flop", h.facing, w, events, h.flopChain + 1)) {

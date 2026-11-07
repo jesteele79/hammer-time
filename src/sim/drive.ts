@@ -24,13 +24,14 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train" | "basel", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
   if (route === "hall") return hallway(level, h, i, world);
   if (route === "flight") return flying(level, h, i, world);
   if (route === "paris") return strolling(level, h, i, world);
   if (route === "train") return riding(level, h, i, world);
+  if (route === "basel") return touring(level, h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   if (world && fightTitanium(world, h, i)) return i;
@@ -159,6 +160,34 @@ function strolling(level: Level, h: HeroState, i: Input, w?: World): Input {
   const scooter = w.movers.some((m) => m.loop && m.live && m.x - h.x > -40 && m.x - h.x < STROLL.jump + 300);
   const waiter = w.cast.some((n) => n.trick === "tray" && n.alive && !n.out && n.x - h.x > 0 && n.x - h.x < STROLL.jump);
   if ((scooter || waiter || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
+  else if (!h.onGround) i.held.jump = true;
+  return i;
+}
+
+/** How the walker looks ahead in Basel, in px: a bike coming, where he stops running for a counter, how near it he stands, and walks back from. */
+const TOUR = { bike: 540, slow: 360, stand: 40, back: 55 } as const;
+/**
+ * The walker: down the street to each errand in turn, still at its counter until it is done, over the bikes and the ramp's
+ * face, the mallet at whoever is in his way, and in at the office door once the four are done.
+ */
+function touring(level: Level, h: HeroState, i: Input, w?: World): Input {
+  i.held.right = i.held.run = true;
+  if (!w) return i;
+  const todo = (level.errands ?? []).find((e) => !w.errands.includes(e.id));
+  if (todo) {
+    const gap = todo.x - h.x;
+    if (gap < TOUR.slow) i.held.run = false;
+    if (Math.abs(gap) <= TOUR.stand) i.held.right = false;
+    else if (gap < -TOUR.back) {
+      i.held.right = false;
+      i.held.left = true;
+    }
+  }
+  const still = !i.held.right && !i.held.left;
+  if (!still) fight(w, h, i);
+  const bike = w.movers.some((m) => m.loop && m.live && m.x - h.x > -40 && m.x - h.x < TOUR.bike && m.y > (m.base ?? 0) - 40);
+  const wall = level.solids.some((s) => s.x - h.x > 0 && s.x - h.x < LOOK.wall && s.y < h.y - 10 && s.y + s.h > h.y - 290);
+  if ((bike || (wall && !still) || i.pressed.jump) && h.onGround) i.held.jump = i.pressed.jump = true;
   else if (!h.onGround) i.held.jump = true;
   return i;
 }
@@ -303,7 +332,7 @@ function fight(w: World, h: HeroState, i: Input): void {
   // On stairs whoever is ahead stands higher or lower the farther away they are.
   const level = (x: number, y: number) => Math.abs(y - h.y) < 80 + Math.abs(x - h.x) * 0.6;
   const staff = w.cast.some(
-    (n) => n.alive && n.role !== "student" && hittable(n) && (attacking(n, h) || n.act === "windup" || standing(n)) && ahead(n.x, FIGHT.staff) && level(n.x, n.y),
+    (n) => n.alive && n.role !== "student" && n.trick !== "cheer" && hittable(n) && (attacking(n, h) || n.act === "windup" || standing(n)) && ahead(n.x, FIGHT.staff) && level(n.x, n.y),
   );
   const plane = w.missiles.some((m) => ahead(m.x, FIGHT.plane) && Math.abs(m.y - (h.y - h.h * 0.6)) < 200);
   const cart = w.targets.some((t) => ahead(t.x, FIGHT.cart) && Math.abs(t.vx) >= ROLLING && (h.x - t.x) * t.vx > 0 && level(t.x, t.y));

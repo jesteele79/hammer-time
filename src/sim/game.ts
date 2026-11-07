@@ -9,7 +9,7 @@ import { bodyRect, overlapsRect } from "./geometry";
 import { emptyInput, type Input } from "./input";
 import { PICKUP_SIZE, stageOf, tierMet, type CastSpawn, type DoorSpec, type Lesson, type Level, type LevelId, type LevelPlatform } from "./level";
 import type { Missile } from "./missiles";
-import { CHARGE_MAX, moveU, type Move } from "./moves";
+import { CHARGE_MAX, isIdleAct, moveU, type Move } from "./moves";
 import { floorAt } from "./physics";
 import { PIG, createPig } from "./pig";
 import { createFlight, stepFlight } from "./flight";
@@ -107,7 +107,9 @@ export type Game = {
   /** The line the next card shows in place of the level's, for that card only: the train that left. */
   cardLine: string | null;
   /** The checks' levers on a level's clocks. */
-  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void };
+  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void; errand(id: string): void };
+  /** How far through the errand he stands at he is, 0 to 1 (3-4): the look fills its pip. */
+  errandHold: number;
 };
 
 /** The stash's layout comes from the run's seed, offset so it differs from the lobby's. */
@@ -148,6 +150,8 @@ export const STATION = { doors: 20, beep: 2 } as const;
 const CLOCK_REACH = 120;
 /** How close to the exit's middle he walks before the lobby ends. */
 const EXIT_REACH = 60;
+/** 3-4's errands (story spec §10.1): held still this long this near the counter; the line's seconds; the shut door's line and how often. */
+export const ERRAND = { hold: 1.5, reach: 60, still: 10, think: 2.2, nag: 3, shut: "I have four errands and a meeting." } as const;
 
 /** Which table a side quest's door or practice sets. */
 const menuOf = (id: QuestId | undefined): Menu => (id === "lounge" || id === "french" ? id : "banquet");
@@ -223,6 +227,9 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
   let keyHits = 0;
   let onSlip: unknown = null;
   let slipCool = 0;
+  /** The errand he holds still at, and the shut door's next "four errands". */
+  let errandT = 0;
+  let errandNag = 0;
 
   const game: Game = {
     levels,
@@ -270,7 +277,11 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       cart() {
         if (world.flight) world.flight.cart.next = world.flight.cart.t;
       },
+      errand(id) {
+        if (game.level.errands?.some((e) => e.id === id) && !game.run.errands.includes(id)) game.run.errands.push(id);
+      },
     },
+    errandHold: 0,
     titleT: 0,
     runs: 0,
     titleStep,
@@ -356,6 +367,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     feetFrom = world.hero.y;
     onSlip = null;
     slipCool = 0;
+    errandT = 0;
+    errandNag = 0;
+    game.errandHold = 0;
+    world.errands = game.run.errands;
     // Gold's late checkout stays on the clock when he comes back in the level that gave it.
     game.run.time = level.time + (level.status && game.run.perks.includes("GOLD") ? LATE_CHECKOUT : 0);
     game.run.star = 0;
@@ -732,8 +747,16 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.door = game.level.doors.find((d) => Math.abs(h.x - d.x) <= DOOR_REACH && Math.abs(h.y - d.y) < 60) ?? null;
     // Only a man still on his feet clocks out: not one knocked flat, or out of time, thrown into the door.
     const standing = h.move?.kind !== "tumble" && !timedOut;
-    // A locked exit is chained until the pig is down.
-    const open = (d: DoorSpec) => !d.locked || (world.boss ? world.boss.state === "down" : !world.pig || world.pig.state === "defeated");
+    // A locked exit is chained until the pig is down; the office door until the errands are done.
+    const errandsDone = game.run.errands.length >= (game.level.errands?.length ?? 0);
+    const open = (d: DoorSpec) => (!d.errands || errandsDone) && (!d.locked || (world.boss ? world.boss.state === "down" : !world.pig || world.pig.state === "defeated"));
+    errandNag = Math.max(0, errandNag - STEP);
+    const shut = standing && !errandsDone ? game.level.doors.find((d) => d.errands && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60) : undefined;
+    if (shut && errandNag <= 0) {
+      errandNag = ERRAND.nag;
+      ev.push({ type: "errandsShut", x: shut.x, y: shut.y });
+      ev.push({ type: "think", text: ERRAND.shut, seconds: THINK.seconds });
+    }
     const exit = standing
       ? game.level.doors.find((d) => d.kind === "exit" && !d.down && open(d) && Math.abs(h.x - d.x) <= EXIT_REACH && Math.abs(h.y - d.y) < 60 && h.onGround)
       : undefined;
@@ -863,6 +886,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     game.run.checkpointAt = undefined;
     game.run.punched = [];
     game.run.bossDoors = 0;
+    game.run.errands = [];
     begin(carry, ev);
     atCard();
     ev.push({ type: "venue", id: game.level.id });
@@ -952,6 +976,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       ev.push({ type: "think", text: t.text, seconds: THINK.seconds });
     }
     thinkFrom = h.x;
+    errandStep(ev);
     towerTraps(ev);
     feetFrom = h.y;
     parisStep(ev);
@@ -1267,6 +1292,25 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       pigeonsUp.add(p.x);
       ev.push({ type: "pigeons", x: p.x, y: p.y });
     }
+  }
+
+  /** The errand nearest him (3-4): held still at its counter long enough it is done, once a run, its line his thought. */
+  function errandStep(ev: GameEvent[]) {
+    world.errands = game.run.errands;
+    const list = game.level.errands;
+    if (!list?.length) return;
+    const h = world.hero;
+    const e = list.reduce((a, b) => (Math.abs(b.x - h.x) < Math.abs(a.x - h.x) ? b : a));
+    const still = h.onGround && Math.abs(h.vx) < ERRAND.still && (!h.move || isIdleAct(h.move)) && h.stunT <= 0;
+    const holding = still && Math.abs(h.x - e.x) <= ERRAND.reach && !game.run.errands.includes(e.id);
+    errandT = holding ? errandT + STEP : 0;
+    game.errandHold = Math.min(1, errandT / ERRAND.hold);
+    if (errandT < ERRAND.hold - 1e-9) return;
+    errandT = 0;
+    game.errandHold = 0;
+    game.run.errands.push(e.id);
+    ev.push({ type: "errand", id: e.id, n: game.run.errands.length, of: list.length, x: e.x, y: h.y - h.h });
+    ev.push({ type: "think", text: e.line, seconds: ERRAND.think });
   }
 
   /** The tower's traps: falling through a chute's gap costs the slide's seconds and no more; stepping on a wet floor slips him. */

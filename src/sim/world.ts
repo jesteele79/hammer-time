@@ -66,6 +66,8 @@ export type World = {
   hallDoors: HallDoor[];
   /** The home screen's scene: the cast stands as it is and never notices him; his snot passes them and the carts by. */
   still: boolean;
+  /** The run's errands done (3-4), as the game keeps them: for the scripted walker and the look. */
+  errands: readonly string[];
   /** A hit from something at `fromX`, applied at the start of the next step. */
   hit(fromX: number): void;
   step(input: Input): void;
@@ -101,6 +103,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     hallCarts: [],
     hallDoors: [],
     still: false,
+    errands: [],
     hit(fromX) {
       world.hits.push(fromX);
     },

@@ -157,6 +157,8 @@ export const CAST_LINES = {
 
 /** Through his teeth, the one word the concierge's gate takes. */
 export const BONJOUR = "...Bonjour.";
+/** Basel's crowd, bonked (story spec §10.1): a speech bubble, never a recording. */
+export const CHEER = "Prost!";
 
 export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser" | "concierge" | "garcon" | "parisian" | "kid" | "conductor";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */

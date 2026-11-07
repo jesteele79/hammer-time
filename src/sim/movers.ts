@@ -31,8 +31,13 @@ export type Mover = {
   live?: boolean;
   t?: number;
   next?: number;
+  first?: number;
+  /** A one-way mover's leap: from `x` for `d` px its way it rides a half sine `h` high (3-4's bikes over the ramp). */
+  jump?: { x: number; d: number; h: number };
+  /** Its floor, the height it rolls at when not in the air. */
+  base?: number;
 };
-export type MoverSpec = { id: string; x: number; y: number; x0: number; x1: number; w: number; h: number; speed: number; y0?: number; y1?: number; ride?: "crouch"; loop?: 1 | -1; every?: number; first?: number };
+export type MoverSpec = { id: string; x: number; y: number; x0: number; x1: number; w: number; h: number; speed: number; y0?: number; y1?: number; ride?: "crouch"; loop?: 1 | -1; every?: number; first?: number; jump?: { x: number; d: number; h: number } };
 
 /** A cart's side costs him a pip once in this long. */
 export const MOVER = { hurtEvery: 1.2, liftReach: 24 } as const;
@@ -44,7 +49,16 @@ export const createMover = (s: MoverSpec): Mover => ({
   // A lift's floor is flush with the floor he walks on to it from.
   top: { x0: s.x - s.w / 2, x1: s.x + s.w / 2, y: s.ride ? s.y : s.y - s.h },
   ...(s.loop ? { live: false, t: 0, next: s.first ?? 0 } : {}),
+  ...(s.jump ? { base: s.y } : {}),
 });
+
+/** A leaping mover's height at `x`: its floor, or the half sine over its jump's stretch. */
+export function leapY(m: Pick<Mover, "jump" | "loop" | "base" | "y">, x: number): number {
+  const base = m.base ?? m.y;
+  if (!m.jump || !m.loop) return base;
+  const k = ((x - m.jump.x) * m.loop) / m.jump.d;
+  return k > 0 && k < 1 ? base - m.jump.h * Math.sin(Math.PI * k) : base;
+}
 
 /** A lift: up while he crouches on it, a hair's reach of its floor; otherwise down to its foot. */
 function stepLift(m: Mover, h: HeroState, dt: number): void {
@@ -86,6 +100,10 @@ export function stepMovers(w: MoverWorld, dt: number, events: GameEvent[]): void
       m.x += m.loop * m.speed * dt;
       m.top.x0 = m.x - m.w / 2;
       m.top.x1 = m.x + m.w / 2;
+      if (m.jump) {
+        m.y = leapY(m, m.x);
+        m.top.y = m.y - m.h;
+      }
       if ((m.x - m.x1) * m.loop >= 0) {
         m.live = false;
         m.x = m.x0;

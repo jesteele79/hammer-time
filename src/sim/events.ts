@@ -210,4 +210,8 @@ export type GameEvent =
   | { type: "tier"; name: string; word: string; x: number; y: number }
   /** A doggy bag caught the hit that would have knocked him flat: he eats his leftovers, at his head. */
   | { type: "doggyBag"; x: number; y: number }
+  /** An errand done at its counter (3-4): `n` of `of`, and where. */
+  | { type: "errand"; id: string; n: number; of: number; x: number; y: number }
+  /** Walked into the office door before the errands were done. */
+  | { type: "errandsShut"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

@@ -1,4 +1,4 @@
-import { CAST_LINES, JOB_LINES, pick, type CastJobName, type CastLineSet } from "../game/lines";
+import { CAST_LINES, CHEER, JOB_LINES, pick, type CastJobName, type CastLineSet } from "../game/lines";
 import type { GameEvent } from "./events";
 import { bodyRect } from "./geometry";
 import type { CarriedKind, CastPerson, CastTrick, Level } from "./level";
@@ -250,7 +250,7 @@ export function createCast(level: Pick<Level, "cast" | "carts">, targets: Target
       trick: s.trick ?? null,
       rng: s.trick ? seededRandom((seed + Math.imul(k + 1, 7919)) >>> 0) : null,
       replied: false,
-      maxHits: s.trick === "queue" || s.trick === "tray" || s.trick === "shove" || s.trick === "stand" || s.trick === "rush" ? 1 : (CAST_HITS[job] ?? c.hits),
+      maxHits: s.trick === "queue" || s.trick === "tray" || s.trick === "shove" || s.trick === "stand" || s.trick === "rush" || s.trick === "cheer" ? 1 : (CAST_HITS[job] ?? c.hits),
     };
   });
 }
@@ -315,7 +315,9 @@ export function throwNpc(n: Npc, dir: 1 | -1, big: boolean): void {
 export function strikeNpc(n: Npc, by: CastHitBy, dir: 1 | -1, w: StrikeWorld, events: GameEvent[], chain = 0): boolean {
   if (!hittable(n)) return false;
   const big = BIG.has(by);
-  if (n.role === "student") {
+  // The crowd raises a glass at it, whoever they are.
+  if (n.trick === "cheer") say(n, CHEER, events);
+  if (n.role === "student" && n.trick !== "cheer") {
     if (by === "puddle") return false;
     if (by === "mallet" && n.act !== "schooled") {
       setAct(n, "duck");
