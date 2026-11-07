@@ -37,7 +37,14 @@ export type Song = {
   snareGain?: number;
   hat: string;
   gags: Record<number, "whistle" | "honk" | "chime" | "jet">;
+  /** A song in sections of four bars (3-6, one for each of a fight's rounds): each section's own drum lines, a bar long. */
+  sections?: { kick: string; snare: string; hat: string }[];
 };
+/** Steps in a section: four bars of sixteenths. */
+const SECTION_STEPS = 64;
+/** Where in a song `length` steps long its `step`th sixteenth falls: the whole song round, or section `section`'s four bars round. */
+export const sectionStep = (step: number, length: number, section: number | null): number =>
+  section === null || (section + 1) * SECTION_STEPS > length ? step % length : section * SECTION_STEPS + (step % SECTION_STEPS);
 const bars = (...b: number[][]) => b.flat();
 /** A bossa-nova bar: the root, the fifth on the and of two and on three, the root again at the end. */
 const bossa = (root: number, fifth: number) => [root, 0, 0, 0, 0, 0, fifth, 0, fifth, 0, 0, 0, 0, 0, root, 0];
@@ -73,7 +80,8 @@ const WALTZ_BASS = bars(...[45, 45, 38, 38, 40, 40, 45, 45, 48, 43, 45, 40, 38, 
 const everyBar = (count: number): Record<number, "chime"> => Object.fromEntries(Array.from({ length: count }, (_, k) => [k * 16, "chime" as const]));
 
 export const SONGS: Record<SongId, Song> = {
-  // 3-6 (story spec §13): twelve bars at 88, four for each round: the content beat, its bass drive, the boss drive.
+  // 3-6 (story spec §13): twelve bars at 88, a section for each round: the lo-fi content beat, the beat with the bass drive
+  // in, the boss drive with the lead an octave up and the snare on two and four.
   replacement: {
     step: 60 / 88 / 4,
     lead: bars(
@@ -92,6 +100,11 @@ export const SONGS: Record<SongId, Song> = {
     snare: "................",
     hat: "..x...x...x...x.",
     gags: {},
+    sections: [
+      { kick: "x.......x.......", snare: "................", hat: "..x...x...x...x." },
+      { kick: "x..x..x.x..x..x.", snare: "................", hat: "..x...x...x...x." },
+      { kick: "x..x..x.x..x..x.", snare: "....x.......x...", hat: "..x...x...x...x." },
+    ],
   },
   // 3-5 (story spec §13): the monitor's beep at 72 over sparse pads, two slow chords on a triangle.
   lab: {
@@ -663,6 +676,13 @@ export class AudioBus {
   private step = 0;
   private nextAt = 0;
   hurry = false;
+  /** The section of a song in sections that loops (3-6: the boss's round), or null for the whole song. */
+  section: number | null = null;
+
+  /** Loops section `n`'s four bars of the song playing (bars 4n to 4n + 3), or the whole song again with null. */
+  setSection(n: number | null) {
+    this.section = n;
+  }
   /** The song's lead, gated (3-4's pipers play only while he walks): its level, and the gain it plays through. */
   private lead = 1;
   private leadGain: GainNode | null = null;
@@ -946,6 +966,16 @@ export class AudioBus {
   tune() {
     [72, 72, 79, 79, 81, 81, 79, 77, 77, 76, 76, 74, 74, 72].forEach((n, i) => this.blip(midi(n), 0.14, "square", 0.05, undefined, i * 0.18));
   }
+  /** The ring light's stand turned: a low 60 Hz hum swelling over half a second. */
+  hum() {
+    this.blip(60, 0.5, "sawtooth", 0.08, 64);
+    this.blip(120, 0.5, "sine", 0.05);
+  }
+  /** The training video's screen cracking: a sharp glass crack. */
+  crack() {
+    this.noise(0.08, 0.16, 5200, "highpass", 2600);
+    this.blip(2800, 0.04, "square", 0.05, 900);
+  }
   /** A scooter going by: a saw falling away. */
   buzz() {
     this.blip(310, 0.8, "sawtooth", 0.07, 140);
@@ -1152,7 +1182,7 @@ export class AudioBus {
     // missed note at once.
     if (this.nextAt < this.ctx.currentTime) this.nextAt = this.ctx.currentTime + 0.05;
     while (this.nextAt < this.ctx.currentTime + 0.28) {
-      const i = this.step % s.lead.length;
+      const i = sectionStep(this.step, s.lead.length, s.sections ? this.section : null);
       const t = this.nextAt;
       const n = s.lead[i];
       if (n) {
@@ -1161,10 +1191,11 @@ export class AudioBus {
         if (d && i >= d.from && i < d.to) this.tone(midi(n + d.shift), t, step * s.leadLen, d.wave, 0.045, bus);
       }
       if (s.bass[i]) this.tone(midi(s.bass[i]), t, step * s.bassLen, s.bassWave, 0.08, bus);
-      const k = i % s.kick.length;
-      if (s.kick[k] === "x") this.tone(140, t, 0.12, "sine", 0.16, bus, 45);
-      if (s.snare[k] === "x") this.hit(t, 0.08, s.snareGain ?? 0.07, 1800, "bandpass", bus);
-      if (s.hat[k] === "x") this.hit(t, 0.03, 0.025, 7000, "highpass", bus);
+      const drums = s.sections?.[Math.floor(i / SECTION_STEPS)] ?? s;
+      const k = i % drums.kick.length;
+      if (drums.kick[k] === "x") this.tone(140, t, 0.12, "sine", 0.16, bus, 45);
+      if (drums.snare[k] === "x") this.hit(t, 0.08, s.snareGain ?? 0.07, 1800, "bandpass", bus);
+      if (drums.hat[k] === "x") this.hit(t, 0.03, 0.025, 7000, "highpass", bus);
       const gag = s.gags[i];
       if (gag) this.gag(gag, t, bus);
       this.nextAt += step;

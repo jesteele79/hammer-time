@@ -1194,3 +1194,13 @@ test("the bridge's and the Marktplatz's renders are committed, each 1536 by 1024
     assert.deepEqual([m.width, m.height, cut.floor, cut.seams], [1536, 1024, 768, [0, 1536]], n);
   }
 });
+test("the training sheet cuts seven pieces by name, the lists agree", async () => {
+  const { TRAINING_PIECES } = await import("../src/art/registry.ts");
+  const cut = await import("./art-cut.mjs");
+  assert.deepEqual([...TRAINING_PIECES], cut.TRAINING_PIECES);
+  assert.deepEqual([...TRAINING_PIECES], ["ringlight", "lectern", "drone", "tablet", "stick", "screen", "ifu"]);
+  assert.deepEqual(Object.keys(cut.nameTrainingPieces([1, 2, 3, 4, 5, 6, 7])), [...TRAINING_PIECES]);
+  assert.throws(() => cut.nameTrainingPieces([1, 2, 3, 4, 5, 6]), /6 pieces/);
+  const reg = JSON.parse(readFileSync("public/art/registry.json", "utf8"));
+  if (existsSync("art/incoming/props/training-sheet.png")) assert.deepEqual(Object.keys(reg.training.pieces), [...TRAINING_PIECES]);
+});

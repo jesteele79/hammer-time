@@ -101,3 +101,8 @@ test("the scripted trainer wins all three rounds; a masher who never smashes the
   for (let i = 0; i < Math.round(1200 / STEP) && m.mode !== "over"; i++) { m.step(input({ right: true }, { hammer: i % 30 === 0 })); downed ||= m.world.boss?.state === "down"; }
   assert.deepEqual([m.mode, downed], ["over", false]);
 });
+test("a round turns whatever he was doing: set to ten as he keeps to the beam, he takes up filming", () => {
+  const g = fight(); play(g); const h = g.world.hero; const r = g.world.boss; Object.assign(h, { x: 2300, y: 0 }); until(g, (x) => x.world.boss.awake, 2);
+  until(g, (x) => x.world.boss.state === "edge", 2); r.hp = 10; g.step(input());
+  assert.deepEqual([r.round, ["film", "hop"].includes(r.state)], [2, true], r.state);
+});

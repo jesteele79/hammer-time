@@ -134,7 +134,7 @@ export function hintOf(game: Game): string {
   if (game.world.boss?.kind === "titanium") return "Lifetime Titanium guy · bonk him · jump what he throws · H bats an apple back";
   if (game.world.boss?.kind === "conductor" && bossUp(game.world.boss) && Math.abs(game.world.boss.x - h.x) < 900) return "The conductor · jump or ↓ as he punches · H when he staggers";
   if (game.world.boss?.kind === "major" && bossUp(game.world.boss)) return "The drum major · slide the pipers' hole · H while his mace is up";
-  if (game.world.boss?.kind === "replacement" && bossUp(game.world.boss))
+  if (game.world.boss?.kind === "replacement" && game.world.boss.state !== "down")
     return game.world.boss.round === 1
       ? "The replacement · H on the ring light's stand · then him in the dark"
       : game.world.boss.round === 2

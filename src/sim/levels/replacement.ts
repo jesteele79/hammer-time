@@ -40,4 +40,17 @@ export const REPLACEMENT: Level = {
   routes: [],
   boss: { kind: "replacement", x: 3100, arena: [200, 3500] },
   thoughts: [{ x: 600, text: "Read the IFU." }],
+  // Three walls painted straight: the back with the doors and the calendar, the plain middle, the front with the screen in its
+  // middle (the screen stands over 2700 to 3400); the third drawn over the second's right part.
+  backdrop: {
+    walls: ["training-far-1", "training-far-2", "training-far-3"],
+    layout: [
+      { wall: "training-far-1", x: 0 },
+      { wall: "training-far-2", x: 1536 },
+      { wall: "training-far-3", x: 2200 },
+    ],
+    mid: [],
+    fore: [],
+    far: { pan: 1, scale: 1 },
+  },
 };

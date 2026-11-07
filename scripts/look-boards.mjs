@@ -36,8 +36,8 @@ try {
   // Board figures are let go of once drawn: as many alive after the boards as before.
   const live = () => page.evaluate(() => window.__next?.castArt?.live ?? 0);
   const live0 = await live();
-  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "flop", "objects", "cast", "cast-fx", "cast-heads"])
-    if (want(kind)) {
+  for (const kind of ["clips", "heads", "costumes", "moves", "acts", "slopes", "flop", "objects", "cast", "cast-2", "cast-fx", "cast-heads"])
+    if (want(kind) || (kind === "cast-2" && want("cast"))) {
       save(kind === "objects" || kind.startsWith("cast") ? `${kind}.png` : `hammer-${kind}.png`, await render(kind));
       count++;
     }
@@ -278,6 +278,29 @@ try {
     const frames = (await render("venue")).split("\n");
     frames.forEach((f, i) => save(`lab-look-${i + 1}.png`, f));
     count += frames.length;
+  }
+  if (want("replacement")) {
+    // The training room's three frames, then the kid by round: the beam and the stick, the rows and the drone, the screen.
+    await page.goto(`${base}?next=1&board=1&dev=1&level=replacement`);
+    await page.waitForFunction(() => window.__nextBoard && window.__next?.run, null, { timeout: 60000 });
+    await page.waitForTimeout(1500);
+    const frames = (await render("venue")).split("\n");
+    frames.forEach((f, i) => save(`replacement-look-${i + 1}.png`, f));
+    count += frames.length;
+    await page.goto(`${base}?next=1&dev=1&level=replacement`);
+    await page.waitForFunction(() => window.__next?.run?.mode === "play", null, { timeout: 60000 });
+    await page.evaluate(() => window.__next.dev.teleport(2300, 0));
+    await page.waitForFunction(() => window.__next.boss?.state === "edge", null, { timeout: 10000 });
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: resolve(out, "replacement-round-1.png") });
+    await page.evaluate(() => window.__next.dev.boss({ hp: 10 }));
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: resolve(out, "replacement-round-2.png") });
+    await page.evaluate(() => window.__next.dev.boss({ hp: 5 }));
+    await page.waitForFunction(() => window.__next.boss?.state === "hide", null, { timeout: 10000 });
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: resolve(out, "replacement-round-3.png") });
+    count += 3;
   }
   if (want("basel")) {
     // Basel's stretches, in the running game's scene.

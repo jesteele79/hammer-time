@@ -1819,3 +1819,12 @@ test("a rifle is drawn as a rifle and a chart as a clipboard, not as the coffee 
   const cup = size("coffee");
   assert.ok(size("rifle")[0] > 90 && size("chart")[1] > cup[1] + 10, `rifle ${size("rifle")}, chart ${size("chart")}, cup ${cup}`);
 });
+import { TrainingView, drawTraining } from "../src/render/venue-training.ts";
+import { REPLACEMENT as REPLACEMENT_LEVEL } from "../src/sim/levels/replacement.ts";
+test("the beam's wedge is drawn below every figure: the training view's floor sits just over the venue, under everyone in play", () => {
+  const v = new TrainingView(new PixiContainer());
+  assert.ok(v.floor.zIndex > BACK_Z && v.floor.zIndex < BACK_Z + 1, `the floor at ${v.floor.zIndex}`);
+  assert.ok(v.floor.children.length > 0, "the wedge is drawn into it");
+  const room = drawTraining(REPLACEMENT_LEVEL, {});
+  assert.equal(room.label, "training");
+});

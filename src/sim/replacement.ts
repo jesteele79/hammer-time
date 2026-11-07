@@ -78,7 +78,7 @@ export const REPLACEMENT = {
   over: 4,
   stand: { x: 3250 },
   rows: { xs: [1050, 1550, 2050, 2550], y: -150 },
-  hide: { x: 3100, out: 2860 },
+  hide: { x: 3000, out: 2860 },
 } as const;
 /** How far from the beam's middle he stands: just out of its light. */
 export const EDGE = REPLACEMENT.beam.w / 2 + 60;
@@ -470,6 +470,12 @@ export function stepReplacement(r: Replacement, w: ReplacementWorld, dt: number,
     r.round = 2;
     r.drone = { x: REPLACEMENT.drone.orbit.cx + REPLACEMENT.drone.orbit.rx, y: REPLACEMENT.drone.orbit.cy, state: "circle", t: REPLACEMENT.drone.every, phase: 0, tx: 0, ty: 0 };
     r.resT = 0;
+    // Round one's stance gives way to filming; a stagger, a freeze or a hop settles into it as it ends.
+    if (r.state === "edge" || r.state === "jab" || r.state === "swing" || r.state === "dark") {
+      r.state = "film";
+      r.timer = 0;
+      r.vx = 0;
+    }
     events.push({ type: "bossPhase", phase: 2, room: 0 });
     events.push({ type: "bossSay", text: "Like and subscribe.", seconds: 2 });
   } else if (r.round === 2 && r.hp <= REPLACEMENT.rounds.three) {

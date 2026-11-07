@@ -1582,6 +1582,13 @@ export function nameBaselPieces(pieces) {
   if (pieces.length !== BASEL_PIECES.length) throw new Error(`the Basel sheet has ${pieces.length} pieces, not ${BASEL_PIECES.length}`);
   return Object.fromEntries(BASEL_PIECES.map((name, i) => [name, pieces[i]]));
 }
+/** The training sheet's pieces, left to right as painted (story Phase 4); src/art/registry.ts has the same list. */
+export const TRAINING_PIECES = ["ringlight", "lectern", "drone", "tablet", "stick", "screen", "ifu"];
+/** The training sheet's pieces by name: seven, or the sheet is refused. */
+export function nameTrainingPieces(pieces) {
+  if (pieces.length !== TRAINING_PIECES.length) throw new Error(`the training sheet has ${pieces.length} pieces, not ${TRAINING_PIECES.length}`);
+  return Object.fromEntries(TRAINING_PIECES.map((name, i) => [name, pieces[i]]));
+}
 /** The lab sheet's pieces, left to right as painted (story Phase 4); src/art/registry.ts has the same list. */
 export const LAB_PIECES = ["gurney", "iv", "sharps", "vending", "autoclave", "chart"];
 /** The lab sheet's pieces by name: six, or the sheet is refused. */

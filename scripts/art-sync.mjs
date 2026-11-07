@@ -35,6 +35,7 @@ import {
   nameTrainPieces,
   nameBaselPieces,
   nameLabPieces,
+  nameTrainingPieces,
   foodCells,
   paddedLayer,
   scaled,
@@ -606,6 +607,24 @@ const TOWER_SHEET = "art/incoming/props/tower-sheet.png";
 const TRAIN_SHEET = "art/incoming/props/train-sheet.png";
 const BASEL_SHEET = "art/incoming/props/basel-sheet.png";
 const LAB_SHEET = "art/incoming/props/lab-sheet.png";
+const TRAINING_SHEET = "art/incoming/props/training-sheet.png";
+
+/** The training room (story Phase 4): the sheet cut into its seven named pieces; while it is not in, the drawn stand-ins stand. */
+async function training(registry) {
+  registry.training = {};
+  if (!existsSync(TRAINING_SHEET)) return;
+  mkdirSync(join(OUT, "training"), { recursive: true });
+  await tolerant("training sheet", strict, async () => {
+    const named = nameTrainingPieces(await sheetPieces(await keyOut(readFileSync(TRAINING_SHEET))));
+    registry.training.pieces = {};
+    for (const [name, p] of Object.entries(named)) {
+      const file = `training/${name}.png`;
+      writeFileSync(join(OUT, file), p.png);
+      registry.training.pieces[name] = { file, width: p.width, height: p.height, base: p.base };
+    }
+    console.log(`training sheet: ${Object.keys(named).join(", ")}`);
+  });
+}
 
 /** The Basel office (story Phase 4): the sheet cut into its six named pieces; while it is not in, the drawn stand-ins stand. */
 async function lab(registry) {
@@ -717,6 +736,7 @@ await tower(registry);
 await train(registry);
 await basel(registry);
 await lab(registry);
+await training(registry);
 await back(registry);
 await gate(registry);
 await sat(registry);

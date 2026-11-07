@@ -81,6 +81,16 @@ export const CUES: Partial<Record<GameEvent["type"], Cue[]>> = {
   harrumph: ["harrumph"],
   watch: ["tickSfx"],
   hurt: ["curse"],
+  // The training room (3-6).
+  beamTurn: ["hum"],
+  screenCrack: ["crack"],
+  screenDark: ["shatter"],
+  screenPlay: ["buzz"],
+  droneHover: ["buzz"],
+  droneDown: ["coin"],
+  bossFreeze: ["frost"],
+  ifuTaken: ["paper"],
+  carryOut: ["cloth"],
   tumble: ["curse", "thud"],
   crate: ["bump"],
   canPop: ["coin"],
@@ -152,6 +162,9 @@ export type Sound = {
   /** The song's lead on or off (3-4's pipers play only while he walks), and where it stands. */
   lead(on: boolean): void;
   readonly leadLevel: number;
+  /** The section of a song in sections that loops (3-6: the kid's round, 0 to 2), or null for the whole song; and which. */
+  section(n: number | null): void;
+  readonly sectionNow: number | null;
   /** Schedules the music's next notes: once a frame. */
   tick(): void;
   destroy(): void;
@@ -347,6 +360,12 @@ export function createSound(): Sound {
     },
     get leadLevel() {
       return bus.leadLevel;
+    },
+    section(n) {
+      bus.setSection(n);
+    },
+    get sectionNow() {
+      return bus.section;
     },
     setMuted(on) {
       bus.setMuted(on);

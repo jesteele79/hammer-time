@@ -153,3 +153,17 @@ test("the way to Basel's cues: the seatbelt chime, the cart's rattle, the tablet
   assert.deepEqual(CUES.boarded, ["beep", "coin"]);
   for (const k of ["belt", "tune", "buzz", "flutter", "beep", "horn"]) assert.equal(typeof AudioBus.prototype[k], "function", k);
 });
+import { sectionStep } from "../src/game/audio.ts";
+test("the replacement's song: twelve bars at 88, a section of four for each round, the content beat, its bass drive, the boss drive an octave up with the snare on two and four", () => {
+  const s = SONGS.replacement;
+  assert.ok(Math.abs(60 / (s.step * 4) - 88) < 1, "88 bpm");
+  assert.equal(s.lead.length, 12 * 16, "twelve bars");
+  assert.equal(s.sections.length, 3, "three sections");
+  for (const sec of s.sections) for (const line of [sec.kick, sec.snare, sec.hat]) assert.equal(line.length, 16, "a drum line a bar long");
+  assert.deepEqual(s.sections.map((x) => x.kick), ["x.......x.......", "x..x..x.x..x..x.", "x..x..x.x..x..x."]);
+  assert.equal(s.sections[2].snare, "....x.......x...", "the snare on two and four");
+  assert.ok(s.bass.slice(0, 64).every((n) => n === 0) && s.bass.slice(64).some((n) => n === 38) && s.bass.slice(64).some((n) => n === 41), "the bass drive from bar 4");
+  assert.equal(s.lead[128], s.lead[0] + 12, "the lead an octave up");
+  // A section loops its own four bars; none plays the whole song.
+  assert.deepEqual([sectionStep(0, 192, 1), sectionStep(63, 192, 1), sectionStep(64, 192, 1), sectionStep(130, 192, 2), sectionStep(200, 192, null)], [64, 127, 64, 130, 8]);
+});

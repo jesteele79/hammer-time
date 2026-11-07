@@ -33,7 +33,7 @@ import { coilPose, divePose } from "../sim/rig/dive";
 import { blend, type Pose } from "../sim/rig/pose";
 
 export type BoardSpec = {
-  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw" | "lounge" | "lounge-thumb" | "french" | "french-thumb";
+  kind: "clips" | "heads" | "costumes" | "lobby" | "moves" | "acts" | "slopes" | "objects" | "stash" | "cast" | "cast-2" | "cast-lobby" | "cast-fx" | "cast-heads" | "venue" | "pig" | "pig-steps" | "thumb" | "keyart" | "banquet" | "banquet-dive" | "banquet-thumb" | "banquet-food" | "flop" | "gate" | "gate-thumb" | "gate-throw" | "lounge" | "lounge-thumb" | "french" | "french-thumb";
   resolution?: number;
 };
 export type Boards = { render(spec: BoardSpec): Promise<string> };
@@ -65,6 +65,8 @@ export const VENUE_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   flight: [{ x: 200, cx: 500 }, { x: 1700, cx: 2000 }, { x: 3700, cx: 3700 }],
   // The hall, the platform, the quiet car, the bistro car, the family car, the bike car, coach 1.
   train: [{ x: 1200, cx: 1400, cy: -300 }, { x: 3300, cx: 3400, cy: -200 }, { x: 4000 + 4 * 768 + 300, cx: 4000 + 4 * 768 + 384, cy: -200 }, { x: 4000 + 8 * 768 + 300, cx: 4000 + 8 * 768 + 384, cy: -200 }, { x: 4000 + 11 * 768 + 300, cx: 4000 + 11 * 768 + 384, cy: -200 }, { x: 4000 + 14 * 768 + 100, cx: 4000 + 14 * 768 + 384, cy: -200 }, { x: 4000 + 17 * 768 + 300, cx: 4000 + 17 * 768 + 384, cy: -200 }],
+  // The training room: the doors and the catering table, the rows, the front with the lectern, the ring light and the screen.
+  replacement: [{ x: 300, cx: 600, cy: -400, zoom: 0.85 }, { x: 1500, cx: 1800, cy: -400, zoom: 0.85 }, { x: 2600, cx: 2900, cy: -400, zoom: 0.85 }],
   // The office: the entrance, OR 3 and the autoclave, the ward.
   lab: [{ x: 700, cx: 1200, cy: -300 }, { x: 6200, cx: 6500, cy: -300 }, { x: 10600, cx: 10900, cy: -300 }],
   // Basel: the Kaserne end, the bridge with a band on it, the Marktplatz and the drum major.
@@ -117,6 +119,7 @@ export const START_FRAMES: Partial<Record<LevelId, { x: number; y?: number; cx: 
   paris: { x: 2800, cx: 3100, cy: -300 },
   basel: { x: 900, cx: 1400, cy: -300 },
   lab: { x: 700, cx: 1200, cy: -300 },
+  replacement: { x: 2600, cx: 2800, zoom: 0.85 },
   sat: { x: 5900, y: 0, cx: 6500, zoom: 0.92 },
   lobby: { x: 1100, y: 0, cx: 1600 },
   restaurant: { x: 8500, y: -180, cx: 9000, cy: -380, zoom: 0.88 },
@@ -146,7 +149,9 @@ const CAST_FRAMES: { x: number; y?: number; cx: number; cy?: number; zoom?: numb
   { x: 12500, y: -160, cx: 13200 },
   { x: 13800, y: 0, cx: 14300 },
 ];
-const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium", "housekeeper-1", "conductor", "kid-1"];
+const PERSONS: CastPerson[] = ["bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "nurse", "skycap-1", "tsa-1", "bartender-1", "guard-1", "titanium", "housekeeper-1", "conductor", "kid-1", "replacement"];
+/** How many rows the cast sheet's first picture holds; the rest are its second. */
+const CAST_SHEET_ROWS = 20;
 const STAFF_ACTS: CastAct[] = ["idle", "walk", "notice", "windup", "attack", "fly", "down", "getup", "slip", "frozen"];
 /** The head sizes the cast-heads board offers beside each painting's own: shares of the height, crown to neck (Hammer's is 0.26). */
 const HEAD_SHARES = [0.22, 0.26];
@@ -376,14 +381,17 @@ export function createBoards(
     return snapshot(board, width, height);
   };
 
-  /** Every person in every act, a third of the way in (loops at 0.4 s), facing left as the paintings will. */
-  const castSheet = async () => {
+  /**
+   * Every person in every act, a third of the way in (loops at 0.4 s), facing left as the paintings will: rows `from` to `to`
+   * of the sheet (it is drawn in two parts: one picture of every row is more figures than the renderer batches at once).
+   */
+  const castSheet = async (from = 0, to = CAST_SHEET_ROWS) => {
     // Every person as painted, then each repeat the venues recolor and resize: one row per person and color.
     const repeats = new Map<string, { person: CastPerson; name: string; recolor: string | null; size: number }>();
     for (const s of [LOBBY, RESTAURANT, CAMPUS].flatMap((l) => l.cast ?? []))
       if (s.recolor && !repeats.has(`${s.person} ${s.recolor}`))
         repeats.set(`${s.person} ${s.recolor}`, { person: s.person, name: `${s.person} ${s.recolor}`, recolor: s.recolor, size: s.size ?? 1 });
-    const sheetRows = [...PERSONS.map((person) => ({ person, name: person as string, recolor: null as string | null, size: 1 })), ...repeats.values()];
+    const sheetRows = [...PERSONS.map((person) => ({ person, name: person as string, recolor: null as string | null, size: 1 })), ...repeats.values()].slice(from, to);
     const cols = STAFF_ACTS.length;
     const rows = sheetRows.length;
     const width = cols * CELL_W + 150;
@@ -784,6 +792,8 @@ export function createBoards(
           return levelFrames([{ x: 1300, y: -330, cx: 1500, cy: -420 }], "stash");
         case "cast":
           return castSheet();
+        case "cast-2":
+          return castSheet(CAST_SHEET_ROWS, Infinity);
         case "cast-lobby":
           return levelFrames(CAST_FRAMES);
         case "cast-fx":

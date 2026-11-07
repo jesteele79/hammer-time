@@ -81,6 +81,8 @@ import { ParisView } from "./venue-paris";
 import { TrainView, loadTrainPieces, type TrainPieces } from "./venue-train";
 import { BaselView, LANTERNS, loadBaselPieces, type BaselPieces } from "./venue-basel";
 import { LabView, loadLabPieces, type LabPieces } from "./venue-lab";
+import { TrainingView, loadTrainingPieces, type TrainingPieces } from "./venue-training";
+import { beamOn } from "../sim/replacement";
 import { loadSatPieces } from "./venue-sat";
 import { HallFlatView } from "./venue-hall-flat";
 import { TowerCarts, loadTowerPieces, type TowerPieces } from "./venue-tower";
@@ -320,6 +322,8 @@ export async function startLook(
   let baselPieces: BaselPieces = {};
   const labView = new LabView(scene.layers.play);
   let labPieces: LabPieces = {};
+  const trainingView = new TrainingView(scene.layers.play);
+  let trainingPieces: TrainingPieces = {};
   /** The code blue's light last set: redrawn as it moves on, not every frame. */
   let pulseAt = -1;
   /** The light dusk has brought so far (3-4): redrawn as it moves on, not every frame. */
@@ -385,8 +389,12 @@ export async function startLook(
           labPieces = opts.noart ? {} : await loadLabPieces(registry);
           towerCarts.setLabArt(labPieces);
         }
+        if (level.ifu) {
+          trainingPieces = opts.noart ? {} : await loadTrainingPieces(registry);
+          trainingView.setPieces(trainingPieces);
+        }
         if (level.pickups?.some((p) => p.kind === "bread") && !opts.noart && registry.french?.food?.[0]) setBreadPicture(await Assets.load<Texture>(ART_BASE + registry.french.food[0].file).catch(() => null));
-        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces, baselPieces, labPieces, !opts.noart && !!registry.walls?.[level.backdrop?.walls[0] ?? ""]);
+        const venue = drawVenue(scene, level, level.id === "sat" && !opts.noart ? await loadSatPieces(registry) : null, towerPieces, !opts.noart && !!registry.walls?.[level.rooms?.[0]?.wall ?? (level.bonjour ? "paris-far-1" : "suite-far-1")], trainPieces, baselPieces, labPieces, !opts.noart && !!registry.walls?.[level.backdrop?.walls[0] ?? ""], trainingPieces);
         venue.root.tint = multiplyTint(venue.root.tint, ambientTint(ambientOf(level)));
         venue.setVisible(false);
         backdrop.setVisible(false);
@@ -2015,6 +2023,16 @@ export async function startLook(
       duskAt = -1;
       sound.lead(true);
     }
+    // The training room: the beam's floor and the screen under everyone, the drone and the IFU among them; the song's section by
+    // the kid's round.
+    trainingView.front.zIndex = y - 0.5;
+    trainingView.setVisible(!!game.level.ifu);
+    const kid = cur.boss?.kind === "replacement" ? cur.boss : null;
+    if (game.level.ifu) {
+      trainingView.reducedMotion = scene.reducedMotion;
+      trainingView.sync(world.boss?.kind === "replacement" ? world.boss : null, world.ifu, simDt);
+    }
+    sound.section(game.level.ifu && kid ? kid.round - 1 : null);
     labView.container.zIndex = y - 0.45;
     labView.setVisible(!!game.level.codeBlue);
     if (game.level.codeBlue) {
@@ -2225,7 +2243,20 @@ export async function startLook(
       window.__next.badgeScreen = badge && scene.toScreen({ x: character.container.x + badge.x, y: character.container.y + badge.y });
       window.__next.shake = scene.camera.trauma;
       window.__next.ambient = scene.ambient;
-      window.__next.music = { lead: sound.leadLevel };
+      window.__next.music = { lead: sound.leadLevel, section: sound.sectionNow };
+      const kidNow = world.boss?.kind === "replacement" ? world.boss : null;
+      window.__next.training = game.level.ifu
+        ? {
+            frame: trainingView.frame,
+            drone: kidNow?.drone?.state ?? null,
+            ifu: world.ifu?.state ?? null,
+            // On screen: the floor in the beam's middle, the floor well out of it, the middle of the big screen.
+            beam: kidNow && beamOn(kidNow) ? scene.toScreen({ x: kidNow.beam.x, y: 12 }) : null,
+            dark: kidNow ? scene.toScreen({ x: kidNow.beam.x + (kidNow.beam.x > 2600 ? -900 : 900), y: 12 }) : null,
+            // Where the loop's demo unit sways in and out of frame to frame.
+            screen: scene.toScreen({ x: 3200, y: -600 }),
+          }
+        : undefined;
       window.__next.errands = game.run.errands.length;
       window.__next.bands = cur.parade?.bands.map((b) => ({ id: b.id, x: b.x, state: b.state }));
       // His back has no face: only his profile does, while it shows.
@@ -2610,6 +2641,7 @@ export async function startLook(
       trainView.destroy();
       baselView.destroy();
       labView.destroy();
+      trainingView.destroy();
       hallFlat.destroy();
       banquet.destroy();
       lounge.destroy();
