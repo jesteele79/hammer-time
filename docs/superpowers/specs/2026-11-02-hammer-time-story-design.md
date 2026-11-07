@@ -1274,6 +1274,30 @@ booth with him in it; the epilogue's card joins the strip.
   Phase 5, and every stop replays from the strip as today. `credits` stays
   off until the epilogue exists.
 
+### As built (Phase 4c, 2026-11-07)
+
+- **3-6 plays as planned** (`src/sim/replacement.ts`, `src/sim/levels/replacement.ts`), the fight only, in scrubs, fifteen hits
+  on one bar with notches at ten and five, a lost life the whole fight again. Where the build differs: the kid keeps to the
+  beam's far side from Hammer (not its leading edge), crossing through the light once Hammer is past him; a bonk on the stand
+  throws the light 800 px toward the end of its sweep with more room, so it always moves well away (it can land on Hammer when
+  he turns it from the near side; from the far side, once it has swung near, the kid stands close in the dark); the beam shines
+  and heats in round one only; the residents take seats in the rows (the student's fight stands still) with nuts in their
+  pockets, which is how the smash charges besides the catering table; the kid films where he stands and hops to the next row
+  away from Hammer within 300 px, over him to the farthest row when there is none that way; the drone hovers beside him at his
+  nose's height so a snot straight out can down it; any box that meets the kid freezes him with the birds, "READ THE IFU." the
+  IFU's; he hides at x 3000 behind the lectern's middle, ducking, the lectern drawn over him. He takes a hit only in his
+  openings (the dark, a freeze, a stagger out, the open), so a snot from across the room counts nothing; nothing freezes him in
+  round one or on his way behind the lectern; a freeze mid-hop leaves him on the row or the floor under him.
+- **The end** is the kid carried out by two residents (4 s), the administrator walking in from the doors' side with her folder
+  to 450 px short of Hammer (never nearer the doors than x 800), so she is on screen with him (2.5 s), then the tally, the caption "The Basel office would like you to stay on. As Trainer for Life." with
+  "Obviously.", the act card and home. The journey is finished there: `next` stays 3-6, no run, no carry, and Clock in reads
+  "The epilogue is coming" until Phase 5; every stop replays from the strip.
+- **Drawn:** no training paintings are in. The game draws the hall (warm plaster, a wood wainscot, the acoustic ceiling, the
+  calendar with every date crossed out and rewritten), the doors, the table and its bowls, the rows as red lecture seats, the
+  lectern, the ring light, the screen with its loop, cracks and dark, the drone and the pad (`src/render/venue-training.ts`). The
+  beam is an ellipse on the floor under a faint cone from the ring, drawn under every figure. The kid wears the student's
+  painting, the residents theirs, the administrator the office worker's.
+
 ## 12. The 3D levels
 
 ### 12.1 The approach
@@ -1515,6 +1539,12 @@ drone's buzz. The crowd never speaks aloud.
 - `lab` plays on 3-5, 5.1 dB under the banquet (-58.9 against -53.8 dBFS): the monitor beeps on every beat at 72 (once a bar it sat
   6.1 dB under), two slow chords on a triangle. The music hurries in the code blue; the lights pulse red, not under reduced motion.
 
+### As built (Phase 4c, 2026-11-07)
+
+- `replacement` plays on 3-6: twelve bars at 88 in sections of four, one looped for each of the kid's rounds (`Song.sections`,
+  `AudioBus.setSection`): the content beat (-58.4 dBFS), the bass drive (-56.0), the boss drive (-56.1), all within 6 dB of the
+  banquet's -53.8. Two new cues: the stand's hum and the screen's crack.
+
 ## 14. Settings and the controller
 
 Settings, from the home screen and the break card: **music volume** and
@@ -1661,6 +1691,15 @@ hold the paste-ready prompts.
   paintings land. Prompts 1 to 5 went to the owner before Task 1, pointed at paintings that exist (the conductor, Paris's walls
   and the train sheet named "if it exists", being still out).
 - **Still drawn or borrowed:** Basel's four people, the Kaserne and old-town walls, the Basel sheet's eight pieces (`BASEL_PIECES`).
+
+### As built (Phase 4b and 4c, 2026-11-07)
+
+- **None of the office's or the training room's paintings are in.** The game draws the office's corridor and the training room's
+  hall, their sheets' pieces (`LAB_PIECES`, six; `TRAINING_PIECES`, seven: ringlight, lectern, drone, tablet, stick, screen, ifu)
+  and its people in borrowed paintings: the techs in the nurse's, the residents and the kid in the student's, the administrator
+  in the office worker's. Each cuts in by the usual way once it lands: `art/cuts/wall-<name>.json` for the walls
+  (`lab-far-1..3`, `training-far-1..3`), `art/cuts/cast-<name>.json` for a person (then out of `PAINTING_OF`), the sheet by
+  `art-sync` from `art/incoming/props/`.
 
 ## 17. How the old plans fold in
 

@@ -630,6 +630,47 @@ The corridor's three walls are the owner's to paint (`lab-far-1..3`); until then
 handrail. The gurneys, the IV poles, the vending machines, the autoclave and the sharps bins are drawn in code until the lab sheet
 is in (`src/render/venue-lab.ts`). The music is the monitor's beep at 72 over sparse pads.
 
+## The replacement (3-6)
+
+The fight only, in the training room, in scrubs (`src/sim/levels/replacement.ts`), "The training room. He has a ring light.":
+3,600 px, the double doors at the left with the catering table beside them, four rows of seats as platforms, and at the right
+the lectern with the IFU on it, the ring light on its stand, the big screen on the wall and the drone's pad; 360 seconds, no
+punch clock, so a lost life is the whole fight again. "Read the IFU." is his thought on the way in.
+
+**The kid** (`src/sim/replacement.ts`) wakes 900 px out: fifteen hits on one bar with notches at ten and five, a 60 px stagger
+on every hit, "absolute bullshit" forced on Hammer's first hurt of the fight, "They need to get fired" forced on the last hit. He
+takes a hit only in his openings (the dark, a freeze, a stagger out from behind the lectern, the open once the screen is dark):
+the mallet, a snot or the smash anywhere else counts nothing. He wears the student's painting in its purple until his own is
+cut.
+
+- **Round one, the ring light (15 to 11):** its beam sweeps the front of the room (2,000 to 3,200 at 160 px a second), a lit
+  ellipse on the floor under a faint cone from the ring, and heats him 30 a second while he stands in it, never in the air. The
+  kid keeps to the beam's far side from Hammer, crossing through the light once Hammer is past him, and jabs with the selfie
+  stick on the briefcase's timing (a 0.4 s extend, 300 px). A bonk on the stand throws the light 800 px toward the end of its
+  sweep with more room and leaves the kid standing in the dark 1.5 s: that is the hit. The stand takes a bonk again after 2 s.
+- **Round two, like and subscribe (10 to 6):** "Like and subscribe." Residents take seats in the rows, four at a time, one every
+  3 s, throwing charts as planes, nuts in their pockets. A drone circles the hall and every 6 s hovers beside him at his nose's
+  height for half a second, then dives at where he stood; a snot rocket downs it for 300 and "FOOTAGE.", and another lifts off
+  the pad 10 s later. The kid films where he stands and hops to the next row away when Hammer comes within 300, saying his lines
+  by turns. The hits come from freezes: the lecture freezes him 2.2 s; the IFU is picked up by walking over it, thrown with B,
+  freezes him 1.5 s with the birds and "READ THE IFU.", and lies where it lands to be picked up again. Nothing freezes him in
+round one, nor once round three has him on his way behind the lectern.
+- **Round three, the video (5 to 0):** he walks behind the lectern and ducks, and the screen plays "Module 1: Holding the demo
+  unit" (a hand turning the demo unit the wrong way, four frames at two a second). The screen's glow heats the floor and the
+  front rows from 2,000 to 2,800; nuts drop on the catering table every 6 s. Only a full smash within 500 px of the screen
+  cracks it: the first two cracks stagger him out for 2 s each, the third puts it dark and him in the open until the last hit.
+  Two residents carry him out, the administrator walks in from the doors' side with her folder and stops beside Hammer, and
+  the level ends where he stands.
+
+**After it:** "The Basel office would like you to stay on. As Trainer for Life." with his thought "Obviously.", then "Act 3 ·
+The Last Tour · complete" with the act's total and the fanfare, then home.
+
+Until the walls are painted (`training-far-1..3`) the game draws the hall: warm plaster over a wood wainscot, the acoustic
+ceiling, the European training calendar with every date crossed out and rewritten in his hand; the doors, the table, the rows,
+the lectern, the ring light, the screen and the pad are drawn in code until the training sheet is in
+(`src/render/venue-training.ts`). The kid wears the student's painting until his own is cut. The music loops a section of four
+bars for each round: the lo-fi content beat, the beat with the bass drive, the boss drive.
+
 ## Hungry Hungry Hammer (the BUFFET door)
 
 The lobby's BUFFET door (4600) opens Hungry Hungry Hammer once a shift: ↓ on the floor in front of it, as at the STAFF
@@ -1078,13 +1119,15 @@ built stop, the side quests') after the art changes, and
 The story (`src/sim/story.ts`) is fifteen stops in order: SAT (the prologue),
 1-1 to 1-4 (Act 1, The Trip: the hotel's four venues as built), 2-1 to 2-4
 (Act 2, Status Crusade) and 3-1 to 3-6 (Act 3, The Last Tour), with the cards
-that come before and after them. SAT, Acts 1 and 2 and Act 3 as far as the Basel office are built, fourteen stops: a fresh
+that come before and after them. All fifteen are built: a fresh
 journey's Clock in opens on the email from the Basel office, then SAT. Act 2 starts
 clean on "11:40 pm. The same lobby.", carries his keycards through its four levels,
 and ends on the Bonvoy review ("TITANIUM. Lifetime.") and its act card with his
 status. Act 3 starts clean on the flight, lands in Paris ("Paris. 13 July. 06:40. No Southwest, no A-List, no ice."), takes
-the French table on the way, arrives "Basel SBB. 17:06. On time. They always are." and goes on with him to Basel and the
-office, and ends for now at the training room's doors; 3-6 then reads "Coming" and Clock in "The replacement is coming". From the suite on, the home screen's
+the French table on the way, arrives "Basel SBB. 17:06. On time. They always are." and goes on with him to Basel, the
+office and the training room, and ends on "The Basel office would like you to stay on. As Trainer for Life." ("Obviously.") and
+"Act 3 · The Last Tour · complete". The journey is finished there: nothing carries on, every stop replays from the strip, and
+Clock in reads "The epilogue is coming" until Phase 5 builds it. From the suite on, the home screen's
 scene is Basel's street at evening. Acts 2 and 3 have no straight-through run yet (`STRAIGHT_BUILT`). A
 journey begun before SAT was built has it finished with no best; it replays
 from the strip, and New game plays it in order.
@@ -1133,7 +1176,9 @@ floor's hum and the suite's drive; on the way to Basel the safety video's muzak 
 sign on, it hurries), the musette, a waltz of two saws a hair apart, and its quick cousin
 at the French table, 1.4 times the speed, the train's rail clatter; in Basel the bands themselves, a chanter on the pipes'
 nine notes over a held drone at 96, the drum corps' beat as the level's (its fourth the shake), the chanter gated once the pipers
-follow him: it plays while he walks; in the office the monitor's beep at 72 over two slow chords, hurrying in the code blue. What
+follow him: it plays while he walks; in the office the monitor's beep at 72 over two slow chords, hurrying in the code blue; in the
+training room twelve bars at 88 in three sections, one looped for each of the kid's rounds: the lo-fi content beat, the beat
+with its bass drive, the boss drive an octave up. What
 plays follows the mode (`musicFor` in
 `src/render/sound.ts`): the level's song quiet under its cards, the tallies
 and the break and full in play, a round's song the same way, silence under
@@ -1200,6 +1245,7 @@ node scripts/paris-browser.check.mjs http://127.0.0.1:8090/
 node scripts/train-browser.check.mjs http://127.0.0.1:8090/
 node scripts/basel-browser.check.mjs http://127.0.0.1:8090/
 node scripts/lab-browser.check.mjs http://127.0.0.1:8090/
+node scripts/replacement-browser.check.mjs http://127.0.0.1:8090/
 node scripts/look-boards.mjs http://127.0.0.1:8090/
 ```
 
