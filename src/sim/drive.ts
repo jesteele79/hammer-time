@@ -1,4 +1,5 @@
 import { TITANIUM } from "./titanium";
+import { REPLACEMENT } from "./replacement";
 import { ROLLING, hittable, npcRect, standing } from "./cast";
 import { attacking } from "./cast-behavior";
 import { overlapsRect } from "./geometry";
@@ -25,7 +26,7 @@ const PIG_FIGHT = { wait: 110, bonk: 200, snot: 900 } as const;
  * at the stairs either hop onto the landing (the balcony route) or run on under it (the floor).
  * With a world it also fights what is in front of it.
  */
-export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train" | "basel" | "lab", world?: World): Input {
+export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "climb" | "hall" | "flight" | "paris" | "train" | "basel" | "lab" | "replacement", world?: World): Input {
   const i = emptyInput();
   if (route === "climb") return climb(level, h, i, world);
   if (route === "hall") return hallway(level, h, i, world);
@@ -34,6 +35,7 @@ export function drive(level: Level, h: HeroState, route: "floor" | "balcony" | "
   if (route === "train") return riding(level, h, i, world);
   if (route === "basel") return touring(level, h, i, world);
   if (route === "lab") return rounding(level, h, i, world);
+  if (route === "replacement") return training(h, i, world);
   i.held.right = i.held.run = true;
   if (world && fightPig(world, h, i)) return i;
   if (world && fightTitanium(world, h, i)) return i;
@@ -250,6 +252,66 @@ function rounding(level: Level, h: HeroState, i: Input, w?: World): Input {
   // Off a counter before its bin.
   if (h.y < -60 && level.sharps?.some((s) => s.x - h.x > 0 && s.x - h.x < ROUND.bin)) i.held.down = true;
   return i;
+}
+
+/**
+ * Where the trainer stands to the ring light's stand (its far side, out of the light's reach), how near the kid he swings, how
+ * near a spot counts as there, how near the stand the light must have swung before he turns it (the kid then near him in the
+ * dark), and how far inside the stick's reach he steps to draw its jab.
+ */
+const TRAIN_FIGHT = { stand: 170, bonk: 120, near: 20, beam: 2950, bait: 20 } as const;
+/** The training room: in from the doors until the kid is up, then the fight. */
+function training(h: HeroState, i: Input, w?: World): Input {
+  if (w && fightReplacement(w, h, i)) return i;
+  i.held.right = i.held.run = true;
+  return i;
+}
+/**
+ * The replacement, round one: past the kid in the stick's rest (stepping into its reach to draw the jab, out again as it comes),
+ * to the stand's far side, a bonk on it once the light has swung near, at the kid while he stands in the dark, and back out.
+ * True while the fight has him.
+ */
+function fightReplacement(w: World, h: HeroState, i: Input): boolean {
+  const r = w.boss;
+  if (r?.kind !== "replacement" || !r.awake || r.state === "down") return false;
+  i.held.left = i.held.right = i.held.run = false;
+  /** To `x` at a run; true once there. */
+  const go = (x: number) => {
+    if (Math.abs(h.x - x) <= TRAIN_FIGHT.near) return true;
+    i.held[h.x < x ? "right" : "left"] = true;
+    i.held.run = true;
+    return false;
+  };
+  const swingAt = (side: 1 | -1, ready: boolean) => {
+    if (h.facing !== side) i.held[side > 0 ? "right" : "left"] = true;
+    else if (ready && !h.move && h.onGround) i.held.hammer = i.pressed.hammer = true;
+  };
+  const far = r.stand.x + TRAIN_FIGHT.stand;
+  if (r.state === "dark") {
+    const side: 1 | -1 = h.x < r.x ? 1 : -1;
+    if (go(r.x - side * TRAIN_FIGHT.bonk)) swingAt(side, true);
+    return true;
+  }
+  if (r.state === "hurt") {
+    go(far);
+    return true;
+  }
+  if (h.x < r.x + 60) {
+    const gap = r.x - h.x;
+    const s = REPLACEMENT.stick;
+    if (r.state === "jab" || r.state === "swing") {
+      if (gap < s.reach + 60) i.held.left = true;
+      return true;
+    }
+    if (r.timer > 0.4) {
+      i.held.right = i.held.run = true;
+      return true;
+    }
+    if (gap > s.reach - TRAIN_FIGHT.bait) i.held.right = true;
+    return true;
+  }
+  if (go(far)) swingAt(-1, r.stand.cd <= 0 && r.beam.x >= TRAIN_FIGHT.beam);
+  return true;
 }
 
 /** How the runner looks ahead, in px: at the barrier, and at a traveler. */

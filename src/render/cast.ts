@@ -96,6 +96,8 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   // The Basel office's people, stand-ins behind the paintings they borrow (the nurse's, the student's, the office worker's).
   tech: { height: 335, head: 0.22, build: 1.05, skin: "#c98f6b", hair: "#1b2748", hairStyle: "beanie", top: "#1b2748", sleeves: "top", bottom: "#1b2748", shoes: "#f4f3ee", lanyard: true },
   resident: { height: 310, head: 0.22, build: 0.8, skin: "#e8bf9c", hair: "#2a1d16", hairStyle: "ponytail", top: "#f4f3ee", sleeves: "top", bottom: "#5b7fb8", shoes: "#f4f3ee", lanyard: true },
+  // The replacement: twenties, a quarter-zip, white sneakers, AirPods (the student's painting lent until his own is cut).
+  replacement: { height: 330, head: 0.22, build: 0.85, skin: "#e8bf9c", hair: "#3b2a22", hairStyle: "short", top: "#4a5a72", sleeves: "top", bottom: "#2b2d33", shoes: "#f4f3ee", earbuds: true },
   admin: { height: 325, head: 0.22, build: 0.85, skin: "#ebc9a9", hair: "#c9c9c9", hairStyle: "bob", top: "#6b6f78", sleeves: "top", bottom: "#6b6f78", shoes: "#141414", lanyard: true },
   "bartender-1": { height: 310, head: 0.22, build: 0.9, skin: "#c9956a", hair: "#1c1612", hairStyle: "short", top: "#f4f3ee", sleeves: "skin", vest: "#1b1b1b", apron: true, bottom: "#1b1b1b", shoes: "#141414" },
 };

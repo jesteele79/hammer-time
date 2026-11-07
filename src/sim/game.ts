@@ -22,6 +22,7 @@ import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
 import { createParade, PARADE, startBand } from "./parade";
 import { throwMace } from "./major";
+import { REPLACEMENT, beamOn, beamZone } from "./replacement";
 import { createBoss } from "./boss";
 import { CONDUCTOR, atDoor, conductorWall, summonConductor } from "./conductor";
 import { createSwingDoors } from "./hazards";
@@ -1017,6 +1018,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     if (keyDoor(ev)) return;
     if (takeSeat(ev)) return;
     if (titaniumStep(ev)) return;
+    if (replacementStep(ev)) return;
     // The cast's points ride their events; the eighth bowl of a chain is a life.
     const score = (list: GameEvent[]) => {
       for (const e of list) {
@@ -1072,7 +1074,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     } else if (h.move?.kind === "tumble" && moveU(h.move) >= RUN.lieAt) die(ev);
   }
 
-  const bossBeaten = () => world.boss?.kind === "titanium" && (world.boss.state === "pool" || world.boss.state === "down");
+  const bossBeaten = () => (world.boss?.kind === "titanium" && (world.boss.state === "pool" || world.boss.state === "down")) || (world.boss?.kind === "replacement" && world.boss.state === "down");
   /** How long after he goes over the rail the level ends. */
   let bossOverT = 0;
   /** What Lifetime Titanium guy's fight asks of the run: his bellhops, the grab's cans, the cans he gives back, and the end. */
@@ -1110,6 +1112,42 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     bossOverT -= STEP;
     if (bossOverT > 0) return false;
     world.hits = [];
+    ev.push({ type: "exit" });
+    setMode("walkoff", ev, RUN.walkoffT);
+    return true;
+  }
+
+  /** Whether he stood in the ring light's beam last step: its heat zone's event fires as he steps in. */
+  let inBeam = false;
+  /**
+   * What the replacement's fight asks of the run (story spec §11.1): the beam's heat on the floor while it shines, "absolute
+   * bullshit" on his first hurt of the fight (forced, once), and the end, `over` seconds after the kid is down. A lost life
+   * restarts the fight whole: the level has no punch clock, so he comes back at its door and the kid at fifteen.
+   */
+  function replacementStep(ev: GameEvent[]): boolean {
+    const r = world.boss;
+    if (r?.kind !== "replacement") return false;
+    const h = world.hero;
+    const seen = world.events;
+    const z = beamZone(r);
+    const lit = beamOn(r) && h.onGround && h.x >= z.x0 && h.x <= z.x1 && Math.abs(h.y - z.y) <= 4;
+    if (lit) h.heat = Math.min(100, h.heat + z.rate * STEP);
+    if (lit && !inBeam) ev.push({ type: "heatZone", kind: "beam", x: h.x, y: h.y });
+    inBeam = lit;
+    if (!r.firstHurt && seen.some((e) => e.type === "hurt" || e.type === "tumble")) {
+      r.firstHurt = true;
+      ev.push({ type: "voiceLine", id: "curse" });
+    }
+    if (seen.some((e) => e.type === "bossDown")) {
+      bossOverT = REPLACEMENT.over;
+      world.hits = [];
+      h.invuln = 99;
+    }
+    if (r.state !== "down") return false;
+    world.hits = [];
+    h.invuln = Math.max(h.invuln, 1);
+    bossOverT -= STEP;
+    if (bossOverT > 0) return false;
     ev.push({ type: "exit" });
     setMode("walkoff", ev, RUN.walkoffT);
     return true;

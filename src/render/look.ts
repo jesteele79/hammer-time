@@ -35,6 +35,7 @@ import { PARIS } from "../sim/levels/paris";
 import { TRAIN } from "../sim/levels/train";
 import { BASEL } from "../sim/levels/basel";
 import { LAB } from "../sim/levels/lab";
+import { REPLACEMENT } from "../sim/levels/replacement";
 import { HALLWAY } from "../sim/levels/hallway";
 import { SUITE } from "../sim/levels/suite";
 import { TOWER } from "../sim/levels/tower";
@@ -107,7 +108,7 @@ const SHIFT: Level[] = [LOBBY, RESTAURANT, CAMPUS, GIFTSHOP];
 /** How far past a room's walls the camera may see, and how much of the view is kept round him if he has left the room. */
 const ROOM_MARGIN = 200;
 const ROOM_KEEP = 0.8;
-const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS, TRAIN, BASEL, LAB].map((l) => [l.id, l]));
+const LEVELS = new Map<LevelId, Level>([SAT, ...SHIFT, STASH, LOBBY_NIGHT, TOWER, HALLWAY, SUITE, FLIGHT, PARIS, TRAIN, BASEL, LAB, REPLACEMENT].map((l) => [l.id, l]));
 /** The ballroom's chandelier over the banquet table (R4 §2). */
 const BANQUET_LIGHT: Light = { x: 0, y: -560, radius: 1100, intensity: 0.55, color: PALETTE.lampGlow, flicker: 0.02, group: "banquet" };
 /** Basel's lanterns over the old town (3-4), lit as the clock's last third begins: a lamp every post. */
@@ -853,6 +854,10 @@ export async function startLook(
         break;
       case "bossSay":
         speech.say(BOSS_ID, e.text, e.seconds);
+        break;
+      // A scripted recording has its words in his bubble, as a taunt's do; the damage recording has none.
+      case "voiceLine":
+        if (e.id !== "curse") bubbles.say(TAUNT_LINES[e.id].text, 2);
         break;
       case "castLine":
         speech.say(e.id, e.text, e.seconds);

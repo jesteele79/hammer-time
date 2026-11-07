@@ -8,7 +8,7 @@ import {
 } from "./taunts";
 
 /** Every place's song (story spec §13): the home screen's, each level's, the stash's and the two side quests'. */
-export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite" | "flight" | "paris" | "french" | "train" | "basel" | "lab";
+export type SongId = "title" | "sat" | "lobby" | "restaurant" | "campus" | "arena" | "cellar" | "banquet" | "gate" | "lobby-night" | "lounge" | "tower" | "hallway" | "suite" | "flight" | "paris" | "french" | "train" | "basel" | "lab" | "replacement";
 export type Theme = SongId;
 /** The music's level, and the share of it left under the cards (plan decision 12's quiet). */
 export const MUSIC = { level: 0.07, quiet: 0.4 } as const;
@@ -73,6 +73,26 @@ const WALTZ_BASS = bars(...[45, 45, 38, 38, 40, 40, 45, 45, 48, 43, 45, 40, 38, 
 const everyBar = (count: number): Record<number, "chime"> => Object.fromEntries(Array.from({ length: count }, (_, k) => [k * 16, "chime" as const]));
 
 export const SONGS: Record<SongId, Song> = {
+  // 3-6 (story spec §13): twelve bars at 88, four for each round: the content beat, its bass drive, the boss drive.
+  replacement: {
+    step: 60 / 88 / 4,
+    lead: bars(
+      ...Array.from({ length: 8 }, () => [67, 0, 0, 70, 0, 0, 67, 0, 0, 0, 70, 0, 0, 0, 0, 0]),
+      ...Array.from({ length: 4 }, () => [79, 0, 0, 82, 0, 0, 79, 0, 0, 0, 82, 0, 0, 0, 0, 0]),
+    ),
+    leadWave: "square",
+    leadLen: 2,
+    bass: bars(
+      ...Array.from({ length: 4 }, () => new Array<number>(16).fill(0)),
+      ...Array.from({ length: 8 }, () => [38, 0, 0, 0, 0, 0, 38, 0, 41, 0, 0, 0, 0, 0, 41, 0]),
+    ),
+    bassWave: "sawtooth",
+    bassLen: 2,
+    kick: "x.......x.......",
+    snare: "................",
+    hat: "..x...x...x...x.",
+    gags: {},
+  },
   // 3-5 (story spec §13): the monitor's beep at 72 over sparse pads, two slow chords on a triangle.
   lab: {
     step: 60 / 72 / 4,

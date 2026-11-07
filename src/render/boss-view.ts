@@ -16,7 +16,11 @@ const WHO: Record<Boss["kind"], { person: CastPerson; recolor: string | null; si
   conductor: { person: "conductor", recolor: "#1b2748", size: 1 },
   // The guard's painting until his own is cut.
   major: { person: "major", recolor: null, size: 1.05 },
+  // The student's painting until his own is cut.
+  replacement: { person: "replacement", recolor: null, size: 0.97 },
 };
+/** The selfie stick's length out of his near hand, folded and extended for the jab. */
+const STICK = { folded: 60, out: 170 } as const;
 
 /** A boss standing in the level: their painting (or stand-in), posed by their state, always behind him. */
 const RETREAT_FADE = 0.3;
@@ -29,6 +33,9 @@ export class BossView {
   private kind: Boss["kind"] | null = null;
   /** Lifetime Titanium guy's briefcase, in his near hand. */
   private readonly briefcase = new Graphics();
+  /** The replacement's selfie stick in his near hand and the tablet in his far one. */
+  private readonly stick = new Graphics();
+  private readonly tablet = new Graphics();
 
   constructor(
     parent: Container,
@@ -43,6 +50,12 @@ export class BossView {
     this.briefcase.zIndex = 50;
     this.briefcase.visible = false;
     this.container.addChild(this.briefcase);
+    this.tablet.roundRect(-34, -24, 68, 48, 6).fill("#1b1d22").stroke({ width: 4, color: "#0c0c0e" });
+    this.tablet.roundRect(-28, -18, 56, 36, 3).fill("#5fa8e8");
+    this.tablet.zIndex = -5;
+    this.stick.zIndex = 50;
+    this.tablet.visible = this.stick.visible = false;
+    this.container.addChild(this.tablet, this.stick);
   }
 
   /** Loads the figure a level's boss wears; once for each kind met. */
@@ -79,6 +92,23 @@ export class BossView {
       return;
     }
     this.briefcase.visible = false;
+    this.stick.visible = this.tablet.visible = false;
+    if (b.kind === "replacement") {
+      const act = b.state === "jab" ? "windup" : b.state === "swing" ? "attack" : b.state === "hurt" || b.state === "dark" ? "bumped" : b.state === "down" ? "down" : b.vx !== 0 ? "walk" : "idle";
+      const pose = castPose({ role: "office", act, t: time % 1, speed: Math.abs(b.vx), onGround: true, sit: false, spin: 0, hits: 0, flat: b.state === "down" });
+      this.figure.pose(pose, b.facing, { x: b.x, y: b.y }, b.hurtT > 0, time, b.state === "down" ? "body" : "planted");
+      if (b.state === "down") return;
+      const near = this.figure.handOffset(pose, b.facing, "handNear");
+      const far = this.figure.handOffset(pose, b.facing, "handFar");
+      const reach = b.state === "swing" ? STICK.out : b.state === "jab" ? STICK.out * 0.5 : STICK.folded;
+      this.stick.clear();
+      this.stick.moveTo(0, 0).lineTo(b.facing * reach, -reach * 0.35).stroke({ width: 6, color: "#2b2b2e" });
+      this.stick.roundRect(b.facing * reach - 12, -reach * 0.35 - 20, 24, 40, 4).fill("#141414").stroke({ width: 3, color: "#0c0c0e" });
+      this.stick.position.set(b.x + near.x - this.container.x, b.y + near.y - this.container.y);
+      this.tablet.position.set(b.x + far.x - this.container.x, b.y + far.y - this.container.y);
+      this.stick.visible = this.tablet.visible = true;
+      return;
+    }
     if (b.kind === "purser") {
       const pose = castPose({ role: "office", act: b.state === "push" ? "attack" : b.flinch > 0 ? "bumped" : "idle", t: time % 1, speed: 0, onGround: true, sit: false, spin: 0, hits: 0 });
       // Down, she has pulled the curtain back and stands to the far side of it.

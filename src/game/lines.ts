@@ -157,6 +157,9 @@ export const CAST_LINES = {
 
 /** Through his teeth, the one word the concierge's gate takes. */
 export const BONJOUR = "...Bonjour.";
+/** The replacement (story spec §11.1): his bubbles by turns as he hops between the rows, and Hammer's thoughts as he lands one. */
+export const KID_LINES = ["So we're going to pivot to async.", "Can we take this offline?", "I'll send you the link.", "This is a safe space.", "Skip intro.", "Let's circle back."] as const;
+export const KID_COMEBACKS = { two: "Async THIS.", three: "Circle THIS." } as const;
 /** The Basel office's nurses, with the sanitizer (story spec §10.2): their own lines, word for word, not the hotel guests'. */
 export const SPRAY_NURSE: CastLineSet = {
   notice: ["Sir, this is a sterile field.", "Did you scrub in?", "That's not how we hold that here.", "Doctor will be right with you."],
@@ -173,7 +176,7 @@ export const SPRAY_NURSE: CastLineSet = {
 /** Basel's crowd, bonked (story spec §10.1): a speech bubble, never a recording. */
 export const CHEER = "Prost!";
 
-export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser" | "concierge" | "garcon" | "parisian" | "kid" | "conductor" | "piper" | "drummer" | "drill" | "major" | "tech" | "resident" | "admin";
+export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser" | "concierge" | "garcon" | "parisian" | "kid" | "conductor" | "piper" | "drummer" | "drill" | "major" | "tech" | "resident" | "admin" | "replacement";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -252,6 +255,8 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
   admin: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
   // The drum major's lines are his fight's.
   major: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
+  // So are the replacement's.
+  replacement: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
   // Paris's people (story spec §9.2).
   concierge: { notice: ["Bonjour, monsieur."], bump: none, down: none, fall: "", shove: none, warn: ["The lift takes one."], skid: none, march: none, ambush: none, frozen: null },
   garcon: { notice: none, bump: ["Pardon."], down: ["Pardon."], fall: "Pardoooon", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: "Pardon." },

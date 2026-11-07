@@ -370,7 +370,7 @@ test("the cast and the missiles draw between the last two steps, matched by id",
 });
 
 test("every person has a look, taller or shorter than Hammer by the design, and a recolor changes only the top", () => {
-  assert.deepEqual(Object.keys(LOOKS).sort(), ["admin", "attendant-1", "bartender-1", "bellhop-1", "bellhop-2", "busser-1", "concierge", "conductor", "cook-1", "drill", "drummer", "garcon", "gate-agent", "guard-1", "housekeeper-1", "kid-1", "lunch-1", "major", "nurse", "office-1", "office-2", "parisian-1", "piper", "prof-1", "purser", "resident", "server-1", "server-2", "skycap-1", "student-1", "student-2", "tech", "titanium", "tsa-1"]);
+  assert.deepEqual(Object.keys(LOOKS).sort(), ["admin", "attendant-1", "bartender-1", "bellhop-1", "bellhop-2", "busser-1", "concierge", "conductor", "cook-1", "drill", "drummer", "garcon", "gate-agent", "guard-1", "housekeeper-1", "kid-1", "lunch-1", "major", "nurse", "office-1", "office-2", "parisian-1", "piper", "prof-1", "purser", "replacement", "resident", "server-1", "server-2", "skycap-1", "student-1", "student-2", "tech", "titanium", "tsa-1"]);
   assert.deepEqual([LOOKS["skycap-1"].height, LOOKS["tsa-1"].height, LOOKS["bartender-1"].height], [330, 320, 310]);
   assert.equal(PAINTING_OF["bartender-1"], "server-1");
   assert.deepEqual([LOOKS["bellhop-1"].height, LOOKS["server-2"].height, LOOKS["student-1"].height], [355, 360, 315]);
@@ -1447,7 +1447,7 @@ import { createFares } from "../src/sim/quests/fares/fares.ts";
 
 // The side quests' own music (owner, 2026-10-25: "some other bonkers music for this side quest and hungry hungry hammer").
 test("every song: whole bars of sixteenths, notes in range, drum lines a bar long, the gags inside the song; the side quests' fast", () => {
-  assert.deepEqual(Object.keys(SONGS).sort(), ["arena", "banquet", "basel", "campus", "cellar", "flight", "french", "gate", "hallway", "lab", "lobby", "lobby-night", "lounge", "paris", "restaurant", "sat", "suite", "title", "tower", "train"]);
+  assert.deepEqual(Object.keys(SONGS).sort(), ["arena", "banquet", "basel", "campus", "cellar", "flight", "french", "gate", "hallway", "lab", "lobby", "lobby-night", "lounge", "paris", "replacement", "restaurant", "sat", "suite", "title", "tower", "train"]);
   for (const name of ["banquet", "gate"]) assert.ok(SONGS[name].step <= 0.12, `${name}: a side quest's quick sixteenth`);
   for (const [name, s] of Object.entries(SONGS)) {
     assert.ok(s.lead.length > 0 && s.lead.length % 16 === 0, `${name}: whole bars`);

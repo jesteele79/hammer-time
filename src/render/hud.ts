@@ -7,6 +7,7 @@ import type { CarriedKind } from "../sim/level";
 import { CHARGE_MAX, HEAT, SINUS_MAX, STAMINA, lectureReach } from "../sim/moves";
 import { PIG } from "../sim/pig";
 import { BOSS_NAMES, bossUp } from "../sim/boss";
+import { REPLACEMENT } from "../sim/replacement";
 import type { Menu } from "../sim/quests/hungry/food";
 import { GRADES, HUNGRY, baseReach, hungryHint, type Hungry, type HungryResult } from "../sim/quests/hungry/hungry";
 import { FARES, faresHint, groupOf, type Fares, type FaresResult } from "../sim/quests/fares/fares";
@@ -66,8 +67,8 @@ export type HudPayload = {
   hint: string;
   /** The level's errands done and how many it has (3-4), beside the clock; null where there are none. */
   errands: { n: number; of: number } | null;
-  /** The pig's bar (R3 §5.2) while the fight is on: its HP and the bonks and snots it still needs. */
-  boss: { name: string; hp: number; max: number; bonks: number; snots: number; need: number } | null;
+  /** The pig's bar (R3 §5.2) while the fight is on: its HP and the bonks and snots it still needs; `marks` the notches where a boss's rounds turn (the replacement's ten and five). */
+  boss: { name: string; hp: number; max: number; bonks: number; snots: number; need: number; marks?: number[] } | null;
   /**
    * The banquet (R4 §9) while its card, its round or its tally is up; null in the shift. `reach` is where his dive stops
    * (his tap's, or the charge so far), `reachBase` his tap's; `door` when it was opened from the BUFFET door; `lecture`
@@ -133,6 +134,12 @@ export function hintOf(game: Game): string {
   if (game.world.boss?.kind === "titanium") return "Lifetime Titanium guy · bonk him · jump what he throws · H bats an apple back";
   if (game.world.boss?.kind === "conductor" && bossUp(game.world.boss) && Math.abs(game.world.boss.x - h.x) < 900) return "The conductor · jump or ↓ as he punches · H when he staggers";
   if (game.world.boss?.kind === "major" && bossUp(game.world.boss)) return "The drum major · slide the pipers' hole · H while his mace is up";
+  if (game.world.boss?.kind === "replacement" && bossUp(game.world.boss))
+    return game.world.boss.round === 1
+      ? "The replacement · H on the ring light's stand · then him in the dark"
+      : game.world.boss.round === 2
+        ? "The replacement · E freezes the room · B throws the IFU"
+        : "The replacement · Q's full smash on the screen · H when he staggers out";
   if (game.world.boss?.kind === "purser" && bossUp(game.world.boss)) return "The purser · A or D out of the aisle while she pushes · bonk her between pushes";
   if (bossUp(game.world.boss)) return "Housekeeping · jump her carts or slide under · bonk her when she waits";
   const zone = heatZoneAt(game.world.stage, h, game.world.time);
@@ -262,7 +269,7 @@ export function hudOf(game: Game, portrait: string | null, saved = false, note: 
       pig && pig.state !== "asleep" && pig.state !== "defeated"
         ? { name: "The Pink Menace", hp: pig.hp, max: pig.max, bonks: pig.bonks, snots: pig.snots, need: PIG.need }
         : bossUp(game.world.boss)
-          ? { name: BOSS_NAMES[game.world.boss!.kind], hp: game.world.boss!.hp, max: game.world.boss!.max, bonks: 0, snots: 0, need: 0 }
+          ? { name: BOSS_NAMES[game.world.boss!.kind], hp: game.world.boss!.hp, max: game.world.boss!.max, bonks: 0, snots: 0, need: 0, ...(game.world.boss!.kind === "replacement" ? { marks: [REPLACEMENT.rounds.three, REPLACEMENT.rounds.two] } : {}) }
           : null,
     quest,
     boxes: h.boxes,

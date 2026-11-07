@@ -7,6 +7,7 @@ import type { MissileKind } from "./missiles";
 import type { CrateKind, DoorKind, Lesson, LevelId } from "./level";
 import type { PickupKind } from "./rewards";
 import type { Rect } from "./types";
+import type { TauntId } from "../game/taunts";
 
 /** What happened in one sim step, for the renderer, the sound and the feel. Positions are world px. */
 export type GameEvent =
@@ -196,6 +197,10 @@ export type GameEvent =
   /** The suite: a bed's bounce, his move to the next room, the grab's wind-up, landing and what it took, what he gave back, the rail. */
   | { type: "bounce"; x: number; y: number }
   | { type: "bossPhase"; phase: number; room: number }
+  /** The training room (3-6): the ring light turned off him; one of the owner's recordings, forced, not rolled; the kid carried out. */
+  | { type: "beamTurn"; x: number }
+  | { type: "voiceLine"; id: TauntId | "curse" }
+  | { type: "carryOut"; x: number; y: number }
   | { type: "bossCall" }
   | { type: "grab"; phase: "windup" | "land" | "take"; x: number; y: number; n?: number }
   | { type: "giveBack"; n: number; x: number; y: number }

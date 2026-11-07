@@ -185,9 +185,17 @@ export function NextHud({
       {!q && !g && hud.boss && (
         <section className="next-hud__boss" aria-label={hud.boss.name}>
           <span className="next-hud__boss-name">{hud.boss.name}</span>
-          <span className="next-hud__boss-bar" role="meter" aria-label="Its stuffing" aria-valuemin={0} aria-valuemax={hud.boss.max} aria-valuenow={hud.boss.hp}>
+          <span
+            className="next-hud__boss-bar"
+            role="meter"
+            aria-label="Its stuffing"
+            aria-valuemin={0}
+            aria-valuemax={hud.boss.max}
+            aria-valuenow={hud.boss.hp}
+            style={hud.boss.max > 12 ? { gridTemplateColumns: `repeat(${hud.boss.max}, 1fr)` } : undefined}
+          >
             {Array.from({ length: hud.boss.max }, (_, i) => (
-              <i key={i} data-on={i < hud.boss!.hp} />
+              <i key={i} data-on={i < hud.boss!.hp} data-mark={hud.boss!.marks?.includes(i) || undefined} />
             ))}
           </span>
           {hud.boss.need > 0 && (

@@ -426,7 +426,7 @@ test("a profile head registers its nose tip at the face box's front edge", async
 const CAST_IN = "art/incoming/cast";
 import { LOBBY_NIGHT } from "../src/sim/levels/lobby-night.ts";
 import { TOWER } from "../src/sim/levels/tower.ts";
-const PERSONS = ["piper", "drummer", "drill", "major", "tech", "resident", "admin", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "guard-1", "titanium", "housekeeper-1"];
+const PERSONS = ["piper", "drummer", "drill", "major", "tech", "resident", "admin", "replacement", "bellhop-1", "bellhop-2", "server-1", "server-2", "office-1", "office-2", "student-1", "student-2", "cook-1", "busser-1", "lunch-1", "prof-1", "guard-1", "titanium", "housekeeper-1"];
 /** The cast bodies with a painting and a cut: every cast check runs on each. */
 const CAST_CUT = PERSONS.filter((p) => existsSync(`${CAST_IN}/${p}.png`) && existsSync(`art/cuts/cast-${p}.json`));
 const castCache = new Map();

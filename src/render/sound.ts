@@ -309,6 +309,17 @@ export function createSound(): Sound {
       sound.unlocked = !bus.failed;
     },
     play(e) {
+      // A scripted recording (3-6): forced, not rolled, whatever else is playing.
+      if (e.type === "voiceLine") {
+        played[`voice:${e.id}`] = (played[`voice:${e.id}`] ?? 0) + 1;
+        if (!sound.unlocked) return;
+        if (e.id === "curse") bus.curse();
+        else {
+          bus.stopVoice();
+          bus.voice(e.id);
+        }
+        return;
+      }
       const names = cuesFor(e);
       for (const name of names) {
         played[name] = (played[name] ?? 0) + 1;
