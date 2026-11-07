@@ -214,4 +214,12 @@ export type GameEvent =
   | { type: "errand"; id: string; n: number; of: number; x: number; y: number }
   /** Walked into the office door before the errands were done. */
   | { type: "errandsShut"; x: number; y: number }
+  /** The parade (3-4): a band's pipes up and its drone, its first step; caught by a rank and carried, dropped behind it. */
+  | { type: "bandRise"; id: string; x: number }
+  | { type: "bandStep"; id: string; x: number }
+  | { type: "caught"; x: number }
+  | { type: "dropped"; x: number }
+  /** The drum corps' fourth beat, and him knocked off a barrier or a bleacher by it. */
+  | { type: "drumHit"; x: number }
+  | { type: "knocked"; x: number; y: number }
   | { type: "mode"; mode: GameMode };

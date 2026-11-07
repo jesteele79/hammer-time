@@ -164,8 +164,8 @@ function strolling(level: Level, h: HeroState, i: Input, w?: World): Input {
   return i;
 }
 
-/** How the walker looks ahead in Basel, in px: a bike coming, where he stops running for a counter, how near it he stands, and walks back from. */
-const TOUR = { bike: 540, slow: 360, stand: 40, back: 55 } as const;
+/** How the walker looks ahead in Basel, in px: a bike coming, where he stops running for a counter, how near it he stands, and walks back from; how near a band's rank he ducks under its hole. */
+const TOUR = { bike: 540, slow: 360, stand: 40, back: 55, band: 260 } as const;
 /**
  * The walker: down the street to each errand in turn, still at its counter until it is done, over the bikes and the ramp's
  * face, the mallet at whoever is in his way, and in at the office door once the four are done.
@@ -182,6 +182,13 @@ function touring(level: Level, h: HeroState, i: Input, w?: World): Input {
       i.held.right = false;
       i.held.left = true;
     }
+  }
+  // A band marching at him: down, under its hole, until it has gone over.
+  const band = w.parade?.bands.some((b) => b.state === "march" && b.x - h.x > -120 && b.x - h.x < TOUR.band);
+  if (band && h.onGround) {
+    i.held.down = true;
+    i.held.run = false;
+    return i;
   }
   const still = !i.held.right && !i.held.left;
   if (!still) fight(w, h, i);

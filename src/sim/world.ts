@@ -11,6 +11,7 @@ import { emptyInput, type Input } from "./input";
 import { stepMissiles, type Missile } from "./missiles";
 import { stepBoss, type Boss } from "./boss";
 import { stepMovers, type Mover } from "./movers";
+import { stepParade, type ParadeState } from "./parade";
 import { stepPig, type Pig } from "./pig";
 import { advanceMove, deliverLecture, startMove, steerMove, stepHeat, stepIdle } from "./moves";
 import { fireSnot, stepSnot, type Puddle, type Snot } from "./snot";
@@ -55,6 +56,8 @@ export type World = {
   movers: Mover[];
   /** The boss beside the pig: the tower's supervisor. */
   boss: Boss | null;
+  /** 3-4's parade: the bands, the drum corps, the pipers who follow him; null elsewhere. */
+  parade: ParadeState | null;
   /** Paris's gate has heard his bonjour, this life. */
   bonjourDone: boolean;
   /** Paris's window: how long he has stood on it, and how long it hangs open. */
@@ -97,6 +100,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
     pig: opts.pig ?? null,
     movers: [],
     boss: null,
+    parade: null,
     bonjourDone: false,
     tip: { on: 0, out: 0 },
     flight: null,
@@ -140,6 +144,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
       stepSamples(world, STEP, events);
       stepTargets(world.targets, world.stage, STEP, events);
       stepMovers(world, STEP, events);
+      stepParade(world, STEP, events);
       stepMissiles(world, STEP, events);
       stepCast(world, STEP, prevY, input.held.jump, events);
       stepPig(world, STEP, prevY, input.held.jump, events);
@@ -166,6 +171,7 @@ export function createWorld(stage: Stage, spawn: Point, opts: WorldOptions = {})
         pig: world.pig && { ...world.pig, arena: [world.pig.arena[0], world.pig.arena[1]] },
         movers: world.movers.map((m) => ({ ...m, top: { ...m.top } })),
         boss: world.boss && { ...world.boss },
+        parade: world.parade && structuredClone(world.parade),
         flight: world.flight && { ...world.flight, cart: { ...world.flight.cart } },
         hallCarts: world.hallCarts.map((c) => ({ ...c })),
         hallDoors: world.hallDoors.map((d) => ({ ...d })),

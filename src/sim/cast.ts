@@ -34,7 +34,7 @@ export type CastHitBy = "mallet" | "snot" | "stomp" | "burst" | "shield" | "cart
 
 export type CastJob = CastJobName;
 /** The people whose painting's name is their whole job, with no number. */
-const JOBS_WHOLE: readonly string[] = ["nurse", "purser", "concierge", "garcon", "conductor"];
+const JOBS_WHOLE: readonly string[] = ["nurse", "purser", "concierge", "garcon", "conductor", "piper", "drummer", "drill"];
 /** Who a person is: the painting's name less its number ("cook-1" is a cook). */
 export const jobOf = (p: CastPerson): CastJob => (JOBS_WHOLE.includes(p) ? p : p.slice(0, -2)) as CastJob;
 /** Which of the lobby's four fights each job fights (R3 §4). */
@@ -68,6 +68,11 @@ export const ROLE_OF: Record<CastJob, CastRole> = {
   kid: "office",
   // A boss, as the purser is; this is only his painting's job.
   conductor: "office",
+  // Basel's parade (story spec §10.1): a piper or a drummer out of the ranks marches at him and swats as the office worker
+  // does; the drill team throws its rifles as the students throw planes.
+  piper: "office",
+  drummer: "office",
+  drill: "student",
 };
 /** Who takes fewer hits than their fight's: a housekeeper goes out in two (story spec §8.2). */
 export const CAST_HITS: Partial<Record<CastJob, number>> = { housekeeper: 2 };

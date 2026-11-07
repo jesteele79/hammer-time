@@ -20,6 +20,7 @@ import { addCans, addScore, createRun, RUN, type Run } from "./run";
 import { AMBASSADOR_CHECKPOINT, KEYCARD_POINTS, LATE_CHECKOUT, TIER_POINTS, tierOf } from "./status";
 import { createCart, knock } from "./targets";
 import { createMover } from "./movers";
+import { createParade, startBand } from "./parade";
 import { createBoss } from "./boss";
 import { CONDUCTOR, atDoor, conductorWall, summonConductor } from "./conductor";
 import { createSwingDoors } from "./hazards";
@@ -107,7 +108,7 @@ export type Game = {
   /** The line the next card shows in place of the level's, for that card only: the train that left. */
   cardLine: string | null;
   /** The checks' levers on a level's clocks. */
-  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void; errand(id: string): void };
+  dev: { turbulence(): void; cart(): void; stretch(seconds: number): void; bossDoor(door: number): void; errand(id: string): void; band(id: string): void };
   /** How far through the errand he stands at he is, 0 to 1 (3-4): the look fills its pip. */
   errandHold: number;
 };
@@ -277,6 +278,10 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
       cart() {
         if (world.flight) world.flight.cart.next = world.flight.cart.t;
       },
+      band(id) {
+        const b = world.parade?.bands.find((k) => k.id === id);
+        if (b) startBand(b, game.events);
+      },
       errand(id) {
         if (game.level.errands?.some((e) => e.id === id) && !game.run.errands.includes(id)) game.run.errands.push(id);
       },
@@ -329,6 +334,7 @@ export function createGame(levels: Levels, seed: number, opts: { cast?: boolean;
     const at = set ?? k ?? level.spawn;
     Object.assign(world.hero, createHero(at, carry));
     world.movers = (level.movers ?? []).map(createMover);
+    world.parade = createParade(level);
     world.bonjourDone = false;
     world.tip = { on: 0, out: 0 };
     bonjourNag = 0;

@@ -160,7 +160,7 @@ export const BONJOUR = "...Bonjour.";
 /** Basel's crowd, bonked (story spec §10.1): a speech bubble, never a recording. */
 export const CHEER = "Prost!";
 
-export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser" | "concierge" | "garcon" | "parisian" | "kid" | "conductor";
+export type CastJobName = "nurse" | "bellhop" | "server" | "office" | "student" | "cook" | "busser" | "lunch" | "prof" | "skycap" | "tsa" | "bartender" | "guard" | "housekeeper" | "attendant" | "purser" | "concierge" | "garcon" | "parisian" | "kid" | "conductor" | "piper" | "drummer" | "drill";
 /** Everything one job says: speech bubbles, never recordings. A role's fight reads the lines it needs; the rest stay empty. */
 export type CastLineSet = {
   notice: readonly string[];
@@ -229,6 +229,10 @@ export const JOB_LINES: Record<CastJobName, CastLineSet> = {
   // The conductor's lines are his fight's (story spec §9.3); the family car's kids say nothing.
   conductor: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
   kid: { notice: none, bump: none, down: none, fall: "", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: null },
+  // Basel's parade (story spec §10.1): bubbles, never recordings.
+  piper: { notice: ["Hoots!"], bump: ["Hoots!"], down: ["Och!"], fall: "Hooooots", shove: none, warn: none, skid: none, march: ["Hoots!"], ambush: none, frozen: "Hoots?" },
+  drummer: { notice: ["Keep time!", "Mind the sticks!"], bump: ["Keep time!"], down: ["Lost the beat!"], fall: "Ra-ta-taaaa", shove: none, warn: none, skid: none, march: ["Left, right!"], ambush: none, frozen: "Keep... time." },
+  drill: { notice: ["Eyes front!", "By the left!"], bump: none, down: none, fall: "Paraaade", shove: none, warn: ["Present... ARMS!", "Shoulder... ARMS!"], skid: none, march: none, ambush: none, frozen: null },
   // Paris's people (story spec §9.2).
   concierge: { notice: ["Bonjour, monsieur."], bump: none, down: none, fall: "", shove: none, warn: ["The lift takes one."], skid: none, march: none, ambush: none, frozen: null },
   garcon: { notice: none, bump: ["Pardon."], down: ["Pardon."], fall: "Pardoooon", shove: none, warn: none, skid: none, march: none, ambush: none, frozen: "Pardon." },

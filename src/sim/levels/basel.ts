@@ -111,7 +111,22 @@ export const BASEL: Level = {
     { x: 6800, text: "Who approved this?" },
     { x: 10300, text: "That's not a schedule. That's a parade." },
   ],
+  // The bands cross him at every errand; the drum corps plays in front of the Rathaus, near enough the Marktplatz's barrier.
+  parade: {
+    bands: [
+      { id: "band-1", from: 1000, x: 3200, x1: 400, color: "#2f4f7f" },
+      { id: "band-2", from: 6600, x: 8800, x1: 6000, color: "#7a1f2b" },
+      { id: "band-3", from: 10400, x: 12400, x1: 9800, color: "#2f4f7f" },
+      { id: "band-4", from: 13200, x: 15400, x1: 12800, color: "#7a1f2b" },
+    ],
+    corps: { x: 12400, reach: 600 },
+  },
   cast: [
+    // The drill team on the bridge, rifles at the shoulder; drummers out of the ranks at the ramp's foot.
+    { id: "drill-1", person: "drill", x: 4200, y: 0, x0: 3900, x1: 4500 },
+    { id: "drill-2", person: "drill", x: 5300, y: 0, x0: 5000, x1: 5600 },
+    { id: "drill-3", person: "drill", x: 6400, y: 0, x0: 6100, x1: 6700 },
+    ...[11050, 11150, 11250, 11350].map((x, k) => ({ id: `drummer-${k + 1}`, person: "drummer" as const, x, y: 0, x0: x - 150, x1: x + 150 })),
     // The four counters' people, behind them: the bank, the copy shop, the pharmacy, the courier.
     { id: "teller-bank", person: "office-2", x: 7900, y: 0, recolor: "#5b6b84", trick: "seated" },
     { id: "teller-copy", person: "server-2", x: 9800, y: 0, trick: "seated" },

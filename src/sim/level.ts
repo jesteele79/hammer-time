@@ -74,6 +74,8 @@ export type DoorSpec = {
   /** An exit shut until every errand of the level is done (3-4's office door). */
   errands?: boolean;
 };
+/** A pipe band's rank (story spec §10.1): it waits until he passes `from`, then marches left from `x` to `x1`. */
+export type BandSpec = { id: string; from: number; x: number; x1: number; color: string };
 /** A counter he stands at, still, for `ERRAND.hold` seconds: done once a run, its line his thought (story spec §10.1). */
 export type ErrandSpec = { id: string; x: number; line: string };
 /** A door with a tier opens at that many keycards; any other door has none to reach. */
@@ -156,7 +158,10 @@ export type CastPerson =
   | "garcon"
   | "parisian-1"
   | "kid-1"
-  | "conductor";
+  | "conductor"
+  | "piper"
+  | "drummer"
+  | "drill";
 /**
  * Who stands where. `y` is the floor or platform they stand on; `x0, x1` a patrol; `cart` a bellhop's cart (its x in
  * `carts`); `hide` waits behind the screen; `sit` sits on a table; `recolor` a uniform hue (R2b-2).
@@ -308,6 +313,8 @@ export type Level = Omit<Stage, "floor" | "platforms" | "passes" | "heat"> & {
   slips?: Point[];
   /** The counters he must stand at before the door that needs them opens (3-4). */
   errands?: ErrandSpec[];
+  /** The parade (3-4): the pipe bands as marching walls with a hole, and the drum corps whose beat shakes the ground. */
+  parade?: { bands: BandSpec[]; corps?: { x: number; reach: number } };
   /** Evening coming on over the clock: the light eases to night through its last third and the lanterns come on (3-4). */
   dusk?: boolean;
 };

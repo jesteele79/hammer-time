@@ -26,7 +26,7 @@ import { GRAVITY_DOWN, STEP } from "./constants";
 import type { GameEvent } from "./events";
 import { bodyRect, overlapsRect, sideways } from "./geometry";
 import { BURST_R, flopRect, flopping } from "./hits";
-import { flies, launchCoffee, launchPlane, type Missile } from "./missiles";
+import { flies, launchCoffee, launchPlane, launchRifle, type Missile } from "./missiles";
 import { canStand, floorAt, moveBody } from "./physics";
 import type { Puddle } from "./snot";
 import type { HeroState, Point, Rect, Stage, Target } from "./types";
@@ -333,9 +333,11 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
   if (n.act === "windup") {
     if (n.actT >= c.windup) {
       // The bartender's are coasters off the bar; they fly as the planes do.
-      const m = launchPlane(++w.nextMissile, n, { x: h.x, y: h.y - h.h * 0.6 }, n.job === "bartender" ? "coaster" : "plane");
+      const at = { x: h.x, y: h.y - h.h * 0.6 };
+      const m = n.job === "drill" ? launchRifle(++w.nextMissile, n, at) : launchPlane(++w.nextMissile, n, at, n.job === "bartender" ? "coaster" : "plane");
       w.missiles.push(m);
       events.push({ type: "missile", kind: m.kind, x: m.x, y: m.y });
+      if (n.job === "drill") events.push({ type: "castThrow", id: n.id, x: m.x, y: m.y, t: w.time });
       attack(n, events);
       // The rest between throws counts from the throw.
       n.rest = c.restMin + ((n.k + n.hits) % 4) * c.restStep;
@@ -359,7 +361,7 @@ function stepStudent(n: Npc, w: CastWorld, events: GameEvent[]): void {
   const planes = w.missiles.filter((m) => flies(m.kind)).length + w.cast.filter((m) => m.role === "student" && m.act === "windup").length;
   if (!n.noticed || n.rest > 0 || Math.abs(h.x - n.x) > c.notice || planes >= c.planes || !ticketFree(w.cast)) return;
   windup(n, w, events);
-  say(n, CAST_LINES.student.heads, events);
+  say(n, n.job === "drill" ? pick(linesOf(n).warn, n.k + n.hits) : CAST_LINES.student.heads, events);
 }
 
 /** The night auditor's reply-all (story spec §8.1): a wind-up at the notice, three planes a beat apart, then the march. True while it takes his step. */

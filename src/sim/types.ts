@@ -8,6 +8,7 @@ import type { HeatZone, SwingDoor } from "./hazards";
 import type { Puddle, Snot } from "./snot";
 import type { FlightState } from "./flight";
 import type { HallCart, HallDoor } from "./hall";
+import type { ParadeState } from "./parade";
 
 /** The 3D sets a level can stand in (src/render/3d/sets.ts). */
 export type SetName = "hallway" | "cabin";
@@ -132,4 +133,4 @@ export type Target = {
   spilled: boolean;
 };
 
-export type Snapshot = { flight: FlightState | null; hallCarts: HallCart[]; hallDoors: HallDoor[]; time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null };
+export type Snapshot = { flight: FlightState | null; hallCarts: HallCart[]; hallDoors: HallDoor[]; time: number; hero: HeroState; targets: Target[]; snot: Snot[]; samples: Sample[]; puddles: Puddle[]; cast: Npc[]; missiles: Missile[]; doors: SwingDoor[]; pig: Pig | null; movers: Mover[]; boss: Boss | null; parade: ParadeState | null };

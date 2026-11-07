@@ -86,6 +86,11 @@ export const LOOKS: Record<CastPerson, CastLook> = {
   "housekeeper-1": { height: 310, head: 0.22, build: 0.95, skin: "#d9a98b", hair: "#9a9a9a", hairStyle: "bun", top: "#7d8087", sleeves: "top", apron: true, bottom: "#7d8087", shoes: "#141414" },
   // The night's guard: navy and a flashlight (his stand-in is the fallback only).
   "guard-1": { height: 340, head: 0.22, build: 1.1, skin: "#d7a27a", hair: "#1c1612", hairStyle: "short", top: "#1f2c4d", sleeves: "top", bottom: "#141a2c", shoes: "#141414", mustache: true },
+  // Basel's parade, stand-ins until their paintings are cut: the pipers' doublet and tartan, the drummers' red tunic, the
+  // drill team's navy and white gloves.
+  piper: { height: 345, head: 0.22, build: 1.05, skin: "#e8bf9c", hair: "#9a4a2a", hairStyle: "short", top: "#1f4a32", sleeves: "top", bottom: "#2f4f7f", shoes: "#141414", mustache: true },
+  drummer: { height: 315, head: 0.22, build: 0.85, skin: "#ebc9a9", hair: "#2a1d16", hairStyle: "ponytail", top: "#b8282e", sleeves: "top", bottom: "#2f4f7f", shoes: "#141414" },
+  drill: { height: 350, head: 0.22, build: 0.9, skin: "#f0cfae", hair: "#e3c27a", hairStyle: "short", top: "#1b2748", sleeves: "top", bottom: "#1b2748", shoes: "#f4f3ee", gloves: true },
   "bartender-1": { height: 310, head: 0.22, build: 0.9, skin: "#c9956a", hair: "#1c1612", hairStyle: "short", top: "#f4f3ee", sleeves: "skin", vest: "#1b1b1b", apron: true, bottom: "#1b1b1b", shoes: "#141414" },
 };
 

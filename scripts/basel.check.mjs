@@ -10,6 +10,8 @@ import { STASH } from "../src/sim/levels/stash.ts";
 import { BASEL } from "../src/sim/levels/basel.ts";
 import { STOP_LEVELS } from "../src/sim/levels/index.ts";
 import { hudOf } from "../src/render/hud.ts";
+import { PARADE } from "../src/sim/parade.ts";
+import { flies } from "../src/sim/missiles.ts";
 
 const NONE = { left: false, right: false, up: false, jump: false, run: false, down: false, fire: false, towel: false, hammer: false, super: false, lecture: false, box: false };
 const input = (held = {}, pressed = {}) => ({ held: { ...NONE, ...held }, pressed: { ...NONE, ...pressed } });
@@ -47,7 +49,42 @@ test("the crowd cheers and is bonked once with Prost!, never solid; the bikes co
   until(g, (x) => x.world.movers.some((m) => m.id === "bike-1" && m.live && m.x < 10700 && m.x > 10400), 20); assert.ok(bikes[0].y < -200, "in the air over the ramp");
 });
 test("the ramp is a floor he walks up from the old town's side, and a face he jumps from the bridge's", () => {
-  const g = basel(); play(g); const h = g.world.hero; g.world.movers.length = 0; Object.assign(h, { x: 11300, y: 0, facing: -1 });
+  const g = basel(); play(g); const h = g.world.hero; g.world.movers.length = 0; g.world.cast.length = 0; g.world.parade = null; Object.assign(h, { x: 11300, y: 0, facing: -1 });
   until(g, (x) => x.world.hero.x < 10750, 3, { left: true }); assert.ok(h.y < -150 && h.onGround, `up the ramp at ${h.y}`);
   Object.assign(h, { x: 10350, y: 0, vx: 0, vy: 0, onGround: true }); until(g, () => false, 1, { right: true }); assert.ok(h.x < 10600, "the face stops a walk");
+});
+test("a band waits for him, rises a second, marches at 200 px/s and is gone at its end; standing in its way is caught, carried 400 px and dropped for a hit", () => {
+  const g = basel(); play(g); const h = g.world.hero; const band = () => g.world.parade.bands[0];
+  assert.deepEqual([band().state, band().x, PARADE.speed, PARADE.carry], ["wait", 3200, 200, 400]);
+  Object.assign(h, { x: 1100, y: 0 }); const rise = until(g, (x) => x.world.parade.bands[0].state === "march", 2); assert.deepEqual([of(rise, "bandRise").length, of(rise, "bandStep").length], [1, 1]);
+  const x0 = band().x; until(g, () => false, 1); assert.ok(Math.abs(band().x - (x0 - 200)) < 2);
+  Object.assign(h, { x: band().x - 300, y: 0, invuln: 0, patience: 2 }); const hx = h.x; const caught = until(g, (x) => of(x.events, "dropped").length > 0, 4);
+  assert.deepEqual([of(caught, "caught").length, of(caught, "dropped").length, h.patience, Math.round((hx - h.x) / 50) * 50 >= 350], [1, 1, 1, true]);
+  until(g, (x) => x.world.parade.bands[0].state === "gone", 20); assert.equal(band().state, "gone");
+});
+test("a slide goes through the hole; a jump into the rank is caught; a band that has gone catches nothing; the bleachers stand above the pipes", () => {
+  const g = basel(); play(g); const h = g.world.hero; g.dev.band("band-1"); until(g, (x) => x.world.parade.bands[0].state === "march", 2); const b = g.world.parade.bands[0];
+  Object.assign(h, { x: b.x - 500, y: 0, vx: 0 }); until(g, () => false, 0.4, { right: true, run: true }); const slid = until(g, (x) => x.world.hero.x > b.x + 100, 1.5, { right: true, run: true, down: true });
+  assert.deepEqual([of(slid, "caught").length, h.x > b.x], [0, true]);
+  Object.assign(h, { x: b.x - 900, y: 0 }); const jumped = until(g, (x) => of(x.events, "caught").length > 0, 3, { right: true }, (x) => { if (Math.abs(x.world.hero.x - b.x) < 250 && x.world.hero.onGround) x.step(input({ right: true }, { jump: true })); });
+  assert.equal(of(jumped, "caught").length, 1);
+  assert.ok(BASEL.platforms.filter((p) => p.kind === "bleacher").every((p) => -p.y > PARADE.h));
+  const k = basel(); play(k); k.dev.band("band-1"); const kb = k.world.parade.bands[0]; until(k, (x) => x.world.parade.bands[0].state === "gone", 20);
+  Object.assign(k.world.hero, { x: kb.x, y: 0, invuln: 0 }); assert.equal(of(until(k, () => false, 1), "caught").length, 0, "gone");
+});
+test("the drum corps shakes every 2.5 s within hearing and knocks him off a barrier near them, no pip; the drill team's rifles fly on an arc, swatted or ducked", () => {
+  const g = basel(); play(g); const h = g.world.hero; Object.assign(h, { x: 12700, y: -120, onGround: true, patience: 2 });
+  const hits = until(g, (x) => of(x.events, "knocked").length > 0, 3); assert.deepEqual([of(hits, "drumHit").length >= 1, h.onGround, h.patience], [true, false, 2]);
+  until(g, () => false, 0.6); assert.deepEqual([h.y, h.patience], [0, 2], "off the barrier, on the floor");
+  Object.assign(h, { x: 9000, y: 0 }); assert.equal(until(g, (x) => of(x.events, "drumHit").length > 0, 3).some((e) => e.type === "drumHit"), false, "out of hearing");
+  const m = basel(); play(m); const d = m.world.cast.find((n) => n.job === "drill"); Object.assign(m.world.hero, { x: d.x - 500, y: 0 });
+  const thrown = until(m, (x) => x.world.missiles.some((r) => r.kind === "rifle"), 4); const r = m.world.missiles.find((q) => q.kind === "rifle"); assert.deepEqual([of(thrown, "castThrow").length >= 1, r.vy < 0, flies("rifle")], [true, true, true]);
+  const ducked = until(m, (x) => !x.world.missiles.some((q) => q.kind === "rifle"), 3, { down: true }); assert.equal(of(ducked, "missileHit").filter((e) => e.hero).length, 0);
+});
+test("a carried hero never goes through a wall or past the level's start; a catch in grace is none", () => {
+  const g = basel(); play(g); const h = g.world.hero; g.dev.band("band-1"); until(g, (x) => x.world.parade.bands[0].state === "march", 2); const b = g.world.parade.bands[0];
+  Object.assign(b, { x: 400, x1: -600 }); Object.assign(h, { x: 250, y: 0, invuln: 0, patience: 2 }); const evs = until(g, (x) => of(x.events, "dropped").length > 0, 3);
+  assert.deepEqual([of(evs, "caught").length, of(evs, "dropped").length, h.x >= h.w / 2 - 1], [1, 1, true]);
+  const k = basel(); play(k); k.dev.band("band-1"); until(k, (x) => x.world.parade.bands[0].state === "march", 2); const kb = k.world.parade.bands[0];
+  Object.assign(k.world.hero, { x: kb.x - 200, y: 0, invuln: 3 }); assert.equal(of(until(k, () => false, 1.5), "caught").length, 0);
 });
