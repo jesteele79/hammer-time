@@ -2,7 +2,7 @@
 
 Story Phase 4 is built: Act 3 plays from 3-1's card through Basel in Tattoo week, the Basel office in scrubs and the replacement's three rounds to "The Basel office would like you to stay on. As Trainer for Life." ("Obviously.") and "Act 3 · The Last Tour · complete". The journey is finished there and Clock in reads "The epilogue is coming". Your job is Phase 5 of `docs/superpowers/plans/2026-11-02-story-roadmap.md`: the epilogue's eight cards and the credits, the Buc-ee's booth at home, the awards, the straight-through runs for Acts 2 and 3, the food plates, the last of the deferred minors, and the final review of the whole game.
 
-**Repo and branch:** `C:\Users\jeste\Desktop\hammer-time`, branch `claude/hammer-pass`. `main` moves only on the owner's yes at the time. `main` holds Phase 3 (ac85d1d) since 2026-11-06; Phase 4 is on `claude/hammer-pass` only until the owner says so.
+**Repo and branch:** `C:\Users\jeste\Desktop\hammer-time`, branch `claude/hammer-pass`. `main` moves only on the owner's yes at the time. `main` holds Phase 4 since 2026-11-08, on the owner's word before playing it.
 
 ## Read first, in full, before any code
 
